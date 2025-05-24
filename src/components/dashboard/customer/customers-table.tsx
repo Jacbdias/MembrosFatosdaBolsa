@@ -89,7 +89,9 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): JSX.Eleme
               variant="h4" 
               sx={{ 
                 fontWeight: 700,
-                color: 'text.primary',
+                color: trend && diff !== undefined ? 
+                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
+                  : 'text.primary',
                 fontSize: { xs: '1.5rem', sm: '2rem' }
               }}
             >
@@ -188,12 +190,16 @@ export function AtivosTable({
         <StatCard 
           title="CARTEIRA HOJE" 
           value="75.5%" 
-          icon={<ListBulletsIcon />} 
+          icon={<ListBulletsIcon />}
+          trend="up"
+          diff={75.5}
         />
         <StatCard 
           title="DIVIDEND YIELD" 
           value="5.2%" 
-          icon={<ChartBarIcon />} 
+          icon={<ChartBarIcon />}
+          trend="up"
+          diff={5.2}
         />
         <StatCard 
           title="IBOVESPA PERÍODO" 
