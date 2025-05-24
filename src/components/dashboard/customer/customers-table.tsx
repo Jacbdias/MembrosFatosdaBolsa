@@ -73,12 +73,12 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Typography>
             <Avatar 
               sx={{ 
-                backgroundColor: '#000000', // Fundo preto para todos os ícones
+                backgroundColor: '#374151', // Cinza escuro elegante
                 height: 32, 
                 width: 32,
                 '& svg': { 
                   fontSize: 16,
-                  color: 'white' // Ícone branco para contraste
+                  color: 'white' // Ícone branco para contraste perfeito
                 }
               }}
             >
