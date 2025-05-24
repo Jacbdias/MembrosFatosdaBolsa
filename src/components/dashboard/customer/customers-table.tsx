@@ -220,14 +220,14 @@ export function AtivosTable({
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
                   Posição
                 </TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Ativo</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Setor</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Data de Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Preço que Iniciou</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>DY</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Preço Teto</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Viés</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>DY</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Teto</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
