@@ -1,106 +1,163 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+'use client';
+
 import * as React from 'react';
-import type { Metadata } from 'next';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Pagination from '@mui/material/Pagination';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import dayjs from 'dayjs';
+import { IntegrationsFilters } from '@/components/dashboard/integrations/integrations-filters';
+import { IntegrationsTable } from '@/components/dashboard/integrations/integrations-table';
 
-import { config } from '@/config';
-import { IntegrationCard } from '@/components/dashboard/integrations/integrations-card';
-import type { Integration } from '@/components/dashboard/integrations/integrations-card';
-import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
-
-export const metadata = { title: `Integrations | Dashboard | ${config.site.name}` } satisfies Metadata;
-
-const integrations = [
+// DADOS ESPECÍFICOS PARA DIVIDENDOS - diferentes das outras páginas
+const dividendosAtivos = [
   {
-    id: 'INTEG-006',
-    title: 'Dropbox',
-    description: 'Dropbox is a file hosting service that offers cloud storage, file synchronization, a personal cloud.',
-    logo: '/assets/logo-dropbox.png',
-    installs: 594,
-    updatedAt: dayjs().subtract(12, 'minute').toDate(),
+    id: '1',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
+    ticker: 'PETR4',
+    setor: 'Petróleo/Gás',
+    dataEntrada: '15/03/2022',
+    precoEntrada: 'R$ 28,90',
+    precoAtual: 'R$ 38,47',
+    dy: '18,4%',
+    precoTeto: 'R$ 45,00',
+    vies: 'Compra',
   },
   {
-    id: 'INTEG-005',
-    title: 'Medium Corporation',
-    description: 'Medium is an online publishing platform developed by Evan Williams, and launched in August 2012.',
-    logo: '/assets/logo-medium.png',
-    installs: 625,
-    updatedAt: dayjs().subtract(43, 'minute').subtract(1, 'hour').toDate(),
+    id: '2',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ITUB.png',
+    ticker: 'ITUB4',
+    setor: 'Bancos',
+    dataEntrada: '22/01/2022',
+    precoEntrada: 'R$ 24,80',
+    precoAtual: 'R$ 29,15',
+    dy: '12,8%',
+    precoTeto: 'R$ 35,00',
+    vies: 'Compra',
   },
   {
-    id: 'INTEG-004',
-    title: 'Slack',
-    description: 'Slack is a cloud-based set of team collaboration tools and services, founded by Stewart Butterfield.',
-    logo: '/assets/logo-slack.png',
-    installs: 857,
-    updatedAt: dayjs().subtract(50, 'minute').subtract(3, 'hour').toDate(),
+    id: '3',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBDC.png',
+    ticker: 'BBDC4',
+    setor: 'Bancos',
+    dataEntrada: '10/05/2022',
+    precoEntrada: 'R$ 18,45',
+    precoAtual: 'R$ 22,30',
+    dy: '11,2%',
+    precoTeto: 'R$ 26,00',
+    vies: 'Compra',
   },
   {
-    id: 'INTEG-003',
-    title: 'Lyft',
-    description: 'Lyft is an on-demand transportation company based in San Francisco, California.',
-    logo: '/assets/logo-lyft.png',
-    installs: 406,
-    updatedAt: dayjs().subtract(7, 'minute').subtract(4, 'hour').subtract(1, 'day').toDate(),
+    id: '4',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/VALE.png',
+    ticker: 'VALE3',
+    setor: 'Mineração',
+    dataEntrada: '08/02/2022',
+    precoEntrada: 'R$ 85,20',
+    precoAtual: 'R$ 91,75',
+    dy: '9,8%',
+    precoTeto: 'R$ 110,00',
+    vies: 'Compra',
   },
   {
-    id: 'INTEG-002',
-    title: 'GitHub',
-    description: 'GitHub is a web-based hosting service for version control of code using Git.',
-    logo: '/assets/logo-github.png',
-    installs: 835,
-    updatedAt: dayjs().subtract(31, 'minute').subtract(4, 'hour').subtract(5, 'day').toDate(),
+    id: '5',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBAS.png',
+    ticker: 'BBAS3',
+    setor: 'Bancos',
+    dataEntrada: '30/03/2022',
+    precoEntrada: 'R$ 42,15',
+    precoAtual: 'R$ 48,90',
+    dy: '8,9%',
+    precoTeto: 'R$ 55,00',
+    vies: 'Compra',
   },
   {
-    id: 'INTEG-001',
-    title: 'Squarespace',
-    description: 'Squarespace provides software as a service for website building and hosting. Headquartered in NYC.',
-    logo: '/assets/logo-squarespace.png',
-    installs: 435,
-    updatedAt: dayjs().subtract(25, 'minute').subtract(6, 'hour').subtract(6, 'day').toDate(),
+    id: '6',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/WEGE.png',
+    ticker: 'WEGE3',
+    setor: 'Industrial',
+    dataEntrada: '12/04/2022',
+    precoEntrada: 'R$ 32,80',
+    precoAtual: 'R$ 38,65',
+    dy: '2,1%',
+    precoTeto: 'R$ 45,00',
+    vies: 'Compra',
   },
-] satisfies Integration[];
+  {
+    id: '7',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TAEE.png',
+    ticker: 'TAEE11',
+    setor: 'Energia Elétrica',
+    dataEntrada: '25/06/2022',
+    precoEntrada: 'R$ 35,40',
+    precoAtual: 'R$ 41,20',
+    dy: '7,5%',
+    precoTeto: 'R$ 48,00',
+    vies: 'Compra',
+  },
+  {
+    id: '8',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALUP.png',
+    ticker: 'ALUP11',
+    setor: 'Energia Elétrica',
+    dataEntrada: '18/08/2022',
+    precoEntrada: 'R$ 24,40',
+    precoAtual: 'R$ 30,53',
+    dy: '4,46%',
+    precoTeto: 'R$ 29,00',
+    vies: 'Compra',
+  },
+  {
+    id: '9',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBSE.png',
+    ticker: 'BBSE3',
+    setor: 'Seguros',
+    dataEntrada: '05/09/2022',
+    precoEntrada: 'R$ 28,90',
+    precoAtual: 'R$ 34,15',
+    dy: '6,8%',
+    precoTeto: 'R$ 40,00',
+    vies: 'Compra',
+  },
+  {
+    id: '10',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CPLE.png',
+    ticker: 'CPLE6',
+    setor: 'Energia Elétrica',
+    dataEntrada: '20/10/2022',
+    precoEntrada: 'R$ 45,80',
+    precoAtual: 'R$ 52,30',
+    dy: '5,2%',
+    precoTeto: 'R$ 60,00',
+    vies: 'Compra',
+  }
+];
 
 export default function Page(): React.JSX.Element {
+  // DADOS DOS CARDS ESPECÍFICOS PARA DIVIDENDOS
+  const dadosCards = {
+    ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
+    indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
+    carteiraHoje: { value: "92.1%", trend: "up" as const },
+    dividendYield: { value: "8.8%", trend: "up" as const },
+    ibovespaPeriodo: { value: "7.1%", trend: "up" as const, diff: 7.1 },
+    carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
+  };
+
   return (
-    <Stack spacing={3}>
-      <Stack direction="row" spacing={3}>
-        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Integrations</Typography>
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
-            </Button>
-          </Stack>
-        </Stack>
-        <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
-            Add
-          </Button>
-        </div>
-      </Stack>
-      <CompaniesFilters />
-      <Grid container spacing={3}>
-        {integrations.map((integration) => (
-          <Grid key={integration.id} lg={4} md={6} xs={12}>
-            <IntegrationCard integration={integration} />
-          </Grid>
-        ))}
+    <Grid container spacing={3}>
+      {/* Filtros (vazio por enquanto) */}
+      <Grid xs={12}>
+        <IntegrationsFilters />
       </Grid>
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Pagination count={3} size="small" />
-      </Box>
-    </Stack>
+      
+      {/* Tabela principal com cards e dados */}
+      <Grid xs={12}>
+        <IntegrationsTable 
+          count={dividendosAtivos.length} 
+          rows={dividendosAtivos} 
+          page={0} 
+          rowsPerPage={5}
+          cardsData={dadosCards}
+        />
+      </Grid>
+    </Grid>
   );
 }
