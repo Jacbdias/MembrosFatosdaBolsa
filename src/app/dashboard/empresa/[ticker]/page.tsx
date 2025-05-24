@@ -91,7 +91,86 @@
     ],
     proventos: [
       { tipo: 'Dividendo', valor: 'R$ 0,74', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' },
-      { tipo: 'JCP',/* eslint-disable @typescript-eslint/explicit-function-return-type */
+      { tipo: 'JCP', valor: 'R$ 0,48', dataEx: '15/08/2023', dataPagamento: '30/08/2023', status: 'Pago' },
+    ]
+  },
+  'POSI3': {
+    ticker: 'POSI3',
+    nomeCompleto: 'Positivo Tecnologia S.A.',
+    setor: 'Tecnologia',
+    descricao: 'Empresa de tecnologia focada em soluções educacionais e produtos eletrônicos.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/POSI.png',
+    precoAtual: 'R$ 4,96', variacao: '+6.86%', tendencia: 'up',
+    dataEntrada: '22/04/2022', precoIniciou: 'R$ 8,67', dy: '6.86%', precoTeto: 'R$ 10,16', viesAtual: 'Compra',
+    variacaoHoje: '+2.1%', rendProventos: '-42.8%', ibovespaEpoca: '107.200', ibovespaVariacao: '+21.7%', percentualCarteira: '3.1%',
+    marketCap: 'R$ 1,1 bi', pl: '32.1', pvp: '2.1', roe: '4.8%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-14', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-29', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,34', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 0,21', dataEx: '15/06/2023', dataPagamento: '30/06/2023', status: 'Pago' },
+    ]
+  },
+  'CEAB3': {
+    ticker: 'CEAB3',
+    nomeCompleto: 'C&A Modas S.A.',
+    setor: 'Consumo Cíclico',
+    descricao: 'Rede de lojas de moda e vestuário com presença nacional e internacional.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CEAB.png',
+    precoAtual: 'R$ 16,74', variacao: '+0.00%', tendencia: 'up',
+    dataEntrada: '04/05/2023', precoIniciou: 'R$ 2,95', dy: '0.00%', precoTeto: 'R$ 10,94', viesAtual: 'Compra',
+    variacaoHoje: '+0.5%', rendProventos: '+467.5%', ibovespaEpoca: '103.200', ibovespaVariacao: '+26.5%', percentualCarteira: '6.9%',
+    marketCap: 'R$ 8,2 bi', pl: '45.8', pvp: '3.2', roe: '7.1%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-19', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-03-05', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,00', dataEx: '---', dataPagamento: '---', status: 'Não Pago' },
+    ]
+  },
+  'LOGG3': {
+    ticker: 'LOGG3',
+    nomeCompleto: 'Log Commercial Properties S.A.',
+    setor: 'Logística',
+    descricao: 'Empresa de desenvolvimento e locação de propriedades logísticas e galpões industriais.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/LOGG.png',
+    precoAtual: 'R$ 21,27', variacao: '+2.99%', tendencia: 'up',
+    dataEntrada: '25/11/2022', precoIniciou: 'R$ 18,96', dy: '2.99%', precoTeto: 'R$ 25,00', viesAtual: 'Compra',
+    variacaoHoje: '+1.4%', rendProventos: '+12.2%', ibovespaEpoca: '109.800', ibovespaVariacao: '+18.9%', percentualCarteira: '8.3%',
+    marketCap: 'R$ 12,5 bi', pl: '28.9', pvp: '1.1', roe: '3.8%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-15', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-03-01', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,64', dataEx: '15/01/2024', dataPagamento: '30/01/2024', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 0,38', dataEx: '15/07/2023', dataPagamento: '31/07/2023', status: 'Pago' },
+    ]
+  },
+  'AGRO3': {
+    ticker: 'AGRO3',
+    nomeCompleto: 'BrasilAgro S.A.',
+    setor: 'Agricultura',
+    descricao: 'Empresa de desenvolvimento de propriedades rurais e produção agrícola sustentável.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/AGRO.png',
+    precoAtual: 'R$ 21,18', variacao: '+6.59%', tendencia: 'up',
+    dataEntrada: '09/10/2020', precoIniciou: 'R$ 23,00', dy: '6.59%', precoTeto: 'R$ 31,80', viesAtual: 'Compra',
+    variacaoHoje: '+2.8%', rendProventos: '-7.9%', ibovespaEpoca: '103.500', ibovespaVariacao: '+26.1%', percentualCarteira: '9.7%',
+    marketCap: 'R$ 2,8 bi', pl: '15.6', pvp: '0.7', roe: '4.5%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-18', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-03-04', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 1,40', dataEx: '15/04/2024', dataPagamento: '30/04/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 0,89', dataEx: '15/10/2023', dataPagamento: '31/10/2023', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 1,15', dataEx: '15/04/2023', dataPagamento: '28/04/2023', status: 'Pago' },
+    ]
+  }
+};/* eslint-disable @typescript-eslint/explicit-function-return-type */
 'use client';
 
 import * as React from 'react';
