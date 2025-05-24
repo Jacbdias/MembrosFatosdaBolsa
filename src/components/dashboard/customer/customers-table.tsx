@@ -175,14 +175,14 @@ export function AtivosTable({
       >
         <StatCard 
           title="IBOVESPA" 
-          value="129k" 
+          value="132k" 
           icon={<CurrencyDollarIcon />} 
           trend="up" 
           diff={1.6} 
         />
         <StatCard 
           title="ÍNDICE SMALL" 
-          value="18k" 
+          value="1.255k" 
           icon={<UsersThreeIcon />} 
           trend="down" 
           diff={-3.2} 
