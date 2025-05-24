@@ -21,6 +21,11 @@ import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
 import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
 import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
+import { Storefront } from '@phosphor-icons/react/dist/ssr/Storefront';
+import { FileText } from '@phosphor-icons/react/dist/ssr/FileText';
+import { Truck } from '@phosphor-icons/react/dist/ssr/Truck';
+import { Buildings } from '@phosphor-icons/react/dist/ssr/Buildings';
+import { TrendUp } from '@phosphor-icons/react/dist/ssr/TrendUp';
 
 function noop(): void {
   // Função vazia para props obrigatórias
@@ -128,7 +133,35 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   );
 }
 
-export interface IntegrationsData {
+// Função para obter ícone baseado no setor
+function getSetorIcon(setor: string): React.ReactNode {
+  const iconStyle = { fontSize: 20, color: '#6b7280' };
+  
+  switch (setor.toLowerCase()) {
+    case 'shopping':
+    case 'shoppings':
+      return <Storefront style={iconStyle} />;
+    case 'papel':
+    case 'papel e celulose':
+      return <FileText style={iconStyle} />;
+    case 'logística':
+    case 'logistico':
+      return <Truck style={iconStyle} />;
+    case 'fii':
+    case 'fiis':
+    case 'híbrido':
+    case 'hibrido':
+      return <Buildings style={iconStyle} />;
+    case 'pdf':
+      return <FileText style={iconStyle} />;
+    case 'renda fixa':
+      return <TrendUp style={iconStyle} />;
+    default:
+      return <CurrencyDollarIcon style={iconStyle} />;
+  }
+}
+
+export interface SettingsData {
   id: string;
   avatar: string;
   ticker: string;
@@ -141,10 +174,10 @@ export interface IntegrationsData {
   vies: string;
 }
 
-interface IntegrationsTableProps {
+interface SettingsTableProps {
   count?: number;
   page?: number;
-  rows?: IntegrationsData[];
+  rows?: SettingsData[];
   rowsPerPage?: number;
   cardsData?: {
     ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
@@ -156,16 +189,16 @@ interface IntegrationsTableProps {
   };
 }
 
-export function IntegrationsTable({
+export function SettingsTable({
   count = 0,
   rows = [],
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
-}: IntegrationsTableProps): React.JSX.Element {
+}: SettingsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // Valores específicos para DIVIDENDOS (diferentes dos outros)
+  // Valores específicos para DIVIDENDOS
   const defaultCards = {
     ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
@@ -278,10 +311,15 @@ export function IntegrationsTable({
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
-                          src={row.avatar} 
-                          alt={row.ticker}
-                          sx={{ width: 32, height: 32 }}
-                        />
+                          sx={{ 
+                            width: 32, 
+                            height: 32,
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0'
+                          }}
+                        >
+                          {getSetorIcon(row.setor)}
+                        </Avatar>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                           {row.ticker}
                         </Typography>
