@@ -9,7 +9,7 @@ import { OverviewTable } from '@/components/dashboard/overview/overview-table';
 const ativos = [
   {
     id: '1',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/AAOS.png',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
     ticker: 'ALOS3',
     setor: 'Shoppings',
     dataEntrada: '15/01/2021',
