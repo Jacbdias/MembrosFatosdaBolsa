@@ -51,6 +51,13 @@ const empresasData = {
       { nome: 'Balanço Q4 2023', data: '2024-02-28', url: '#' },
       { nome: 'DFP 2023', data: '2024-03-20', url: '#' },
       { nome: 'Relatório de Sustentabilidade', data: '2024-04-10', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 2,15', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 1,92', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 1,68', dataEx: '15/09/2023', dataPagamento: '28/09/2023', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 1,75', dataEx: '16/06/2023', dataPagamento: '30/06/2023', status: 'Pago' },
     ]
   },
   'DEXP3': {
@@ -82,6 +89,12 @@ const empresasData = {
     relatorios: [
       { nome: 'Relatório Anual 2023', data: '2024-03-10', url: '#' },
       { nome: 'Balanço Q4 2023', data: '2024-02-25', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,42', dataEx: '15/05/2024', dataPagamento: '30/05/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 0,38', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 0,35', dataEx: '15/11/2023', dataPagamento: '30/11/2023', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 0,29', dataEx: '15/08/2023', dataPagamento: '30/08/2023', status: 'Pago' },
     ]
   }
   // Adicione mais empresas conforme necessário
@@ -361,6 +374,165 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                   </Box>
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Agenda de Proventos */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                📅 Agenda de Proventos
+              </Typography>
+              <Box sx={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc' }}>
+                      <th style={{ 
+                        padding: '12px', 
+                        textAlign: 'left', 
+                        fontWeight: 600, 
+                        borderBottom: '1px solid #e5e7eb',
+                        color: '#374151'
+                      }}>
+                        Tipo
+                      </th>
+                      <th style={{ 
+                        padding: '12px', 
+                        textAlign: 'center', 
+                        fontWeight: 600, 
+                        borderBottom: '1px solid #e5e7eb',
+                        color: '#374151'
+                      }}>
+                        Valor por Ação
+                      </th>
+                      <th style={{ 
+                        padding: '12px', 
+                        textAlign: 'center', 
+                        fontWeight: 600, 
+                        borderBottom: '1px solid #e5e7eb',
+                        color: '#374151'
+                      }}>
+                        Data Ex-Dividendo
+                      </th>
+                      <th style={{ 
+                        padding: '12px', 
+                        textAlign: 'center', 
+                        fontWeight: 600, 
+                        borderBottom: '1px solid #e5e7eb',
+                        color: '#374151'
+                      }}>
+                        Data Pagamento
+                      </th>
+                      <th style={{ 
+                        padding: '12px', 
+                        textAlign: 'center', 
+                        fontWeight: 600, 
+                        borderBottom: '1px solid #e5e7eb',
+                        color: '#374151'
+                      }}>
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {empresa.proventos.map((provento, index) => (
+                      <tr key={index} style={{ 
+                        borderBottom: '1px solid #f3f4f6',
+                        '&:hover': { backgroundColor: '#f9fafb' }
+                      }}>
+                        <td style={{ padding: '16px' }}>
+                          <Chip 
+                            label={provento.tipo}
+                            size="small"
+                            sx={{
+                              backgroundColor: provento.tipo === 'Dividendo' ? '#dbeafe' : '#fef3c7',
+                              color: provento.tipo === 'Dividendo' ? '#1e40af' : '#92400e',
+                              fontWeight: 600
+                            }}
+                          />
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center',
+                          fontWeight: 700,
+                          color: '#059669'
+                        }}>
+                          {provento.valor}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center'
+                        }}>
+                          {provento.dataEx}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center'
+                        }}>
+                          {provento.dataPagamento}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center'
+                        }}>
+                          <Chip 
+                            label={provento.status}
+                            size="small"
+                            sx={{
+                              backgroundColor: provento.status === 'Pago' ? '#d1fae5' : 
+                                             provento.status === 'Aprovado' ? '#dbeafe' : '#fef2f2',
+                              color: provento.status === 'Pago' ? '#065f46' : 
+                                     provento.status === 'Aprovado' ? '#1e40af' : '#991b1b',
+                              fontWeight: 600
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Box>
+              
+              {/* Resumo dos Proventos */}
+              <Box sx={{ mt: 4, p: 3, backgroundColor: '#f8fafc', borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                  💰 Resumo de Proventos (Últimos 12 meses)
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#059669' }}>
+                        {empresa.ticker === 'PETR4' ? 'R$ 9,25' : 'R$ 1,44'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total por Ação
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#3b82f6' }}>
+                        {empresa.ticker === 'PETR4' ? '5' : '4'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pagamentos
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#8b5cf6' }}>
+                        {empresa.dy}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Dividend Yield
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
