@@ -128,7 +128,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   );
 }
 
-export interface SettingsData {
+export interface IntegrationsData {
   id: string;
   avatar: string;
   ticker: string;
@@ -141,10 +141,10 @@ export interface SettingsData {
   vies: string;
 }
 
-interface SettingsTableProps {
+interface IntegrationsTableProps {
   count?: number;
   page?: number;
-  rows?: SettingsData[];
+  rows?: IntegrationsData[];
   rowsPerPage?: number;
   cardsData?: {
     ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
@@ -156,16 +156,16 @@ interface SettingsTableProps {
   };
 }
 
-export function SettingsTable({
+export function IntegrationsTable({
   count = 0,
   rows = [],
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
-}: SettingsTableProps): React.JSX.Element {
+}: IntegrationsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // Valores específicos para DIVIDENDOS
+  // Valores específicos para DIVIDENDOS (diferentes dos outros)
   const defaultCards = {
     ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
@@ -278,17 +278,10 @@ export function SettingsTable({
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
-                          sx={{ 
-                            width: 32, 
-                            height: 32,
-                            backgroundColor: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            fontSize: '0.8rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          {row.ticker.slice(0, 2)}
-                        </Avatar>
+                          src={row.avatar} 
+                          alt={row.ticker}
+                          sx={{ width: 32, height: 32 }}
+                        />
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                           {row.ticker}
                         </Typography>
