@@ -1,235 +1,353 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-shadow */
 'use client';
 
 import * as React from 'react';
-import { useParams } from 'next/navigation';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
+import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
-import { ArrowBack as ArrowBackIcon } from '@phosphor-icons/react/dist/ssr/ArrowBack';
-import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
-import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
+import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
+import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
+import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
+import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
 
-// Dados mockados das empresas (em um app real, viria de uma API)
-const empresasData = {
-  'PETR4': {
-    ticker: 'PETR4',
-    nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
-    setor: 'Petróleo, Gás e Biocombustíveis',
-    descricao: 'A Petrobras é uma empresa de energia, focada em óleo, gás natural e energia de baixo carbono.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
-    precoAtual: 'R$ 38,47',
-    variacao: '+2.3%',
-    tendencia: 'up',
-    marketCap: 'R$ 512,8 bi',
-    dividendYield: '18.4%',
-    pl: '3.8',
-    pvp: '1.2',
-    roe: '31.5%',
-    relatorios: [
-      { nome: 'Relatório Anual 2023', data: '2024-03-15', url: '#' },
-      { nome: 'Balanço Q4 2023', data: '2024-02-28', url: '#' },
-      { nome: 'DFP 2023', data: '2024-03-20', url: '#' },
-      { nome: 'Relatório de Sustentabilidade', data: '2024-04-10', url: '#' },
-    ]
-  },
-  'DEXP3': {
-    ticker: 'DEXP3',
-    nomeCompleto: 'DeepTech Expansão S.A.',
-    setor: 'Nanocap/Químico',
-    descricao: 'Empresa especializada em soluções químicas inovadoras.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/DEXP.png',
-    precoAtual: 'R$ 9,33',
-    variacao: '+5.9%',
-    tendencia: 'up',
-    marketCap: 'R$ 1,2 bi',
-    dividendYield: '5.9%',
-    pl: '12.3',
-    pvp: '0.8',
-    roe: '15.2%',
-    relatorios: [
-      { nome: 'Relatório Anual 2023', data: '2024-03-10', url: '#' },
-      { nome: 'Balanço Q4 2023', data: '2024-02-25', url: '#' },
-    ]
-  }
-  // Adicione mais empresas conforme necessário
-};
+import { useSelection } from '@/hooks/use-selection';
 
-export default function EmpresaDetalhes(): React.JSX.Element {
-  const params = useParams();
-  const ticker = params?.ticker as string;
-  const empresa = empresasData[ticker as keyof typeof empresasData];
+function noop(): void {
+  // Função vazia para props obrigatórias
+}
 
-  if (!empresa) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h5">Empresa não encontrada</Typography>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => window.history.back()}
-          sx={{ mt: 2 }}
-        >
-          Voltar
-        </Button>
-      </Box>
-    );
-  }
+interface StatCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  trend?: 'up' | 'down';
+  diff?: number;
+}
 
-  const TrendIcon = empresa.tendencia === 'up' ? TrendUpIcon : TrendDownIcon;
-  const trendColor = empresa.tendencia === 'up' ? '#22c55e' : '#ef4444';
+function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
+  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
+  const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
+  
+  return (
+    <Card 
+      sx={{ 
+        minHeight: 120,
+        flex: '1 1 200px',
+        maxWidth: { xs: '100%', sm: '300px' },
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: 3,
+        }
+      }}
+    >
+      <CardContent sx={{ p: 3, height: '100%' }}>
+        <Stack spacing={2} sx={{ height: '100%' }}>
+          {/* Header com título e ícone */}
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Typography 
+              color="text.secondary" 
+              variant="caption" 
+              sx={{ 
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                fontSize: '0.7rem'
+              }}
+            >
+              {title}
+            </Typography>
+            <Avatar 
+              sx={{ 
+                backgroundColor: '#374151', // Cinza escuro elegante
+                height: 32, 
+                width: 32,
+                '& svg': { 
+                  fontSize: 16,
+                  color: 'white' // Ícone branco para contraste perfeito
+                }
+              }}
+            >
+              {icon}
+            </Avatar>
+          </Stack>
+          
+          {/* Valor principal */}
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700,
+                color: trend && diff !== undefined ? 
+                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
+                  : 'text.primary',
+                fontSize: { xs: '1.5rem', sm: '2rem' }
+              }}
+            >
+              {value}
+            </Typography>
+          </Box>
+          
+          {/* Trend indicator */}
+          {diff !== undefined && trend && (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <TrendIcon 
+                size={16} 
+                style={{ color: trendColor }} 
+              />
+              <Typography 
+                sx={{ 
+                  color: trendColor,
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
+                }}
+              >
+                {diff > 0 ? '+' : ''}{diff}%
+              </Typography>
+              <Typography 
+                color="text.secondary" 
+                sx={{ fontSize: '0.75rem' }}
+              >
+                no período
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+export interface Ativo {
+  id: string;
+  avatar: string;
+  ticker: string;
+  setor: string;
+  dataEntrada: string;
+  precoEntrada: string;
+  precoAtual: string;
+  dy: string;
+  precoTeto: string;
+  vies: string;
+}
+
+interface AtivosTableProps {
+  count?: number;
+  page?: number;
+  rows?: Ativo[];
+  rowsPerPage?: number;
+  cardsData?: {
+    ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    indiceSmall?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    carteiraHoje?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    dividendYield?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
+  };
+}
+
+export function AtivosTable({
+  count = 0,
+  rows = [],
+  page = 0,
+  rowsPerPage = 0,
+  cardsData = {},
+}: AtivosTableProps): React.JSX.Element {
+  const rowIds = React.useMemo(() => rows.map((ativo) => ativo.id), [rows]);
+
+  // Valores padrão para os cards
+  const defaultCards = {
+    ibovespa: { value: "132k", trend: "up" as const, diff: 1.6 },
+    indiceSmall: { value: "1.255k", trend: "down" as const, diff: -3.2 },
+    carteiraHoje: { value: "75.5%", trend: "up" as const, diff: 75.5 },
+    dividendYield: { value: "5.2%", trend: "up" as const, diff: 5.2 },
+    ibovespaPeriodo: { value: "3.4%", trend: "up" as const, diff: 3.4 },
+    carteiraPeriodo: { value: "4.7%", trend: "up" as const, diff: 4.7 },
+  };
+
+  // Mescla os dados padrão com os dados passados via props
+  const cards = { ...defaultCards, ...cardsData };
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header com botão voltar */}
-      <Box sx={{ mb: 3 }}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => window.history.back()}
-          variant="outlined"
-          sx={{ mb: 2 }}
-        >
-          Voltar
-        </Button>
+    <Box>
+      {/* Cards de estatísticas com grid responsivo */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(6, 1fr)',
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <StatCard 
+          title="IBOVESPA" 
+          value={cards.ibovespa.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={cards.ibovespa.trend} 
+          diff={cards.ibovespa.diff} 
+        />
+        <StatCard 
+          title="ÍNDICE SMALL" 
+          value={cards.indiceSmall.value} 
+          icon={<UsersThreeIcon />} 
+          trend={cards.indiceSmall.trend} 
+          diff={cards.indiceSmall.diff} 
+        />
+        <StatCard 
+          title="CARTEIRA HOJE" 
+          value={cards.carteiraHoje.value} 
+          icon={<ListBulletsIcon />}
+          trend={cards.carteiraHoje.trend}
+          diff={cards.carteiraHoje.diff}
+        />
+        <StatCard 
+          title="DIVIDEND YIELD" 
+          value={cards.dividendYield.value} 
+          icon={<ChartBarIcon />}
+          trend={cards.dividendYield.trend}
+          diff={cards.dividendYield.diff}
+        />
+        <StatCard 
+          title="IBOVESPA PERÍODO" 
+          value={cards.ibovespaPeriodo.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={cards.ibovespaPeriodo.trend} 
+          diff={cards.ibovespaPeriodo.diff} 
+        />
+        <StatCard 
+          title="CARTEIRA PERÍODO" 
+          value={cards.carteiraPeriodo.value} 
+          icon={<ChartBarIcon />} 
+          trend={cards.carteiraPeriodo.trend} 
+          diff={cards.carteiraPeriodo.diff} 
+        />
       </Box>
-
-      {/* Informações principais da empresa */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: 4 }}>
-          <Stack direction="row" spacing={3} alignItems="flex-start">
-            <Avatar 
-              src={empresa.avatar} 
-              alt={empresa.ticker}
-              sx={{ width: 80, height: 80 }}
-            />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {empresa.ticker}
-              </Typography>
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                {empresa.nomeCompleto}
-              </Typography>
-              <Chip 
-                label={empresa.setor} 
-                sx={{ mb: 2 }}
-                color="primary"
-                variant="outlined"
-              />
-              <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                {empresa.descricao}
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: trendColor }}>
-                {empresa.precoAtual}
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
-                <TrendIcon size={20} style={{ color: trendColor }} />
-                <Typography sx={{ color: trendColor, fontWeight: 600 }}>
-                  {empresa.variacao}
-                </Typography>
-              </Stack>
-            </Box>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      <Grid container spacing={3}>
-        {/* Indicadores Financeiros */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                Indicadores Financeiros
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#22c55e' }}>
-                      {empresa.marketCap}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Market Cap
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                      {empresa.dividendYield}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Dividend Yield
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                      {empresa.pl}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      P/L
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                      {empresa.roe}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      ROE
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Relatórios */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                Relatórios Financeiros
-              </Typography>
-              <Stack spacing={2}>
-                {empresa.relatorios.map((relatorio, index) => (
-                  <Box key={index}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {relatorio.nome}
+      
+      {/* Tabela */}
+      <Card sx={{ boxShadow: 2 }}>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '800px' }}>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
+                  Posição
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>DY</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Teto</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                row.vies = 'Compra';
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
+                      {index + 1}º
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar} 
+                          alt={row.ticker}
+                          sx={{ width: 32, height: 32 }}
+                        />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {row.ticker}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {relatorio.data}
-                        </Typography>
-                      </Box>
-                      <Button
-                        size="small"
-                        startIcon={<DownloadIcon />}
-                        onClick={() => window.open(relatorio.url, '_blank')}
+                      </Stack>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'normal', 
+                        textAlign: 'center', 
+                        lineHeight: 1.2,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {row.setor}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{
+                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
+                          color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
+                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
+                          px: 2,
+                          py: 0.75,
+                          borderRadius: '20px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          display: 'inline-block',
+                          textAlign: 'center',
+                          minWidth: '70px',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                        }}
                       >
-                        Download
-                      </Button>
-                    </Stack>
-                    {index < empresa.relatorios.length - 1 && <Divider sx={{ mt: 2 }} />}
-                  </Box>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                        {row.vies}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={count}
+          onPageChange={noop}
+          onRowsPerPageChange={noop}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Linhas por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+        />
+      </Card>
     </Box>
   );
 }
