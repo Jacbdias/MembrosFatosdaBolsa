@@ -192,8 +192,8 @@ export default function Page(): React.JSX.Element {
   const dadosCards = {
     ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
     indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
-    carteiraHoje: { value: "88.7%", trend: "up" as const }, // Removido o diff
-    dividendYield: { value: "7.4%", trend: "up" as const }, // Removido o diff
+    carteiraHoje: { value: "88.7%", trend: "up" as const }, // Verde, sem número embaixo
+    dividendYield: { value: "7.4%", trend: "up" as const }, // Verde, sem número embaixo  
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
