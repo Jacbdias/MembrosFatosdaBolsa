@@ -187,7 +187,7 @@ const ativos = [
   },
 ];
 
-export default function Page(): JSX.Element {
+export default function Page(): React.JSX.Element {
   return (
     <div style={{ padding: '20px' }}>
       <AtivosTable count={ativos.length} rows={ativos} page={0} rowsPerPage={5} />
