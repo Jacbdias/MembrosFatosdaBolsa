@@ -188,14 +188,14 @@ const ativos = [
 ];
 
 export default function Page(): React.JSX.Element {
-  // Dados personalizados para os cards - VOCÊ PODE ALTERAR AQUI
+  // DADOS DOS CARDS - ALTERE AQUI PARA MODIFICAR OS VALORES
   const dadosCards = {
-    ibovespa: { value: "132k", trend: "up" as const, diff: 0.40 },
-    indiceSmall: { value: "2.155k", trend: "up" as const, diff: 0.46 },
-    carteiraHoje: { value: "82.3%", trend: "up" as const, diff: 82.3 },
-    dividendYield: { value: "6.8%", trend: "up" as const, diff: 6.8 },
-    ibovespaPeriodo: { value: "5.2%", trend: "up" as const, diff: 5.2 },
-    carteiraPeriodo: { value: "7.1%", trend: "up" as const, diff: 7.1 },
+    ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
+    indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
+    carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
+    dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
+    ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
+    carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
   return (
