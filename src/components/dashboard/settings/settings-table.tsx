@@ -21,11 +21,6 @@ import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
 import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
 import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
-import { Storefront } from '@phosphor-icons/react/dist/ssr/Storefront';
-import { FileText } from '@phosphor-icons/react/dist/ssr/FileText';
-import { Truck } from '@phosphor-icons/react/dist/ssr/Truck';
-import { Buildings } from '@phosphor-icons/react/dist/ssr/Buildings';
-import { TrendUp } from '@phosphor-icons/react/dist/ssr/TrendUp';
 
 function noop(): void {
   // Função vazia para props obrigatórias
@@ -131,34 +126,6 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
       </CardContent>
     </Card>
   );
-}
-
-// Função para obter ícone baseado no setor
-function getSetorIcon(setor: string): React.ReactNode {
-  const iconStyle = { fontSize: 20, color: '#6b7280' };
-  
-  switch (setor.toLowerCase()) {
-    case 'shopping':
-    case 'shoppings':
-      return <Storefront style={iconStyle} />;
-    case 'papel':
-    case 'papel e celulose':
-      return <FileText style={iconStyle} />;
-    case 'logística':
-    case 'logistico':
-      return <Truck style={iconStyle} />;
-    case 'fii':
-    case 'fiis':
-    case 'híbrido':
-    case 'hibrido':
-      return <Buildings style={iconStyle} />;
-    case 'pdf':
-      return <FileText style={iconStyle} />;
-    case 'renda fixa':
-      return <TrendUp style={iconStyle} />;
-    default:
-      return <CurrencyDollarIcon style={iconStyle} />;
-  }
 }
 
 export interface SettingsData {
@@ -315,10 +282,12 @@ export function SettingsTable({
                             width: 32, 
                             height: 32,
                             backgroundColor: '#f8fafc',
-                            border: '1px solid #e2e8f0'
+                            border: '1px solid #e2e8f0',
+                            fontSize: '0.8rem',
+                            fontWeight: 700
                           }}
                         >
-                          {getSetorIcon(row.setor)}
+                          {row.ticker.slice(0, 2)}
                         </Avatar>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                           {row.ticker}
