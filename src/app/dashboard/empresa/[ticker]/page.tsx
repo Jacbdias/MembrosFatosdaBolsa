@@ -13,7 +13,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
-import { ArrowBack as ArrowBackIcon } from '@phosphor-icons/react/dist/ssr/ArrowBack';
+import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
@@ -73,7 +73,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <Typography variant="h5">Empresa não encontrada</Typography>
         <Button 
-          startIcon={<ArrowBackIcon />} 
+          startIcon={<ArrowLeftIcon />} 
           onClick={() => window.history.back()}
           sx={{ mt: 2 }}
         >
@@ -91,7 +91,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
       {/* Header com botão voltar */}
       <Box sx={{ mb: 3 }}>
         <Button 
-          startIcon={<ArrowBackIcon />} 
+          startIcon={<ArrowLeftIcon />} 
           onClick={() => window.history.back()}
           variant="outlined"
           sx={{ mb: 2 }}
