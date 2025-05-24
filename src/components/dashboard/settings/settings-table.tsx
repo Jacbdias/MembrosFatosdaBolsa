@@ -52,7 +52,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
         transition: 'all 0.2s ease-in-out',
         '&:hover': {
           transform: 'translateY(-2px)',
-          boxShadow: 3,
+          boxShadow: 3
         }
       }}
     >
