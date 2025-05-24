@@ -191,8 +191,8 @@ const dividendosAtivos = [
   {
     id: '16',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/BSAS.png',
-    ticker: 'BSAS3',
-    setor: 'Bancos',
+    ticker: 'B3SA3',
+    setor: 'Financeiro',
     dataEntrada: '28/07/2022',
     precoEntrada: 'R$ 10,88',
     precoAtual: 'R$ 14,59',
@@ -202,8 +202,8 @@ const dividendosAtivos = [
   },
   {
     id: '17',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/CPLE.png',
-    ticker: 'CPLE6',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CPFE.png',
+    ticker: 'CPFE3',
     setor: 'Energia',
     dataEntrada: '10/11/2021',
     precoEntrada: 'R$ 6,28',
@@ -214,7 +214,7 @@ const dividendosAtivos = [
   }
 ];
 
-export default function Page(): React.JSX.Element {
+export default function SettingsPage(): React.JSX.Element {
   // DADOS DOS CARDS ESPECÍFICOS PARA DIVIDENDOS
   const dadosCards = {
     ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
@@ -227,7 +227,7 @@ export default function Page(): React.JSX.Element {
 
   return (
     <Grid container spacing={3}>
-      {/* Filtros (vazio por enquanto) */}
+      {/* Filtros */}
       <Grid xs={12}>
         <SettingsFilters />
       </Grid>
