@@ -1,28 +1,23 @@
-// overview-filters.tsx
 import * as React from 'react';
-import { Card, CardContent } from '@mui/material/Card';
-import { Button } from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import InputAdornment from '@mui/material/InputAdornment';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 
-export interface OverviewFiltersProps {
-  // Props específicas para overview
-}
-
-export function OverviewFilters(props: OverviewFiltersProps): React.JSX.Element {
+export function CustomersFilters(): React.JSX.Element {
   return (
-    <Card>
-      <CardContent>
-        <div className="flex flex-wrap gap-4">
-          <Button variant="outlined">
-            Filtro Overview 1
-          </Button>
-          <Button variant="outlined">
-            Filtro Overview 2
-          </Button>
-          <Button variant="outlined">
-            Período
-          </Button>
-        </div>
-      </CardContent>
+    <Card sx={{ p: 2 }}>
+      <OutlinedInput
+        defaultValue=""
+        fullWidth
+        placeholder="Search customer"
+        startAdornment={
+          <InputAdornment position="start">
+            <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
+          </InputAdornment>
+        }
+        sx={{ maxWidth: '500px' }}
+      />
     </Card>
   );
 }
