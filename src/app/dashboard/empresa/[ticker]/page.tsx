@@ -26,11 +26,23 @@ const empresasData = {
     setor: 'Petróleo, Gás e Biocombustíveis',
     descricao: 'A Petrobras é uma empresa de energia, focada em óleo, gás natural e energia de baixo carbono.',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
+    // Dados básicos
     precoAtual: 'R$ 38,47',
     variacao: '+2.3%',
     tendencia: 'up',
+    // Dados detalhados
+    dataEntrada: '15/03/2022',
+    precoIniciou: 'R$ 28,90',
+    dy: '18.4%',
+    precoTeto: 'R$ 45,00',
+    viesAtual: 'Compra',
+    variacaoHoje: '+1.8%',
+    rendProventos: '+24.7%',
+    ibovespaEpoca: '112.200',
+    ibovespaVariacao: '+18.2%',
+    percentualCarteira: '12.5%',
+    // Indicadores tradicionais
     marketCap: 'R$ 512,8 bi',
-    dividendYield: '18.4%',
     pl: '3.8',
     pvp: '1.2',
     roe: '31.5%',
@@ -43,15 +55,27 @@ const empresasData = {
   },
   'DEXP3': {
     ticker: 'DEXP3',
-    nomeCompleto: 'DeepTech Expansão S.A.',
+    nomeCompleto: 'Dexxos Participações S.A.',
     setor: 'Nanocap/Químico',
-    descricao: 'Empresa especializada em soluções químicas inovadoras.',
+    descricao: 'Empresa especializada em soluções químicas inovadoras e participações estratégicas.',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/DEXP.png',
+    // Dados básicos
     precoAtual: 'R$ 9,33',
     variacao: '+5.9%',
     tendencia: 'up',
+    // Dados detalhados
+    dataEntrada: '27/01/2023',
+    precoIniciou: 'R$ 7,96',
+    dy: '5.91%',
+    precoTeto: 'R$ 13,10',
+    viesAtual: 'Compra',
+    variacaoHoje: '+3.2%',
+    rendProventos: '+17.2%',
+    ibovespaEpoca: '108.500',
+    ibovespaVariacao: '+19.1%',
+    percentualCarteira: '8.7%',
+    // Indicadores tradicionais
     marketCap: 'R$ 1,2 bi',
-    dividendYield: '5.9%',
     pl: '12.3',
     pvp: '0.8',
     roe: '15.2%',
@@ -142,11 +166,157 @@ export default function EmpresaDetalhes(): React.JSX.Element {
       </Card>
 
       <Grid container spacing={3}>
-        {/* Indicadores Financeiros */}
+        {/* Dados da Carteira - Seção Principal */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Dados da Posição na Carteira
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {empresa.setor}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      SETOR
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {empresa.dataEntrada}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      DATA DE ENTRADA
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {empresa.precoIniciou}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      PREÇO QUE INICIOU
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: trendColor }}>
+                      {empresa.precoAtual}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      PREÇO ATUAL
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#22c55e' }}>
+                      {empresa.dy}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      DIVIDEND YIELD
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {empresa.precoTeto}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      PREÇO TETO
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Chip 
+                      label={empresa.viesAtual}
+                      sx={{ 
+                        backgroundColor: '#e8f5e8',
+                        color: '#2e7d32',
+                        fontWeight: 600,
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      VIÉS ATUAL
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: trendColor }}>
+                      {empresa.variacaoHoje}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      VARIAÇÃO HOJE
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Performance e Benchmarks */}
         <Grid item xs={12} md={8}>
           <Card>
-            <CardContent sx={{ p: 3 }}>
+            <CardContent sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Performance e Benchmark
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#22c55e', mb: 1 }}>
+                      {empresa.rendProventos}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Rendimento com Proventos
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#3b82f6', mb: 1 }}>
+                      {empresa.ibovespaEpoca}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Ibovespa na Época da Compra
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#10b981', mb: 1 }}>
+                      {empresa.ibovespaVariacao}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Variação Ibovespa no Período
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#8b5cf6', mb: 1 }}>
+                      {empresa.percentualCarteira}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Percentual na Carteira
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {/* Indicadores Financeiros */}
+              <Typography variant="h6" sx={{ mt: 4, mb: 3, fontWeight: 600 }}>
                 Indicadores Financeiros
               </Typography>
               <Grid container spacing={3}>
@@ -163,20 +333,20 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                 <Grid item xs={6} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
                     <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                      {empresa.dividendYield}
+                      {empresa.pl}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      Dividend Yield
+                      P/L
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
                     <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                      {empresa.pl}
+                      {empresa.pvp}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      P/L
+                      P/VP
                     </Typography>
                   </Box>
                 </Grid>
@@ -195,8 +365,73 @@ export default function EmpresaDetalhes(): React.JSX.Element {
           </Card>
         </Grid>
 
-        {/* Relatórios */}
+        {/* Gráfico de Pizza + Relatórios */}
         <Grid item xs={12} md={4}>
+          {/* Gráfico de Pizza */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Participação na Carteira
+              </Typography>
+              <Box sx={{ 
+                width: 200, 
+                height: 200, 
+                margin: '0 auto',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {/* Gráfico de Pizza Simples com CSS */}
+                <Box sx={{
+                  width: 180,
+                  height: 180,
+                  borderRadius: '50%',
+                  background: `conic-gradient(
+                    #8b5cf6 0% ${parseFloat(empresa.percentualCarteira)}%, 
+                    #e5e7eb ${parseFloat(empresa.percentualCarteira)}% 100%
+                  )`,
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Box sx={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#8b5cf6' }}>
+                      {empresa.percentualCarteira}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      da carteira
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Stack direction="row" justifyContent="center" spacing={2}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ width: 12, height: 12, backgroundColor: '#8b5cf6', borderRadius: '50%' }} />
+                    <Typography variant="caption">{empresa.ticker}</Typography>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ width: 12, height: 12, backgroundColor: '#e5e7eb', borderRadius: '50%' }} />
+                    <Typography variant="caption">Outros</Typography>
+                  </Stack>
+                </Stack>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Relatórios */}
           <Card>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
