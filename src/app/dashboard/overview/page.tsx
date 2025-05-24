@@ -1,0 +1,222 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+'use client';
+
+import * as React from 'react';
+import Grid from '@mui/material/Unstable_Grid2';
+import { OverviewFilters } from '@/components/dashboard/overview/overview-filters';
+import { OverviewTable } from '@/components/dashboard/overview/overview-table';
+
+const ativos = [
+  {
+    id: '1',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/DEXP.png',
+    ticker: 'DEXP3',
+    setor: 'Nanocap/Químico',
+    dataEntrada: '27/01/2023',
+    precoEntrada: 'R$ 7,96',
+    precoAtual: 'R$ 9,33',
+    dy: '5,91%',
+    precoTeto: 'R$ 13,10',
+    vies: 'Compra',
+  },
+  {
+    id: '2',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KEPL.png',
+    ticker: 'KEPL3',
+    setor: 'Agricultura',
+    dataEntrada: '21/12/2020',
+    precoEntrada: 'R$ 9,16',
+    precoAtual: 'R$ 7,65',
+    dy: '7,76%',
+    precoTeto: 'R$ 11,00',
+    vies: 'Compra',
+  },
+  {
+    id: '3',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/EVEN.png',
+    ticker: 'EVEN3',
+    setor: 'C. Civil',
+    dataEntrada: '06/06/2022',
+    precoEntrada: 'R$ 5,18',
+    precoAtual: 'R$ 6,57',
+    dy: '19,57%',
+    precoTeto: 'R$ 8,50',
+    vies: 'Compra',
+  },
+  {
+    id: '4',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/WIZC.png',
+    ticker: 'WIZC3',
+    setor: 'Seguros',
+    dataEntrada: '30/04/2021',
+    precoEntrada: 'R$ 10,94',
+    precoAtual: 'R$ 7,00',
+    dy: '4,21%',
+    precoTeto: 'R$ 12,00',
+    vies: 'Compra',
+  },
+  {
+    id: '5',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RANI.png',
+    ticker: 'RANI3',
+    setor: 'Papel',
+    dataEntrada: '19/11/2020',
+    precoEntrada: 'R$ 4,65',
+    precoAtual: 'R$ 7,63',
+    dy: '7,61%',
+    precoTeto: 'R$ 10,57',
+    vies: 'Compra',
+  },
+  {
+    id: '6',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SHUL.png',
+    ticker: 'SHUL4',
+    setor: 'Industrial',
+    dataEntrada: '04/03/2021',
+    precoEntrada: 'R$ 3,47',
+    precoAtual: 'R$ 5,38',
+    dy: '5,00%',
+    precoTeto: 'R$ 5,45',
+    vies: 'Compra',
+  },
+  {
+    id: '7',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RSUL.png',
+    ticker: 'RSUL4',
+    setor: 'Nanocap/Industrial',
+    dataEntrada: '06/08/2021',
+    precoEntrada: 'R$ 85,00',
+    precoAtual: 'R$ 64,95',
+    dy: '3,55%',
+    precoTeto: 'R$ 100,00',
+    vies: 'Compra',
+  },
+  {
+    id: '8',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TASA.png',
+    ticker: 'TASA4',
+    setor: 'Bens Industriais',
+    dataEntrada: '27/06/2022',
+    precoEntrada: 'R$ 17,14',
+    precoAtual: 'R$ 7,78',
+    dy: '2,90%',
+    precoTeto: 'R$ 25,50',
+    vies: 'Compra',
+  },
+  {
+    id: '9',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TRIS.png',
+    ticker: 'TRIS3',
+    setor: 'C. Civil',
+    dataEntrada: '25/02/2022',
+    precoEntrada: 'R$ 5,15',
+    precoAtual: 'R$ 7,16',
+    dy: '3,59%',
+    precoTeto: 'R$ 5,79',
+    vies: 'Compra',
+  },
+  {
+    id: '10',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CGRA.png',
+    ticker: 'CGRA4',
+    setor: 'Nanocap/C. cíclico',
+    dataEntrada: '09/03/2023',
+    precoEntrada: 'R$ 29,00',
+    precoAtual: 'R$ 26,42',
+    dy: '10,61%',
+    precoTeto: 'R$ 42,50',
+    vies: 'Compra',
+  },
+  {
+    id: '11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ROMI.png',
+    ticker: 'ROMI3',
+    setor: 'Bens Industriais',
+    dataEntrada: '19/07/2022',
+    precoEntrada: 'R$ 12,02',
+    precoAtual: 'R$ 9,24',
+    dy: '8,00%',
+    precoTeto: 'R$ 19,40',
+    vies: 'Compra',
+  },
+  {
+    id: '12',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/POSI.png',
+    ticker: 'POSI3',
+    setor: 'Tecnologia',
+    dataEntrada: '22/04/2022',
+    precoEntrada: 'R$ 8,67',
+    precoAtual: 'R$ 4,96',
+    dy: '6,86%',
+    precoTeto: 'R$ 10,16',
+    vies: 'Compra',
+  },
+  {
+    id: '13',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CEAB.png',
+    ticker: 'CEAB3',
+    setor: 'Consumo cíclico',
+    dataEntrada: '04/05/2023',
+    precoEntrada: 'R$ 2,95',
+    precoAtual: 'R$ 16,74',
+    dy: '0,00%',
+    precoTeto: 'R$ 10,94',
+    vies: 'Compra',
+  },
+  {
+    id: '14',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/LOGG.png',
+    ticker: 'LOGG3',
+    setor: 'Logística',
+    dataEntrada: '25/11/2022',
+    precoEntrada: 'R$ 18,96',
+    precoAtual: 'R$ 21,27',
+    dy: '2,99%',
+    precoTeto: 'R$ 25,00',
+    vies: 'Compra',
+  },
+  {
+    id: '15',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/AGRO.png',
+    ticker: 'AGRO3',
+    setor: 'Agricultura',
+    dataEntrada: '09/10/2020',
+    precoEntrada: 'R$ 23,00',
+    precoAtual: 'R$ 21,18',
+    dy: '6,59%',
+    precoTeto: 'R$ 31,80',
+    vies: 'Compra',
+  },
+];
+
+export default function Page(): React.JSX.Element {
+  // DADOS DOS CARDS - ALTERE AQUI PARA MODIFICAR OS VALORES
+  const dadosCards = {
+    ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
+    indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
+    carteiraHoje: { value: "88.7%", trend: "up" as const }, // Verde, sem número embaixo
+    dividendYield: { value: "7.4%", trend: "up" as const }, // Verde, sem número embaixo  
+    ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
+    carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
+  };
+
+  return (
+    <Grid container spacing={3}>
+      {/* Filtros de busca */}
+      <Grid xs={12}>
+        <OverviewFilters />
+      </Grid>
+      
+      {/* Tabela principal com cards e dados */}
+      <Grid xs={12}>
+        <OverviewTable 
+          count={ativos.length} 
+          rows={ativos} 
+          page={0} 
+          rowsPerPage={5}
+          cardsData={dadosCards}
+        />
+      </Grid>
+    </Grid>
+  );
+}
