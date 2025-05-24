@@ -190,8 +190,8 @@ const ativos = [
 export default function Page(): React.JSX.Element {
   // Dados personalizados para os cards - VOCÊ PODE ALTERAR AQUI
   const dadosCards = {
-    ibovespa: { value: "140k", trend: "up" as const, diff: 2.1 },
-    indiceSmall: { value: "1.800k", trend: "up" as const, diff: 1.5 },
+    ibovespa: { value: "132k", trend: "up" as const, diff: 0.40 },
+    indiceSmall: { value: "2.155k", trend: "up" as const, diff: 0.46 },
     carteiraHoje: { value: "82.3%", trend: "up" as const, diff: 82.3 },
     dividendYield: { value: "6.8%", trend: "up" as const, diff: 6.8 },
     ibovespaPeriodo: { value: "5.2%", trend: "up" as const, diff: 5.2 },
