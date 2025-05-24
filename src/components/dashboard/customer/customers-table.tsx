@@ -24,8 +24,8 @@ import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBa
 
 import { useSelection } from '@/hooks/use-selection';
 
-function noop(): undefined {
-  return undefined;
+function noop(): void {
+  // Função vazia para props obrigatórias
 }
 
 interface StatCardProps {
@@ -326,8 +326,8 @@ export function AtivosTable({
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
           labelRowsPerPage="Linhas por página:"
-          labelDisplayedRows={({ from, to, count }) => 
-            `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
           }
         />
       </Card>
