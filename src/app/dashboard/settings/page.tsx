@@ -19,12 +19,10 @@ export default function Page(): React.JSX.Element {
 
   return (
     <Grid container spacing={3}>
-      {/* Filtros */}
       <Grid xs={12}>
         <IntegrationsFilters />
       </Grid>
       
-      {/* Tabela principal com dados dos FIIs (MALL11, KNSC11, etc.) */}
       <Grid xs={12}>
         <SettingsTable 
           cardsData={dadosCards}
