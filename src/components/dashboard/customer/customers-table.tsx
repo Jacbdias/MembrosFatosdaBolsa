@@ -36,7 +36,7 @@ interface StatCardProps {
   diff?: number;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps) {
+function StatCard({ title, value, icon, trend, diff }: StatCardProps): JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
   
