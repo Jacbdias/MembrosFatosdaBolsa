@@ -147,6 +147,14 @@ interface AtivosTableProps {
   page?: number;
   rows?: Ativo[];
   rowsPerPage?: number;
+  cardsData?: {
+    ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    indiceSmall?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    carteiraHoje?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    dividendYield?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
+  };
 }
 
 export function AtivosTable({
@@ -154,8 +162,22 @@ export function AtivosTable({
   rows = [],
   page = 0,
   rowsPerPage = 0,
+  cardsData = {},
 }: AtivosTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((ativo) => ativo.id), [rows]);
+
+  // Valores padrão para os cards
+  const defaultCards = {
+    ibovespa: { value: "132k", trend: "up" as const, diff: 1.6 },
+    indiceSmall: { value: "1.255k", trend: "down" as const, diff: -3.2 },
+    carteiraHoje: { value: "75.5%", trend: "up" as const, diff: 75.5 },
+    dividendYield: { value: "5.2%", trend: "up" as const, diff: 5.2 },
+    ibovespaPeriodo: { value: "3.4%", trend: "up" as const, diff: 3.4 },
+    carteiraPeriodo: { value: "4.7%", trend: "up" as const, diff: 4.7 },
+  };
+
+  // Mescla os dados padrão com os dados passados via props
+  const cards = { ...defaultCards, ...cardsData };
 
   return (
     <Box>
@@ -175,14 +197,14 @@ export function AtivosTable({
       >
         <StatCard 
           title="IBOVESPA" 
-          value="132k" 
+          value="129k" 
           icon={<CurrencyDollarIcon />} 
           trend="up" 
           diff={1.6} 
         />
         <StatCard 
           title="ÍNDICE SMALL" 
-          value="1.255k" 
+          value="18k" 
           icon={<UsersThreeIcon />} 
           trend="down" 
           diff={-3.2} 
