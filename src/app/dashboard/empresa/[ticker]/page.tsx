@@ -985,8 +985,9 @@ const empresasData = {
     proventos: [
       { tipo: 'Dividendo', valor: 'R$ 1,40', dataEx: '15/08/2025', dataPagamento: '30/08/2025', status: 'Aprovado' },
     ]
-  }
-};
+  }     // ← linha 988 - fecha empresa AGRO3
+};      // ← linha 989 - fecha array de proventos  
+};      // ← ADICIONAR ESTA LINHA - fecha objeto empresasData
 export default function EmpresaDetalhes(): React.JSX.Element {
   const params = useParams();
   const ticker = params?.ticker as string;
