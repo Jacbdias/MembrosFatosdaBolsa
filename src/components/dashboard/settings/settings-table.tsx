@@ -135,7 +135,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
 
 // Função para obter ícone baseado no setor
 function getSetorIcon(setor: string): React.ReactNode {
-  const iconStyle = { fontSize: 20 };
+  const iconStyle = { fontSize: 20, color: '#6b7280' };
   
   switch (setor.toLowerCase()) {
     case 'shopping':
@@ -198,7 +198,7 @@ export function SettingsTable({
 }: SettingsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // Valores específicos para DIVIDENDOS (diferentes dos outros)
+  // Valores específicos para DIVIDENDOS
   const defaultCards = {
     ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
@@ -219,4 +219,169 @@ export function SettingsTable({
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            sm
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(6, 1fr)',
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <StatCard 
+          title="IBOVESPA" 
+          value={cards.ibovespa.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={cards.ibovespa.trend} 
+          diff={cards.ibovespa.diff} 
+        />
+        <StatCard 
+          title="ÍNDICE SMALL" 
+          value={cards.indiceSmall.value} 
+          icon={<UsersThreeIcon />} 
+          trend={cards.indiceSmall.trend} 
+          diff={cards.indiceSmall.diff} 
+        />
+        <StatCard 
+          title="CARTEIRA HOJE" 
+          value={cards.carteiraHoje.value} 
+          icon={<ListBulletsIcon />}
+          trend={cards.carteiraHoje.trend}
+          diff={cards.carteiraHoje.diff}
+        />
+        <StatCard 
+          title="DIVIDEND YIELD" 
+          value={cards.dividendYield.value} 
+          icon={<ChartBarIcon />}
+          trend={cards.dividendYield.trend}
+          diff={cards.dividendYield.diff}
+        />
+        <StatCard 
+          title="IBOVESPA PERÍODO" 
+          value={cards.ibovespaPeriodo.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={cards.ibovespaPeriodo.trend} 
+          diff={cards.ibovespaPeriodo.diff} 
+        />
+        <StatCard 
+          title="CARTEIRA PERÍODO" 
+          value={cards.carteiraPeriodo.value} 
+          icon={<ChartBarIcon />} 
+          trend={cards.carteiraPeriodo.trend} 
+          diff={cards.carteiraPeriodo.diff} 
+        />
+      </Box>
+      
+      {/* Tabela */}
+      <Card sx={{ boxShadow: 2 }}>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '800px' }}>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
+                  Posição
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>DY</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Teto</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                row.vies = 'Compra';
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
+                      {index + 1}º
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          sx={{ 
+                            width: 32, 
+                            height: 32,
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0'
+                          }}
+                        >
+                          {getSetorIcon(row.setor)}
+                        </Avatar>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {row.ticker}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'normal', 
+                        textAlign: 'center', 
+                        lineHeight: 1.2,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {row.setor}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{
+                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
+                          color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
+                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
+                          px: 2,
+                          py: 0.75,
+                          borderRadius: '20px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          display: 'inline-block',
+                          textAlign: 'center',
+                          minWidth: '70px',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {row.vies}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={count}
+          onPageChange={noop}
+          onRowsPerPageChange={noop}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Linhas por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+        />
+      </Card>
+    </Box>
+  );
+}
