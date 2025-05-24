@@ -1,5 +1,5 @@
 import * as React from 'react';
 
-export function IntegrationsFilters(): React.JSX.Element {
+export function settings-filters.tsx(): React.JSX.Element {
   return null;
 }
