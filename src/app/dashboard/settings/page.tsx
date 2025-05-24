@@ -3,8 +3,8 @@
 
 import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
-import { IntegrationsFilters } from '@/components/dashboard/integrations/integrations-filters';
-import { IntegrationsTable } from '@/components/dashboard/integrations/integrations-table';
+import { SettingsFilters } from '@/components/dashboard/settings/settings-filters';
+import { SettingsTable } from '@/components/dashboard/settings/settings-table';
 
 // DADOS ESPECÍFICOS PARA DIVIDENDOS - baseados na tabela fornecida
 const dividendosAtivos = [
@@ -229,12 +229,12 @@ export default function Page(): React.JSX.Element {
     <Grid container spacing={3}>
       {/* Filtros (vazio por enquanto) */}
       <Grid xs={12}>
-        <IntegrationsFilters />
+        <SettingsFilters />
       </Grid>
       
       {/* Tabela principal com cards e dados */}
       <Grid xs={12}>
-        <IntegrationsTable 
+        <SettingsTable 
           count={dividendosAtivos.length} 
           rows={dividendosAtivos} 
           page={0} 
