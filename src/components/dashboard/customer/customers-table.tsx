@@ -73,10 +73,13 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Typography>
             <Avatar 
               sx={{ 
-                backgroundColor: 'var(--mui-palette-primary-main)', 
+                backgroundColor: '#000000', // Fundo preto para todos os ícones
                 height: 32, 
                 width: 32,
-                '& svg': { fontSize: 16 }
+                '& svg': { 
+                  fontSize: 16,
+                  color: 'white' // Ícone branco para contraste
+                }
               }}
             >
               {icon}
@@ -100,7 +103,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
           </Box>
           
           {/* Trend indicator */}
-          {diff !== undefined && (
+          {diff !== undefined && trend && (
             <Stack direction="row" spacing={0.5} alignItems="center">
               <TrendIcon 
                 size={16} 
