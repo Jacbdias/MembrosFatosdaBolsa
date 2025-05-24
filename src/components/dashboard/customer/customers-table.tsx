@@ -39,31 +39,87 @@ interface StatCardProps {
 function StatCard({ title, value, icon, trend, diff }: StatCardProps) {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
+  
   return (
-    <Card sx={{ height: 88, flex: 1 }}>
-      <CardContent sx={{ p: 2 }}>
-        <Stack spacing={2} direction="row" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography color="text.secondary" variant="overline" sx={{ display: 'block', lineHeight: 1 }}>
+    <Card 
+      sx={{ 
+        minHeight: 120,
+        flex: '1 1 200px',
+        maxWidth: { xs: '100%', sm: '300px' },
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: 3,
+        }
+      }}
+    >
+      <CardContent sx={{ p: 3, height: '100%' }}>
+        <Stack spacing={2} sx={{ height: '100%' }}>
+          {/* Header com título e ícone */}
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Typography 
+              color="text.secondary" 
+              variant="caption" 
+              sx={{ 
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                fontSize: '0.7rem'
+              }}
+            >
               {title}
             </Typography>
-            <Typography variant="h5">{value}</Typography>
-          </Box>
-          <Avatar sx={{ backgroundColor: 'var(--mui-palette-primary-main)', height: 36, width: 36 }}>
-            {icon}
-          </Avatar>
-        </Stack>
-        {diff !== undefined && (
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-            <TrendIcon color={trendColor} fontSize="small" />
-            <Typography color={trendColor} variant="body2">
-              {diff}%
-            </Typography>
-            <Typography color="text.secondary" variant="caption">
-              no período
-            </Typography>
+            <Avatar 
+              sx={{ 
+                backgroundColor: 'var(--mui-palette-primary-main)', 
+                height: 32, 
+                width: 32,
+                '& svg': { fontSize: 16 }
+              }}
+            >
+              {icon}
+            </Avatar>
           </Stack>
-        )}
+          
+          {/* Valor principal */}
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700,
+                color: 'text.primary',
+                fontSize: { xs: '1.5rem', sm: '2rem' }
+              }}
+            >
+              {value}
+            </Typography>
+          </Box>
+          
+          {/* Trend indicator */}
+          {diff !== undefined && (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <TrendIcon 
+                size={16} 
+                style={{ color: trendColor }} 
+              />
+              <Typography 
+                sx={{ 
+                  color: trendColor,
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
+                }}
+              >
+                {diff > 0 ? '+' : ''}{diff}%
+              </Typography>
+              <Typography 
+                color="text.secondary" 
+                sx={{ fontSize: '0.75rem' }}
+              >
+                no período
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -102,19 +158,66 @@ export function AtivosTable({
 
   return (
     <Box>
-      <Stack spacing={2} direction="row" useFlexGap flexWrap="wrap" sx={{ mb: 2 }}>
-        <StatCard title="IBOVESPA" value="129k" icon={<CurrencyDollarIcon />} trend="up" diff={1.6} />
-        <StatCard title="ÍNDICE SMALL" value="18k" icon={<UsersThreeIcon />} trend="down" diff={3.2} />
-        <StatCard title="CARTEIRA HOJE" value="75.5%" icon={<ListBulletsIcon />} />
-        <StatCard title="DIVIDEND YELD" value="5.2%" icon={<ChartBarIcon />} />
-        <StatCard title="IBOVESPA NO PERÍODO" value="3.4%" icon={<CurrencyDollarIcon />} trend="up" diff={3.4} />
-        <StatCard title="CARTEIRA NO PERÍODO" value="4.7%" icon={<ChartBarIcon />} trend="up" diff={4.7} />
-      </Stack>
-      <Card>
+      {/* Cards de estatísticas com grid responsivo */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(6, 1fr)',
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <StatCard 
+          title="IBOVESPA" 
+          value="129k" 
+          icon={<CurrencyDollarIcon />} 
+          trend="up" 
+          diff={1.6} 
+        />
+        <StatCard 
+          title="ÍNDICE SMALL" 
+          value="18k" 
+          icon={<UsersThreeIcon />} 
+          trend="down" 
+          diff={-3.2} 
+        />
+        <StatCard 
+          title="CARTEIRA HOJE" 
+          value="75.5%" 
+          icon={<ListBulletsIcon />} 
+        />
+        <StatCard 
+          title="DIVIDEND YIELD" 
+          value="5.2%" 
+          icon={<ChartBarIcon />} 
+        />
+        <StatCard 
+          title="IBOVESPA PERÍODO" 
+          value="3.4%" 
+          icon={<CurrencyDollarIcon />} 
+          trend="up" 
+          diff={3.4} 
+        />
+        <StatCard 
+          title="CARTEIRA PERÍODO" 
+          value="4.7%" 
+          icon={<ChartBarIcon />} 
+          trend="up" 
+          diff={4.7} 
+        />
+      </Box>
+      
+      {/* Tabela */}
+      <Card sx={{ boxShadow: 2 }}>
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
-              <TableRow>
+              <TableRow sx={{ backgroundColor: 'grey.50' }}>
                 <TableCell padding="checkbox">
                   <Checkbox
                     checked={selectedAll}
@@ -125,14 +228,14 @@ export function AtivosTable({
                     }}
                   />
                 </TableCell>
-                <TableCell>Ativo</TableCell>
-                <TableCell>Setor</TableCell>
-                <TableCell>Data de Entrada</TableCell>
-                <TableCell>Preço que Iniciou</TableCell>
-                <TableCell>Preço Atual</TableCell>
-                <TableCell>DY</TableCell>
-                <TableCell>Preço Teto</TableCell>
-                <TableCell>Viés</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Ativo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Setor</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Data de Entrada</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Preço que Iniciou</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Preço Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>DY</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Preço Teto</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Viés</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -140,7 +243,16 @@ export function AtivosTable({
                 row.vies = 'Compra';
                 const isSelected = selected?.has(row.id);
                 return (
-                  <TableRow hover key={row.id} selected={isSelected}>
+                  <TableRow 
+                    hover 
+                    key={row.id} 
+                    selected={isSelected}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      }
+                    }}
+                  >
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={isSelected}
@@ -152,29 +264,47 @@ export function AtivosTable({
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar src={row.avatar} alt={row.ticker} />
-                        <Typography variant="subtitle2">{row.ticker}</Typography>
+                        <Avatar 
+                          src={row.avatar} 
+                          alt={row.ticker}
+                          sx={{ width: 32, height: 32 }}
+                        />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {row.ticker}
+                        </Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: 'normal', textAlign: 'center', lineHeight: 1.2 }}>{row.setor}</TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'normal', 
+                        textAlign: 'center', 
+                        lineHeight: 1.2,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {row.setor}
+                    </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.precoEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dy}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.precoTeto}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
                     <TableCell>
                       <Box
                         sx={{
-                          backgroundColor: row.vies === 'Compra' ? '#4dfb01' : 'transparent',
-                          color: row.vies === 'Compra' ? '#000' : 'inherit',
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: '16px',
-                          fontWeight: 500,
+                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
+                          color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
+                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
+                          px: 2,
+                          py: 0.75,
+                          borderRadius: '20px',
+                          fontWeight: 600,
                           fontSize: '0.75rem',
                           display: 'inline-block',
                           textAlign: 'center',
-                          minWidth: '60px',
+                          minWidth: '70px',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
                         }}
                       >
                         {row.vies}
@@ -195,6 +325,10 @@ export function AtivosTable({
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Linhas por página:"
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
+          }
         />
       </Card>
     </Box>
