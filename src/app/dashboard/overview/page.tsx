@@ -10,7 +10,7 @@ const ativos = [
   {
     id: '1',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/AAOS.png',
-    ticker: 'AAOS3',
+    ticker: 'ALOS3',
     setor: 'Shoppings',
     dataEntrada: '15/01/2021',
     precoEntrada: 'R$ 26,68',
