@@ -1,7 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
 import Grid from '@mui/material/Unstable_Grid2';
-import dayjs from 'dayjs';
 
 import { config } from '@/config';
 import { OverviewFilters } from '@/components/dashboard/overview/overview-filters';
@@ -12,12 +11,9 @@ export const metadata = { title: `Overview | Dashboard | ${config.site.name}` } 
 export default function Page(): React.JSX.Element {
   return (
     <Grid container spacing={3}>
-      {/* Filtros do Overview */}
       <Grid xs={12}>
         <OverviewFilters />
       </Grid>
-      
-      {/* Tabela Principal do Overview */}
       <Grid xs={12}>
         <OverviewTable />
       </Grid>
