@@ -132,7 +132,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   );
 }
 
-export interface Ativo {
+export interface OverviewData {
   id: string;
   avatar: string;
   ticker: string;
@@ -145,10 +145,10 @@ export interface Ativo {
   vies: string;
 }
 
-interface AtivosTableProps {
+interface OverviewTableProps {
   count?: number;
   page?: number;
-  rows?: Ativo[];
+  rows?: OverviewData[];
   rowsPerPage?: number;
   cardsData?: {
     ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
@@ -160,23 +160,23 @@ interface AtivosTableProps {
   };
 }
 
-export function AtivosTable({
+export function OverviewTable({
   count = 0,
   rows = [],
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
-}: AtivosTableProps): React.JSX.Element {
-  const rowIds = React.useMemo(() => rows.map((ativo) => ativo.id), [rows]);
+}: OverviewTableProps): React.JSX.Element {
+  const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // Valores padrão para os cards
+  // Valores padrão para os cards do Overview (diferentes do customer)
   const defaultCards = {
-    ibovespa: { value: "132k", trend: "up" as const, diff: 1.6 },
-    indiceSmall: { value: "1.255k", trend: "down" as const, diff: -3.2 },
-    carteiraHoje: { value: "75.5%", trend: "up" as const, diff: 75.5 },
-    dividendYield: { value: "5.2%", trend: "up" as const, diff: 5.2 },
-    ibovespaPeriodo: { value: "3.4%", trend: "up" as const, diff: 3.4 },
-    carteiraPeriodo: { value: "4.7%", trend: "up" as const, diff: 4.7 },
+    ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
+    indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
+    carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
+    dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
+    ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
+    carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
   // Mescla os dados padrão com os dados passados via props
