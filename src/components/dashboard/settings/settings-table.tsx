@@ -128,7 +128,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   );
 }
 
-export interface IntegrationsData {
+export interface SettingsData {
   id: string;
   avatar: string;
   ticker: string;
@@ -141,10 +141,10 @@ export interface IntegrationsData {
   vies: string;
 }
 
-interface IntegrationsTableProps {
+interface SettingsTableProps {
   count?: number;
   page?: number;
-  rows?: IntegrationsData[];
+  rows?: SettingsData[];
   rowsPerPage?: number;
   cardsData?: {
     ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
@@ -156,13 +156,13 @@ interface IntegrationsTableProps {
   };
 }
 
-export function IntegrationsTable({
+export function SettingsTable({
   count = 0,
   rows = [],
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
-}: IntegrationsTableProps): React.JSX.Element {
+}: SettingsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
   // Valores específicos para DIVIDENDOS (diferentes dos outros)
