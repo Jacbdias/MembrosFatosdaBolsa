@@ -44,21 +44,18 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
   
   return (
-    <Card 
-      sx={{ 
-        minHeight: 120,
-        flex: '1 1 200px',
-        maxWidth: { xs: '100%', sm: '300px' },
-        transition: 'all 0.2s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: 3
-        }
-      }}
-    >
+    <Card sx={{
+      minHeight: 120,
+      flex: '1 1 200px',
+      maxWidth: { xs: '100%', sm: '300px' },
+      transition: 'all 0.2s ease-in-out',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: 3
+      }
+    }}>
       <CardContent sx={{ p: 3, height: '100%' }}>
         <Stack spacing={2} sx={{ height: '100%' }}>
-          {/* Header com título e ícone */}
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
             <Typography 
               color="text.secondary" 
@@ -72,22 +69,19 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             >
               {title}
             </Typography>
-            <Avatar 
-              sx={{ 
-                backgroundColor: '#374151',
-                height: 32, 
-                width: 32,
-                '& svg': { 
-                  fontSize: 16,
-                  color: 'white'
-                }
-              }}
-            >
+            <Avatar sx={{ 
+              backgroundColor: '#374151',
+              height: 32, 
+              width: 32,
+              '& svg': { 
+                fontSize: 16,
+                color: 'white'
+              }
+            }}>
               {icon}
             </Avatar>
           </Stack>
           
-          {/* Valor principal */}
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
             <Typography 
               variant="h4" 
@@ -103,26 +97,17 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Typography>
           </Box>
           
-          {/* Trend indicator */}
           {diff !== undefined && trend && (
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <TrendIcon 
-                size={16} 
-                style={{ color: trendColor }} 
-              />
-              <Typography 
-                sx={{ 
-                  color: trendColor,
-                  fontWeight: 600,
-                  fontSize: '0.8rem'
-                }}
-              >
+              <TrendIcon size={16} style={{ color: trendColor }} />
+              <Typography sx={{ 
+                color: trendColor,
+                fontWeight: 600,
+                fontSize: '0.8rem'
+              }}>
                 {diff > 0 ? '+' : ''}{diff}%
               </Typography>
-              <Typography 
-                color="text.secondary" 
-                sx={{ fontSize: '0.75rem' }}
-              >
+              <Typography color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                 no período
               </Typography>
             </Stack>
@@ -133,7 +118,6 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   );
 }
 
-// Função para obter ícone baseado no setor
 function getSetorIcon(setor: string): React.ReactNode {
   const iconStyle = { fontSize: 20, color: '#6b7280' };
   
@@ -198,7 +182,6 @@ export function SettingsTable({
 }: SettingsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // Valores específicos para DIVIDENDOS
   const defaultCards = {
     ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
@@ -208,25 +191,21 @@ export function SettingsTable({
     carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
   };
 
-  // Mescla os dados padrão com os dados passados via props
   const cards = { ...defaultCards, ...cardsData };
 
   return (
     <Box>
-      {/* Cards de estatísticas com grid responsivo */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(6, 1fr)',
-          },
-          gap: 2,
-          mb: 3,
-        }}
-      >
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(2, 1fr)',
+          md: 'repeat(3, 1fr)',
+          lg: 'repeat(6, 1fr)',
+        },
+        gap: 2,
+        mb: 3,
+      }}>
         <StatCard 
           title="IBOVESPA" 
           value={cards.ibovespa.value} 
@@ -271,7 +250,6 @@ export function SettingsTable({
         />
       </Box>
       
-      {/* Tabela */}
       <Card sx={{ boxShadow: 2 }}>
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: '800px' }}>
@@ -310,14 +288,12 @@ export function SettingsTable({
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar 
-                          sx={{ 
-                            width: 32, 
-                            height: 32,
-                            backgroundColor: '#f8fafc',
-                            border: '1px solid #e2e8f0'
-                          }}
-                        >
+                        <Avatar sx={{ 
+                          width: 32, 
+                          height: 32,
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0'
+                        }}>
                           {getSetorIcon(row.setor)}
                         </Avatar>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -325,14 +301,12 @@ export function SettingsTable({
                         </Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell 
-                      sx={{ 
-                        whiteSpace: 'normal', 
-                        textAlign: 'center', 
-                        lineHeight: 1.2,
-                        fontSize: '0.875rem'
-                      }}
-                    >
+                    <TableCell sx={{ 
+                      whiteSpace: 'normal', 
+                      textAlign: 'center', 
+                      lineHeight: 1.2,
+                      fontSize: '0.875rem'
+                    }}>
                       {row.setor}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
@@ -341,23 +315,21 @@ export function SettingsTable({
                     <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
                     <TableCell>
-                      <Box
-                        sx={{
-                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
-                          color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
-                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
-                          px: 2,
-                          py: 0.75,
-                          borderRadius: '20px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          display: 'inline-block',
-                          textAlign: 'center',
-                          minWidth: '70px',
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
-                        }}
-                      >
+                      <Box sx={{
+                        backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
+                        color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
+                        border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
+                        px: 2,
+                        py: 0.75,
+                        borderRadius: '20px',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        display: 'inline-block',
+                        textAlign: 'center',
+                        minWidth: '70px',
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                      }}>
                         {row.vies}
                       </Box>
                     </TableCell>
