@@ -180,13 +180,273 @@ export function SettingsTable({
   rowsPerPage = 0,
   cardsData = {},
 }: SettingsTableProps): React.JSX.Element {
-  const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
+  
+  // Dados reais dos ativos baseados na tabela fornecida
+  const dadosReais: SettingsData[] = [
+    {
+      id: "1",
+      avatar: "",
+      ticker: "MALL11",
+      setor: "Shopping",
+      dataEntrada: "26/01/2022",
+      precoEntrada: "R$ 118,27",
+      precoAtual: "R$ 109,23",
+      dy: "10,09%",
+      precoTeto: "R$ 109,68",
+      vies: "Compra"
+    },
+    {
+      id: "2",
+      avatar: "",
+      ticker: "KNSC11",
+      setor: "Papel",
+      dataEntrada: "26/01/2022",
+      precoEntrada: "R$ 9,21",
+      precoAtual: "R$ 9,87",
+      dy: "11,22%",
+      precoTeto: "R$ 9,14",
+      vies: "Compra"
+    },
+    {
+      id: "3",
+      avatar: "",
+      ticker: "HGBS11",
+      setor: "Shopping",
+      dataEntrada: "07/01/2023",
+      precoEntrada: "R$ 118,08",
+      precoAtual: "R$ 119,36",
+      dy: "10,77%",
+      precoTeto: "R$ 119,30",
+      vies: "Compra"
+    },
+    {
+      id: "4",
+      avatar: "",
+      ticker: "RURA11",
+      setor: "Papel",
+      dataEntrada: "14/01/2023",
+      precoEntrada: "R$ 10,25",
+      precoAtual: "R$ 9,67",
+      dy: "12,73%",
+      precoTeto: "R$ 8,70",
+      vies: "Compra"
+    },
+    {
+      id: "5",
+      avatar: "",
+      ticker: "HSLG11",
+      setor: "Híbrido",
+      dataEntrada: "13/01/2024",
+      precoEntrada: "R$ 10,08",
+      precoAtual: "R$ 10,36",
+      dy: "11,09%",
+      precoTeto: "R$ 10,81",
+      vies: "Compra"
+    },
+    {
+      id: "6",
+      avatar: "",
+      ticker: "BPFF11",
+      setor: "PDF",
+      dataEntrada: "08/01/2024",
+      precoEntrada: "R$ 72,12",
+      precoAtual: "R$ 82,40",
+      dy: "12,20%",
+      precoTeto: "R$ 66,34",
+      vies: "Compra"
+    },
+    {
+      id: "7",
+      avatar: "",
+      ticker: "HGFF11",
+      setor: "FII",
+      dataEntrada: "03/01/2023",
+      precoEntrada: "R$ 69,18",
+      precoAtual: "R$ 71,40",
+      dy: "11,12%",
+      precoTeto: "R$ 73,59",
+      vies: "Compra"
+    },
+    {
+      id: "8",
+      avatar: "",
+      ticker: "RBCO11",
+      setor: "Logística",
+      dataEntrada: "03/01/2022",
+      precoEntrada: "R$ 59,25",
+      precoAtual: "R$ 108,66",
+      dy: "10,18%",
+      precoTeto: "R$ 109,89",
+      vies: "Compra"
+    },
+    {
+      id: "9",
+      avatar: "",
+      ticker: "SNAG11",
+      setor: "Logística",
+      dataEntrada: "03/01/2022",
+      precoEntrada: "R$ 93,12",
+      precoAtual: "R$ 163,44",
+      dy: "10,41%",
+      precoTeto: "R$ 136,00",
+      vies: "Compra"
+    },
+    {
+      id: "10",
+      avatar: "",
+      ticker: "HSOG11",
+      setor: "Logística",
+      dataEntrada: "27/01/2020",
+      precoEntrada: "R$ 141,80",
+      precoAtual: "R$ 157,72",
+      dy: "8,62%",
+      precoTeto: "R$ 148,67",
+      vies: "Compra"
+    },
+    {
+      id: "11",
+      avatar: "",
+      ticker: "USIM11",
+      setor: "Shopping",
+      dataEntrada: "14/04/2022",
+      precoEntrada: "R$ 78,00",
+      precoAtual: "R$ 81,67",
+      dy: "10,95%",
+      precoTeto: "R$ 93,40",
+      vies: "Compra"
+    },
+    {
+      id: "12",
+      avatar: "",
+      ticker: "AFHI11",
+      setor: "Papel",
+      dataEntrada: "05/07/2022",
+      precoEntrada: "R$ 99,91",
+      precoAtual: "R$ 91,79",
+      dy: "12,25%",
+      precoTeto: "R$ 93,30",
+      vies: "Compra"
+    },
+    {
+      id: "13",
+      avatar: "",
+      ticker: "BTLG11",
+      setor: "Logística",
+      dataEntrada: "08/01/2022",
+      precoEntrada: "R$ 100,14",
+      precoAtual: "R$ 100,20",
+      dy: "9,58%",
+      precoTeto: "R$ 104,09",
+      vies: "Compra"
+    },
+    {
+      id: "14",
+      avatar: "",
+      ticker: "VGTA11",
+      setor: "Papel",
+      dataEntrada: "27/12/2022",
+      precoEntrada: "R$ 49,20",
+      precoAtual: "R$ 51,18",
+      dy: "12,50%",
+      precoTeto: "R$ 54,23",
+      vies: "Compra"
+    },
+    {
+      id: "15",
+      avatar: "",
+      ticker: "HCRJ11",
+      setor: "Híbrido",
+      dataEntrada: "21/09/2020",
+      precoEntrada: "R$ 113,95",
+      precoAtual: "R$ 126,97",
+      dy: "10,01%",
+      precoTeto: "R$ 120,25",
+      vies: "Compra"
+    },
+    {
+      id: "16",
+      avatar: "",
+      ticker: "KCRJ11",
+      setor: "Renda Fixa",
+      dataEntrada: "17/08/2022",
+      precoEntrada: "R$ 113,00",
+      precoAtual: "R$ 124,86",
+      dy: "10,35%",
+      precoTeto: "R$ 138,57",
+      vies: "Compra"
+    },
+    {
+      id: "17",
+      avatar: "",
+      ticker: "ALRZ11",
+      setor: "Híbrido",
+      dataEntrada: "03/02/2022",
+      precoEntrada: "R$ 113,99",
+      precoAtual: "R$ 110,07",
+      dy: "9,14%",
+      precoTeto: "R$ 110,16",
+      vies: "Compra"
+    },
+    {
+      id: "18",
+      avatar: "",
+      ticker: "RZNJJ11",
+      setor: "Papel",
+      dataEntrada: "20/11/2021",
+      precoEntrada: "R$ 104,73",
+      precoAtual: "R$ 114,12",
+      dy: "9,31%",
+      precoTeto: "R$ 97,91",
+      vies: "Compra"
+    },
+    {
+      id: "19",
+      avatar: "",
+      ticker: "BNFS11",
+      setor: "Híbrido",
+      dataEntrada: "20/10/2022",
+      precoEntrada: "R$ 82,17",
+      precoAtual: "R$ 148,19",
+      dy: "12,67%",
+      precoTeto: "R$ 115,66",
+      vies: "Compra"
+    },
+    {
+      id: "20",
+      avatar: "",
+      ticker: "HGMJ11",
+      setor: "Papel",
+      dataEntrada: "05/01/2022",
+      precoEntrada: "R$ 107,04",
+      precoAtual: "R$ 49,30",
+      dy: "12,21%",
+      precoTeto: "R$ 73,20",
+      vies: "Compra"
+    },
+    {
+      id: "21",
+      avatar: "",
+      ticker: "XVED11",
+      setor: "Papel",
+      dataEntrada: "12/07/2022",
+      precoEntrada: "R$ 9,69",
+      precoAtual: "R$ 9,02",
+      dy: "12,91%",
+      precoTeto: "R$ 9,90",
+      vies: "Compra"
+    }
+  ];
+
+  // Usar dados reais se não houver dados passados por props
+  const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
+  
+  const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
 
   const defaultCards = {
-    ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
+    ibovespa: { value: "158.268", trend: "up" as const, diff: 10.09 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
-    carteiraHoje: { value: "92.1%", trend: "up" as const, diff: 92.1 },
-    dividendYield: { value: "8.8%", trend: "up" as const, diff: 8.8 },
+    carteiraHoje: { value: "R$ 118,27", trend: "up" as const, diff: 10.09 },
+    dividendYield: { value: "10,9%", trend: "up" as const, diff: 10.9 },
     ibovespaPeriodo: { value: "7.1%", trend: "up" as const, diff: 7.1 },
     carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
   };
@@ -269,7 +529,7 @@ export function SettingsTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row, index) => {
+              {dadosParaUsar.map((row, index) => {
                 row.vies = 'Compra';
                 return (
                   <TableRow 
@@ -342,11 +602,11 @@ export function SettingsTable({
         <Divider />
         <TablePagination
           component="div"
-          count={count}
+          count={count || dadosParaUsar.length}
           onPageChange={noop}
           onRowsPerPageChange={noop}
           page={page}
-          rowsPerPage={rowsPerPage}
+          rowsPerPage={rowsPerPage || dadosParaUsar.length}
           rowsPerPageOptions={[5, 10, 25]}
           labelRowsPerPage="Linhas por página:"
           labelDisplayedRows={({ from, to, count: totalCount }) => 
