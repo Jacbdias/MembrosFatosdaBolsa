@@ -38,7 +38,7 @@ interface StatCardProps {
   diff?: number;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): JSX.Element {
+function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
   
@@ -197,45 +197,45 @@ export function AtivosTable({
       >
         <StatCard 
           title="IBOVESPA" 
-          value="129k" 
+          value={cards.ibovespa.value} 
           icon={<CurrencyDollarIcon />} 
-          trend="up" 
-          diff={1.6} 
+          trend={cards.ibovespa.trend} 
+          diff={cards.ibovespa.diff} 
         />
         <StatCard 
           title="ÍNDICE SMALL" 
-          value="18k" 
+          value={cards.indiceSmall.value} 
           icon={<UsersThreeIcon />} 
-          trend="down" 
-          diff={-3.2} 
+          trend={cards.indiceSmall.trend} 
+          diff={cards.indiceSmall.diff} 
         />
         <StatCard 
           title="CARTEIRA HOJE" 
-          value="75.5%" 
+          value={cards.carteiraHoje.value} 
           icon={<ListBulletsIcon />}
-          trend="up"
-          diff={75.5}
+          trend={cards.carteiraHoje.trend}
+          diff={cards.carteiraHoje.diff}
         />
         <StatCard 
           title="DIVIDEND YIELD" 
-          value="5.2%" 
+          value={cards.dividendYield.value} 
           icon={<ChartBarIcon />}
-          trend="up"
-          diff={5.2}
+          trend={cards.dividendYield.trend}
+          diff={cards.dividendYield.diff}
         />
         <StatCard 
           title="IBOVESPA PERÍODO" 
-          value="3.4%" 
+          value={cards.ibovespaPeriodo.value} 
           icon={<CurrencyDollarIcon />} 
-          trend="up" 
-          diff={3.4} 
+          trend={cards.ibovespaPeriodo.trend} 
+          diff={cards.ibovespaPeriodo.diff} 
         />
         <StatCard 
           title="CARTEIRA PERÍODO" 
-          value="4.7%" 
+          value={cards.carteiraPeriodo.value} 
           icon={<ChartBarIcon />} 
-          trend="up" 
-          diff={4.7} 
+          trend={cards.carteiraPeriodo.trend} 
+          diff={cards.carteiraPeriodo.diff} 
         />
       </Box>
       
