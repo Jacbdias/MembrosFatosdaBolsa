@@ -131,7 +131,7 @@ const dividendosAtivos = [
   {
     id: '11',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/BRSE.png',
-    ticker: 'BRSE3',
+    ticker: 'BBSE3',
     setor: 'Financeiro',
     dataEntrada: '30/06/2022',
     precoEntrada: 'R$ 25,48',
