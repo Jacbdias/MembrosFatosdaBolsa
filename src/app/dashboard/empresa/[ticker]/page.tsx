@@ -18,7 +18,7 @@ import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 
-const empresasData = {
+const empresasData: { [key: string]: any } = {
   'PETR4': {
     ticker: 'PETR4',
     nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
@@ -82,8 +82,6 @@ const empresasData = {
       { tipo: 'JCP', valor: 'R$ 0,38', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' },
     ]
   },
-
-  // NOVAS EMPRESAS - ADICIONAR ESTAS
   'ALOS3': {
     ticker: 'ALOS3',
     nomeCompleto: 'Alos Participações S.A.',
@@ -564,8 +562,6 @@ const empresasData = {
       { tipo: 'Dividendo', valor: 'R$ 1,05', dataEx: '15/06/2025', dataPagamento: '30/06/2025', status: 'Aprovado' },
     ]
   },
-
-  // EMPRESAS ADICIONAIS
   'KEPL3': {
     ticker: 'KEPL3',
     nomeCompleto: 'Kepler Weber S.A.',
@@ -985,9 +981,8 @@ const empresasData = {
     proventos: [
       { tipo: 'Dividendo', valor: 'R$ 1,40', dataEx: '15/08/2025', dataPagamento: '30/08/2025', status: 'Aprovado' },
     ]
-  } 
-};        
-};      
+  }
+};
 export default function EmpresaDetalhes(): React.JSX.Element {
   const params = useParams();
   const ticker = params?.ticker as string;
