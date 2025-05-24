@@ -38,7 +38,7 @@ interface StatCardProps {
   diff?: number;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
+function StatCard({ title, value, icon, trend, diff }: StatCardProps): JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
   
@@ -154,9 +154,6 @@ export function AtivosTable({
   rowsPerPage = 0,
 }: AtivosTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((ativo) => ativo.id), [rows]);
-  const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rows.length;
-  const selectedAll = rows.length > 0 && selected?.size === rows.length;
 
   return (
     <Box>
@@ -176,17 +173,17 @@ export function AtivosTable({
       >
         <StatCard 
           title="IBOVESPA" 
-          value="137k" 
+          value="129k" 
           icon={<CurrencyDollarIcon />} 
           trend="up" 
           diff={1.6} 
         />
         <StatCard 
           title="ÍNDICE SMALL" 
-          value="2.155k" 
+          value="18k" 
           icon={<UsersThreeIcon />} 
-          trend="up" 
-          diff={-0.46} 
+          trend="down" 
+          diff={-3.2} 
         />
         <StatCard 
           title="CARTEIRA HOJE" 
@@ -220,15 +217,8 @@ export function AtivosTable({
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) selectAll();
-                      else deselectAll();
-                    }}
-                  />
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
+                  Posição
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Ativo</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Setor</TableCell>
@@ -241,28 +231,20 @@ export function AtivosTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => {
+              {rows.map((row, index) => {
                 row.vies = 'Compra';
-                const isSelected = selected?.has(row.id);
                 return (
                   <TableRow 
                     hover 
-                    key={row.id} 
-                    selected={isSelected}
+                    key={row.id}
                     sx={{
                       '&:hover': {
                         backgroundColor: 'action.hover',
                       }
                     }}
                   >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={isSelected}
-                        onChange={(event) => {
-                          if (event.target.checked) selectOne(row.id);
-                          else deselectOne(row.id);
-                        }}
-                      />
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
+                      {index + 1}º
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
