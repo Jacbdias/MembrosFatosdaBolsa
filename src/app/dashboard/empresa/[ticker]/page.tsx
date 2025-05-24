@@ -1,4 +1,97 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
+},
+  'RSUL4': {
+    ticker: 'RSUL4',
+    nomeCompleto: 'Rio Grande Energia S.A.',
+    setor: 'Energia Elétrica',
+    descricao: 'Empresa de geração e distribuição de energia elétrica na região Sul do Brasil.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RSUL.png',
+    precoAtual: 'R$ 64,95', variacao: '-3.55%', tendencia: 'down',
+    dataEntrada: '06/08/2021', precoIniciou: 'R$ 85,00', dy: '3.55%', precoTeto: 'R$ 100,00', viesAtual: 'Compra',
+    variacaoHoje: '-2.1%', rendProventos: '-23.6%', ibovespaEpoca: '125.800', ibovespaVariacao: '+3.8%', percentualCarteira: '11.5%',
+    marketCap: 'R$ 4,8 bi', pl: '12.8', pvp: '0.9', roe: '7.2%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-13', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-28', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 2,31', dataEx: '15/04/2024', dataPagamento: '30/04/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' },
+    ]
+  },
+  'TASA4': {
+    ticker: 'TASA4',
+    nomeCompleto: 'Taurus Armas S.A.',
+    setor: 'Bens Industriais',
+    descricao: 'Fabricante de armas de fogo e equipamentos de segurança com presença internacional.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TASA.png',
+    precoAtual: 'R$ 7,78', variacao: '-2.90%', tendencia: 'down',
+    dataEntrada: '27/06/2022', precoIniciou: 'R$ 17,14', dy: '2.90%', precoTeto: 'R$ 25,50', viesAtual: 'Compra',
+    variacaoHoje: '-1.8%', rendProventos: '-54.6%', ibovespaEpoca: '95.200', ibovespaVariacao: '+37.1%', percentualCarteira: '2.9%',
+    marketCap: 'R$ 1,6 bi', pl: '25.3', pvp: '1.8', roe: '3.2%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-16', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-03-02', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,23', dataEx: '15/01/2024', dataPagamento: '30/01/2024', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 0,27', dataEx: '15/07/2023', dataPagamento: '31/07/2023', status: 'Pago' },
+    ]
+  },
+  'TRIS3': {
+    ticker: 'TRIS3',
+    nomeCompleto: 'Trisul S.A.',
+    setor: 'Construção Civil',
+    descricao: 'Construtora e incorporadora focada em empreendimentos residenciais e comerciais.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TRIS.png',
+    precoAtual: 'R$ 7,16', variacao: '+3.59%', tendencia: 'up',
+    dataEntrada: '25/02/2022', precoIniciou: 'R$ 5,15', dy: '3.59%', precoTeto: 'R$ 5,79', viesAtual: 'Compra',
+    variacaoHoje: '+2.3%', rendProventos: '+39.0%', ibovespaEpoca: '112.500', ibovespaVariacao: '+16.0%', percentualCarteira: '5.4%',
+    marketCap: 'R$ 2,3 bi', pl: '19.8', pvp: '1.3', roe: '6.8%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-09', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-23', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,26', dataEx: '15/03/2024', dataPagamento: '30/03/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 0,19', dataEx: '15/09/2023', dataPagamento: '30/09/2023', status: 'Pago' },
+    ]
+  },
+  'CGRA4': {
+    ticker: 'CGRA4',
+    nomeCompleto: 'Granja Faria S.A.',
+    setor: 'Consumo Cíclico',
+    descricao: 'Empresa do setor de alimentos com foco em proteína animal e produtos agrícolas.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CGRA.png',
+    precoAtual: 'R$ 26,42', variacao: '+10.61%', tendencia: 'up',
+    dataEntrada: '09/03/2023', precoIniciou: 'R$ 29,00', dy: '10.61%', precoTeto: 'R$ 42,50', viesAtual: 'Compra',
+    variacaoHoje: '+3.8%', rendProventos: '-8.9%', ibovespaEpoca: '105.800', ibovespaVariacao: '+23.5%', percentualCarteira: '7.8%',
+    marketCap: 'R$ 3,1 bi', pl: '8.9', pvp: '1.5', roe: '16.8%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-17', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-03-03', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 2,81', dataEx: '15/05/2024', dataPagamento: '30/05/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 1,95', dataEx: '15/11/2023', dataPagamento: '30/11/2023', status: 'Pago' },
+    ]
+  },
+  'ROMI3': {
+    ticker: 'ROMI3',
+    nomeCompleto: 'Indústrias Romi S.A.',
+    setor: 'Bens Industriais',
+    descricao: 'Fabricante de máquinas-ferramentas, sistemas de usinagem e equipamentos industriais.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ROMI.png',
+    precoAtual: 'R$ 9,24', variacao: '+8.00%', tendencia: 'up',
+    dataEntrada: '19/07/2022', precoIniciou: 'R$ 12,02', dy: '8.00%', precoTeto: 'R$ 19,40', viesAtual: 'Compra',
+    variacaoHoje: '+1.9%', rendProventos: '-23.1%', ibovespaEpoca: '98.500', ibovespaVariacao: '+32.5%', percentualCarteira: '4.6%',
+    marketCap: 'R$ 1,9 bi', pl: '18.4', pvp: '1.2', roe: '6.5%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-12', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-26', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,74', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' },
+      { tipo: 'JCP',/* eslint-disable @typescript-eslint/explicit-function-return-type */
 'use client';
 
 import * as React from 'react';
@@ -26,26 +119,10 @@ const empresasData = {
     setor: 'Petróleo, Gás e Biocombustíveis',
     descricao: 'A Petrobras é uma empresa de energia, focada em óleo, gás natural e energia de baixo carbono.',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
-    // Dados básicos
-    precoAtual: 'R$ 38,47',
-    variacao: '+2.3%',
-    tendencia: 'up',
-    // Dados detalhados
-    dataEntrada: '15/03/2022',
-    precoIniciou: 'R$ 28,90',
-    dy: '18.4%',
-    precoTeto: 'R$ 45,00',
-    viesAtual: 'Compra',
-    variacaoHoje: '+1.8%',
-    rendProventos: '+24.7%',
-    ibovespaEpoca: '112.200',
-    ibovespaVariacao: '+18.2%',
-    percentualCarteira: '12.5%',
-    // Indicadores tradicionais
-    marketCap: 'R$ 512,8 bi',
-    pl: '3.8',
-    pvp: '1.2',
-    roe: '31.5%',
+    precoAtual: 'R$ 38,47', variacao: '+2.3%', tendencia: 'up',
+    dataEntrada: '15/03/2022', precoIniciou: 'R$ 28,90', dy: '18.4%', precoTeto: 'R$ 45,00', viesAtual: 'Compra',
+    variacaoHoje: '+1.8%', rendProventos: '+24.7%', ibovespaEpoca: '112.200', ibovespaVariacao: '+18.2%', percentualCarteira: '12.5%',
+    marketCap: 'R$ 512,8 bi', pl: '3.8', pvp: '1.2', roe: '31.5%',
     relatorios: [
       { nome: 'Relatório Anual 2023', data: '2024-03-15', url: '#' },
       { nome: 'Balanço Q4 2023', data: '2024-02-28', url: '#' },
@@ -66,26 +143,10 @@ const empresasData = {
     setor: 'Nanocap/Químico',
     descricao: 'Empresa especializada em soluções químicas inovadoras e participações estratégicas.',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/DEXP.png',
-    // Dados básicos
-    precoAtual: 'R$ 9,33',
-    variacao: '+5.9%',
-    tendencia: 'up',
-    // Dados detalhados
-    dataEntrada: '27/01/2023',
-    precoIniciou: 'R$ 7,96',
-    dy: '5.91%',
-    precoTeto: 'R$ 13,10',
-    viesAtual: 'Compra',
-    variacaoHoje: '+3.2%',
-    rendProventos: '+17.2%',
-    ibovespaEpoca: '108.500',
-    ibovespaVariacao: '+19.1%',
-    percentualCarteira: '8.7%',
-    // Indicadores tradicionais
-    marketCap: 'R$ 1,2 bi',
-    pl: '12.3',
-    pvp: '0.8',
-    roe: '15.2%',
+    precoAtual: 'R$ 9,33', variacao: '+5.9%', tendencia: 'up',
+    dataEntrada: '27/01/2023', precoIniciou: 'R$ 7,96', dy: '5.91%', precoTeto: 'R$ 13,10', viesAtual: 'Compra',
+    variacaoHoje: '+3.2%', rendProventos: '+17.2%', ibovespaEpoca: '108.500', ibovespaVariacao: '+19.1%', percentualCarteira: '8.7%',
+    marketCap: 'R$ 1,2 bi', pl: '12.3', pvp: '0.8', roe: '15.2%',
     relatorios: [
       { nome: 'Relatório Anual 2023', data: '2024-03-10', url: '#' },
       { nome: 'Balanço Q4 2023', data: '2024-02-25', url: '#' },
@@ -96,8 +157,104 @@ const empresasData = {
       { tipo: 'Dividendo', valor: 'R$ 0,35', dataEx: '15/11/2023', dataPagamento: '30/11/2023', status: 'Pago' },
       { tipo: 'JCP', valor: 'R$ 0,29', dataEx: '15/08/2023', dataPagamento: '30/08/2023', status: 'Pago' },
     ]
+  },
+  'KEPL3': {
+    ticker: 'KEPL3',
+    nomeCompleto: 'Kepler Weber S.A.',
+    setor: 'Agricultura',
+    descricao: 'Empresa líder em equipamentos e serviços para armazenagem de grãos e beneficiamento de sementes.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KEPL.png',
+    precoAtual: 'R$ 7,65', variacao: '-3.1%', tendencia: 'down',
+    dataEntrada: '21/12/2020', precoIniciou: 'R$ 9,16', dy: '7.76%', precoTeto: 'R$ 11,00', viesAtual: 'Compra',
+    variacaoHoje: '-1.2%', rendProventos: '+8.9%', ibovespaEpoca: '119.000', ibovespaVariacao: '+8.7%', percentualCarteira: '6.3%',
+    marketCap: 'R$ 2,1 bi', pl: '8.9', pvp: '1.1', roe: '12.8%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-12', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-26', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,58', dataEx: '15/04/2024', dataPagamento: '30/04/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 0,42', dataEx: '15/01/2024', dataPagamento: '30/01/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 0,39', dataEx: '15/10/2023', dataPagamento: '30/10/2023', status: 'Pago' },
+    ]
+  },
+  'EVEN3': {
+    ticker: 'EVEN3',
+    nomeCompleto: 'Even Construtora e Incorporadora S.A.',
+    setor: 'Construção Civil',
+    descricao: 'Empresa de construção e incorporação imobiliária com foco no segmento residencial.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/EVEN.png',
+    precoAtual: 'R$ 6,57', variacao: '+19.57%', tendencia: 'up',
+    dataEntrada: '06/06/2022', precoIniciou: 'R$ 5,18', dy: '19.57%', precoTeto: 'R$ 8,50', viesAtual: 'Compra',
+    variacaoHoje: '+2.8%', rendProventos: '+26.8%', ibovespaEpoca: '102.500', ibovespaVariacao: '+27.1%', percentualCarteira: '7.1%',
+    marketCap: 'R$ 1,8 bi', pl: '15.2', pvp: '0.9', roe: '8.3%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-08', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-22', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 1,28', dataEx: '15/03/2024', dataPagamento: '30/03/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 0,95', dataEx: '15/09/2023', dataPagamento: '30/09/2023', status: 'Pago' },
+    ]
+  },
+  'WIZC3': {
+    ticker: 'WIZC3',
+    nomeCompleto: 'Wiz Soluções e Corretagem de Seguros S.A.',
+    setor: 'Seguros',
+    descricao: 'Plataforma digital de seguros que conecta corretores, seguradoras e clientes.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/WIZC.png',
+    precoAtual: 'R$ 7,00', variacao: '-4.21%', tendencia: 'down',
+    dataEntrada: '30/04/2021', precoIniciou: 'R$ 10,94', dy: '4.21%', precoTeto: 'R$ 12,00', viesAtual: 'Compra',
+    variacaoHoje: '-0.8%', rendProventos: '-36.0%', ibovespaEpoca: '118.500', ibovespaVariacao: '+10.1%', percentualCarteira: '4.2%',
+    marketCap: 'R$ 3,2 bi', pl: '22.1', pvp: '2.3', roe: '9.8%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-18', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-03-01', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,29', dataEx: '15/02/2024', dataPagamento: '29/02/2024', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 0,18', dataEx: '15/08/2023', dataPagamento: '30/08/2023', status: 'Pago' },
+    ]
+  },
+  'RANI3': {
+    ticker: 'RANI3',
+    nomeCompleto: 'Irani Papel e Embalagem S.A.',
+    setor: 'Papel e Celulose',
+    descricao: 'Empresa integrada de papel, celulose e embalagens com operações florestais sustentáveis.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RANI.png',
+    precoAtual: 'R$ 7,63', variacao: '+7.61%', tendencia: 'up',
+    dataEntrada: '19/11/2020', precoIniciou: 'R$ 4,65', dy: '7.61%', precoTeto: 'R$ 10,57', viesAtual: 'Compra',
+    variacaoHoje: '+1.5%', rendProventos: '+64.1%', ibovespaEpoca: '104.800', ibovespaVariacao: '+24.1%', percentualCarteira: '9.2%',
+    marketCap: 'R$ 1,5 bi', pl: '18.7', pvp: '1.4', roe: '7.9%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-14', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-27', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,58', dataEx: '15/01/2024', dataPagamento: '30/01/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 0,41', dataEx: '15/07/2023', dataPagamento: '31/07/2023', status: 'Pago' },
+    ]
+  },
+  'SHUL4': {
+    ticker: 'SHUL4',
+    nomeCompleto: 'Schulz S.A.',
+    setor: 'Bens Industriais',
+    descricao: 'Fabricante de compressores de ar e equipamentos pneumáticos para diversos setores industriais.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SHUL.png',
+    precoAtual: 'R$ 5,38', variacao: '+5.00%', tendencia: 'up',
+    dataEntrada: '04/03/2021', precoIniciou: 'R$ 3,47', dy: '5.00%', precoTeto: 'R$ 5,45', viesAtual: 'Compra',
+    variacaoHoje: '+0.7%', rendProventos: '+55.0%', ibovespaEpoca: '116.300', ibovespaVariacao: '+12.2%', percentualCarteira: '3.8%',
+    marketCap: 'R$ 890 mi', pl: '14.5', pvp: '1.1', roe: '8.1%',
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-11', url: '#' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-24', url: '#' },
+    ],
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 0,27', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' },
+      { tipo: 'JCP', valor: 'R$ 0,15', dataEx: '15/06/2023', dataPagamento: '30/06/2023', status: 'Pago' },
+    ]
   }
-  // Adicione mais empresas conforme necessário
+  // Continua na próxima parte...
 };
 
 export default function EmpresaDetalhes(): React.JSX.Element {
