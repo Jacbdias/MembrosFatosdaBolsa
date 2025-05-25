@@ -13,7 +13,6 @@ import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { ChartLineUp as ChartLineUpIcon } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { ArrowUpRight as ArrowUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUpRight';
-import { CurrencyDollar as CurrencyDollarBackgroundIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 
 interface CarteiraCardProps {
   title: string;
@@ -66,7 +65,7 @@ function CarteiraCard({
         }
       }}
     >
-      {/* Background Dollar Icons */}
+      {/* Background Dollar Bills */}
       <Box
         sx={{
           position: 'absolute',
@@ -74,52 +73,97 @@ function CarteiraCard({
           left: 0,
           right: 0,
           bottom: 0,
-          opacity: 0.1,
+          opacity: 0.08,
           overflow: 'hidden',
           pointerEvents: 'none',
           zIndex: 0,
         }}
       >
-        <CurrencyDollarBackgroundIcon 
-          size={80} 
-          style={{ 
-            position: 'absolute', 
-            top: '10px', 
-            right: '10px',
-            color: 'white',
-            opacity: 0.15
-          }} 
-        />
-        <CurrencyDollarBackgroundIcon 
-          size={60} 
-          style={{ 
-            position: 'absolute', 
-            bottom: '40px', 
-            left: '20px',
-            color: 'white',
-            opacity: 0.1
-          }} 
-        />
-        <CurrencyDollarBackgroundIcon 
-          size={40} 
-          style={{ 
-            position: 'absolute', 
-            top: '60px', 
-            left: '60%',
-            color: 'white',
-            opacity: 0.08
-          }} 
-        />
-        <CurrencyDollarBackgroundIcon 
-          size={50} 
-          style={{ 
-            position: 'absolute', 
-            bottom: '10px', 
-            right: '40%',
-            color: 'white',
-            opacity: 0.12
-          }} 
-        />
+        {/* Dollar bill representations using rectangles with $ symbols */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            width: '80px',
+            height: '35px',
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            border: '1px solid rgba(255,255,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'rotate(15deg)',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: 'rgba(255,255,255,0.4)'
+          }}
+        >
+          $100
+        </Box>
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: '30px',
+            left: '15px',
+            width: '70px',
+            height: '30px',
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            borderRadius: '4px',
+            border: '1px solid rgba(255,255,255,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'rotate(-10deg)',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: 'rgba(255,255,255,0.3)'
+          }}
+        >
+          $50
+        </Box>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '80px',
+            left: '65%',
+            width: '60px',
+            height: '25px',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            borderRadius: '3px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'rotate(25deg)',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            color: 'rgba(255,255,255,0.25)'
+          }}
+        >
+          $20
+        </Box>
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: '70px',
+            right: '30%',
+            width: '75px',
+            height: '32px',
+            backgroundColor: 'rgba(255,255,255,0.12)',
+            borderRadius: '4px',
+            border: '1px solid rgba(255,255,255,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'rotate(-20deg)',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: 'rgba(255,255,255,0.35)'
+          }}
+        >
+          $10
+        </Box>
       </Box>
       <CardContent sx={{ p: 4, height: '100%', position: 'relative', zIndex: 2 }}>
         <Stack spacing={3} sx={{ height: '100%' }}>
