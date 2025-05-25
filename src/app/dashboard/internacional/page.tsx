@@ -9,9 +9,9 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
-import { TrendingUp as TrendingUpIcon } from '@phosphor-icons/react/dist/ssr/TrendingUp';
-import { ChartLine as ChartLineIcon } from '@phosphor-icons/react/dist/ssr/ChartLine';
-import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
+import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
+import { ChartLineUp as ChartLineUpIcon } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { ArrowUpRight as ArrowUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUpRight';
 
 interface CarteiraCardProps {
@@ -166,7 +166,7 @@ export default function Page(): React.JSX.Element {
     {
       title: 'Exterior Stocks',
       description: 'Ações internacionais de empresas de tecnologia, crescimento e valor',
-      icon: <TrendingUpIcon />,
+      icon: <TrendUpIcon />,
       totalValue: 'USD 45.230',
       totalAssets: 12,
       performance: 'USD +8.420',
@@ -177,7 +177,7 @@ export default function Page(): React.JSX.Element {
     {
       title: 'Exterior ETFs',
       description: 'Fundos de índice diversificados para exposição global de mercados',
-      icon: <ChartLineIcon />,
+      icon: <ChartLineUpIcon />,
       totalValue: 'USD 28.950',
       totalAssets: 8,
       performance: 'USD +3.120',
@@ -188,7 +188,7 @@ export default function Page(): React.JSX.Element {
     {
       title: 'Exterior Dividendos',
       description: 'Ações pagadoras de dividendos consistentes e REITs internacionais',
-      icon: <CoinsIcon />,
+      icon: <CurrencyDollarIcon />,
       totalValue: 'USD 32.180',
       totalAssets: 15,
       performance: 'USD +4.680',
