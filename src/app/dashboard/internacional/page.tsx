@@ -13,6 +13,7 @@ import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { ChartLineUp as ChartLineUpIcon } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { ArrowUpRight as ArrowUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUpRight';
+import { CurrencyDollar as CurrencyDollarBackgroundIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 
 interface CarteiraCardProps {
   title: string;
@@ -65,7 +66,62 @@ function CarteiraCard({
         }
       }}
     >
-      <CardContent sx={{ p: 4, height: '100%', position: 'relative', zIndex: 1 }}>
+      {/* Background Dollar Icons */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          opacity: 0.1,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      >
+        <CurrencyDollarBackgroundIcon 
+          size={80} 
+          style={{ 
+            position: 'absolute', 
+            top: '10px', 
+            right: '10px',
+            color: 'white',
+            opacity: 0.15
+          }} 
+        />
+        <CurrencyDollarBackgroundIcon 
+          size={60} 
+          style={{ 
+            position: 'absolute', 
+            bottom: '40px', 
+            left: '20px',
+            color: 'white',
+            opacity: 0.1
+          }} 
+        />
+        <CurrencyDollarBackgroundIcon 
+          size={40} 
+          style={{ 
+            position: 'absolute', 
+            top: '60px', 
+            left: '60%',
+            color: 'white',
+            opacity: 0.08
+          }} 
+        />
+        <CurrencyDollarBackgroundIcon 
+          size={50} 
+          style={{ 
+            position: 'absolute', 
+            bottom: '10px', 
+            right: '40%',
+            color: 'white',
+            opacity: 0.12
+          }} 
+        />
+      </Box>
+      <CardContent sx={{ p: 4, height: '100%', position: 'relative', zIndex: 2 }}>
         <Stack spacing={3} sx={{ height: '100%' }}>
           {/* Header com título ao lado do ícone */}
           <Stack direction="row" spacing={3} alignItems="center">
