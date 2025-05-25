@@ -7,16 +7,6 @@ import { IntegrationsFilters } from '@/components/dashboard/integrations/integra
 import { SettingsTable } from '@/components/dashboard/settings/settings-table';
 
 export default function Page(): React.JSX.Element {
-  // DADOS DOS CARDS ESPECÍFICOS PARA DIVIDENDOS
-  const dadosCards = {
-    ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
-    indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
-    carteiraHoje: { value: "92.1%", trend: "up" as const },
-    dividendYield: { value: "8.8%", trend: "up" as const },
-    ibovespaPeriodo: { value: "7.1%", trend: "up" as const, diff: 7.1 },
-    carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
-  };
-
   return (
     <Grid container spacing={3}>
       <Grid xs={12}>
@@ -24,9 +14,7 @@ export default function Page(): React.JSX.Element {
       </Grid>
       
       <Grid xs={12}>
-        <SettingsTable 
-          cardsData={dadosCards}
-        />
+        <SettingsTable />
       </Grid>
     </Grid>
   );
