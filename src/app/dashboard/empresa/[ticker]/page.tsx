@@ -81,11 +81,10 @@ const empresasData: { [key: string]: any } = {
       { tipo: 'Dividendo', valor: 'R$ 0,42', dataEx: '15/05/2024', dataPagamento: '30/05/2024', status: 'Aprovado' },
       { tipo: 'JCP', valor: 'R$ 0,38', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' },
     ]
-  },
-  // Add all other empresa entries here...
+  }
 };
 
-// Base de dados dos FIIs (novos dados adicionados)
+// Base de dados dos FIIs
 const fiisData: { [key: string]: any } = {
   'MALL11': {
     ticker: 'MALL11',
@@ -120,8 +119,7 @@ const fiisData: { [key: string]: any } = {
     proventos: [
       { tipo: 'Rendimento', valor: 'R$ 0,92', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
     ]
-  },
-  // Add all other FII entries here...
+  }
 };
 
 export default function EmpresaDetalhes(): React.JSX.Element {
