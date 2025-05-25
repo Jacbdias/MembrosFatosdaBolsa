@@ -2061,40 +2061,40 @@ const fiisData: { [key: string]: any } = {
    ]
  },
 
- 'RZNJJ11': {
-   ticker: 'RZNJJ11',
-   nomeCompleto: 'Riza Terrax FII',
-   setor: 'Papel',
-   tipo: 'FII',
-   descricao: 'Fundo especializado em desenvolvimento imobiliário.',
-   avatar: 'https://www.ivalor.com.br/media/emp/logos/RZNJJ.png',
-   precoAtual: 'R$ 114,12',
-   variacao: '+8.97%',
-   tendencia: 'up',
-   dataEntrada: '20/11/2021',
-   precoIniciou: 'R$ 104,73',
-   dy: '9,31%',
-   precoTeto: 'R$ 97,91',
-   viesAtual: 'Compra',
-   variacaoHoje: '+1.2%',
-   rendProventos: '+15.8%',
-   ibovespaEpoca: '107.200',
-   ibovespaVariacao: '+35.8%',
-   percentualCarteira: '4.8%',
-   patrimonio: 'R$ 1.4 bilhões',
-   p_vp: '1.08',
-   vacancia: '6,2%',
-   imoveis: 21,
-   gestora: 'Riza Asset Management',
-   administradora: 'Banco do Brasil S.A.',
-   cnpj: '47.890.456/0001-66',
-   relatorios: [
-     { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' },
-   ],
-   proventos: [
-     { tipo: 'Rendimento', valor: 'R$ 8,85', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
-   ]
- },
+'RZNJJ11': {
+  ticker: 'RZNJJ11',
+  nomeCompleto: 'Riza Terrax FII',
+  setor: 'Papel',
+  tipo: 'FII',
+  descricao: 'Fundo especializado em desenvolvimento imobiliário.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/RZNJJ.png',
+  precoAtual: 'R$ 114,12',
+  variacao: '+8.97%',
+  tendencia: 'up',
+  dataEntrada: '20/11/2021',
+  precoIniciou: 'R$ 104,73',
+  dy: '9,31%',
+  precoTeto: 'R$ 97,91',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.2%',
+  rendProventos: '+15.8%',
+  ibovespaEpoca: '107.200',
+  ibovespaVariacao: '+35.8%',
+  percentualCarteira: '4.8%',
+  patrimonio: 'R$ 1.4 bilhões',
+  p_vp: '1.08',
+  vacancia: '6,2%',
+  imoveis: 21,
+  gestora: 'Riza Asset Management',
+  administradora: 'Banco do Brasil S.A.',
+  cnpj: '47.890.456/0001-66',
+  relatorios: [
+    { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' }
+  ],
+  proventos: [
+    { tipo: 'Rendimento', valor: 'R$ 8,85', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' }
+  ]
+}
 
  'BNFS11': {
    ticker: 'BNFS11',
