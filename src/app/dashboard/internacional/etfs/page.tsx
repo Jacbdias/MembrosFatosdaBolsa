@@ -349,15 +349,15 @@ export default function Page(): React.JSX.Element {
           <Table sx={{ minWidth: '1000px' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '60px' }}>
                   Rank
                 </TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'left', width: '200px' }}>Ativo</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '140px' }}>Setor</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '100px' }}>Data</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '100px' }}>Entrada</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '100px' }}>Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '90px' }}>Viés</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -373,53 +373,54 @@ export default function Page(): React.JSX.Element {
                       }
                     }}
                   >
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
                       {row.rank}
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={2} alignItems="center">
+                    <TableCell sx={{ width: '200px' }}>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
                         <Avatar 
                           src={row.avatar}
                           sx={{ 
-                            width: 32, 
-                            height: 32, 
+                            width: 28, 
+                            height: 28, 
                             backgroundColor: '#f8fafc',
                             color: '#374151',
-                            fontWeight: 600
+                            fontWeight: 600,
+                            fontSize: '0.75rem'
                           }}
                         >
                           {row.ticker.charAt(0)}
                         </Avatar>
                         <Stack spacing={0}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
                             {row.ticker}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {row.name}
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.2 }}>
+                            {row.name.length > 25 ? row.name.substring(0, 25) + '...' : row.name}
                           </Typography>
                         </Stack>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>{row.setor}</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.precoQueIniciou}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.precoAtual}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', fontSize: '0.8rem' }}>{row.setor}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', fontSize: '0.75rem' }}>{row.dataEntrada}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 500, fontSize: '0.8rem' }}>{row.precoQueIniciou}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 500, fontSize: '0.8rem' }}>{row.precoAtual}</TableCell>
                     <TableCell sx={{ textAlign: 'center' }}>
                       <Box
                         sx={{
                           backgroundColor: row.viesAtual === 'COMPRA' ? '#e8f5e8' : '#fff3e0',
                           color: row.viesAtual === 'COMPRA' ? '#2e7d32' : '#f57c00',
                           border: row.viesAtual === 'COMPRA' ? '1px solid #4caf50' : '1px solid #ff9800',
-                          px: 2,
-                          py: 0.75,
-                          borderRadius: '20px',
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: '12px',
                           fontWeight: 600,
-                          fontSize: '0.75rem',
+                          fontSize: '0.65rem',
                           display: 'inline-block',
                           textAlign: 'center',
-                          minWidth: '80px',
+                          minWidth: '60px',
                           textTransform: 'uppercase',
-                          letterSpacing: 0.5,
+                          letterSpacing: 0.3,
                         }}
                       >
                         {row.viesAtual}
