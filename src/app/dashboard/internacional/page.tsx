@@ -220,14 +220,14 @@ export default function Page(): React.JSX.Element {
       description: 'Ações internacionais de empresas de tecnologia, crescimento e valor',
       icon: <TrendUpIcon />,
       href: '/dashboard/internacional/stocks',
-      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+      gradient: 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
     },
     {
       title: 'Exterior ETFs',
       description: 'Fundos de índice diversificados para exposição global de mercados',
       icon: <ChartLineUpIcon />,
       href: '/dashboard/internacional/etfs',
-      gradient: 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
+      gradient: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)'
     },
     {
       title: 'Exterior Dividendos',
