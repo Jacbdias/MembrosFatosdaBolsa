@@ -139,10 +139,7 @@ export function ExteriorTable({
   const rowsToShow = rows.length > 0 ? rows : defaultRows;
   const rowIds = React.useMemo(() => rowsToShow.map((asset) => asset.id), [rowsToShow]);
 
-  const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
-
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rowsToShow.length;
-  const selectedAll = rowsToShow.length > 0 && selected?.size === rowsToShow.length;
+  const { selectAll, deselectAll, selectOne, deselectOne, selected, selectedAny, selectedAll } = useSelection(rowIds);
 
   return (
     <Card>
@@ -153,7 +150,7 @@ export function ExteriorTable({
               <TableCell padding="checkbox">
                 <Checkbox
                   checked={selectedAll}
-                  indeterminate={selectedSome}
+                  indeterminate={selectedAny && !selectedAll}
                   onChange={(event) => {
                     if (event.target.checked) {
                       selectAll();
@@ -177,7 +174,7 @@ export function ExteriorTable({
           </TableHead>
           <TableBody>
             {rowsToShow.map((row) => {
-              const isSelected = selected?.has(row.id);
+                                const isSelected = selected?.has(row.id);
 
               return (
                 <TableRow hover key={row.id} selected={isSelected}>
