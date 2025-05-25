@@ -437,8 +437,8 @@ export function SettingsTable({
     }
   ];
 
-  // Usar dados reais se não houver dados passados por props
-  const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
+  // SEMPRE usar dados internos dos FIIs
+  const dadosParaUsar = dadosReais;
   
   const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
 
