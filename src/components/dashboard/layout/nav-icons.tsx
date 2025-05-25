@@ -1,5 +1,4 @@
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-
 import { ChartPie } from '@phosphor-icons/react/dist/ssr/ChartPie';
 import { ChartBar } from '@phosphor-icons/react/dist/ssr/ChartBar';
 import { ChartLineUp } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
@@ -8,6 +7,7 @@ import { PlugsConnected as PlugsConnectedIcon } from '@phosphor-icons/react/dist
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
+import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 
 export const navIcons = {
   'chart-pie': ChartPie,
@@ -18,4 +18,5 @@ export const navIcons = {
   'x-square': XSquare,
   'user': UserIcon,
   'users': UsersIcon,
+  'globe': Globe,
 } as Record<string, Icon>;
