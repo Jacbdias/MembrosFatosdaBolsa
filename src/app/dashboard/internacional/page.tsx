@@ -18,10 +18,6 @@ interface CarteiraCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  totalValue: string;
-  totalAssets: number;
-  performance: string;
-  performancePercent: number;
   href: string;
   gradient: string;
 }
@@ -30,10 +26,6 @@ function CarteiraCard({
   title, 
   description, 
   icon, 
-  totalValue, 
-  totalAssets, 
-  performance, 
-  performancePercent, 
   href,
   gradient 
 }: CarteiraCardProps): React.JSX.Element {
@@ -41,14 +33,12 @@ function CarteiraCard({
     window.location.href = href;
   };
 
-  const isPositive = performancePercent >= 0;
-
   return (
     <Card
       onClick={handleClick}
       sx={{
         cursor: 'pointer',
-        height: '280px',
+        height: '200px',
         background: gradient,
         color: 'white',
         transition: 'all 0.3s ease-in-out',
@@ -94,7 +84,7 @@ function CarteiraCard({
           </Stack>
 
           {/* Title & Description */}
-          <Stack spacing={1}>
+          <Stack spacing={2} sx={{ flex: 1, justifyContent: 'center' }}>
             <Typography 
               variant="h5" 
               sx={{ 
@@ -116,45 +106,6 @@ function CarteiraCard({
               {description}
             </Typography>
           </Stack>
-
-          {/* Stats */}
-          <Stack spacing={2} sx={{ flex: 1, justifyContent: 'flex-end' }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Box>
-                <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.75rem' }}>
-                  VALOR TOTAL
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
-                  {totalValue}
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.75rem' }}>
-                  ATIVOS
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
-                  {totalAssets}
-                </Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Chip
-                label={`${isPositive ? '+' : ''}${performancePercent.toFixed(1)}%`}
-                size="small"
-                sx={{
-                  backgroundColor: isPositive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
-                  color: isPositive ? '#4caf50' : '#f44336',
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  border: `1px solid ${isPositive ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`,
-                }}
-              />
-              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.9rem' }}>
-                {performance}
-              </Typography>
-            </Stack>
-          </Stack>
         </Stack>
       </CardContent>
     </Card>
@@ -167,34 +118,22 @@ export default function Page(): React.JSX.Element {
       title: 'Exterior Stocks',
       description: 'Ações internacionais de empresas de tecnologia, crescimento e valor',
       icon: <TrendUpIcon />,
-      totalValue: 'USD 45.230',
-      totalAssets: 12,
-      performance: 'USD +8.420',
-      performancePercent: 22.8,
       href: '/dashboard/internacional/stocks',
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'
     },
     {
       title: 'Exterior ETFs',
       description: 'Fundos de índice diversificados para exposição global de mercados',
       icon: <ChartLineUpIcon />,
-      totalValue: 'USD 28.950',
-      totalAssets: 8,
-      performance: 'USD +3.120',
-      performancePercent: 12.1,
       href: '/dashboard/internacional/etfs',
-      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+      gradient: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)'
     },
     {
       title: 'Exterior Dividendos',
       description: 'Ações pagadoras de dividendos consistentes e REITs internacionais',
       icon: <CurrencyDollarIcon />,
-      totalValue: 'USD 32.180',
-      totalAssets: 15,
-      performance: 'USD +4.680',
-      performancePercent: 17.0,
       href: '/dashboard/internacional/dividendos',
-      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+      gradient: 'linear-gradient(135deg, #374151 0%, #6b7280 100%)'
     }
   ];
 
@@ -243,10 +182,6 @@ export default function Page(): React.JSX.Element {
             title={carteira.title}
             description={carteira.description}
             icon={carteira.icon}
-            totalValue={carteira.totalValue}
-            totalAssets={carteira.totalAssets}
-            performance={carteira.performance}
-            performancePercent={carteira.performancePercent}
             href={carteira.href}
             gradient={carteira.gradient}
           />
@@ -254,33 +189,15 @@ export default function Page(): React.JSX.Element {
       </Box>
 
       {/* Summary Stats */}
-      <Card sx={{ mt: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+      <Card sx={{ mt: 4, background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', color: 'white' }}>
         <CardContent sx={{ p: 3 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} justifyContent="space-around">
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                USD 106.360
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Total Investido no Exterior
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: '#4caf50' }}>
-                +USD 16.220
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Ganho Total (18,0%)
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                35
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Total de Ativos
-              </Typography>
-            </Box>
+          <Stack spacing={2} alignItems="center">
+            <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>
+              Investimentos Internacionais
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.9, textAlign: 'center', maxWidth: '600px' }}>
+              Diversifique seu portfólio com investimentos globais em ações, ETFs e fundos de dividendos dos principais mercados internacionais.
+            </Typography>
           </Stack>
         </CardContent>
       </Card>
