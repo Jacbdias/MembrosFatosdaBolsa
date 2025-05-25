@@ -10,7 +10,6 @@ import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { config } from '@/config';
 import { ExteriorFilters } from '@/components/dashboard/exterior/exterior-filters';
 import { ExteriorTable } from '@/components/dashboard/exterior/exterior-table';
-import { ExteriorSelectionProvider } from '@/components/dashboard/exterior/exterior-selection-provider';
 
 export const metadata: Metadata = {
   title: `Exterior | Dashboard | ${config.site.name}`,
@@ -18,29 +17,27 @@ export const metadata: Metadata = {
 
 export default function Page(): React.JSX.Element {
   return (
-    <ExteriorSelectionProvider>
-      <Stack spacing={3}>
-        <Stack direction="row" spacing={3}>
-          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Investimentos Exterior</Typography>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-                Importar
-              </Button>
-              <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-                Exportar
-              </Button>
-            </Stack>
-          </Stack>
-          <div>
-            <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
-              Adicionar
+    <Stack spacing={3}>
+      <Stack direction="row" spacing={3}>
+        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
+          <Typography variant="h4">Investimentos Exterior</Typography>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
+              Importar
             </Button>
-          </div>
+            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
+              Exportar
+            </Button>
+          </Stack>
         </Stack>
-        <ExteriorFilters />
-        <ExteriorTable />
+        <div>
+          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
+            Adicionar
+          </Button>
+        </div>
       </Stack>
-    </ExteriorSelectionProvider>
+      <ExteriorFilters />
+      <ExteriorTable />
+    </Stack>
   );
 }
