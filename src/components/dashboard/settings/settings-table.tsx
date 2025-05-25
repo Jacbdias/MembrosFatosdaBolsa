@@ -437,7 +437,7 @@ export function SettingsTable({
     }
   ];
 
-  // SEMPRE usar dados internos dos FIIs
+  // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
   const dadosParaUsar = dadosReais;
   
   const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
