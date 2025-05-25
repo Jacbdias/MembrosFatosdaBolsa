@@ -128,77 +128,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
 }
 
 export default function Page(): React.JSX.Element {
-  const etfsInternacionais = [
-    {
-      id: '1',
-      rank: '1º',
-      ticker: 'VOO',
-      name: 'Vanguard S&P 500 ETF',
-      setor: 'Large Cap',
-      dataEntrada: '03/06/2021',
-      precoQueIniciou: 'US$383,95',
-      precoAtual: 'US$532,40',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/vanguard.com',
-    },
-    {
-      id: '2',
-      rank: '2º',
-      ticker: 'IJS',
-      name: 'iShares Core S&P Small-Cap ETF',
-      setor: 'Small Caps',
-      dataEntrada: '21/07/2021',
-      precoQueIniciou: 'US$101,96',
-      precoAtual: 'US$94,43',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '3',
-      rank: '3º',
-      ticker: 'QUAL',
-      name: 'iShares MSCI USA Quality Factor ETF',
-      setor: 'Total Market',
-      dataEntrada: '11/06/2021',
-      precoQueIniciou: 'US$130,13',
-      precoAtual: 'US$174,01',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '4',
-      rank: '4º',
-      ticker: 'QQQ',
-      name: 'Invesco QQQ Trust ETF',
-      setor: 'Large Cap',
-      dataEntrada: '09/06/2021',
-      precoQueIniciou: 'US$337,18',
-      precoAtual: 'US$509,24',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/invesco.com',
-    },
-    {
-      id: '5',
-      rank: '5º',
-      ticker: 'VNQ',
-      name: 'Vanguard Real Estate ETF',
-      setor: 'Real Estate (USA)',
-      dataEntrada: '12/07/2021',
-      precoQueIniciou: 'US$105,96',
-      precoAtual: 'US$87,09',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/vanguard.com',
-    },
-    {
-      id: '6',
-      rank: '6º',
-      ticker: 'SCHP',
-      name: 'Schwab U.S. TIPS ETF',
-      setor: 'Renda Fixa',
-      dataEntrada: '27/11/2021',
-      precoQueIniciou: 'US$63,14',
-      precoAtual: 'US$26,35',
-      viesAtual: 'COMPRA',
+Atual: 'COMPRA',
       avatar: 'https://logo.clearbit.com/schwab.com',
     },
     {
@@ -346,13 +276,10 @@ export default function Page(): React.JSX.Element {
       {/* Tabela */}
       <Card sx={{ boxShadow: 2 }}>
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '1000px' }}>
+          <Table sx={{ minWidth: '940px' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '60px' }}>
-                  Rank
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'left', width: '200px' }}>Ativo</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'left', width: '220px' }}>Ativo</TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '140px' }}>Setor</TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '100px' }}>Data</TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '100px' }}>Entrada</TableCell>
@@ -373,10 +300,7 @@ export default function Page(): React.JSX.Element {
                       }
                     }}
                   >
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
-                      {row.rank}
-                    </TableCell>
-                    <TableCell sx={{ width: '200px' }}>
+                    <TableCell sx={{ width: '220px' }}>
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Avatar 
                           src={row.avatar}
