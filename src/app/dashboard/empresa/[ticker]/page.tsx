@@ -1463,6 +1463,175 @@ const empresasData: { [key: string]: any } = {
     ]
   }
 };
+
+// Base de dados dos FIIs (novos dados adicionados)
+const fiisData: { [key: string]: any } = {
+tendencia: 'down',
+   dataEntrada: '03/02/2022',
+   precoIniciou: 'R$ 113,99',
+   dy: '9,14%',
+   precoTeto: 'R$ 110,16',
+   viesAtual: 'Compra',
+   variacaoHoje: '-0.5%',
+   rendProventos: '+12.8%',
+   ibovespaEpoca: '115.200',
+   ibovespaVariacao: '+26.5%',
+   percentualCarteira: '5.2%',
+   patrimonio: 'R$ 1.7 bilhões',
+   p_vp: '0.98',
+   vacancia: '4,5%',
+   imoveis: 28,
+   gestora: 'Alianza Asset Management',
+   administradora: 'Banco Santander S.A.',
+   cnpj: '46.789.345/0001-77',
+   relatorios: [
+     { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' },
+   ],
+   proventos: [
+     { tipo: 'Rendimento', valor: 'R$ 8,38', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
+   ]
+ },
+
+ 'RZNJJ11': {
+   ticker: 'RZNJJ11',
+   nomeCompleto: 'Riza Terrax FII',
+   setor: 'Papel',
+   tipo: 'FII',
+   descricao: 'Fundo especializado em desenvolvimento imobiliário.',
+   avatar: 'https://www.ivalor.com.br/media/emp/logos/RZNJJ.png',
+   precoAtual: 'R$ 114,12',
+   variacao: '+8.97%',
+   tendencia: 'up',
+   dataEntrada: '20/11/2021',
+   precoIniciou: 'R$ 104,73',
+   dy: '9,31%',
+   precoTeto: 'R$ 97,91',
+   viesAtual: 'Compra',
+   variacaoHoje: '+1.2%',
+   rendProventos: '+15.8%',
+   ibovespaEpoca: '107.200',
+   ibovespaVariacao: '+35.8%',
+   percentualCarteira: '4.8%',
+   patrimonio: 'R$ 1.4 bilhões',
+   p_vp: '1.08',
+   vacancia: '6,2%',
+   imoveis: 21,
+   gestora: 'Riza Asset Management',
+   administradora: 'Banco do Brasil S.A.',
+   cnpj: '47.890.456/0001-66',
+   relatorios: [
+     { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' },
+   ],
+   proventos: [
+     { tipo: 'Rendimento', valor: 'R$ 8,85', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
+   ]
+ },
+
+ 'BNFS11': {
+   ticker: 'BNFS11',
+   nomeCompleto: 'Banestes Recebíveis FII',
+   setor: 'Híbrido',
+   tipo: 'FII',
+   descricao: 'Fundo híbrido especializado em recebíveis.',
+   avatar: 'https://www.ivalor.com.br/media/emp/logos/BNFS.png',
+   precoAtual: 'R$ 148,19',
+   variacao: '+80.35%',
+   tendencia: 'up',
+   dataEntrada: '20/10/2022',
+   precoIniciou: 'R$ 82,17',
+   dy: '12,67%',
+   precoTeto: 'R$ 115,66',
+   viesAtual: 'Compra',
+   variacaoHoje: '+3.8%',
+   rendProventos: '+92.5%',
+   ibovespaEpoca: '115.200',
+   ibovespaVariacao: '+26.5%',
+   percentualCarteira: '8.9%',
+   patrimonio: 'R$ 2.8 bilhões',
+   p_vp: '1.25',
+   vacancia: '0%',
+   imoveis: 15,
+   gestora: 'Banestes Asset Management',
+   administradora: 'Banco Banestes S.A.',
+   cnpj: '48.901.567/0001-55',
+   relatorios: [
+     { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' },
+   ],
+   proventos: [
+     { tipo: 'Rendimento', valor: 'R$ 15,62', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
+   ]
+ },
+
+ 'HGMJ11': {
+   ticker: 'HGMJ11',
+   nomeCompleto: 'Hedge Memorial FII',
+   setor: 'Papel',
+   tipo: 'FII',
+   descricao: 'Fundo imobiliário diversificado.',
+   avatar: 'https://www.ivalor.com.br/media/emp/logos/HGMJ.png',
+   precoAtual: 'R$ 49,30',
+   variacao: '-53.94%',
+   tendencia: 'down',
+   dataEntrada: '05/01/2022',
+   precoIniciou: 'R$ 107,04',
+   dy: '12,21%',
+   precoTeto: 'R$ 73,20',
+   viesAtual: 'Compra',
+   variacaoHoje: '-2.1%',
+   rendProventos: '+8.2%',
+   ibovespaEpoca: '114.200',
+   ibovespaVariacao: '+27.8%',
+   percentualCarteira: '2.8%',
+   patrimonio: 'R$ 850 milhões',
+   p_vp: '0.65',
+   vacancia: '12,5%',
+   imoveis: 18,
+   gestora: 'Hedge Gestão',
+   administradora: 'Banco Bradesco S.A.',
+   cnpj: '49.012.678/0001-44',
+   relatorios: [
+     { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' },
+   ],
+   proventos: [
+     { tipo: 'Rendimento', valor: 'R$ 5,01', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
+   ]
+ },
+
+ 'XVED11': {
+   ticker: 'XVED11',
+   nomeCompleto: 'XP Vendas FII',
+   setor: 'Papel',
+   tipo: 'FII',
+   descricao: 'Fundo especializado em recebíveis de vendas.',
+   avatar: 'https://www.ivalor.com.br/media/emp/logos/XVED.png',
+   precoAtual: 'R$ 9,02',
+   variacao: '-6.91%',
+   tendencia: 'down',
+   dataEntrada: '12/07/2022',
+   precoIniciou: 'R$ 9,69',
+   dy: '12,91%',
+   precoTeto: 'R$ 9,90',
+   viesAtual: 'Compra',
+   variacaoHoje: '-0.8%',
+   rendProventos: '+8.5%',
+   ibovespaEpoca: '102.800',
+   ibovespaVariacao: '+41.8%',
+   percentualCarteira: '2.1%',
+   patrimonio: 'R$ 520 milhões',
+   p_vp: '0.88',
+   vacancia: '0%',
+   imoveis: 0,
+   gestora: 'XP Asset Management',
+   administradora: 'Banco XP S.A.',
+   cnpj: '50.123.789/0001-33',
+   relatorios: [
+     { nome: 'Relatório Mensal - Dezembro 2024', data: '2024-12-15', url: '#' },
+   ],
+   proventos: [
+     { tipo: 'Rendimento', valor: 'R$ 0,97', dataEx: '15/01/2025', dataPagamento: '30/01/2025', status: 'Aprovado' },
+   ]
+ }
+};
 export default function EmpresaDetalhes(): React.JSX.Element {
   const params = useParams();
   const ticker = params?.ticker as string;
