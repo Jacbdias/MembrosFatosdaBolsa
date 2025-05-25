@@ -18,5 +18,5 @@ export const navIcons = {
   'x-square': XSquare,
   'user': UserIcon,
   'users': UsersIcon,
-  'globe': Globe,
+  'globe': Globe ,
 } as Record<string, Icon>;
