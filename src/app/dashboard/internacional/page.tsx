@@ -131,136 +131,101 @@ export default function Page(): React.JSX.Element {
   const stocksInternacionais = [
     {
       id: '1',
-      rank: '1º',
-      ticker: 'XP',
-      name: 'XP Inc.',
-      sector: 'Financial Services',
+      ticker: 'AAPL',
+      name: 'Apple Inc.',
+      sector: 'Technology',
       country: 'USA',
       currency: 'USD',
-      dataEntrada: '26/05/2023',
-      precoQueIniciou: 'US$18,41',
-      precoAtual: 'US$18,64',
-      precoAlvo: 'US$24,34',
-      viesAtual: 'COMPRA',
+      dataEntrada: '15/03/2024',
+      precoEntrada: 'USD 180,50',
+      precoAtual: 'USD 195,30',
+      quantity: '50',
+      totalValue: 'USD 9.765,00',
+      gainLoss: 'USD 740,00',
+      gainLossPercent: '+8,2%',
+      vies: 'Compra',
     },
     {
       id: '2',
-      rank: '2º',
-      ticker: 'HD',
-      name: 'Home Depot Inc.',
-      sector: 'Varejo',
+      ticker: 'MSFT',
+      name: 'Microsoft Corporation',
+      sector: 'Technology',
       country: 'USA',
       currency: 'USD',
-      dataEntrada: '24/02/2023',
-      precoQueIniciou: 'US$299,31',
-      precoAtual: 'US$362,71',
-      precoAlvo: 'US$366,78',
-      viesAtual: 'COMPRA',
+      dataEntrada: '10/02/2024',
+      precoEntrada: 'USD 320,00',
+      precoAtual: 'USD 378,85',
+      quantity: '25',
+      totalValue: 'USD 9.471,25',
+      gainLoss: 'USD 1.471,25',
+      gainLossPercent: '+18,4%',
+      vies: 'Compra',
     },
     {
       id: '3',
-      rank: '3º',
-      ticker: 'AAPL',
-      name: 'Apple Inc.',
-      sector: 'Tecnologia',
+      ticker: 'GOOGL',
+      name: 'Alphabet Inc.',
+      sector: 'Technology',
       country: 'USA',
       currency: 'USD',
-      dataEntrada: '05/05/2022',
-      precoQueIniciou: 'US$156,77',
-      precoAtual: 'US$195,27',
-      precoAlvo: 'US$170,00',
-      viesAtual: 'AGUARDAR',
+      dataEntrada: '28/01/2024',
+      precoEntrada: 'USD 145,20',
+      precoAtual: 'USD 158,75',
+      quantity: '40',
+      totalValue: 'USD 6.350,00',
+      gainLoss: 'USD 542,00',
+      gainLossPercent: '+9,3%',
+      vies: 'Compra',
     },
     {
       id: '4',
-      rank: '4º',
-      ticker: 'FIVE',
-      name: 'Five Below Inc.',
-      sector: 'Varejo',
+      ticker: 'NVDA',
+      name: 'NVIDIA Corporation',
+      sector: 'Technology',
       country: 'USA',
       currency: 'USD',
-      dataEntrada: '17/03/2022',
-      precoQueIniciou: 'US$163,41',
-      precoAtual: 'US$107,27',
-      precoAlvo: 'US$179,00',
-      viesAtual: 'COMPRA',
+      dataEntrada: '18/12/2023',
+      precoEntrada: 'USD 485,00',
+      precoAtual: 'USD 892,50',
+      quantity: '10',
+      totalValue: 'USD 8.925,00',
+      gainLoss: 'USD 4.075,00',
+      gainLossPercent: '+84,0%',
+      vies: 'Compra',
     },
     {
       id: '5',
-      rank: '5º',
-      ticker: 'AMAT',
-      name: 'Applied Materials Inc.',
-      sector: 'Semicondutores',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '07/04/2022',
-      precoQueIniciou: 'US$122,40',
-      precoAtual: 'US$157,51',
-      precoAlvo: 'US$151,30',
-      viesAtual: 'AGUARDAR',
-    },
-    {
-      id: '6',
-      rank: '6º',
-      ticker: 'COST',
-      name: 'Costco Wholesale Corp.',
+      ticker: 'AMZN',
+      name: 'Amazon.com Inc.',
       sector: 'Consumer Discretionary',
       country: 'USA',
       currency: 'USD',
-      dataEntrada: '23/06/2022',
-      precoQueIniciou: 'US$459,00',
-      precoAtual: 'US$1.008,50',
-      precoAlvo: 'US$571,00',
-      viesAtual: 'AGUARDAR',
+      dataEntrada: '22/11/2023',
+      precoEntrada: 'USD 148,30',
+      precoAtual: 'USD 182,90',
+      quantity: '35',
+      totalValue: 'USD 6.401,50',
+      gainLoss: 'USD 1.211,00',
+      gainLossPercent: '+23,3%',
+      vies: 'Compra',
     },
     {
-      id: '7',
-      rank: '7º',
-      ticker: 'GOOGL',
-      name: 'Alphabet Inc.',
-      sector: 'Tecnologia',
+      id: '6',
+      ticker: 'TSLA',
+      name: 'Tesla Inc.',
+      sector: 'Consumer Discretionary',
       country: 'USA',
       currency: 'USD',
-      dataEntrada: '03/03/2022',
-      precoQueIniciou: 'US$131,83',
-      precoAtual: 'US$168,47',
-      precoAlvo: 'US$133,29',
-      viesAtual: 'AGUARDAR',
-    },
-    {
-      id: '8',
-      rank: '8º',
-      ticker: 'META',
-      name: 'Meta Platforms Inc.',
-      sector: 'Tecnologia',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '17/02/2022',
-      precoQueIniciou: 'US$213,92',
-      precoAtual: 'US$627,06',
-      precoAlvo: 'US$322,00',
-      viesAtual: 'AGUARDAR',
-    },
-    {
-      id: '9',
-      rank: '9º',
-      ticker: 'BRKB',
-      name: 'Berkshire Hathaway Inc.',
-      sector: 'Holding',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '11/05/2021',
-      precoQueIniciou: 'US$286,35',
-      precoAtual: 'US$503,46',
-      precoAlvo: 'US$300,00',
-      viesAtual: 'AGUARDAR',
+      dataEntrada: '20/04/2024',
+      precoEntrada: 'USD 250,00',
+      precoAtual: 'USD 238,45',
+      quantity: '30',
+      totalValue: 'USD 7.153,50',
+      gainLoss: 'USD -346,50',
+      gainLossPercent: '-4,6%',
+      vies: 'Venda',
     }
   ];
-
-  // Calcular estatísticas baseadas nos novos dados
-  const totalAtivos = stocksInternacionais.length;
-  const compras = stocksInternacionais.filter(stock => stock.viesAtual === 'COMPRA').length;
-  const aguardar = stocksInternacionais.filter(stock => stock.viesAtual === 'AGUARDAR').length;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -311,49 +276,57 @@ export default function Page(): React.JSX.Element {
         }}
       >
         <StatCard 
-          title="TOTAL DE ATIVOS" 
-          value={totalAtivos.toString()} 
-          icon={<GlobeIcon />}
+          title="TOTAL INVESTIDO" 
+          value="USD 45.230" 
+          icon={<CurrencyDollarIcon />} 
+          trend="up" 
+          diff={0} 
         />
         <StatCard 
-          title="RECOMENDAÇÃO COMPRA" 
-          value={compras.toString()} 
+          title="VALOR ATUAL" 
+          value="USD 53.650" 
           icon={<TrendUpIcon />} 
           trend="up" 
-          diff={Math.round((compras / totalAtivos) * 100)} 
+          diff={18.6} 
         />
         <StatCard 
-          title="AGUARDAR" 
-          value={aguardar.toString()} 
+          title="GANHO/PERDA" 
+          value="USD +8.420" 
           icon={<ChartLineIcon />}
+          trend="up"
+          diff={18.6}
         />
         <StatCard 
-          title="MERCADO" 
-          value="EUA" 
-          icon={<CurrencyDollarIcon />}
+          title="Nº DE ATIVOS" 
+          value="6" 
+          icon={<GlobeIcon />}
         />
       </Box>
       
       {/* Tabela */}
       <Card sx={{ boxShadow: 2 }}>
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '1000px' }}>
+          <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: 'grey.50' }}>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
-                  Rank
+                  Posição
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>País</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data Entrada</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Entrada</TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Alvo</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés Atual</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Quantidade</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Valor Total</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ganho/Perda</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {stocksInternacionais.map((row) => {
+              {stocksInternacionais.map((row, index) => {
+                const isGain = row.gainLossPercent.includes('+');
                 return (
                   <TableRow 
                     hover 
@@ -366,18 +339,12 @@ export default function Page(): React.JSX.Element {
                     }}
                   >
                     <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
-                      {row.rank}
+                      {index + 1}º
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
-                          sx={{ 
-                            width: 32, 
-                            height: 32, 
-                            backgroundColor: '#f8fafc',
-                            color: '#374151',
-                            fontWeight: 600
-                          }}
+                          sx={{ width: 32, height: 32, backgroundColor: '#f8fafc' }}
                         >
                           {row.ticker.charAt(0)}
                         </Avatar>
@@ -392,16 +359,40 @@ export default function Page(): React.JSX.Element {
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ textAlign: 'center' }}>{row.sector}</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.precoQueIniciou}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.precoAlvo}</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
+                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.country}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>{row.quantity}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.totalValue}</TableCell>
+                    <TableCell>
+                      <Stack spacing={0.5}>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: isGain ? 'success.main' : 'error.main',
+                            fontWeight: 500 
+                          }}
+                        >
+                          {row.gainLoss}
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: isGain ? 'success.main' : 'error.main',
+                            fontWeight: 500 
+                          }}
+                        >
+                          {row.gainLossPercent}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
                       <Box
                         sx={{
-                          backgroundColor: row.viesAtual === 'COMPRA' ? '#e8f5e8' : '#fff3e0',
-                          color: row.viesAtual === 'COMPRA' ? '#2e7d32' : '#f57c00',
-                          border: row.viesAtual === 'COMPRA' ? '1px solid #4caf50' : '1px solid #ff9800',
+                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : '#ffebee',
+                          color: row.vies === 'Compra' ? '#2e7d32' : '#c62828',
+                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid #f44336',
                           px: 2,
                           py: 0.75,
                           borderRadius: '20px',
@@ -409,12 +400,12 @@ export default function Page(): React.JSX.Element {
                           fontSize: '0.75rem',
                           display: 'inline-block',
                           textAlign: 'center',
-                          minWidth: '80px',
+                          minWidth: '70px',
                           textTransform: 'uppercase',
                           letterSpacing: 0.5,
                         }}
                       >
-                        {row.viesAtual}
+                        {row.vies}
                       </Box>
                     </TableCell>
                   </TableRow>
