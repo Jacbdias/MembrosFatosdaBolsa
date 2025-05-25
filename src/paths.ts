@@ -5,7 +5,7 @@ export const paths = {
     overview: '/dashboard/overview',
     account: '/dashboard/account',
     customers: '/dashboard/customers',
-    exterior: '/dashboard/exterior',
+    internacional: '/dashboard/internacional', // ← ADICIONAR ESTA LINHA
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
   },
