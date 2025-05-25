@@ -320,26 +320,32 @@ export default function Page(): React.JSX.Element {
         }}
       >
         <StatCard 
-          title="TOTAL DE ATIVOS" 
-          value={totalAtivos.toString()} 
-          icon={<GlobeIcon />}
+          title="CARTEIRA NO PERÍODO" 
+          value="62,66%" 
+          icon={<TrendUpIcon />}
+          trend="up"
+          diff={62.66}
         />
         <StatCard 
-          title="RECOMENDAÇÃO COMPRA" 
-          value={compras.toString()} 
-          icon={<TrendUpIcon />} 
-          trend="up" 
-          diff={Math.round((compras / totalAtivos) * 100)} 
-        />
-        <StatCard 
-          title="AGUARDAR" 
-          value={aguardar.toString()} 
+          title="S&P 500 NO PERÍODO" 
+          value="36,93%" 
           icon={<ChartLineIcon />}
+          trend="up"
+          diff={36.93}
         />
         <StatCard 
-          title="MERCADO" 
-          value="EUA" 
-          icon={<CurrencyDollarIcon />}
+          title="S&P 500 HOJE" 
+          value="-0,67%" 
+          icon={<ArrowDownIcon />}
+          trend="down"
+          diff={-0.67}
+        />
+        <StatCard 
+          title="NASDAQ HOJE" 
+          value="-1,00%" 
+          icon={<ArrowDownIcon />}
+          trend="down"
+          diff={-1.00}
         />
       </Box>
       
