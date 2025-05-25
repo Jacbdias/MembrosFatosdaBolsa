@@ -7,6 +7,5 @@ export const navItems = [
   { key: 'integrations', title: 'Dividendos', href: paths.dashboard.integrations, icon: 'chart-line-up' },
   { key: 'settings', title: 'Fundos Imobiliários', href: paths.dashboard.settings, icon: 'buildings' },
   { key: 'account', title: 'Exterior', href: paths.dashboard.account, icon: 'user' },
-  { key: 'exterior', title: 'Novo Exterior', href: paths.dashboard.exterior, icon: 'globe' },
   { key: 'error', title: 'Error', href: paths.errors.notFound, icon: 'x-square' },
 ] satisfies NavItemConfig[];
