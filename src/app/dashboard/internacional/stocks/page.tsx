@@ -142,6 +142,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$18,64',
       precoAlvo: 'US$24,34',
       viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/xpinc.com',
     },
     {
       id: '2',
@@ -156,6 +157,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$362,71',
       precoAlvo: 'US$366,78',
       viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/homedepot.com',
     },
     {
       id: '3',
@@ -170,6 +172,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$195,27',
       precoAlvo: 'US$170,00',
       viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/apple.com',
     },
     {
       id: '4',
@@ -184,6 +187,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$107,27',
       precoAlvo: 'US$179,00',
       viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/fivebelow.com',
     },
     {
       id: '5',
@@ -198,6 +202,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$157,51',
       precoAlvo: 'US$151,30',
       viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
     },
     {
       id: '6',
@@ -212,6 +217,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$1.008,50',
       precoAlvo: 'US$571,00',
       viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/costco.com',
     },
     {
       id: '7',
@@ -226,6 +232,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$168,47',
       precoAlvo: 'US$133,29',
       viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/google.com',
     },
     {
       id: '8',
@@ -240,6 +247,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$627,06',
       precoAlvo: 'US$322,00',
       viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/meta.com',
     },
     {
       id: '9',
@@ -254,6 +262,7 @@ export default function Page(): React.JSX.Element {
       precoAtual: 'US$503,46',
       precoAlvo: 'US$300,00',
       viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
     }
   ];
 
@@ -371,6 +380,7 @@ export default function Page(): React.JSX.Element {
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
+                          src={row.avatar}
                           sx={{ 
                             width: 32, 
                             height: 32, 
