@@ -437,6 +437,10 @@ export function SettingsTable({
     }
   ];
 
+  console.log("✅ SettingsTable iniciado!");
+  console.log("📊 Dados dos FIIs:", dadosReais.length, "itens");
+  console.log("🎯 Primeiro ativo:", dadosReais[0]?.ticker);
+
   // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
   const dadosParaUsar = dadosReais;
   
