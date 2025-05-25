@@ -2,123 +2,159 @@
 'use client';
 
 import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
-import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
-import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
-import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
-import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
-import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
+import Stack from '@mui/material/Stack';
+import Avatar from '@mui/material/Avatar';
+import Chip from '@mui/material/Chip';
+import { TrendingUp as TrendingUpIcon } from '@phosphor-icons/react/dist/ssr/TrendingUp';
+import { ChartLine as ChartLineIcon } from '@phosphor-icons/react/dist/ssr/ChartLine';
+import { Coins as CoinsIcon } from '@phosphor-icons/react/dist/ssr/Coins';
+import { ArrowUpRight as ArrowUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUpRight';
 
-function noop(): void {
-  // Função vazia para props obrigatórias
-}
-
-interface StatCardProps {
+interface CarteiraCardProps {
   title: string;
-  value: string;
+  description: string;
   icon: React.ReactNode;
-  trend?: 'up' | 'down';
-  diff?: number;
+  totalValue: string;
+  totalAssets: number;
+  performance: string;
+  performancePercent: number;
+  href: string;
+  gradient: string;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
-  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
-  const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
-  
+function CarteiraCard({ 
+  title, 
+  description, 
+  icon, 
+  totalValue, 
+  totalAssets, 
+  performance, 
+  performancePercent, 
+  href,
+  gradient 
+}: CarteiraCardProps): React.JSX.Element {
+  const handleClick = () => {
+    window.location.href = href;
+  };
+
+  const isPositive = performancePercent >= 0;
+
   return (
-    <Card 
-      sx={{ 
-        minHeight: 120,
-        flex: '1 1 200px',
-        maxWidth: { xs: '100%', sm: '300px' },
-        transition: 'all 0.2s ease-in-out',
+    <Card
+      onClick={handleClick}
+      sx={{
+        cursor: 'pointer',
+        height: '280px',
+        background: gradient,
+        color: 'white',
+        transition: 'all 0.3s ease-in-out',
+        position: 'relative',
+        overflow: 'hidden',
         '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: 3,
+          transform: 'translateY(-8px)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(10px)',
+          opacity: 0,
+          transition: 'opacity 0.3s ease',
+        },
+        '&:hover::before': {
+          opacity: 1,
         }
       }}
     >
-      <CardContent sx={{ p: 3, height: '100%' }}>
-        <Stack spacing={2} sx={{ height: '100%' }}>
+      <CardContent sx={{ p: 4, height: '100%', position: 'relative', zIndex: 1 }}>
+        <Stack spacing={3} sx={{ height: '100%' }}>
+          {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-            <Typography 
-              color="text.secondary" 
-              variant="caption" 
-              sx={{ 
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                fontSize: '0.7rem'
-              }}
-            >
-              {title}
-            </Typography>
             <Avatar 
               sx={{ 
-                backgroundColor: '#374151',
-                height: 32, 
-                width: 32,
-                '& svg': { 
-                  fontSize: 16,
-                  color: 'white'
-                }
+                width: 56, 
+                height: 56,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(10px)',
+                '& svg': { fontSize: 28, color: 'white' }
               }}
             >
               {icon}
             </Avatar>
+            <ArrowUpRightIcon size={24} style={{ opacity: 0.7 }} />
           </Stack>
-          
-          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+
+          {/* Title & Description */}
+          <Stack spacing={1}>
             <Typography 
-              variant="h4" 
+              variant="h5" 
               sx={{ 
                 fontWeight: 700,
-                color: trend && diff !== undefined ? 
-                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
-                  : 'text.primary',
-                fontSize: { xs: '1.5rem', sm: '2rem' }
+                fontSize: '1.5rem',
+                lineHeight: 1.2
               }}
             >
-              {value}
+              {title}
             </Typography>
-          </Box>
-          
-          {diff !== undefined && trend && (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <TrendIcon 
-                size={16} 
-                style={{ color: trendColor }} 
-              />
-              <Typography 
-                sx={{ 
-                  color: trendColor,
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                opacity: 0.9,
+                fontSize: '0.95rem',
+                lineHeight: 1.4
+              }}
+            >
+              {description}
+            </Typography>
+          </Stack>
+
+          {/* Stats */}
+          <Stack spacing={2} sx={{ flex: 1, justifyContent: 'flex-end' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Box>
+                <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.75rem' }}>
+                  VALOR TOTAL
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                  {totalValue}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.75rem' }}>
+                  ATIVOS
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                  {totalAssets}
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Chip
+                label={`${isPositive ? '+' : ''}${performancePercent.toFixed(1)}%`}
+                size="small"
+                sx={{
+                  backgroundColor: isPositive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                  color: isPositive ? '#4caf50' : '#f44336',
                   fontWeight: 600,
-                  fontSize: '0.8rem'
+                  fontSize: '0.75rem',
+                  border: `1px solid ${isPositive ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`,
                 }}
-              >
-                {diff > 0 ? '+' : ''}{diff}%
-              </Typography>
-              <Typography 
-                color="text.secondary" 
-                sx={{ fontSize: '0.75rem' }}
-              >
-                no período
+              />
+              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.9rem' }}>
+                {performance}
               </Typography>
             </Stack>
-          )}
+          </Stack>
         </Stack>
       </CardContent>
     </Card>
@@ -126,316 +162,128 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
 }
 
 export default function Page(): React.JSX.Element {
-  const investimentosInternacionais = [
+  const carteiras = [
     {
-      id: '1',
-      ticker: 'AAPL',
-      name: 'Apple Inc.',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '15/03/2024',
-      precoEntrada: 'USD 180,50',
-      precoAtual: 'USD 195,30',
-      quantity: '50',
-      totalValue: 'USD 9.765,00',
-      gainLoss: 'USD 740,00',
-      gainLossPercent: '+8,2%',
-      vies: 'Compra',
+      title: 'Exterior Stocks',
+      description: 'Ações internacionais de empresas de tecnologia, crescimento e valor',
+      icon: <TrendingUpIcon />,
+      totalValue: 'USD 45.230',
+      totalAssets: 12,
+      performance: 'USD +8.420',
+      performancePercent: 22.8,
+      href: '/dashboard/internacional/stocks',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     },
     {
-      id: '2',
-      ticker: 'MSFT',
-      name: 'Microsoft Corporation',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '10/02/2024',
-      precoEntrada: 'USD 320,00',
-      precoAtual: 'USD 378,85',
-      quantity: '25',
-      totalValue: 'USD 9.471,25',
-      gainLoss: 'USD 1.471,25',
-      gainLossPercent: '+18,4%',
-      vies: 'Compra',
+      title: 'Exterior ETFs',
+      description: 'Fundos de índice diversificados para exposição global de mercados',
+      icon: <ChartLineIcon />,
+      totalValue: 'USD 28.950',
+      totalAssets: 8,
+      performance: 'USD +3.120',
+      performancePercent: 12.1,
+      href: '/dashboard/internacional/etfs',
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
     },
     {
-      id: '3',
-      ticker: 'TSLA',
-      name: 'Tesla Inc.',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '20/04/2024',
-      precoEntrada: 'USD 250,00',
-      precoAtual: 'USD 238,45',
-      quantity: '30',
-      totalValue: 'USD 7.153,50',
-      gainLoss: 'USD -346,50',
-      gainLossPercent: '-4,6%',
-      vies: 'Venda',
-    },
-    {
-      id: '4',
-      ticker: 'ASML',
-      name: 'ASML Holding',
-      country: 'Netherlands',
-      currency: 'EUR',
-      dataEntrada: '05/01/2024',
-      precoEntrada: 'EUR 650,00',
-      precoAtual: 'EUR 742,30',
-      quantity: '15',
-      totalValue: 'EUR 11.134,50',
-      gainLoss: 'EUR 1.384,50',
-      gainLossPercent: '+14,2%',
-      vies: 'Compra',
-    },
-    {
-      id: '5',
-      ticker: 'SHOP',
-      name: 'Shopify Inc.',
-      country: 'Canada',
-      currency: 'CAD',
-      dataEntrada: '12/03/2024',
-      precoEntrada: 'CAD 85,00',
-      precoAtual: 'CAD 92,15',
-      quantity: '100',
-      totalValue: 'CAD 9.215,00',
-      gainLoss: 'CAD 715,00',
-      gainLossPercent: '+8,4%',
-      vies: 'Compra',
-    },
-    {
-      id: '6',
-      ticker: 'GOOGL',
-      name: 'Alphabet Inc.',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '28/01/2024',
-      precoEntrada: 'USD 145,20',
-      precoAtual: 'USD 158,75',
-      quantity: '40',
-      totalValue: 'USD 6.350,00',
-      gainLoss: 'USD 542,00',
-      gainLossPercent: '+9,3%',
-      vies: 'Compra',
-    },
-    {
-      id: '7',
-      ticker: 'NVDA',
-      name: 'NVIDIA Corporation',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '18/12/2023',
-      precoEntrada: 'USD 485,00',
-      precoAtual: 'USD 892,50',
-      quantity: '10',
-      totalValue: 'USD 8.925,00',
-      gainLoss: 'USD 4.075,00',
-      gainLossPercent: '+84,0%',
-      vies: 'Compra',
-    },
-    {
-      id: '8',
-      ticker: 'AMZN',
-      name: 'Amazon.com Inc.',
-      country: 'USA',
-      currency: 'USD',
-      dataEntrada: '22/11/2023',
-      precoEntrada: 'USD 148,30',
-      precoAtual: 'USD 182,90',
-      quantity: '35',
-      totalValue: 'USD 6.401,50',
-      gainLoss: 'USD 1.211,00',
-      gainLossPercent: '+23,3%',
-      vies: 'Compra',
-    },
+      title: 'Exterior Dividendos',
+      description: 'Ações pagadoras de dividendos consistentes e REITs internacionais',
+      icon: <CoinsIcon />,
+      totalValue: 'USD 32.180',
+      totalAssets: 15,
+      performance: 'USD +4.680',
+      performancePercent: 17.0,
+      href: '/dashboard/internacional/dividendos',
+      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+    }
   ];
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Cards de estatísticas */}
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Stack spacing={1} sx={{ mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 700,
+            color: 'text.primary',
+            fontSize: { xs: '1.75rem', sm: '2.125rem' }
+          }}
+        >
+          Investimentos Internacionais
+        </Typography>
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            color: 'text.secondary',
+            fontSize: '1.1rem',
+            maxWidth: '600px'
+          }}
+        >
+          Gerencie suas carteiras de investimentos no exterior. Escolha uma carteira para visualizar detalhes e performance.
+        </Typography>
+      </Stack>
+
+      {/* Carteiras Grid */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(6, 1fr)',
+            md: 'repeat(2, 1fr)',
+            lg: 'repeat(3, 1fr)',
           },
-          gap: 2,
-          mb: 3,
+          gap: 3,
+          maxWidth: '1200px'
         }}
       >
-        <StatCard 
-          title="S&P 500" 
-          value="5.870" 
-          icon={<CurrencyDollarIcon />} 
-          trend="up" 
-          diff={2.3} 
-        />
-        <StatCard 
-          title="NASDAQ" 
-          value="19.280" 
-          icon={<TrendUpIcon />} 
-          trend="up" 
-          diff={1.8} 
-        />
-        <StatCard 
-          title="CARTEIRA INTERNACIONAL" 
-          value="USD 67.315" 
-          icon={<GlobeIcon />}
-          trend="up"
-          diff={18.5}
-        />
-        <StatCard 
-          title="COTAÇÃO DÓLAR" 
-          value="R$ 5,42" 
-          icon={<CurrencyDollarIcon />}
-          trend="down"
-          diff={-1.2}
-        />
-        <StatCard 
-          title="TOTAL INVESTIDO" 
-          value="USD 55.500" 
-          icon={<ChartBarIcon />} 
-          trend="up" 
-          diff={0.0} 
-        />
-        <StatCard 
-          title="RETORNO TOTAL" 
-          value="+21,3%" 
-          icon={<TrendUpIcon />} 
-          trend="up" 
-          diff={21.3} 
-        />
+        {carteiras.map((carteira, index) => (
+          <CarteiraCard
+            key={index}
+            title={carteira.title}
+            description={carteira.description}
+            icon={carteira.icon}
+            totalValue={carteira.totalValue}
+            totalAssets={carteira.totalAssets}
+            performance={carteira.performance}
+            performancePercent={carteira.performancePercent}
+            href={carteira.href}
+            gradient={carteira.gradient}
+          />
+        ))}
       </Box>
-      
-      {/* Tabela */}
-      <Card sx={{ boxShadow: 2 }}>
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '800px' }}>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
-                  Posição
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>País</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Moeda</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Quantidade</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Valor Total</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ganho/Perda</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {investimentosInternacionais.map((row, index) => {
-                const isGain = row.gainLossPercent.includes('+');
-                return (
-                  <TableRow 
-                    hover 
-                    key={row.id}
-                    onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
-                    }}
-                  >
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
-                      {index + 1}º
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar 
-                          sx={{ width: 32, height: 32, backgroundColor: '#f8fafc' }}
-                        >
-                          {row.ticker.charAt(0)}
-                        </Avatar>
-                        <Stack spacing={0}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {row.ticker}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {row.name}
-                          </Typography>
-                        </Stack>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>{row.country}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 500 }}>{row.currency}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>{row.quantity}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.totalValue}</TableCell>
-                    <TableCell>
-                      <Stack spacing={0.5}>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: isGain ? 'success.main' : 'error.main',
-                            fontWeight: 500 
-                          }}
-                        >
-                          {row.gainLoss}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            color: isGain ? 'success.main' : 'error.main',
-                            fontWeight: 500 
-                          }}
-                        >
-                          {row.gainLossPercent}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Box
-                        sx={{
-                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : '#ffebee',
-                          color: row.vies === 'Compra' ? '#2e7d32' : '#c62828',
-                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid #f44336',
-                          px: 2,
-                          py: 0.75,
-                          borderRadius: '20px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          display: 'inline-block',
-                          textAlign: 'center',
-                          minWidth: '70px',
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
-                        }}
-                      >
-                        {row.vies}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={investimentosInternacionais.length}
-          onPageChange={noop}
-          onRowsPerPageChange={noop}
-          page={0}
-          rowsPerPage={investimentosInternacionais.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Linhas por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-        />
+
+      {/* Summary Stats */}
+      <Card sx={{ mt: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} justifyContent="space-around">
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                USD 106.360
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Investido no Exterior
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#4caf50' }}>
+                +USD 16.220
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Ganho Total (18,0%)
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                35
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total de Ativos
+              </Typography>
+            </Box>
+          </Stack>
+        </CardContent>
       </Card>
-    </div>
+    </Box>
   );
 }
