@@ -67,8 +67,8 @@ function CarteiraCard({
     >
       <CardContent sx={{ p: 4, height: '100%', position: 'relative', zIndex: 1 }}>
         <Stack spacing={3} sx={{ height: '100%' }}>
-          {/* Header */}
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+          {/* Header com título ao lado do ícone */}
+          <Stack direction="row" spacing={3} alignItems="center">
             <Avatar 
               sx={{ 
                 width: 56, 
@@ -80,32 +80,33 @@ function CarteiraCard({
             >
               {icon}
             </Avatar>
-            <ArrowUpRightIcon size={24} style={{ opacity: 0.7 }} />
-          </Stack>
-
-          {/* Title & Description */}
-          <Stack spacing={2} sx={{ flex: 1, justifyContent: 'center' }}>
             <Typography 
               variant="h5" 
               sx={{ 
                 fontWeight: 700,
                 fontSize: '1.5rem',
-                lineHeight: 1.2
+                lineHeight: 1.2,
+                flex: 1
               }}
             >
               {title}
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                opacity: 0.9,
-                fontSize: '0.95rem',
-                lineHeight: 1.4
-              }}
-            >
-              {description}
-            </Typography>
+            <ArrowUpRightIcon size={24} style={{ opacity: 0.7 }} />
           </Stack>
+
+          {/* Description */}
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              opacity: 0.9,
+              fontSize: '0.95rem',
+              lineHeight: 1.4,
+              textAlign: 'left',
+              flex: 1
+            }}
+          >
+            {description}
+          </Typography>
         </Stack>
       </CardContent>
     </Card>
@@ -119,21 +120,21 @@ export default function Page(): React.JSX.Element {
       description: 'Ações internacionais de empresas de tecnologia, crescimento e valor',
       icon: <TrendUpIcon />,
       href: '/dashboard/internacional/stocks',
-      gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'
+      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
     },
     {
       title: 'Exterior ETFs',
       description: 'Fundos de índice diversificados para exposição global de mercados',
       icon: <ChartLineUpIcon />,
       href: '/dashboard/internacional/etfs',
-      gradient: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)'
+      gradient: 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
     },
     {
       title: 'Exterior Dividendos',
       description: 'Ações pagadoras de dividendos consistentes e REITs internacionais',
       icon: <CurrencyDollarIcon />,
       href: '/dashboard/internacional/dividendos',
-      gradient: 'linear-gradient(135deg, #374151 0%, #6b7280 100%)'
+      gradient: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
     }
   ];
 
@@ -187,20 +188,6 @@ export default function Page(): React.JSX.Element {
           />
         ))}
       </Box>
-
-      {/* Summary Stats */}
-      <Card sx={{ mt: 4, background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', color: 'white' }}>
-        <CardContent sx={{ p: 3 }}>
-          <Stack spacing={2} alignItems="center">
-            <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>
-              Investimentos Internacionais
-            </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.9, textAlign: 'center', maxWidth: '600px' }}>
-              Diversifique seu portfólio com investimentos globais em ações, ETFs e fundos de dividendos dos principais mercados internacionais.
-            </Typography>
-          </Stack>
-        </CardContent>
-      </Card>
     </Box>
   );
 }
