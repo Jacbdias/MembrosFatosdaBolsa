@@ -618,6 +618,489 @@ const empresasData: { [key: string]: Empresa } = {
     { nome: 'Relatório Anual 2023', data: '2024-03-18', tipo: 'Anual' }
   ]
 },
+  'DEXP3': {
+  ticker: 'DEXP3',
+  nomeCompleto: 'Dexco S.A.',
+  setor: 'Materiais Básicos',
+  descricao: 'A Dexco é líder em soluções completas para banheiros, metais e louças sanitárias.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/DEXP.png',
+  precoAtual: 'R$ 9,39',
+  variacao: '+18.0%',
+  tendencia: 'up',
+  dataEntrada: '27/01/2023',
+  precoIniciou: 'R$ 7,96',
+  dy: '5,91%',
+  precoTeto: 'R$ 13,10',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.2%',
+  rendProventos: '+18.0%',
+  ibovespaEpoca: '109.500',
+  ibovespaVariacao: '+15.2%',
+  percentualCarteira: '3.8%',
+  marketCap: 'R$ 6.8 bi',
+  pl: '11.2',
+  pvp: '1.1',
+  roe: '14.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,32', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,28', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-15', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-20', tipo: 'Anual' }
+  ]
+},
+'KEPL3': {
+  ticker: 'KEPL3',
+  nomeCompleto: 'Kepler Weber S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A Kepler Weber é especializada em sistemas de armazenagem e equipamentos para agronegócio.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/KEPL.png',
+  precoAtual: 'R$ 7,76',
+  variacao: '-13.0%',
+  tendencia: 'down',
+  dataEntrada: '21/12/2020',
+  precoIniciou: 'R$ 8,92',
+  dy: '7,76%',
+  precoTeto: 'R$ 11,00',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-0.8%',
+  rendProventos: '-13.0%',
+  ibovespaEpoca: '104.800',
+  ibovespaVariacao: '+22.5%',
+  percentualCarteira: '2.1%',
+  marketCap: 'R$ 1.8 bi',
+  pl: '9.5',
+  pvp: '0.9',
+  roe: '12.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,48', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,35', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Anual 2023', data: '2024-04-10', tipo: 'Anual' },
+    { nome: 'Balanço Q1 2024', data: '2024-05-08', tipo: 'Trimestral' }
+  ]
+},
+'EVEN3': {
+  ticker: 'EVEN3',
+  nomeCompleto: 'Even Construtora e Incorporadora S.A.',
+  setor: 'Consumo Cíclico',
+  descricao: 'A Even é uma incorporadora imobiliária focada em empreendimentos residenciais.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/EVEN.png',
+  precoAtual: 'R$ 6,57',
+  variacao: '-28.6%',
+  tendencia: 'down',
+  dataEntrada: '06/06/2022',
+  precoIniciou: 'R$ 9,20',
+  dy: '19,57%',
+  precoTeto: 'R$ 8,50',
+  viesAtual: 'Venda',
+  variacaoHoje: '-1.5%',
+  rendProventos: '-28.6%',
+  ibovespaEpoca: '112.800',
+  ibovespaVariacao: '+12.5%',
+  percentualCarteira: '1.8%',
+  marketCap: 'R$ 1.2 bi',
+  pl: '18.5',
+  pvp: '0.6',
+  roe: '6.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1,12', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 0,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Vendas Q1 2024', data: '2024-05-14', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-22', tipo: 'Anual' }
+  ]
+},
+'WIZC3': {
+  ticker: 'WIZC3',
+  nomeCompleto: 'WIZ Soluções e Corretagem de Seguros S.A.',
+  setor: 'Financeiro',
+  descricao: 'A WIZ é uma das maiores corretoras de seguros do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/WIZC.png',
+  precoAtual: 'R$ 7,06',
+  variacao: '-35.5%',
+  tendencia: 'down',
+  dataEntrada: '30/04/2021',
+  precoIniciou: 'R$ 10,94',
+  dy: '4,21%',
+  precoTeto: 'R$ 12,00',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-2.1%',
+  rendProventos: '-35.5%',
+  ibovespaEpoca: '118.500',
+  ibovespaVariacao: '+8.2%',
+  percentualCarteira: '2.5%',
+  marketCap: 'R$ 3.2 bi',
+  pl: '14.8',
+  pvp: '1.2',
+  roe: '9.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,28', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,22', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-20', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+  'RANI3': {
+  ticker: 'RANI3',
+  nomeCompleto: 'Irani Papel e Embalagem S.A.',
+  setor: 'Materiais Básicos',
+  descricao: 'A Irani é uma empresa integrada de papel, embalagem e floresta.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/RANI.png',
+  precoAtual: 'R$ 7,63',
+  variacao: '+64.0%',
+  tendencia: 'up',
+  dataEntrada: '19/11/2020',
+  precoIniciou: 'R$ 4,65',
+  dy: '7,61%',
+  precoTeto: 'R$ 10,57',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.8%',
+  rendProventos: '+64.0%',
+  ibovespaEpoca: '103.200',
+  ibovespaVariacao: '+24.8%',
+  percentualCarteira: '4.2%',
+  marketCap: 'R$ 2.1 bi',
+  pl: '8.5',
+  pvp: '1.1',
+  roe: '16.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,45', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,38', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-15', tipo: 'Anual' },
+    { nome: 'Demonstrações Q1 2024', data: '2024-05-12', tipo: 'Trimestral' }
+  ]
+},
+'SULU4': {
+  ticker: 'SULU4',
+  nomeCompleto: 'Sul América S.A.',
+  setor: 'Financeiro',
+  descricao: 'A Sul América é uma das maiores seguradoras do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SULU.png',
+  precoAtual: 'R$ 5,45',
+  variacao: '-26.5%',
+  tendencia: 'down',
+  dataEntrada: '04/03/2021',
+  precoIniciou: 'R$ 7,42',
+  dy: '5,00%',
+  precoTeto: 'R$ 5,45',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-1.2%',
+  rendProventos: '-26.5%',
+  ibovespaEpoca: '115.800',
+  ibovespaVariacao: '+10.5%',
+  percentualCarteira: '2.1%',
+  marketCap: 'R$ 4.8 bi',
+  pl: '12.5',
+  pvp: '0.8',
+  roe: '8.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,28', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,22', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-18', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-25', tipo: 'Anual' }
+  ]
+},
+'RSUL4': {
+  ticker: 'RSUL4',
+  nomeCompleto: 'Rede D\'Or São Luiz S.A.',
+  setor: 'Saúde',
+  descricao: 'A Rede D\'Or é a maior operadora privada de serviços de saúde do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/RSUL.png',
+  precoAtual: 'R$ 67,75',
+  variacao: '-20.3%',
+  tendencia: 'down',
+  dataEntrada: '06/08/2021',
+  precoIniciou: 'R$ 85,00',
+  dy: '3,55%',
+  precoTeto: 'R$ 100,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.8%',
+  rendProventos: '-20.3%',
+  ibovespaEpoca: '121.500',
+  ibovespaVariacao: '+5.2%',
+  percentualCarteira: '8.5%',
+  marketCap: 'R$ 95.2 bi',
+  pl: '18.2',
+  pvp: '2.1',
+  roe: '12.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1.85', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 1.42', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 1.15', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Resultados Q1 2024', data: '2024-05-15', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+  
+'TASA4': {
+  ticker: 'TASA4',
+  nomeCompleto: 'Taurus Armas S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A Taurus é uma das maiores fabricantes de armas pequenas do mundo.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/TASA.png',
+  precoAtual: 'R$ 7,82',
+  variacao: '-54.5%',
+  tendencia: 'down',
+  dataEntrada: '27/06/2022',
+  precoIniciou: 'R$ 17,14',
+  dy: '2,90%',
+  precoTeto: 'R$ 25,50',
+  viesAtual: 'Venda',
+  variacaoHoje: '-2.8%',
+  rendProventos: '-54.5%',
+  ibovespaEpoca: '114.200',
+  ibovespaVariacao: '+12.8%',
+  percentualCarteira: '1.5%',
+  marketCap: 'R$ 1.8 bi',
+  pl: '15.2',
+  pvp: '0.9',
+  roe: '8.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,22', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-20', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-25', tipo: 'Anual' }
+  ]
+},
+'TRIS3': {
+  ticker: 'TRIS3',
+  nomeCompleto: 'Trisul S.A.',
+  setor: 'Consumo Cíclico',
+  descricao: 'A Trisul é uma incorporadora imobiliária focada em empreendimentos residenciais.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/TRIS.png',
+  precoAtual: 'R$ 7,17',
+  variacao: '+39.0%',
+  tendencia: 'up',
+  dataEntrada: '25/02/2022',
+  precoIniciou: 'R$ 5,15',
+  dy: '3,59%',
+  precoTeto: 'R$ 5,79',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.1%',
+  rendProventos: '+39.0%',
+  ibovespaEpoca: '108.800',
+  ibovespaVariacao: '+17.2%',
+  percentualCarteira: '3.2%',
+  marketCap: 'R$ 1.2 bi',
+  pl: '8.5',
+  pvp: '0.7',
+  roe: '12.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,25', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,18', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Vendas Q1 2024', data: '2024-05-08', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-22', tipo: 'Anual' }
+  ]
+},
+'CGRA4': {
+  ticker: 'CGRA4',
+  nomeCompleto: 'Grazziotin S.A.',
+  setor: 'Consumo Cíclico',
+  descricao: 'A Grazziotin é uma rede de lojas de departamento focada no Sul do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/CGRA.png',
+  precoAtual: 'R$ 6,99',
+  variacao: '+35.9%',
+  tendencia: 'up',
+  dataEntrada: '09/03/2023',
+  precoIniciou: 'R$ 5,14',
+  dy: '10,61%',
+  precoTeto: 'R$ 12,50',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.8%',
+  rendProventos: '+35.9%',
+  ibovespaEpoca: '107.500',
+  ibovespaVariacao: '+19.2%',
+  percentualCarteira: '2.8%',
+  marketCap: 'R$ 485 mi',
+  pl: '9.2',
+  pvp: '1.1',
+  roe: '14.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,68', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 0,52', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-18', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-30', tipo: 'Anual' }
+  ]
+},
+'ROMI3': {
+  ticker: 'ROMI3',
+  nomeCompleto: 'Indústrias Romi S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A Romi é líder na fabricação de máquinas-ferramenta e equipamentos industriais.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ROMI.png',
+  precoAtual: 'R$ 9,30',
+  variacao: '-22.6%',
+  tendencia: 'down',
+  dataEntrada: '19/07/2022',
+  precoIniciou: 'R$ 12,02',
+  dy: '8,00%',
+  precoTeto: 'R$ 19,40',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-1.2%',
+  rendProventos: '-22.6%',
+  ibovespaEpoca: '117.800',
+  ibovespaVariacao: '+8.5%',
+  percentualCarteira: '2.5%',
+  marketCap: 'R$ 1.8 bi',
+  pl: '12.5',
+  pvp: '1.2',
+  roe: '10.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,72', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,58', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-12', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-20', tipo: 'Anual' }
+  ]
+},
+'POSI3': {
+  ticker: 'POSI3',
+  nomeCompleto: 'Positivo Tecnologia S.A.',
+  setor: 'Tecnologia da Informação',
+  descricao: 'A Positivo é uma das maiores fabricantes de computadores do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/POSI.png',
+  precoAtual: 'R$ 4,96',
+  variacao: '-42.8%',
+  tendencia: 'down',
+  dataEntrada: '22/04/2022',
+  precoIniciou: 'R$ 8,67',
+  dy: '6,86%',
+  precoTeto: 'R$ 10,16',
+  viesAtual: 'Venda',
+  variacaoHoje: '-2.5%',
+  rendProventos: '-42.8%',
+  ibovespaEpoca: '111.200',
+  ibovespaVariacao: '+14.8%',
+  percentualCarteira: '1.8%',
+  marketCap: 'R$ 1.2 bi',
+  pl: '18.5',
+  pvp: '0.8',
+  roe: '6.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,32', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,28', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-20', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-25', tipo: 'Anual' }
+  ]
+},
+'CCAS3': {
+  ticker: 'CCAS3',
+  nomeCompleto: 'Casa de Bolos S.A.',
+  setor: 'Consumo Não Cíclico',
+  descricao: 'A Casa de Bolos é uma rede de confeitarias e panificadoras.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/CCAS.png',
+  precoAtual: 'R$ 7,06',
+  variacao: '-16.0%',
+  tendencia: 'down',
+  dataEntrada: '04/05/2023',
+  precoIniciou: 'R$ 8,40',
+  dy: '6,00%',
+  precoTeto: 'R$ 10,94',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-0.8%',
+  rendProventos: '-16.0%',
+  ibovespaEpoca: '113.500',
+  ibovespaVariacao: '+11.2%',
+  percentualCarteira: '2.1%',
+  marketCap: 'R$ 485 mi',
+  pl: '14.5',
+  pvp: '1.1',
+  roe: '8.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,42', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,32', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-15', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'LOGG3': {
+  ticker: 'LOGG3',
+  nomeCompleto: 'Log-In Logística Intermodal S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A Log-In é especializada em soluções logísticas e transporte intermodal.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/LOGG.png',
+  precoAtual: 'R$ 21,63',
+  variacao: '+14.1%',
+  tendencia: 'up',
+  dataEntrada: '25/11/2022',
+  precoIniciou: 'R$ 18,96',
+  dy: '2,99%',
+  precoTeto: 'R$ 25,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.5%',
+  rendProventos: '+14.1%',
+  ibovespaEpoca: '124.800',
+  ibovespaVariacao: '+2.5%',
+  percentualCarteira: '3.8%',
+  marketCap: 'R$ 3.2 bi',
+  pl: '11.5',
+  pvp: '1.3',
+  roe: '12.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,58', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,42', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Operações Q1 2024', data: '2024-05-08', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-22', tipo: 'Anual' }
+  ]
+},
+  
+'AGRO3': {
+  ticker: 'AGRO3',
+  nomeCompleto: 'BrasilAgro - Companhia Brasileira de Propriedades Agrícolas',
+  setor: 'Consumo Não Cíclico',
+  descricao: 'A BrasilAgro é uma empresa de desenvolvimento e exploração de propriedades agrícolas.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/AGRO.png',
+  precoAtual: 'R$ 21,60',
+  variacao: '-6.1%',
+  tendencia: 'down',
+  dataEntrada: '09/10/2020',
+  precoIniciou: 'R$ 23,00',
+  dy: '6,59%',
+  precoTeto: 'R$ 31,80',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.8%',
+  rendProventos: '-6.1%',
+  ibovespaEpoca: '101.500',
+  ibovespaVariacao: '+26.8%',
+  percentualCarteira: '5.2%',
+  marketCap: 'R$ 2.8 bi',
+  pl: '8.5',
+  pvp: '1.2',
+  roe: '15.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,98', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 0,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 0,72', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Safra 2023/24', data: '2024-04-28', tipo: 'Anual' },
+    { nome: 'Demonstrações Q1 2024', data: '2024-05-15', tipo: 'Trimestral' }
+  ]
+},
 };
 
 const fiisData: { [key: string]: FII } = {
