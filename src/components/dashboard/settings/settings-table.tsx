@@ -414,7 +414,7 @@ export function SettingsTable({
   console.log("🎯 Primeiro ativo:", dadosReais[0]?.ticker);
 
   // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
-  const dadosParaUsar = dadosReais;
+  const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
   
   const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
 
