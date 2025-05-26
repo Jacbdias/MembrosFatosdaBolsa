@@ -60,6 +60,18 @@ export const navItems = [
     icon: 'package',
     items: [
       {
+        key: 'recursos-dicas',
+        title: 'Dicas de Investimentos',
+        href: paths.dashboard.recursosExclusivos + '/dicas-de-investimentos',
+        icon: 'lightbulb',
+      },
+      {
+        key: 'recursos-analise',
+        title: 'Análise de Carteira',
+        href: paths.dashboard.recursosExclusivos + '/analise-de-carteira',
+        icon: 'chart-line',
+      },
+      {
         key: 'recursos-ebooks',
         title: 'eBooks',
         href: paths.dashboard.recursosExclusivos + '/ebooks',
@@ -87,7 +99,7 @@ export const navItems = [
         key: 'recursos-planilhas',
         title: 'Planilhas',
         href: paths.dashboard.recursosExclusivos + '/planilhas',
-        icon: 'table', // Mudou de 'file-spreadsheet' para 'table'
+        icon: 'table',
       },
       {
         key: 'recursos-telegram',
