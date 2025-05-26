@@ -1,6 +1,11 @@
+// src/paths.ts
 export const paths = {
   home: '/',
-  auth: { signIn: '/auth/sign-in', signUp: '/auth/sign-up', resetPassword: '/auth/reset-password' },
+  auth: {
+    signIn: '/auth/sign-in',
+    signUp: '/auth/sign-up',
+    resetPassword: '/auth/reset-password'
+  },
   dashboard: {
     overview: '/dashboard/overview',
     account: '/dashboard/account',
@@ -10,5 +15,19 @@ export const paths = {
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
   },
-  errors: { notFound: '/errors/not-found' },
+  errors: {
+    notFound: '/errors/not-found'
+  },
 } as const;
+
+// Export default também para compatibilidade
+export default paths;
+
+// Export tipo para TypeScript
+export type Paths = typeof paths;
+
+// DEBUG: Adicione temporariamente para debug
+console.log('=== DEBUG PATHS ===');
+console.log('Paths loaded:', paths);
+console.log('recursosExclusivos path:', paths.dashboard.recursosExclusivos);
+console.log('==================');
