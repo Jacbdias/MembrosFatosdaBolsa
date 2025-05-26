@@ -21,15 +21,6 @@ import { navIcons } from './nav-icons';
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
 
-  // DEBUG: Log para verificar se está carregando
-  React.useEffect(() => {
-    console.log('=== DEBUG SIDENAV ===');
-    console.log('SideNav mounted, pathname:', pathname);
-    console.log('NavItems loaded:', navItems);
-    console.log('NavIcons loaded:', navIcons);
-    console.log('====================');
-  }, [pathname]);
-
   return (
     <Box
       sx={{
@@ -51,14 +42,15 @@ export function SideNav(): React.JSX.Element {
         left: 0,
         maxWidth: '100%',
         position: 'fixed',
-        scrollbarWidth: 'none',
         top: 0,
         width: 'var(--SideNav-width)',
         zIndex: 'var(--SideNav-zIndex)',
-        '&::-webkit-scrollbar': { display: 'none' },
+        // Removemos scrollbarWidth e webkit-scrollbar para permitir scroll
+        overflow: 'hidden', // Controlamos o overflow no container pai
       }}
     >
-      <Stack spacing={2} sx={{ p: 3 }}>
+      {/* Header fixo */}
+      <Stack spacing={2} sx={{ p: 3, flexShrink: 0 }}>
         <Box
           component={RouterLink}
           href={paths.home}
@@ -92,9 +84,34 @@ export function SideNav(): React.JSX.Element {
         </Box>
       </Stack>
 
-      <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
+      <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)', flexShrink: 0 }} />
 
-      <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
+      {/* Container da navegação com scroll */}
+      <Box 
+        component="nav" 
+        sx={{ 
+          flex: '1 1 auto', 
+          p: '12px',
+          overflowY: 'auto', // Permite scroll vertical
+          overflowX: 'hidden', // Previne scroll horizontal
+          // Customiza a scrollbar
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--mui-palette-neutral-600) transparent',
+          '&::-webkit-scrollbar': {
+            width: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'var(--mui-palette-neutral-600)',
+            borderRadius: '3px',
+            '&:hover': {
+              backgroundColor: 'var(--mui-palette-neutral-500)',
+            },
+          },
+        }}
+      >
         {renderNavItems({ pathname, items: navItems })}
       </Box>
     </Box>
@@ -108,12 +125,6 @@ function renderNavItems({
   items?: NavItemConfig[];
   pathname: string;
 }): React.JSX.Element {
-  // DEBUG: Log para verificar se está renderizando os items
-  console.log('=== DEBUG RENDER NAV ITEMS ===');
-  console.log('Items to render:', items.length);
-  console.log('Items:', items.map(item => ({ key: item.key, title: item.title, hasItems: !!item.items })));
-  console.log('==============================');
-
   const children = items.reduce(
     (acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
       const { key, ...item } = curr;
@@ -144,13 +155,6 @@ function NavItem({
   title,
   items,
 }: NavItemProps): React.JSX.Element {
-  // DEBUG: Log para cada item individual
-  console.log(`=== DEBUG NavItem: ${title} ===`);
-  console.log('Has items:', !!items);
-  console.log('Items count:', items?.length || 0);
-  console.log('Icon:', icon);
-  console.log('=============================');
-
   const [open, setOpen] = React.useState(() => {
     // Se o item tem subitens e algum deles está ativo, manter aberto
     if (items) {
@@ -182,7 +186,6 @@ function NavItem({
 
   const handleClick = () => {
     if (items) {
-      console.log(`Clicking ${title}, will toggle open state:`, !open);
       setOpen(!open);
     }
   };
