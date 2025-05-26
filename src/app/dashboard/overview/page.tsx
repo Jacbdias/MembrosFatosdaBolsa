@@ -3,8 +3,12 @@
 
 import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
+import { Box, CircularProgress, Alert, Button } from '@mui/material';
 import { OverviewFilters } from '@/components/dashboard/overview/overview-filters';
 import { OverviewTable } from '@/components/dashboard/overview/overview-table';
+
+// 🔥 IMPORTAR O HOOK PARA DADOS FINANCEIROS REAIS
+import { useFinancialData } from '@/hooks/useFinancialData';
 
 const ativos = [
   {
@@ -202,18 +206,72 @@ const ativos = [
 ];
 
 export default function Page(): React.JSX.Element {
-  // DADOS DOS CARDS - ALTERE AQUI PARA MODIFICAR OS VALORES
-  const dadosCards = {
+  // 🔥 BUSCAR DADOS REAIS DA API FINANCEIRA
+  const { marketData, loading, error, refetch } = useFinancialData();
+
+  // DADOS PADRÃO CASO A API FALHE (seus dados atuais)
+  const dadosCardsPadrao = {
     ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
     indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
-    carteiraHoje: { value: "88.7%", trend: "up" as const }, // Verde, sem número embaixo
-    dividendYield: { value: "7.4%", trend: "up" as const }, // Verde, sem número embaixo  
+    carteiraHoje: { value: "88.7%", trend: "up" as const },
+    dividendYield: { value: "7.4%", trend: "up" as const },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
+  // 🚀 USAR DADOS DA API SE DISPONÍVEIS, SENÃO USA DADOS PADRÃO
+  const dadosCards = marketData || dadosCardsPadrao;
+
+  // Loading state
+  if (loading) {
+    return (
+      <Grid container spacing={3}>
+        <Grid xs={12}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress size={40} />
+            <Box ml={2} sx={{ fontSize: '1.1rem' }}>
+              🔄 Carregando dados do mercado financeiro...
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+    );
+  }
+
+  // Error state com fallback
+  if (error) {
+    console.warn('⚠️ API offline, usando dados estáticos:', error);
+  }
+
   return (
     <Grid container spacing={3}>
+      {/* Alerta se API estiver offline */}
+      {error && (
+        <Grid xs={12}>
+          <Alert 
+            severity="warning"
+            action={
+              <Button color="inherit" size="small" onClick={refetch}>
+                🔄 Tentar Novamente
+              </Button>
+            }
+            sx={{ mb: 1 }}
+          >
+            ⚠️ API temporariamente offline - usando dados locais. 
+            {marketData ? ' Alguns dados podem estar desatualizados.' : ''}
+          </Alert>
+        </Grid>
+      )}
+
+      {/* Indicador de sucesso da API */}
+      {!error && marketData && (
+        <Grid xs={12}>
+          <Alert severity="success" sx={{ mb: 1 }}>
+            ✅ Dados atualizados em tempo real pela API Brapi
+          </Alert>
+        </Grid>
+      )}
+
       {/* Filtros de busca */}
       <Grid xs={12}>
         <OverviewFilters />
@@ -226,7 +284,7 @@ export default function Page(): React.JSX.Element {
           rows={ativos} 
           page={0} 
           rowsPerPage={5}
-          cardsData={dadosCards}
+          cardsData={dadosCards} // 🔥 DADOS REAIS DA API OU FALLBACK!
         />
       </Grid>
     </Grid>
