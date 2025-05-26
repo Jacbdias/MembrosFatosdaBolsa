@@ -506,7 +506,7 @@ export function SettingsTable({
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
               </TableRow>
             </TableHead>
-<TableBody>
+            <TableBody>
   {dadosParaUsar.map((row, index) => {
     // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
     const calcularVies = (precoTeto: string, precoAtual: string) => {
