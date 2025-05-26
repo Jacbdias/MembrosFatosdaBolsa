@@ -1651,42 +1651,42 @@ const fiisData: { [key: string]: FII } = {
     relatorios: [
       { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
       { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
-  ]
-},
-'KNSC11': {
-  ticker: 'KNSC11',
-  nomeCompleto: 'Kinea Securities FII',
-  setor: 'Títulos e Valores Mobiliários',
-  tipo: 'FII',
-  descricao: 'Fundo de investimento imobiliário especializado em títulos e valores mobiliários do setor imobiliário.',
-  avatar: 'https://www.ivalor.com.br/media/emp/logos/KNSC.png',
-  precoAtual: 'R$ 8,87',
-  variacao: '-4.7%',
-  tendencia: 'down',
-  dataEntrada: '22/04/2022',
-  precoIniciou: 'R$ 9,31',
-  dy: '10,98%',
-  precoTeto: 'R$ 9,16',
-  viesAtual: 'Compra',
-  variacaoHoje: '+0.5%',
-  rendProventos: '-4.7%',
-  ibovespaEpoca: '111.500',
-  ibovespaVariacao: '+15.2%',
-  percentualCarteira: '3.2%',
-  patrimonio: 'R$ 485 milhões',
-  p_vp: '0.97',
-  vacancia: '0%',
-  imoveis: 0,
-  gestora: 'Kinea',
-  proventos: [
-    { tipo: 'Rendimento', valor: 'R$ 0,08', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
-    { tipo: 'Rendimento', valor: 'R$ 0,09', dataEx: '15/04/2024', dataPagamento: '28/04/2024', status: 'Pago' }
-  ],
-  relatorios: [
-    { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
-    { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
-  ]
-},
+    ]
+  },
+  'KNSC11': {
+    ticker: 'KNSC11',
+    nomeCompleto: 'Kinea Securities FII',
+    setor: 'Títulos e Valores Mobiliários',
+    tipo: 'FII',
+    descricao: 'Fundo de investimento imobiliário especializado em títulos e valores mobiliários do setor imobiliário.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KNSC.png',
+    precoAtual: 'R$ 8,87',
+    variacao: '-4.7%',
+    tendencia: 'down',
+    dataEntrada: '22/04/2022',
+    precoIniciou: 'R$ 9,31',
+    dy: '10,98%',
+    precoTeto: 'R$ 9,16',
+    viesAtual: 'Compra',
+    variacaoHoje: '+0.5%',
+    rendProventos: '-4.7%',
+    ibovespaEpoca: '111.500',
+    ibovespaVariacao: '+15.2%',
+    percentualCarteira: '3.2%',
+    patrimonio: 'R$ 485 milhões',
+    p_vp: '0.97',
+    vacancia: '0%',
+    imoveis: 0,
+    gestora: 'Kinea',
+    proventos: [
+      { tipo: 'Rendimento', valor: 'R$ 0,08', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+      { tipo: 'Rendimento', valor: 'R$ 0,09', dataEx: '15/04/2024', dataPagamento: '28/04/2024', status: 'Pago' }
+    ],
+    relatorios: [
+      { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
+      { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
+    ]
+  },
 'KNHF11': {
   ticker: 'KNHF11',
   nomeCompleto: 'Kinea Hedge Fund Imobiliário FII',
