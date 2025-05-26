@@ -6,7 +6,6 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 
 export default function Page(): React.JSX.Element {
   return (
@@ -14,11 +13,10 @@ export default function Page(): React.JSX.Element {
       {/* Header com botão voltar */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <Button
-          startIcon={<ArrowLeftIcon />}
-          onClick={() => window.location.href = '/recursos-exclusivos'}
+          onClick={() => window.location.href = '/dashboard/recursos-exclusivos'}
           sx={{ color: 'text.secondary' }}
         >
-          Voltar
+          ← Voltar
         </Button>
         <Stack spacing={1}>
           <Typography 
