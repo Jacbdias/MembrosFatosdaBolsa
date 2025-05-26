@@ -78,7 +78,7 @@ export function SideNav(): React.JSX.Element {
               Workspace
             </Typography>
             <Typography color="inherit" variant="subtitle1">
-              Devias
+              Close Friends VIP
             </Typography>
           </Box>
         </Box>
