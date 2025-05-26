@@ -1615,7 +1615,7 @@ const empresasData: { [key: string]: Empresa } = {
     { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-10', tipo: 'Trimestral' },
     { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-15', tipo: 'Anual' }
   ]
-},
+}
 };
 
 const fiisData: { [key: string]: FII } = {
