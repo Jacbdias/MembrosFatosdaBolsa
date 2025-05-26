@@ -15,7 +15,7 @@ export default function Page(): React.JSX.Element {
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <Button
           startIcon={<ArrowLeftIcon />}
-          onClick={() => window.location.href = '/recursos-exclusivos'}
+          onClick={() => window.location.href = '/dashboard/recursos-exclusivos'}
           sx={{ color: 'text.secondary' }}
         >
           Voltar
