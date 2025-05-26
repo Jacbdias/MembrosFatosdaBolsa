@@ -1,14 +1,24 @@
-export const paths = {
-  home: '/',
-  auth: { signIn: '/auth/sign-in', signUp: '/auth/sign-up', resetPassword: '/auth/reset-password' },
-  dashboard: {
-    overview: '/dashboard/overview',
-    account: '/dashboard/account',
-    customers: '/dashboard/customers',
-    internacional: '/dashboard/internacional',
-    recursosExclusivos: '/dashboard/recursos-exclusivos', // ← ADICIONE ESTA LINHA
-    integrations: '/dashboard/integrations',
-    settings: '/dashboard/settings',
-  },
-  errors: { notFound: '/errors/not-found' },
-} as const;
+import type { Icon } from '@phosphor-icons/react/dist/lib/types';
+import { ChartPie } from '@phosphor-icons/react/dist/ssr/ChartPie';
+import { ChartBar } from '@phosphor-icons/react/dist/ssr/ChartBar';
+import { ChartLineUp } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
+import { Buildings } from '@phosphor-icons/react/dist/ssr/Buildings';
+import { PlugsConnected as PlugsConnectedIcon } from '@phosphor-icons/react/dist/ssr/PlugsConnected';
+import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
+import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
+import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
+import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
+import { Package } from '@phosphor-icons/react/dist/ssr/Package';
+
+export const navIcons = {
+  'chart-pie': ChartPie,
+  'chart-bar': ChartBar,
+  'chart-line-up': ChartLineUp,
+  'buildings': Buildings,
+  'plugs-connected': PlugsConnectedIcon,
+  'x-square': XSquare,
+  'user': UserIcon,
+  'users': UsersIcon,
+  'globe': Globe,
+  'package': Package,
+} as Record<string, Icon>;
