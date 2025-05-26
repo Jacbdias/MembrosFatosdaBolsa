@@ -1,3 +1,4 @@
+// src/components/dashboard/layout/config.ts
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 
@@ -5,7 +6,7 @@ export const navItems = [
   { 
     key: 'overview', 
     title: 'Small Caps', 
-    href: paths.dashboard.overview, // Corrigido para usar paths
+    href: paths.dashboard.overview,
     icon: 'chart-pie' 
   },
   { 
@@ -55,7 +56,7 @@ export const navItems = [
   {
     key: 'recursos-exclusivos',
     title: 'Recursos Exclusivos',
-    href: paths.dashboard.recursosExclusivos, // Corrigido para usar paths
+    href: paths.dashboard.recursosExclusivos,
     icon: 'package',
     items: [
       {
@@ -103,3 +104,11 @@ export const navItems = [
     icon: 'x-square' 
   },
 ] satisfies NavItemConfig[];
+
+// DEBUG: Adicione temporariamente para debug
+console.log('=== DEBUG CONFIG ===');
+console.log('Total items:', navItems.length);
+console.log('Recursos Exclusivos item:', navItems.find(item => item.key === 'recursos-exclusivos'));
+console.log('Paths recursosExclusivos:', paths.dashboard.recursosExclusivos);
+console.log('NavItems completo:', navItems);
+console.log('===================');
