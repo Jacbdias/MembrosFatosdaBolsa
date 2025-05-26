@@ -1,3 +1,4 @@
+// src/components/dashboard/layout/nav-icons.ts
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
 import { ChartPie } from '@phosphor-icons/react/dist/ssr/ChartPie';
 import { ChartBar } from '@phosphor-icons/react/dist/ssr/ChartBar';
@@ -22,3 +23,9 @@ export const navIcons = {
   'globe': Globe,
   'package': Package,
 } as Record<string, Icon>;
+
+// DEBUG: Adicione temporariamente para debug
+console.log('=== DEBUG NAV ICONS ===');
+console.log('Available icons:', Object.keys(navIcons));
+console.log('Package icon exists:', !!navIcons['package']);
+console.log('======================');
