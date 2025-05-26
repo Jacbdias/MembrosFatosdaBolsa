@@ -221,10 +221,10 @@ export default function EmpresaDetalhes() {
       </Button>
 
       <Card sx={{ 
-        mb: 4, 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-        color: 'white' 
-      }}>
+  mb: 4, 
+  background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', 
+  color: 'black' 
+}}>
         <CardContent sx={{ p: 4 }}>
           <Stack 
             direction={{ xs: 'column', md: 'row' }} 
