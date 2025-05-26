@@ -1,4 +1,4 @@
-// src/lib/brapi-service.ts
+// src/lib/brapi-service.ts - VERSÃO CORRIGIDA PARA FORMATO
 import { StockQuote, BrapiResponse } from '@/types/financial';
 
 export class BrapiService {
@@ -17,7 +17,7 @@ export class BrapiService {
       }
 
       console.log('🚀 Buscando cotações para:', symbols);
-      console.log('🔗 URL com token:', url.replace(this.token || '', 'TOKEN_OCULTO'));
+      console.log('🔗 URL:', url.replace(this.token || '', 'TOKEN_OCULTO'));
 
       const response = await fetch(url, {
         method: 'GET',
@@ -25,7 +25,7 @@ export class BrapiService {
           'Content-Type': 'application/json',
           'User-Agent': 'MembrosFactosdaBolsa/1.0',
         },
-        next: { revalidate: 300 }, // Cache por 5 minutos
+        next: { revalidate: 300 },
       });
 
       console.log('📡 Response status:', response.status);
@@ -37,33 +37,57 @@ export class BrapiService {
       }
 
       const data: BrapiResponse = await response.json();
-      console.log('✅ Dados recebidos da Brapi:', data.results?.length || 0, 'ativos');
+      console.log('✅ Resposta completa da Brapi:', JSON.stringify(data, null, 2));
       
+      // VERIFICAR SE OS DADOS EXISTEM
       if (data.results && data.results.length > 0) {
-        console.log('✅ Primeiro ativo:', data.results[0].symbol, '=', data.results[0].regularMarketPrice);
+        data.results.forEach(result => {
+          console.log(`✅ Ativo: ${result.symbol} = R$ ${result.regularMarketPrice} (${result.regularMarketChangePercent}%)`);
+        });
+      } else {
+        console.log('⚠️ Nenhum resultado encontrado na resposta');
       }
       
       return data.results || [];
     } catch (error) {
       console.error('❌ Erro ao buscar cotações da Brapi:', error);
-      return []; // Retorna array vazio em caso de erro
+      return [];
     }
   }
 
   static async fetchIndexes(): Promise<{ ibovespa: StockQuote | null; smallCap: StockQuote | null }> {
     try {
-      console.log('🔍 Buscando índices COM token...');
+      console.log('🔍 Buscando índices: ^BVSP, SMLL11');
       
-      const indexes = await this.fetchQuotes(['^BVSP', 'SMLL11']);
+      // BUSCAR IBOVESPA SEPARADAMENTE PRIMEIRO
+      const ibovespaData = await this.fetchQuotes(['^BVSP']);
+      console.log('🔍 Dados Ibovespa:', ibovespaData);
       
-      const ibovespa = indexes.find(index => index.symbol === '^BVSP') || null;
-      const smallCap = indexes.find(index => index.symbol === 'SMLL11') || null;
+      // BUSCAR SMALL CAP SEPARADAMENTE
+      const smallCapData = await this.fetchQuotes(['SMLL11']);
+      console.log('🔍 Dados Small Cap:', smallCapData);
+      
+      const ibovespa = ibovespaData.find(index => 
+        index.symbol === '^BVSP' || 
+        index.symbol === 'IBOV' || 
+        index.symbol.includes('BVSP')
+      ) || null;
+      
+      const smallCap = smallCapData.find(index => 
+        index.symbol === 'SMLL11' || 
+        index.symbol.includes('SMLL')
+      ) || null;
       
       if (ibovespa) {
-        console.log('✅ Ibovespa encontrado:', ibovespa.regularMarketPrice);
+        console.log('✅ Ibovespa encontrado:', ibovespa.symbol, '=', ibovespa.regularMarketPrice);
+      } else {
+        console.log('❌ Ibovespa NÃO encontrado');
       }
+      
       if (smallCap) {
-        console.log('✅ Small Cap encontrado:', smallCap.regularMarketPrice);
+        console.log('✅ Small Cap encontrado:', smallCap.symbol, '=', smallCap.regularMarketPrice);
+      } else {
+        console.log('❌ Small Cap NÃO encontrado');
       }
       
       return { ibovespa, smallCap };
