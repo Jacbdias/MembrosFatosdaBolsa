@@ -28,8 +28,63 @@ import { FileText as FileTextIcon } from '@phosphor-icons/react/dist/ssr/FileTex
 import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 
+// Tipos para melhor tipagem
+interface Provento {
+  tipo: string;
+  valor: string;
+  dataEx: string;
+  dataPagamento: string;
+  status: string;
+}
+
+interface Relatorio {
+  nome: string;
+  data: string;
+  tipo: string;
+}
+
+interface EmpresaBase {
+  ticker: string;
+  nomeCompleto: string;
+  setor: string;
+  descricao: string;
+  avatar: string;
+  precoAtual: string;
+  variacao: string;
+  tendencia: 'up' | 'down';
+  dataEntrada: string;
+  precoIniciou: string;
+  dy: string;
+  precoTeto: string;
+  viesAtual: string;
+  variacaoHoje: string;
+  rendProventos: string;
+  ibovespaEpoca: string;
+  ibovespaVariacao: string;
+  percentualCarteira: string;
+  proventos?: Provento[];
+  relatorios?: Relatorio[];
+}
+
+interface Empresa extends EmpresaBase {
+  tipo?: never;
+  marketCap: string;
+  pl: string;
+  pvp: string;
+  roe: string;
+}
+
+interface FII extends EmpresaBase {
+  tipo: 'FII';
+  patrimonio: string;
+  p_vp: string;
+  vacancia: string;
+  imoveis: number;
+  gestora: string;
+}
+
 // Base de dados das empresas
-const empresasData: { [key: string]: any } = {
+const empresasData: { [key: string]: Empresa } = {
   'PETR4': {
     ticker: 'PETR4',
     nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
@@ -52,12 +107,22 @@ const empresasData: { [key: string]: any } = {
     marketCap: 'R$ 512,8 bi',
     pl: '3.8',
     pvp: '1.2',
-    roe: '31.5%'
+    roe: '31.5%',
+    proventos: [
+      { tipo: 'Dividendo', valor: 'R$ 2,15', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+      { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+      { tipo: 'Dividendo', valor: 'R$ 1,95', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+    ],
+    relatorios: [
+      { nome: 'Relatório Anual 2023', data: '2024-03-15', tipo: 'Anual' },
+      { nome: 'Balanço Q4 2023', data: '2024-02-28', tipo: 'Trimestral' },
+      { nome: 'Demonstrações Financeiras Q3 2023', data: '2023-11-15', tipo: 'Trimestral' }
+    ]
   }
 };
 
 // Base de dados dos FIIs
-const fiisData: { [key: string]: any } = {
+const fiisData: { [key: string]: FII } = {
   'MALL11': {
     ticker: 'MALL11',
     nomeCompleto: 'Shopping Outlets Premium FII',
@@ -82,7 +147,15 @@ const fiisData: { [key: string]: any } = {
     p_vp: '1.08',
     vacancia: '4,2%',
     imoveis: 47,
-    gestora: 'BTG Pactual'
+    gestora: 'BTG Pactual',
+    proventos: [
+      { tipo: 'Rendimento', valor: 'R$ 0,85', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+      { tipo: 'Rendimento', valor: 'R$ 0,92', dataEx: '15/04/2024', dataPagamento: '28/04/2024', status: 'Pago' }
+    ],
+    relatorios: [
+      { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
+      { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
+    ]
   }
 };
 
@@ -261,7 +334,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
         <Grid item xs={6} sm={4} md={2}>
           <MetricCard 
             title={isFII ? "P/VP" : "P/L"} 
-            value={isFII ? empresa.p_vp : empresa.pl} 
+            value={isFII ? (empresa as FII).p_vp : (empresa as Empresa).pl} 
           />
         </Grid>
         <Grid item xs={6} sm={4} md={2}>
@@ -280,7 +353,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
       </Grid>
 
       {/* Dados da Posição e Fundamentalistas */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Dados da Posição */}
         <Grid item xs={12} md={6}>
           <Card sx={{ height: 'fit-content' }}>
@@ -354,7 +427,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">Patrimônio</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.patrimonio}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{(empresa as FII).patrimonio}</Typography>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
@@ -364,7 +437,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">Vacância</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.vacancia}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{(empresa as FII).vacancia}</Typography>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
@@ -374,7 +447,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">Nº de Imóveis</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.imoveis}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{(empresa as FII).imoveis}</Typography>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
@@ -384,7 +457,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">Gestora</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.gestora}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{(empresa as FII).gestora}</Typography>
                     </Box>
                   </>
                 ) : (
@@ -397,7 +470,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">Market Cap</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.marketCap}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{(empresa as Empresa).marketCap}</Typography>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
@@ -407,7 +480,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">P/VPA</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.pvp}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{(empresa as Empresa).pvp}</Typography>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
@@ -418,7 +491,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                     }}>
                       <Typography variant="body2" color="text.secondary">ROE</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                        {empresa.roe}
+                        {(empresa as Empresa).roe}
                       </Typography>
                     </Box>
                   </>
@@ -428,11 +501,9 @@ export default function EmpresaDetalhes(): React.JSX.Element {
           </Card>
         </Grid>
       </Grid>
-    </Box>
-  );
-}
-      {/* CONTINUAÇÃO - Seções de Proventos, Relatórios e Performance */}
-      <Grid container spacing={3} sx={{ mt: 2 }}>
+
+      {/* Seções de Proventos, Relatórios e Performance */}
+      <Grid container spacing={3}>
         
         {/* Proventos */}
         <Grid item xs={12}>
@@ -447,12 +518,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                 💰 Histórico de Proventos
               </Typography>
               
-              {/* Dados de proventos - adicione no objeto da empresa */}
-              {[
-                { tipo: 'Dividendo', valor: 'R$ 2,15', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
-                { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
-                { tipo: 'Dividendo', valor: 'R$ 1,95', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
-              ].length > 0 ? (
+              {empresa.proventos && empresa.proventos.length > 0 ? (
                 <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #e5e7eb' }}>
                   <Table>
                     <TableHead>
@@ -465,17 +531,58 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {[
-                        { tipo: 'Dividendo', valor: 'R$ 2,15', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
-                        { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
-                        { tipo: 'Dividendo', valor: 'R$ 1,95', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
-                      ].map((provento, index) => (
+                      {empresa.proventos.map((provento, index) => (
                         <TableRow key={index} hover>
                           <TableCell>
                             <Chip 
                               label={provento.tipo} 
                               size="small" 
-                              color={provento.tipo === 'Dividendo' ? 'primary' : 'secondary'}
+                              color="info"
+                        />
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 60 }}>
+                        +18.2%
+                      </Typography>
+                    </Stack>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2, height: '100%' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
+                      Resumo do Investimento
+                    </Typography>
+                    <Stack spacing={1}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Investido em:</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.dataEntrada}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Preço inicial:</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.precoIniciou}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Preço atual:</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.precoAtual}</Typography>
+                      </Box>
+                      <Divider sx={{ my: 1 }} />
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Rendimento total:</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#22c55e' }}>
+                          {empresa.rendProventos}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+}={provento.tipo === 'Dividendo' ? 'primary' : 'secondary'}
                               variant="outlined"
                             />
                           </TableCell>
@@ -525,11 +632,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
               </Typography>
               
               <Grid container spacing={2}>
-                {[
-                  { nome: 'Relatório Anual 2023', data: '2024-03-15', tipo: 'Anual' },
-                  { nome: 'Balanço Q4 2023', data: '2024-02-28', tipo: 'Trimestral' },
-                  { nome: 'Demonstrações Financeiras Q3 2023', data: '2023-11-15', tipo: 'Trimestral' }
-                ].map((relatorio, index) => (
+                {empresa.relatorios && empresa.relatorios.map((relatorio, index) => (
                   <Grid item xs={12} sm={6} md={4} key={index}>
                     <Card 
                       sx={{ 
@@ -545,13 +648,13 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                     >
                       <CardContent sx={{ p: 3 }}>
                         <Stack direction="row" spacing={2} alignItems="flex-start">
-                          <FileText size={24} style={{ color: '#3b82f6', marginTop: 4 }} />
+                          <FileTextIcon size={24} style={{ color: '#3b82f6', marginTop: 4 }} />
                           <Box sx={{ flex: 1 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                               {relatorio.nome}
                             </Typography>
                             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                              <Calendar size={16} style={{ color: '#6b7280' }} />
+                              <CalendarIcon size={16} style={{ color: '#6b7280' }} />
                               <Typography variant="caption" color="text.secondary">
                                 {relatorio.data}
                               </Typography>
@@ -563,7 +666,7 @@ export default function EmpresaDetalhes(): React.JSX.Element {
                               color="primary"
                             />
                           </Box>
-                          <Download size={20} style={{ color: '#6b7280' }} />
+                          <DownloadIcon size={20} style={{ color: '#6b7280' }} />
                         </Stack>
                       </CardContent>
                     </Card>
