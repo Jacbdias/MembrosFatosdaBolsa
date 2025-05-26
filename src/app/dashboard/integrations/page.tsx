@@ -189,18 +189,6 @@ const dividendosAtivos = [
     vies: 'Compra',
   },
   {
-    id: '16',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBAS.png',
-    ticker: 'BBAS3',
-    setor: 'Bancos',
-    dataEntrada: '28/07/2022',
-    precoEntrada: 'R$ 10,88',
-    precoAtual: 'R$ 14,59',
-    dy: '5,75%',
-    precoTeto: 'R$ 12,20',
-    vies: 'Compra',
-  },
-  {
     id: '17',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/CPLE.png',
     ticker: 'CPLE6',
