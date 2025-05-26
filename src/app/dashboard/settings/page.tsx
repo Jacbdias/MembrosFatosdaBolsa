@@ -114,57 +114,36 @@ function useFiisPortfolio() {
       setLoading(true);
       setError(null);
 
-      // EXTRAIR TICKERS DOS FIIs
-      const tickers = fiisPortfolioBase.map(fii => fii.ticker);
-      console.log('🏢 Buscando cotações para FIIs:', tickers);
+      console.log('🔧 USANDO DADOS MOCKADOS PARA TESTE');
 
-      // BUSCAR COTAÇÕES REAIS DA API
-      const response = await fetch(`/api/financial/quotes?symbols=${tickers.join(',')}`);
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar cotações dos FIIs');
-      }
-
-      const { quotes } = await response.json();
-      console.log('✅ Cotações FIIs recebidas:', quotes.length, 'fundos');
-
-      // COMBINAR DADOS BASE COM COTAÇÕES REAIS
-      const portfolioAtualizado = fiisPortfolioBase.map(fii => {
-        const cotacao = quotes.find((q: any) => q.symbol === fii.ticker);
+      // 🔧 DADOS MOCKADOS PARA TESTE - SUBSTITUINDO A API
+      const portfolioMockado = fiisPortfolioBase.map((fii, index) => {
+        // Alternando preços para criar cenários variados
+        const precoAtualNum = index % 3 === 0 ? 105.20 : index % 3 === 1 ? 98.50 : 112.75;
+        const precoEntradaNum = parseFloat(fii.precoEntrada.replace('R$ ', '').replace(',', '.'));
+        const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
         
-        // CALCULAR PERFORMANCE SE TIVER COTAÇÃO
-        let performance = 0;
-        let precoAtual = 'N/A';
-        
-        if (cotacao) {
-          const precoEntradaNum = parseFloat(fii.precoEntrada.replace('R$ ', '').replace(',', '.'));
-          performance = ((cotacao.regularMarketPrice - precoEntradaNum) / precoEntradaNum) * 100;
-          precoAtual = `R$ ${cotacao.regularMarketPrice.toFixed(2).replace('.', ',')}`;
-          
-          console.log(`🏢 ${fii.ticker}: ${precoAtual} (${performance.toFixed(1)}%) DY: ${fii.dy}`);
-        } else {
-          console.log(`⚠️ ${fii.ticker}: cotação não encontrada`);
-          precoAtual = 'N/A';
-        }
-
         return {
           ...fii,
-          precoAtual,
-          performance,
-          quotacoesReais: cotacao,
+          precoAtual: `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`,
+          performance: performance,
+          quotacoesReais: { regularMarketPrice: precoAtualNum },
         };
       });
 
-      setPortfolio(portfolioAtualizado);
+      console.log('✅ Dados mockados gerados:', portfolioMockado.length, 'fundos');
+      console.log('📊 Exemplo performance:', portfolioMockado[0]?.performance);
+      
+      setPortfolio(portfolioMockado);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro ao buscar FIIs:', err);
+      console.error('❌ Erro ao gerar dados mockados:', err);
       
       // FALLBACK: usar dados estáticos
       const portfolioFallback = fiisPortfolioBase.map(fii => ({
         ...fii,
-        precoAtual: 'N/A',
+        precoAtual: 'R$ 100,00',
         performance: 0,
       }));
       setPortfolio(portfolioFallback);
@@ -192,12 +171,12 @@ function useFiisPortfolio() {
 
 export default function Page(): React.JSX.Element {
   console.log("🔥 PÁGINA SETTINGS (FIIs) CARREGADA!");
-  console.log("🎯 USANDO SettingsTable COM API REAL");
+  console.log("🎯 USANDO SettingsTable COM DADOS MOCKADOS");
 
   // 🔥 DADOS REAIS DO MERCADO
   const { marketData, loading: marketLoading, error: marketError, refetch: refetchMarket } = useFinancialData();
   
-  // 🔥 DADOS REAIS DOS FIIs
+  // 🔥 DADOS MOCKADOS DOS FIIs
   const { portfolio: fiisPortfolio, loading: portfolioLoading, error: portfolioError, refetch: refetchPortfolio } = useFiisPortfolio();
 
   // DADOS PADRÃO CASO A API FALHE
@@ -231,15 +210,31 @@ export default function Page(): React.JSX.Element {
 
   // CALCULAR PERFORMANCE MÉDIA DA CARTEIRA FIIs
   const calcularPerformanceFiis = () => {
-    if (fiisPortfolio.length === 0) return dadosCardsPadrao.carteiraHoje;
+    console.log('🔍 DEBUG calcularPerformanceFiis:');
+    console.log('- fiisPortfolio.length:', fiisPortfolio.length);
+    console.log('- Primeiro FII:', fiisPortfolio[0]);
+    
+    if (fiisPortfolio.length === 0) {
+      console.log('❌ Portfolio vazio, usando padrão');
+      return dadosCardsPadrao.carteiraHoje;
+    }
     
     const performances = fiisPortfolio
-      .filter(fii => fii.performance !== undefined)
+      .filter(fii => {
+        console.log(`🔍 FII ${fii.ticker}: performance = ${fii.performance}`);
+        return fii.performance !== undefined;
+      })
       .map(fii => fii.performance);
     
-    if (performances.length === 0) return dadosCardsPadrao.carteiraHoje;
+    console.log('🔍 Performances válidas:', performances);
+    
+    if (performances.length === 0) {
+      console.log('❌ Nenhuma performance válida, usando padrão');
+      return dadosCardsPadrao.carteiraHoje;
+    }
     
     const performancMedia = performances.reduce((sum, perf) => sum + perf, 0) / performances.length;
+    console.log('✅ Performance média calculada:', performancMedia);
     
     return {
       value: `${performancMedia.toFixed(1)}%`,
@@ -249,44 +244,45 @@ export default function Page(): React.JSX.Element {
   };
 
   // 🔥 CALCULAR IFIX HOJE BASEADO NO IBOVESPA
-const calcularIfixCard = () => {
-  console.log('🔍 DEBUG IFIX HOJE:');
-  console.log('- marketData existe?', !!marketData);
-  console.log('- marketData completo:', marketData);
-  
-  const ifixPadrao = { value: "3.200", trend: "up" as const, diff: 1.5 };
-  
-  if (!marketData?.ibovespa) {
-    console.log('❌ USANDO DADOS PADRÃO - API não funcionou');
-    console.log('- Retornando:', ifixPadrao);
-    return ifixPadrao;
-  }
-  
-  console.log('✅ API funcionando - Ibovespa data:', marketData.ibovespa);
-  
-  // IFIX geralmente varia cerca de 60% da variação do Ibovespa
-  const variacaoIbovespa = marketData.ibovespa.diff || 0;
-  const variacaoIfix = variacaoIbovespa * 0.6;
-  
-  console.log('📊 CÁLCULOS:');
-  console.log('- Ibovespa variação:', variacaoIbovespa, '%');
-  console.log('- IFIX variação calculada:', variacaoIfix, '%');
-  console.log('- Trend será:', variacaoIfix >= 0 ? 'UP (verde)' : 'DOWN (vermelho)');
-  
-  // Valor base do IFIX (~3200 pontos)
-  const ifixBase = 3200;
-  const ifixCalculado = ifixBase + (ifixBase * (variacaoIfix / 100));
-  
-  const resultado = {
-    value: Math.round(ifixCalculado).toLocaleString('pt-BR'),
-    trend: variacaoIfix >= 0 ? "up" as const : "down" as const,
-    diff: Number(variacaoIfix.toFixed(2)),
+  const calcularIfixCard = () => {
+    console.log('🔍 DEBUG IFIX HOJE:');
+    console.log('- marketData existe?', !!marketData);
+    console.log('- marketData completo:', marketData);
+    
+    const ifixPadrao = { value: "3.200", trend: "up" as const, diff: 1.5 };
+    
+    if (!marketData?.ibovespa) {
+      console.log('❌ USANDO DADOS PADRÃO - API não funcionou');
+      console.log('- Retornando:', ifixPadrao);
+      return ifixPadrao;
+    }
+    
+    console.log('✅ API funcionando - Ibovespa data:', marketData.ibovespa);
+    
+    // IFIX geralmente varia cerca de 60% da variação do Ibovespa
+    const variacaoIbovespa = marketData.ibovespa.diff || 0;
+    const variacaoIfix = variacaoIbovespa * 0.6;
+    
+    console.log('📊 CÁLCULOS:');
+    console.log('- Ibovespa variação:', variacaoIbovespa, '%');
+    console.log('- IFIX variação calculada:', variacaoIfix, '%');
+    console.log('- Trend será:', variacaoIfix >= 0 ? 'UP (verde)' : 'DOWN (vermelho)');
+    
+    // Valor base do IFIX (~3200 pontos)
+    const ifixBase = 3200;
+    const ifixCalculado = ifixBase + (ifixBase * (variacaoIfix / 100));
+    
+    const resultado = {
+      value: Math.round(ifixCalculado).toLocaleString('pt-BR'),
+      trend: variacaoIfix >= 0 ? "up" as const : "down" as const,
+      diff: Number(variacaoIfix.toFixed(2)),
+    };
+    
+    console.log('🎯 RESULTADO FINAL:', resultado);
+    
+    return resultado;
   };
-  
-  console.log('🎯 RESULTADO FINAL:', resultado);
-  
-  return resultado;
-};
+
   // 🔥 CALCULAR IFIX PERÍODO BASEADO NO IBOVESPA PERÍODO
   const calcularIfixPeriodo = () => {
     const ifixPadrao = { value: "3.1%", trend: "up" as const, diff: 3.1 };
@@ -362,7 +358,7 @@ const calcularIfixCard = () => {
       {!hasError && marketData && fiisPortfolio.length > 0 && (
         <Grid xs={12}>
           <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Carteira de FIIs atualizada com sucesso
+            ✅ Carteira de FIIs atualizada com sucesso (dados mockados para teste)
           </Alert>
         </Grid>
       )}
@@ -374,10 +370,10 @@ const calcularIfixCard = () => {
       <Grid xs={12}>
         <SettingsTable 
           count={fiisPortfolio.length} 
-          rows={fiisPortfolio} // 🔥 DADOS REAIS DOS FIIs!
+          rows={fiisPortfolio} // 🔥 DADOS MOCKADOS DOS FIIs!
           page={0} 
           rowsPerPage={5}
-          cardsData={dadosCards} // 🔥 CARDS COM IFIX REAL CALCULADO!
+          cardsData={dadosCards} // 🔥 CARDS COM IFIX CALCULADO!
         />
       </Grid>
     </Grid>
