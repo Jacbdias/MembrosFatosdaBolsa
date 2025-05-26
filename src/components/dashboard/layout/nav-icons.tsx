@@ -10,14 +10,15 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 import { Package } from '@phosphor-icons/react/dist/ssr/Package';
-
 // Novos ícones melhorados
 import { Book } from '@phosphor-icons/react/dist/ssr/Book';
 import { Receipt } from '@phosphor-icons/react/dist/ssr/Receipt';
 import { VideoCamera } from '@phosphor-icons/react/dist/ssr/VideoCamera';
 import { Airplane } from '@phosphor-icons/react/dist/ssr/Airplane';
-import { Table } from '@phosphor-icons/react/dist/ssr/Table'; // Mudança: Table em vez de FileSpreadsheet
+import { Table } from '@phosphor-icons/react/dist/ssr/Table';
 import { ChatCircle } from '@phosphor-icons/react/dist/ssr/ChatCircle';
+import { Lightbulb } from '@phosphor-icons/react/dist/ssr/Lightbulb';
+import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
 
 export const navIcons = {
   'chart-pie': ChartPie,
@@ -31,11 +32,13 @@ export const navIcons = {
   'globe': Globe,
   'package': Package,
   
-  // Novos ícones temáticos
-  'book': Book,                    // Para eBooks
-  'receipt': Receipt,              // Para Imposto de Renda
-  'video': VideoCamera,            // Para Lives e Aulas
-  'airplane': Airplane,            // Para Milhas Aéreas
-  'table': Table,                  // Para Planilhas (mudou de file-spreadsheet para table)
-  'chat': ChatCircle,              // Para Telegram
+  // Ícones dos recursos exclusivos
+  'lightbulb': Lightbulb,         // Para Dicas de Investimentos
+  'chart-line': ChartLine,        // Para Análise de Carteira
+  'book': Book,                   // Para eBooks
+  'receipt': Receipt,             // Para Imposto de Renda
+  'video': VideoCamera,           // Para Lives e Aulas
+  'airplane': Airplane,           // Para Milhas Aéreas
+  'table': Table,                 // Para Planilhas
+  'chat': ChatCircle,             // Para Telegram
 } as Record<string, Icon>;
