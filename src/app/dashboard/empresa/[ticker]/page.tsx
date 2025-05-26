@@ -744,12 +744,12 @@ const empresasData: { [key: string]: Empresa } = {
     { nome: 'Demonstrações Q1 2024', data: '2024-05-12', tipo: 'Trimestral' }
   ]
 },
-'SULU4': {
-  ticker: 'SULU4',
+'SHUL4': {
+  ticker: 'SHUL4',
   nomeCompleto: 'Sul América S.A.',
   setor: 'Financeiro',
   descricao: 'A Sul América é uma das maiores seguradoras do Brasil.',
-  avatar: 'https://www.ivalor.com.br/media/emp/logos/SULU.png',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SHUL.png',
   precoAtual: 'R$ 5,45',
   variacao: '-26.5%',
   tendencia: 'down',
@@ -778,7 +778,7 @@ const empresasData: { [key: string]: Empresa } = {
 },
 'RSUL4': {
   ticker: 'RSUL4',
-  nomeCompleto: 'Rede D\'Or São Luiz S.A.',
+  nomeCompleto: 'Metalúrgica Riosulense S.A.',
   setor: 'Saúde',
   descricao: 'A Rede D\'Or é a maior operadora privada de serviços de saúde do Brasil.',
   avatar: 'https://www.ivalor.com.br/media/emp/logos/RSUL.png',
