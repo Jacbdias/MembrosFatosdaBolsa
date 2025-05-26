@@ -8,7 +8,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Collapse from '@mui/material/Collapse';
-import { ChevronDown, ChevronRight } from '@phosphor-icons/react/dist/ssr';
+import { CaretDown, CaretRight } from '@phosphor-icons/react/dist/ssr';
 
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
@@ -262,14 +262,14 @@ function NavItem({
         {items && (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {open ? (
-              <ChevronDown
+              <CaretDown
                 fill="currentColor"
-                fontSize="var(--icon-fontSize-sm)"
+                fontSize="16px"
               />
             ) : (
-              <ChevronRight
+              <CaretRight
                 fill="currentColor"
-                fontSize="var(--icon-fontSize-sm)"
+                fontSize="16px"
               />
             )}
           </Box>
@@ -353,7 +353,7 @@ function NavSubItem({
           {Icon ? (
             <Icon
               fill={active ? 'var(--NavItem-icon-active-color)' : 'var(--NavItem-icon-color)'}
-              fontSize="var(--icon-fontSize-sm)"
+              fontSize="14px"
               weight={active ? 'fill' : undefined}
             />
           ) : null}
