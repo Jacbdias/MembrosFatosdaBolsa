@@ -203,7 +203,7 @@ export default function Page(): React.JSX.Element {
   // DADOS PADRÃO CASO A API FALHE
   const dadosCardsPadrao = {
     ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
-    indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
+    indiceSmall: { value: "3.200", trend: "up" as const, diff: 1.5 }, // IFIX ao invés de Small Cap
     carteiraHoje: { value: "91.2%", trend: "up" as const },
     dividendYield: { value: "8.9%", trend: "up" as const }, // FIIs têm DY alto
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
