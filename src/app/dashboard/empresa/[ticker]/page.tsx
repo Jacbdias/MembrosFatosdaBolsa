@@ -1618,8 +1618,6 @@ const empresasData: { [key: string]: Empresa } = {
 },
 };
 
-};
-
 const fiisData: { [key: string]: FII } = {
   'MALL11': {
     ticker: 'MALL11',
