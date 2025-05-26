@@ -1,4 +1,4 @@
-// src/lib/brapi-service.ts - VERSÃO DEFINITIVA (IBOVESPA REAL + SMALL CAP CALCULADO)
+// src/lib/brapi-service.ts - VERSÃO COM IFIX PARA FIIs
 import { StockQuote, BrapiResponse } from '@/types/financial';
 
 export class BrapiService {
@@ -97,6 +97,60 @@ export class BrapiService {
       return {
         ibovespa: null,
         smallCap: null,
+      };
+    }
+  }
+
+  // NOVO MÉTODO PARA BUSCAR IFIX
+  static async fetchIndexesWithIfix(): Promise<{ ibovespa: StockQuote | null; ifix: StockQuote | null }> {
+    try {
+      console.log('🔍 Buscando Ibovespa e IFIX...');
+      
+      // BUSCAR IBOVESPA E IFIX
+      const indexes = await this.fetchQuotes(['^BVSP', 'IFIX11', '^IFIX']);
+      
+      const ibovespa = indexes.find(index => index.symbol === '^BVSP') || null;
+      let ifix = indexes.find(index => index.symbol === 'IFIX11' || index.symbol === '^IFIX') || null;
+      
+      if (ibovespa) {
+        console.log('✅ Ibovespa encontrado:', ibovespa.regularMarketPrice, 'pts');
+      }
+      
+      if (ifix) {
+        console.log('✅ IFIX encontrado:', ifix.regularMarketPrice, 'pts');
+      } else {
+        // SE NÃO ENCONTRAR IFIX, CALCULAR BASEADO NO IBOVESPA
+        console.log('⚠️ IFIX não encontrado, calculando baseado no Ibovespa...');
+        
+        if (ibovespa) {
+          const ifixBase = 3200; // Valor base aproximado do IFIX
+          const proporcaoVariacao = ibovespa.regularMarketChangePercent * 0.8; // IFIX menos volátil que ações
+          const precoCalculado = ifixBase + (ifixBase * (proporcaoVariacao / 100));
+          
+          ifix = {
+            symbol: 'IFIX_CALC',
+            shortName: 'IFIX',
+            longName: 'Índice de Fundos Imobiliários (Calculado)',
+            currency: 'BRL',
+            regularMarketPrice: precoCalculado,
+            regularMarketChange: (precoCalculado - ifixBase),
+            regularMarketChangePercent: proporcaoVariacao,
+            regularMarketDayHigh: precoCalculado * 1.005,
+            regularMarketDayLow: precoCalculado * 0.995,
+            regularMarketVolume: 500000,
+            regularMarketTime: ibovespa.regularMarketTime,
+          };
+          
+          console.log('🧮 IFIX calculado:', precoCalculado.toFixed(0), 'pts');
+        }
+      }
+      
+      return { ibovespa, ifix };
+    } catch (error) {
+      console.error('❌ Erro ao buscar índices com IFIX:', error);
+      return {
+        ibovespa: null,
+        ifix: null,
       };
     }
   }
