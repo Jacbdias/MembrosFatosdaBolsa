@@ -130,7 +130,7 @@ const dividendosAtivos = [
   },
   {
     id: '11',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/BRSE.png',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBSE.png',
     ticker: 'BBSE3',
     setor: 'Financeiro',
     dataEntrada: '30/06/2022',
@@ -190,8 +190,8 @@ const dividendosAtivos = [
   },
   {
     id: '16',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/BSAS.png',
-    ticker: 'BSAS3',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBAS.png',
+    ticker: 'BBAS3',
     setor: 'Bancos',
     dataEntrada: '28/07/2022',
     precoEntrada: 'R$ 10,88',
