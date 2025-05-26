@@ -21,6 +21,15 @@ import { navIcons } from './nav-icons';
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
 
+  // DEBUG: Log para verificar se está carregando
+  React.useEffect(() => {
+    console.log('=== DEBUG SIDENAV ===');
+    console.log('SideNav mounted, pathname:', pathname);
+    console.log('NavItems loaded:', navItems);
+    console.log('NavIcons loaded:', navIcons);
+    console.log('====================');
+  }, [pathname]);
+
   return (
     <Box
       sx={{
@@ -99,6 +108,12 @@ function renderNavItems({
   items?: NavItemConfig[];
   pathname: string;
 }): React.JSX.Element {
+  // DEBUG: Log para verificar se está renderizando os items
+  console.log('=== DEBUG RENDER NAV ITEMS ===');
+  console.log('Items to render:', items.length);
+  console.log('Items:', items.map(item => ({ key: item.key, title: item.title, hasItems: !!item.items })));
+  console.log('==============================');
+
   const children = items.reduce(
     (acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
       const { key, ...item } = curr;
@@ -129,6 +144,13 @@ function NavItem({
   title,
   items,
 }: NavItemProps): React.JSX.Element {
+  // DEBUG: Log para cada item individual
+  console.log(`=== DEBUG NavItem: ${title} ===`);
+  console.log('Has items:', !!items);
+  console.log('Items count:', items?.length || 0);
+  console.log('Icon:', icon);
+  console.log('=============================');
+
   const [open, setOpen] = React.useState(() => {
     // Se o item tem subitens e algum deles está ativo, manter aberto
     if (items) {
@@ -160,6 +182,7 @@ function NavItem({
 
   const handleClick = () => {
     if (items) {
+      console.log(`Clicking ${title}, will toggle open state:`, !open);
       setOpen(!open);
     }
   };
