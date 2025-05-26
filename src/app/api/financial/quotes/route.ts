@@ -1,4 +1,3 @@
-// src/app/api/financial/quotes/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { BrapiService } from '@/lib/brapi-service';
 
