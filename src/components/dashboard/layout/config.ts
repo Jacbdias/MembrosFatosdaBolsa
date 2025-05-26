@@ -39,18 +39,6 @@ export const navItems = [
         href: paths.dashboard.internacional + '/etfs',
         icon: 'chart-bar',
       },
-      {
-        key: 'internacional-stocks',
-        title: 'Stocks',
-        href: paths.dashboard.internacional + '/stocks',
-        icon: 'chart-line-up',
-      },
-      {
-        key: 'internacional-dividendos',
-        title: 'Dividendos',
-        href: paths.dashboard.internacional + '/dividendos',
-        icon: 'chart-pie',
-      },
     ],
   },
   {
@@ -65,36 +53,6 @@ export const navItems = [
         href: paths.dashboard.recursosExclusivos + '/ebooks',
         icon: 'package',
       },
-      {
-        key: 'recursos-imposto',
-        title: 'Imposto de Renda',
-        href: paths.dashboard.recursosExclusivos + '/imposto-de-renda',
-        icon: 'buildings',
-      },
-      {
-        key: 'recursos-lives',
-        title: 'Lives e Aulas',
-        href: paths.dashboard.recursosExclusivos + '/lives-e-aulas',
-        icon: 'package',
-      },
-      {
-        key: 'recursos-milhas',
-        title: 'Milhas Aéreas',
-        href: paths.dashboard.recursosExclusivos + '/milhas-aereas',
-        icon: 'package',
-      },
-      {
-        key: 'recursos-planilhas',
-        title: 'Planilhas',
-        href: paths.dashboard.recursosExclusivos + '/planilhas',
-        icon: 'package',
-      },
-      {
-        key: 'recursos-telegram',
-        title: 'Telegram',
-        href: paths.dashboard.recursosExclusivos + '/telegram',
-        icon: 'package',
-      },
     ],
   },
   { 
@@ -104,11 +62,3 @@ export const navItems = [
     icon: 'x-square' 
   },
 ] satisfies NavItemConfig[];
-
-// DEBUG: Adicione temporariamente para debug
-console.log('=== DEBUG CONFIG ===');
-console.log('Total items:', navItems.length);
-console.log('Recursos Exclusivos item:', navItems.find(item => item.key === 'recursos-exclusivos'));
-console.log('Paths recursosExclusivos:', paths.dashboard.recursosExclusivos);
-console.log('NavItems completo:', navItems);
-console.log('===================');
