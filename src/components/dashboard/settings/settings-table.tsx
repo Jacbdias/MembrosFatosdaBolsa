@@ -107,9 +107,6 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
               }}>
                 {diff > 0 ? '+' : ''}{diff}%
               </Typography>
-              <Typography color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                no período
-              </Typography>
             </Stack>
           )}
         </Stack>
