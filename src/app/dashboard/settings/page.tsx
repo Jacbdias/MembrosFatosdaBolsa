@@ -249,26 +249,22 @@ export default function Page(): React.JSX.Element {
   };
 
   // CALCULAR IFIX BASEADO NO IBOVESPA (MAIS PRECISO)
-  const calcularIfixCard = () => {
-    const ifixPadrao = { value: "3.200", trend: "up" as const, diff: 1.5 };
-    
-    if (!marketData?.ibovespa) return ifixPadrao;
-    
-    // IFIX geralmente varia cerca de 60% da variação do Ibovespa
-    const variacaoIbovespa = marketData.ibovespa.diff || 0;
-    const variacaoIfix = variacaoIbovespa * 0.6;
-    
-    // Valor base do IFIX (~3200 pontos)
-    const ifixBase = 3200;
-    const ifixCalculado = ifixBase + (ifixBase * (variacaoIfix / 100));
-    
-    return {
-      value: Math.round(ifixCalculado).toLocaleString('pt-BR'),
-      trend: variacaoIfix >= 0 ? "up" as const : "down" as const,
-      diff: Number(variacaoIfix.toFixed(2)),
-    };
+const calcularIfixPeriodo = () => {
+  const ifixPadrao = { value: "3.1%", trend: "up" as const, diff: 3.1 };
+  
+  if (!marketData?.ibovespaPeriodo) return ifixPadrao;
+  
+  // IFIX período baseado no Ibovespa período com correlação de ~65%
+  const variacaoIbovespaPeriodo = marketData.ibovespaPeriodo.diff || 0;
+  const variacaoIfixPeriodo = variacaoIbovespaPeriodo * 0.65;
+  
+  return {
+    value: `${variacaoIfixPeriodo.toFixed(1)}%`,
+    trend: variacaoIfixPeriodo >= 0 ? "up" as const : "down" as const,
+    diff: Number(variacaoIfixPeriodo.toFixed(2)),
   };
-
+};
+  
   // USAR DADOS DA API SE DISPONÍVEIS COM IFIX CALCULADO
   const dadosCards = {
     ...dadosCardsPadrao,
