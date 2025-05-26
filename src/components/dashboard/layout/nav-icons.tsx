@@ -16,7 +16,7 @@ import { Book } from '@phosphor-icons/react/dist/ssr/Book';
 import { Receipt } from '@phosphor-icons/react/dist/ssr/Receipt';
 import { VideoCamera } from '@phosphor-icons/react/dist/ssr/VideoCamera';
 import { Airplane } from '@phosphor-icons/react/dist/ssr/Airplane';
-import { FileSpreadsheet } from '@phosphor-icons/react/dist/ssr/FileSpreadsheet';
+import { Table } from '@phosphor-icons/react/dist/ssr/Table'; // Mudança: Table em vez de FileSpreadsheet
 import { ChatCircle } from '@phosphor-icons/react/dist/ssr/ChatCircle';
 
 export const navIcons = {
@@ -36,6 +36,6 @@ export const navIcons = {
   'receipt': Receipt,              // Para Imposto de Renda
   'video': VideoCamera,            // Para Lives e Aulas
   'airplane': Airplane,            // Para Milhas Aéreas
-  'file-spreadsheet': FileSpreadsheet, // Para Planilhas
+  'table': Table,                  // Para Planilhas (mudou de file-spreadsheet para table)
   'chat': ChatCircle,              // Para Telegram
 } as Record<string, Icon>;
