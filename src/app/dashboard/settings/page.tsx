@@ -325,15 +325,11 @@ export default function Page(): React.JSX.Element {
       {/* Indicador de sucesso */}
       {!hasError && marketData && fiisPortfolio.length > 0 && (
         <Grid xs={12}>
-          <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Carteira de FIIs atualizada - {fiisPortfolio.length} fundos com preços reais | 
-            DY médio: {calcularDYFiis().value} | 
-            Performance: {calcularPerformanceFiis().value} |
-            IFIX: {calcularIfixCard().value} pts
-          </Alert>
+<Alert severity="success" sx={{ mb: 1 }}>
+  ✅ Carteira de FIIs atualizada com sucesso
+</Alert>
         </Grid>
       )}
-
       <Grid xs={12}>
         <IntegrationsFilters />
       </Grid>
