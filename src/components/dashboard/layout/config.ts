@@ -63,37 +63,37 @@ export const navItems = [
         key: 'recursos-ebooks',
         title: 'eBooks',
         href: paths.dashboard.recursosExclusivos + '/ebooks',
-        icon: 'book', // Mudando para book
+        icon: 'book',
       },
       {
         key: 'recursos-imposto',
         title: 'Imposto de Renda',
         href: paths.dashboard.recursosExclusivos + '/imposto-de-renda',
-        icon: 'receipt', // Mudando para receipt (recibo)
+        icon: 'receipt',
       },
       {
         key: 'recursos-lives',
         title: 'Lives e Aulas',
         href: paths.dashboard.recursosExclusivos + '/lives-e-aulas',
-        icon: 'video', // Mudando para video
+        icon: 'video',
       },
       {
         key: 'recursos-milhas',
         title: 'Milhas Aéreas',
         href: paths.dashboard.recursosExclusivos + '/milhas-aereas',
-        icon: 'airplane', // Mudando para airplane
+        icon: 'airplane',
       },
       {
         key: 'recursos-planilhas',
         title: 'Planilhas',
         href: paths.dashboard.recursosExclusivos + '/planilhas',
-        icon: 'file-spreadsheet', // Mudando para file-spreadsheet
+        icon: 'table', // Mudou de 'file-spreadsheet' para 'table'
       },
       {
         key: 'recursos-telegram',
         title: 'Telegram',
         href: paths.dashboard.recursosExclusivos + '/telegram',
-        icon: 'chat', // Mudando para chat
+        icon: 'chat',
       },
     ],
   },
