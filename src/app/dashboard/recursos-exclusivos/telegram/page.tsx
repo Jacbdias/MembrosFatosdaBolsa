@@ -17,11 +17,11 @@ export default function Page() {
         </Button>
         
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Imposto de Renda
+          Acesso ao Telegram
         </Typography>
         
         <Typography variant="body1" color="text.secondary">
-          Ferramentas, calculadoras e guias completos para declaração do IR com investimentos
+          Entre no nosso grupo exclusivo para dicas, análises e discussões sobre investimentos
         </Typography>
         
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -29,7 +29,7 @@ export default function Page() {
             Página em construção 🚧
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Em breve disponibilizaremos todo o conteúdo sobre Imposto de Renda.
+            Em breve disponibilizaremos o acesso ao grupo do Telegram.
           </Typography>
         </Box>
       </Stack>
