@@ -115,7 +115,415 @@ const empresasData: { [key: string]: Empresa } = {
       { nome: 'Balanço Q4 2023', data: '2024-02-28', tipo: 'Trimestral' },
       { nome: 'Demonstrações Financeiras Q3 2023', data: '2023-11-15', tipo: 'Trimestral' }
     ]
-  }
+  },
+  'ALOS3': {
+  ticker: 'ALOS3',
+  nomeCompleto: 'Allos S.A.',
+  setor: 'Consumo Cíclico',
+  descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
+  precoAtual: 'R$ 18,47',
+  variacao: '-3.2%',
+  tendencia: 'down',
+  dataEntrada: '12/04/2023',
+  precoIniciou: 'R$ 22,15',
+  dy: '5.8%',
+  precoTeto: 'R$ 25,00',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-1.2%',
+  rendProventos: '-16.6%',
+  ibovespaEpoca: '108.500',
+  ibovespaVariacao: '+12.8%',
+  percentualCarteira: '4.2%',
+  marketCap: 'R$ 8.2 bi',
+  pl: '12.5',
+  pvp: '0.8',
+  roe: '15.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,45', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,32', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-15', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-20', tipo: 'Anual' }
+  ]
+},
+'TUPY3': {
+  ticker: 'TUPY3',
+  nomeCompleto: 'Tupy S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A Tupy é líder mundial na fundição de ferro fundido para a indústria automotiva.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/TUPY.png',
+  precoAtual: 'R$ 24,85',
+  variacao: '+1.8%',
+  tendencia: 'up',
+  dataEntrada: '08/06/2023',
+  precoIniciou: 'R$ 18,90',
+  dy: '3.2%',
+  precoTeto: 'R$ 30,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.1%',
+  rendProventos: '+31.5%',
+  ibovespaEpoca: '115.200',
+  ibovespaVariacao: '+8.5%',
+  percentualCarteira: '6.8%',
+  marketCap: 'R$ 3.8 bi',
+  pl: '8.2',
+  pvp: '1.4',
+  roe: '18.7%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,85', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 0,65', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Anual 2023', data: '2024-04-10', tipo: 'Anual' },
+    { nome: 'Balanço Q1 2024', data: '2024-05-08', tipo: 'Trimestral' }
+  ]
+},
+'RECV3': {
+  ticker: 'RECV3',
+  nomeCompleto: 'Recap DRE S.A.',
+  setor: 'Financeiro',
+  descricao: 'A Recap é uma empresa de recuperação de créditos inadimplentes.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/RECV.png',
+  precoAtual: 'R$ 28,92',
+  variacao: '+4.5%',
+  tendencia: 'up',
+  dataEntrada: '22/09/2022',
+  precoIniciou: 'R$ 15,75',
+  dy: '8.4%',
+  precoTeto: 'R$ 35,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+3.2%',
+  rendProventos: '+83.7%',
+  ibovespaEpoca: '111.800',
+  ibovespaVariacao: '+14.2%',
+  percentualCarteira: '7.5%',
+  marketCap: 'R$ 4.2 bi',
+  pl: '6.8',
+  pvp: '1.1',
+  roe: '24.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1,25', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 0,95', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-22', tipo: 'Anual' },
+    { nome: 'Demonstrações Q1 2024', data: '2024-05-14', tipo: 'Trimestral' }
+  ]
+},
+  'SMTO3': {
+  ticker: 'SMTO3',
+  nomeCompleto: 'São Martinho S.A.',
+  setor: 'Consumo Não Cíclico',
+  descricao: 'A São Martinho é uma das maiores produtoras de açúcar e etanol do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SMTO.png',
+  precoAtual: 'R$ 34,67',
+  variacao: '+3.8%',
+  tendencia: 'up',
+  dataEntrada: '25/10/2022',
+  precoIniciou: 'R$ 26,20',
+  dy: '3.5%',
+  precoTeto: 'R$ 40,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.9%',
+  rendProventos: '+32.3%',
+  ibovespaEpoca: '116.500',
+  ibovespaVariacao: '+9.8%',
+  percentualCarteira: '5.8%',
+  marketCap: 'R$ 11.2 bi',
+  pl: '9.5',
+  pvp: '1.3',
+  roe: '16.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1,20', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,85', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Safra 2023/24', data: '2024-04-05', tipo: 'Anual' },
+    { nome: 'Balanço Q1 2024', data: '2024-05-10', tipo: 'Trimestral' }
+  ]
+},
+'FESA4': {
+  ticker: 'FESA4',
+  nomeCompleto: 'Ferbasa S.A.',
+  setor: 'Materiais Básicos',
+  descricao: 'A Ferbasa é líder na produção de ligas de ferro e especialidades metálicas.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/FESA.png',
+  precoAtual: 'R$ 12,85',
+  variacao: '+2.1%',
+  tendencia: 'up',
+  dataEntrada: '16/01/2024',
+  precoIniciou: 'R$ 11,20',
+  dy: '6.2%',
+  precoTeto: 'R$ 15,50',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.4%',
+  rendProventos: '+14.7%',
+  ibovespaEpoca: '125.800',
+  ibovespaVariacao: '+1.2%',
+  percentualCarteira: '2.8%',
+  marketCap: 'R$ 485 mi',
+  pl: '7.8',
+  pvp: '0.7',
+  roe: '18.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,80', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-18', tipo: 'Trimestral' }
+  ]
+},
+'UNIP6': {
+  ticker: 'UNIP6',
+  nomeCompleto: 'Unipar Carbocloro S.A.',
+  setor: 'Materiais Básicos',
+  descricao: 'A Unipar é líder na produção de cloro-soda e PVC na América Latina.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/UNIP.png',
+  precoAtual: 'R$ 52,14',
+  variacao: '+1.8%',
+  tendencia: 'up',
+  dataEntrada: '28/02/2023',
+  precoIniciou: 'R$ 38,90',
+  dy: '8.5%',
+  precoTeto: 'R$ 60,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.9%',
+  rendProventos: '+34.0%',
+  ibovespaEpoca: '105.200',
+  ibovespaVariacao: '+18.5%',
+  percentualCarteira: '8.2%',
+  marketCap: 'R$ 14.8 bi',
+  pl: '6.2',
+  pvp: '1.5',
+  roe: '28.4%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 2,20', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 1,65', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-12', tipo: 'Anual' },
+    { nome: 'Demonstrações Q1 2024', data: '2024-05-06', tipo: 'Trimestral' }
+  ]
+},
+'FLRY3': {
+  ticker: 'FLRY3',
+  nomeCompleto: 'Fleury S.A.',
+  setor: 'Saúde',
+  descricao: 'A Fleury é uma das maiores redes de medicina diagnóstica do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/FLRY.png',
+  precoAtual: 'R$ 14,82',
+  variacao: '-2.8%',
+  tendencia: 'down',
+  dataEntrada: '12/05/2023',
+  precoIniciou: 'R$ 18,45',
+  dy: '2.8%',
+  precoTeto: 'R$ 20,00',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-1.5%',
+  rendProventos: '-19.7%',
+  ibovespaEpoca: '113.800',
+  ibovespaVariacao: '+10.2%',
+  percentualCarteira: '4.1%',
+  marketCap: 'R$ 8.1 bi',
+  pl: '22.5',
+  pvp: '1.8',
+  roe: '9.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,42', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,28', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Resultados Q1 2024', data: '2024-05-15', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'EZTC3': {
+  ticker: 'EZTC3',
+  nomeCompleto: 'EZTec Empreendimentos e Participações S.A.',
+  setor: 'Consumo Cíclico',
+  descricao: 'A EZTec é uma incorporadora imobiliária focada em empreendimentos de alto padrão.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/EZTC.png',
+  precoAtual: 'R$ 26,34',
+  variacao: '+4.2%',
+  tendencia: 'up',
+  dataEntrada: '07/09/2023',
+  precoIniciou: 'R$ 19,75',
+  dy: '4.5%',
+  precoTeto: 'R$ 32,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.8%',
+  rendProventos: '+33.4%',
+  ibovespaEpoca: '121.500',
+  ibovespaVariacao: '+5.8%',
+  percentualCarteira: '5.2%',
+  marketCap: 'R$ 3.5 bi',
+  pl: '8.5',
+  pvp: '1.1',
+  roe: '15.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1,18', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,85', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Vendas Q1 2024', data: '2024-05-08', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-22', tipo: 'Anual' }
+  ]
+},
+  'JALL3': {
+  ticker: 'JALL3',
+  nomeCompleto: 'Jalles Machado S.A.',
+  setor: 'Consumo Não Cíclico',
+  descricao: 'A Jalles Machado é produtora de açúcar, etanol e energia elétrica.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/JALL.png',
+  precoAtual: 'R$ 8,92',
+  variacao: '+1.2%',
+  tendencia: 'up',
+  dataEntrada: '30/11/2023',
+  precoIniciou: 'R$ 7,85',
+  dy: '5.2%',
+  precoTeto: 'R$ 11,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.8%',
+  rendProventos: '+13.6%',
+  ibovespaEpoca: '126.200',
+  ibovespaVariacao: '+1.8%',
+  percentualCarteira: '2.5%',
+  marketCap: 'R$ 1.2 bi',
+  pl: '12.8',
+  pvp: '0.8',
+  roe: '8.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,46', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Safra 2023/24', data: '2024-04-28', tipo: 'Anual' }
+  ]
+},
+'YDUQ3': {
+  ticker: 'YDUQ3',
+  nomeCompleto: 'Yduqs Participações S.A.',
+  setor: 'Consumo Cíclico',
+  descricao: 'A Yduqs é uma das maiores organizações educacionais privadas do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/YDUQ.png',
+  precoAtual: 'R$ 8,15',
+  variacao: '-5.8%',
+  tendencia: 'down',
+  dataEntrada: '18/08/2023',
+  precoIniciou: 'R$ 12,45',
+  dy: '1.8%',
+  precoTeto: 'R$ 15,00',
+  viesAtual: 'Venda',
+  variacaoHoje: '-3.2%',
+  rendProventos: '-34.5%',
+  ibovespaEpoca: '119.800',
+  ibovespaVariacao: '+7.2%',
+  percentualCarteira: '1.8%',
+  marketCap: 'R$ 2.8 bi',
+  pl: '18.5',
+  pvp: '0.5',
+  roe: '4.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,15', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-25', tipo: 'Trimestral' }
+  ]
+},
+'SIMH3': {
+  ticker: 'SIMH3',
+  nomeCompleto: 'SIMPAR S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A SIMPAR é uma holding com foco em concessões rodoviárias e locação de veículos.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SIMH.png',
+  precoAtual: 'R$ 2,89',
+  variacao: '-12.8%',
+  tendencia: 'down',
+  dataEntrada: '05/04/2023',
+  precoIniciou: 'R$ 5,45',
+  dy: '1.2%',
+  precoTeto: 'R$ 6,50',
+  viesAtual: 'Venda',
+  variacaoHoje: '-4.8%',
+  rendProventos: '-47.0%',
+  ibovespaEpoca: '107.500',
+  ibovespaVariacao: '+19.8%',
+  percentualCarteira: '1.2%',
+  marketCap: 'R$ 4.1 bi',
+  pl: '25.8',
+  pvp: '0.4',
+  roe: '2.8%',
+  proventos: [],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-30', tipo: 'Trimestral' }
+  ]
+},
+  'ALUP11': {
+  ticker: 'ALUP11',
+  nomeCompleto: 'Alupar Investimento S.A.',
+  setor: 'Utilidade Pública',
+  descricao: 'A Alupar atua na transmissão de energia elétrica e geração de energia renovável.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ALUP.png',
+  precoAtual: 'R$ 21,47',
+  variacao: '+2.8%',
+  tendencia: 'up',
+  dataEntrada: '14/06/2022',
+  precoIniciou: 'R$ 18,25',
+  dy: '7.2%',
+  precoTeto: 'R$ 25,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.5%',
+  rendProventos: '+17.6%',
+  ibovespaEpoca: '102.800',
+  ibovespaVariacao: '+24.8%',
+  percentualCarteira: '6.5%',
+  marketCap: 'R$ 23.5 bi',
+  pl: '14.2',
+  pvp: '1.6',
+  roe: '12.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,78', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,65', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 0,52', dataEx: '15/11/2023', dataPagamento: '29/11/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-15', tipo: 'Anual' },
+    { nome: 'Demonstrações Q1 2024', data: '2024-05-12', tipo: 'Trimestral' }
+  ]
+},
+'NEOE3': {
+  ticker: 'NEOE3',
+  nomeCompleto: 'Neoenergia S.A.',
+  setor: 'Utilidade Pública',
+  descricao: 'A Neoenergia é uma das maiores empresas do setor elétrico brasileiro.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/NEOE.png',
+  precoAtual: 'R$ 15,82',
+  variacao: '+1.2%',
+  tendencia: 'up',
+  dataEntrada: '21/01/2024',
+  precoIniciou: 'R$ 14,85',
+  dy: '8.8%',
+  precoTeto: 'R$ 18,50',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.6%',
+  rendProventos: '+6.5%',
+  ibovespaEpoca: '127.200',
+  ibovespaVariacao: '+0.8%',
+  percentualCarteira: '4.8%',
+  marketCap: 'R$ 16.2 bi',
+  pl: '11.5',
+  pvp: '1.3',
+  roe: '13.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,68', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,52', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Resultados Q1 2024', data: '2024-05-08', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-18', tipo: 'Anual' }
+  ]
+},
 };
 
 const fiisData: { [key: string]: FII } = {
