@@ -780,7 +780,7 @@ const empresasData: { [key: string]: Empresa } = {
   ticker: 'RSUL4',
   nomeCompleto: 'Metalúrgica Riosulense S.A.',
   setor: 'Saúde',
-  descricao: 'A Rede D\'Or é a maior operadora privada de serviços de saúde do Brasil.',
+  descricao: 'Fabricante de autopeças e acessórios como guias, sedes e tuchos de válvulas, rolamentos e peças fundidas.',
   avatar: 'https://www.ivalor.com.br/media/emp/logos/RSUL.png',
   precoAtual: 'R$ 67,75',
   variacao: '-20.3%',
