@@ -506,76 +506,113 @@ export function SettingsTable({
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {dadosParaUsar.map((row, index) => {
-                row.vies = 'Compra';
-                return (
-                  <TableRow 
-                    hover 
-                    key={row.id}
-                    onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
-                    }}
-                  >
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
-                      {index + 1}º
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar sx={{ 
-                          width: 32, 
-                          height: 32,
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #e2e8f0'
-                        }}>
-                          {getSetorIcon(row.setor)}
-                        </Avatar>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {row.ticker}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ 
-                      whiteSpace: 'normal', 
-                      textAlign: 'center', 
-                      lineHeight: 1.2,
-                      fontSize: '0.875rem'
-                    }}>
-                      {row.setor}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
-                    <TableCell>
-                      <Box sx={{
-                        backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
-                        color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
-                        border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
-                        px: 2,
-                        py: 0.75,
-                        borderRadius: '20px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        display: 'inline-block',
-                        textAlign: 'center',
-                        minWidth: '70px',
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                      }}>
-                        {row.vies}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+<TableBody>
+  {dadosParaUsar.map((row, index) => {
+    // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
+    const calcularVies = (precoTeto: string, precoAtual: string) => {
+      // Remover formatação e converter para números
+      const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
+      const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+      
+      // Verificar se os valores são válidos
+      if (isNaN(precoTetoNum) || isNaN(precoAtualNum) || precoAtual === 'N/A') {
+        return 'Aguardar'; // Default se não conseguir calcular
+      }
+      
+      // 🎯 LÓGICA: Preço Teto > Preço Atual = COMPRA
+      if (precoTetoNum > precoAtualNum) {
+        return 'Compra';
+      } else {
+        return 'Aguardar';
+      }
+    };
+    
+    // 🎨 FUNÇÃO PARA DEFINIR CORES DO VIÉS
+    const getViesStyle = (vies: string) => {
+      if (vies === 'Compra') {
+        return {
+          backgroundColor: '#e8f5e8', // Verde claro
+          color: '#2e7d32', // Verde escuro
+          border: '1px solid #4caf50' // Borda verde
+        };
+      } else { // Aguardar
+        return {
+          backgroundColor: '#fff3cd', // Amarelo claro
+          color: '#856404', // Amarelo escuro
+          border: '1px solid #ffc107' // Borda amarela
+        };
+      }
+    };
+    
+    // Calcular o viés baseado na lógica
+    const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
+    const estiloVies = getViesStyle(viesCalculado);
+    
+    return (
+      <TableRow 
+        hover 
+        key={row.id}
+        onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
+        sx={{
+          '&:hover': {
+            backgroundColor: 'action.hover',
+            cursor: 'pointer'
+          }
+        }}
+      >
+        <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
+          {index + 1}º
+        </TableCell>
+        <TableCell>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar sx={{ 
+              width: 32, 
+              height: 32,
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0'
+            }}>
+              {getSetorIcon(row.setor)}
+            </Avatar>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {row.ticker}
+            </Typography>
+          </Stack>
+        </TableCell>
+        <TableCell sx={{ 
+          whiteSpace: 'normal', 
+          textAlign: 'center', 
+          lineHeight: 1.2,
+          fontSize: '0.875rem'
+        }}>
+          {row.setor}
+        </TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
+        <TableCell>
+          {/* 🔥 VIÉS CALCULADO AUTOMATICAMENTE COM CORES VERDE/AMARELO */}
+          <Box sx={{
+            ...estiloVies, // Aplica as cores baseadas no cálculo
+            px: 2,
+            py: 0.75,
+            borderRadius: '20px',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            display: 'inline-block',
+            textAlign: 'center',
+            minWidth: '70px',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+          }}>
+            {viesCalculado}
+          </Box>
+        </TableCell>
+      </TableRow>
+    );
+  })}
+</TableBody>
         </Box>
         <Divider />
         <TablePagination
