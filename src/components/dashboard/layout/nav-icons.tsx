@@ -11,6 +11,14 @@ import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 import { Package } from '@phosphor-icons/react/dist/ssr/Package';
 
+// Novos ícones melhorados
+import { Book } from '@phosphor-icons/react/dist/ssr/Book';
+import { Receipt } from '@phosphor-icons/react/dist/ssr/Receipt';
+import { VideoCamera } from '@phosphor-icons/react/dist/ssr/VideoCamera';
+import { Airplane } from '@phosphor-icons/react/dist/ssr/Airplane';
+import { FileSpreadsheet } from '@phosphor-icons/react/dist/ssr/FileSpreadsheet';
+import { ChatCircle } from '@phosphor-icons/react/dist/ssr/ChatCircle';
+
 export const navIcons = {
   'chart-pie': ChartPie,
   'chart-bar': ChartBar,
@@ -22,10 +30,12 @@ export const navIcons = {
   'users': UsersIcon,
   'globe': Globe,
   'package': Package,
+  
+  // Novos ícones temáticos
+  'book': Book,                    // Para eBooks
+  'receipt': Receipt,              // Para Imposto de Renda
+  'video': VideoCamera,            // Para Lives e Aulas
+  'airplane': Airplane,            // Para Milhas Aéreas
+  'file-spreadsheet': FileSpreadsheet, // Para Planilhas
+  'chat': ChatCircle,              // Para Telegram
 } as Record<string, Icon>;
-
-// DEBUG: Adicione temporariamente para debug
-console.log('=== DEBUG NAV ICONS ===');
-console.log('Available icons:', Object.keys(navIcons));
-console.log('Package icon exists:', !!navIcons['package']);
-console.log('======================');
