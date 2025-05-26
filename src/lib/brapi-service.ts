@@ -1,20 +1,23 @@
-// src/lib/brapi-service.ts - VERSÃO SEM TOKEN (TEMPORÁRIA)
+// src/lib/brapi-service.ts
 import { StockQuote, BrapiResponse } from '@/types/financial';
 
 export class BrapiService {
   private static readonly BASE_URL = 'https://brapi.dev/api';
-  // TEMPORARIAMENTE REMOVENDO TOKEN PARA TESTAR
-  // private static readonly token = process.env.BRAPI_TOKEN;
+  private static readonly token = process.env.BRAPI_TOKEN;
 
   static async fetchQuotes(symbols: string[]): Promise<StockQuote[]> {
     try {
       const symbolsParam = symbols.join(',');
       
-      // USAR SEM TOKEN PRIMEIRO
-      const url = `${this.BASE_URL}/quote/${symbolsParam}`;
+      // USAR TOKEN NA URL
+      let url = `${this.BASE_URL}/quote/${symbolsParam}`;
+      
+      if (this.token) {
+        url += `?token=${this.token}`;
+      }
 
       console.log('🚀 Buscando cotações para:', symbols);
-      console.log('🔗 URL (sem token):', url);
+      console.log('🔗 URL com token:', url.replace(this.token || '', 'TOKEN_OCULTO'));
 
       const response = await fetch(url, {
         method: 'GET',
@@ -49,14 +52,21 @@ export class BrapiService {
 
   static async fetchIndexes(): Promise<{ ibovespa: StockQuote | null; smallCap: StockQuote | null }> {
     try {
-      console.log('🔍 Buscando índices sem token...');
+      console.log('🔍 Buscando índices COM token...');
       
       const indexes = await this.fetchQuotes(['^BVSP', 'SMLL11']);
       
-      return {
-        ibovespa: indexes.find(index => index.symbol === '^BVSP') || null,
-        smallCap: indexes.find(index => index.symbol === 'SMLL11') || null,
-      };
+      const ibovespa = indexes.find(index => index.symbol === '^BVSP') || null;
+      const smallCap = indexes.find(index => index.symbol === 'SMLL11') || null;
+      
+      if (ibovespa) {
+        console.log('✅ Ibovespa encontrado:', ibovespa.regularMarketPrice);
+      }
+      if (smallCap) {
+        console.log('✅ Small Cap encontrado:', smallCap.regularMarketPrice);
+      }
+      
+      return { ibovespa, smallCap };
     } catch (error) {
       console.error('❌ Erro ao buscar índices:', error);
       return {
