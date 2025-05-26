@@ -9,6 +9,20 @@ import CardContent from '@mui/material/CardContent';
 export default function Page() {
   const recursos = [
     {
+      title: 'Dicas de Investimentos',
+      description: 'Estratégias e insights exclusivos para maximizar seus retornos no mercado financeiro',
+      href: '/dashboard/recursos-exclusivos/dicas-de-investimentos',
+      color: '#f59e0b',
+      badge: 'NOVO'
+    },
+    {
+      title: 'Análise de Carteira',
+      description: 'Relatórios detalhados e análises personalizadas da sua carteira de investimentos',
+      href: '/dashboard/recursos-exclusivos/analise-de-carteira',
+      color: '#10b981',
+      badge: 'NOVO'
+    },
+    {
       title: 'Imposto de Renda',
       description: 'Ferramentas, calculadoras e guias completos para declaração do IR com investimentos',
       href: '/dashboard/recursos-exclusivos/imposto-de-renda',
@@ -82,10 +96,10 @@ export default function Page() {
           gridTemplateColumns: {
             xs: '1fr',
             md: 'repeat(2, 1fr)',
-            lg: 'repeat(3, 1fr)',
+            lg: 'repeat(4, 1fr)',
           },
           gap: 3,
-          maxWidth: '1400px'
+          maxWidth: '1600px'
         }}
       >
         {recursos.map((recurso, index) => (
@@ -129,10 +143,10 @@ export default function Page() {
             <CardContent sx={{ p: 4, height: '100%' }}>
               <Stack spacing={3} sx={{ height: '100%' }}>
                 <Typography 
-                  variant="h5" 
+                  variant="h6" 
                   sx={{ 
                     fontWeight: 700,
-                    fontSize: '1.4rem',
+                    fontSize: '1.2rem',
                     lineHeight: 1.2
                   }}
                 >
@@ -143,8 +157,8 @@ export default function Page() {
                   variant="body2" 
                   sx={{ 
                     opacity: 0.9,
-                    fontSize: '0.95rem',
-                    lineHeight: 1.5,
+                    fontSize: '0.9rem',
+                    lineHeight: 1.4,
                     flex: 1,
                     display: 'flex',
                     alignItems: 'center'
