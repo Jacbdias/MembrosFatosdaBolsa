@@ -266,13 +266,14 @@ const calcularIfixPeriodo = () => {
 };
   
   // USAR DADOS DA API SE DISPONÍVEIS COM IFIX CALCULADO
-  const dadosCards = {
-    ...dadosCardsPadrao,
-    ...(marketData || {}),
-    indiceSmall: calcularIfixCard(), // 🏢 IFIX CALCULADO BASEADO NO IBOVESPA
-    dividendYield: calcularDYFiis(),
-    carteiraHoje: calcularPerformanceFiis(),
-  };
+const dadosCards = {
+  ...dadosCardsPadrao,
+  ...(marketData || {}),
+  indiceSmall: calcularIfixCard(), // 🏢 IFIX HOJE
+  dividendYield: calcularDYFiis(),
+  carteiraHoje: calcularPerformanceFiis(),
+  ibovespaPeriodo: calcularIfixPeriodo(), // 🔥 NOVA LINHA: IFIX PERÍODO
+};
 
   // LOADING STATE
   if (marketLoading || portfolioLoading) {
