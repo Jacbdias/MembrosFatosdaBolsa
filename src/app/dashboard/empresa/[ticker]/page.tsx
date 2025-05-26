@@ -1652,7 +1652,7 @@ const fiisData: { [key: string]: FII } = {
       { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
       { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
     ]
-  }
+  };
 
 const MetricCard = ({ title, value, color = 'primary' }: { title: string; value: string; color?: string }) => (
   <Card sx={{ height: '100%', border: '1px solid #e5e7eb' }}>
