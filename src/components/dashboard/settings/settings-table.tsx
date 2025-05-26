@@ -470,9 +470,9 @@ export function SettingsTable({
           diff={cards.dividendYield.diff}
         />
         <StatCard 
-          title="IBOVESPA PERÍODO" 
+          title="IFIX PERÍODO" 
           value={cards.ibovespaPeriodo.value} 
-          icon={<CurrencyDollarIcon />} 
+          icon={<Buildings />} 
           trend={cards.ibovespaPeriodo.trend} 
           diff={cards.ibovespaPeriodo.diff} 
         />
