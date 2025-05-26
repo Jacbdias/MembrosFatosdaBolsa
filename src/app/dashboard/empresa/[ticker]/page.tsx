@@ -279,7 +279,7 @@ export default function EmpresaDetalhes() {
               </Typography>
             </Box>
             <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
-              <Typography variant="h2" sx={{ fontWeight: 700, color: '#fff' }}>
+              <Typography variant="h2" sx={{ fontWeight: 700, color: 'black' }}>
                 {empresa.precoAtual}
               </Typography>
               <Stack 
