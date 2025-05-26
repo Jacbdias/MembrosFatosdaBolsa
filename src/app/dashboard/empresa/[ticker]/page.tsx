@@ -269,7 +269,7 @@ export default function EmpresaDetalhes() {
                 label={empresa.setor} 
                 sx={{ 
                   backgroundColor: 'rgba(255,255,255,0.2)', 
-                  color: 'white',
+                  color: 'black',
                   mb: 2,
                   fontWeight: 600
                 }} 
