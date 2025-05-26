@@ -455,7 +455,7 @@ export function SettingsTable({
           diff={cards.ibovespa.diff} 
         />
         <StatCard 
-          title="ÍNDICE SMALL" 
+          title="IFIX HOJE" 
           value={cards.indiceSmall.value} 
           icon={<UsersThreeIcon />} 
           trend={cards.indiceSmall.trend} 
