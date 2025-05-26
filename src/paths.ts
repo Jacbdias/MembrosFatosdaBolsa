@@ -6,6 +6,7 @@ export const paths = {
     account: '/dashboard/account',
     customers: '/dashboard/customers',
     internacional: '/dashboard/internacional',
+    recursosExclusivos: '/dashboard/recursos-exclusivos', // ← ADICIONE ESTA LINHA
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
   },
