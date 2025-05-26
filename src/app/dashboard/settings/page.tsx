@@ -249,26 +249,44 @@ export default function Page(): React.JSX.Element {
   };
 
   // 🔥 CALCULAR IFIX HOJE BASEADO NO IBOVESPA
-  const calcularIfixCard = () => {
-    const ifixPadrao = { value: "3.200", trend: "up" as const, diff: 1.5 };
-    
-    if (!marketData?.ibovespa) return ifixPadrao;
-    
-    // IFIX geralmente varia cerca de 60% da variação do Ibovespa
-    const variacaoIbovespa = marketData.ibovespa.diff || 0;
-    const variacaoIfix = variacaoIbovespa * 0.6;
-    
-    // Valor base do IFIX (~3200 pontos)
-    const ifixBase = 3200;
-    const ifixCalculado = ifixBase + (ifixBase * (variacaoIfix / 100));
-    
-    return {
-      value: Math.round(ifixCalculado).toLocaleString('pt-BR'),
-      trend: variacaoIfix >= 0 ? "up" as const : "down" as const,
-      diff: Number(variacaoIfix.toFixed(2)),
-    };
+const calcularIfixCard = () => {
+  console.log('🔍 DEBUG IFIX HOJE:');
+  console.log('- marketData existe?', !!marketData);
+  console.log('- marketData completo:', marketData);
+  
+  const ifixPadrao = { value: "3.200", trend: "up" as const, diff: 1.5 };
+  
+  if (!marketData?.ibovespa) {
+    console.log('❌ USANDO DADOS PADRÃO - API não funcionou');
+    console.log('- Retornando:', ifixPadrao);
+    return ifixPadrao;
+  }
+  
+  console.log('✅ API funcionando - Ibovespa data:', marketData.ibovespa);
+  
+  // IFIX geralmente varia cerca de 60% da variação do Ibovespa
+  const variacaoIbovespa = marketData.ibovespa.diff || 0;
+  const variacaoIfix = variacaoIbovespa * 0.6;
+  
+  console.log('📊 CÁLCULOS:');
+  console.log('- Ibovespa variação:', variacaoIbovespa, '%');
+  console.log('- IFIX variação calculada:', variacaoIfix, '%');
+  console.log('- Trend será:', variacaoIfix >= 0 ? 'UP (verde)' : 'DOWN (vermelho)');
+  
+  // Valor base do IFIX (~3200 pontos)
+  const ifixBase = 3200;
+  const ifixCalculado = ifixBase + (ifixBase * (variacaoIfix / 100));
+  
+  const resultado = {
+    value: Math.round(ifixCalculado).toLocaleString('pt-BR'),
+    trend: variacaoIfix >= 0 ? "up" as const : "down" as const,
+    diff: Number(variacaoIfix.toFixed(2)),
   };
-
+  
+  console.log('🎯 RESULTADO FINAL:', resultado);
+  
+  return resultado;
+};
   // 🔥 CALCULAR IFIX PERÍODO BASEADO NO IBOVESPA PERÍODO
   const calcularIfixPeriodo = () => {
     const ifixPadrao = { value: "3.1%", trend: "up" as const, diff: 3.1 };
