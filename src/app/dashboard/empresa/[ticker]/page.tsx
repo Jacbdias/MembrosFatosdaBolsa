@@ -1651,40 +1651,6 @@ const fiisData: { [key: string]: FII } = {
     relatorios: [
       { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
       { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
-    ]
-  }
-  'MALL11': {
-  ticker: 'MALL11',
-  nomeCompleto: 'Shopping Outlets Premium FII',
-  setor: 'Shopping',
-  tipo: 'FII',
-  descricao: 'O Shopping Outlets Premium FII é especializado em shopping centers premium e outlets.',
-  avatar: 'https://www.ivalor.com.br/media/emp/logos/MALL.png',
-  precoAtual: 'R$ 103,53',
-  variacao: '-12.5%',
-  tendencia: 'down',
-  dataEntrada: '26/01/2022',
-  precoIniciou: 'R$ 118,37',
-  dy: '8,4%',
-  precoTeto: 'R$ 103,68',
-  viesAtual: 'Compra',
-  variacaoHoje: '-0.8%',
-  rendProventos: '-12.5%',
-  ibovespaEpoca: '114.200',
-  ibovespaVariacao: '+27.8%',
-  percentualCarteira: '8.5%',
-  patrimonio: 'R$ 2.1 bilhões',
-  p_vp: '1.00',
-  vacancia: '4,2%',
-  imoveis: 47,
-  gestora: 'BTG Pactual',
-  proventos: [
-    { tipo: 'Rendimento', valor: 'R$ 0,85', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
-    { tipo: 'Rendimento', valor: 'R$ 0,92', dataEx: '15/04/2024', dataPagamento: '28/04/2024', status: 'Pago' }
-  ],
-  relatorios: [
-    { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
-    { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
   ]
 },
 'KNSC11': {
