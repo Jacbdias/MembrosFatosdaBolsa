@@ -82,40 +82,6 @@ interface FII extends EmpresaBase {
 }
 
 const empresasData: { [key: string]: Empresa } = {
-  'PETR4': {
-    ticker: 'PETR4',
-    nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
-    setor: 'Petróleo, Gás e Biocombustíveis',
-    descricao: 'A Petrobras é uma empresa integrada de energia, focada em óleo, gás natural e energia de baixo carbono.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
-    precoAtual: 'R$ 38,47',
-    variacao: '+2.3%',
-    tendencia: 'up',
-    dataEntrada: '15/03/2022',
-    precoIniciou: 'R$ 28,90',
-    dy: '18.4%',
-    precoTeto: 'R$ 45,00',
-    viesAtual: 'Compra',
-    variacaoHoje: '+1.8%',
-    rendProventos: '+24.7%',
-    ibovespaEpoca: '112.200',
-    ibovespaVariacao: '+18.2%',
-    percentualCarteira: '12.5%',
-    marketCap: 'R$ 512,8 bi',
-    pl: '3.8',
-    pvp: '1.2',
-    roe: '31.5%',
-    proventos: [
-      { tipo: 'Dividendo', valor: 'R$ 2,15', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
-      { tipo: 'JCP', valor: 'R$ 1,85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
-      { tipo: 'Dividendo', valor: 'R$ 1,95', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
-    ],
-    relatorios: [
-      { nome: 'Relatório Anual 2023', data: '2024-03-15', tipo: 'Anual' },
-      { nome: 'Balanço Q4 2023', data: '2024-02-28', tipo: 'Trimestral' },
-      { nome: 'Demonstrações Financeiras Q3 2023', data: '2023-11-15', tipo: 'Trimestral' }
-    ]
-  },
 'ALOS3': {
   ticker: 'ALOS3',
   nomeCompleto: 'Allos S.A.',
@@ -1101,6 +1067,557 @@ const empresasData: { [key: string]: Empresa } = {
     { nome: 'Demonstrações Q1 2024', data: '2024-05-15', tipo: 'Trimestral' }
   ]
 },
+
+  'LEVE3': {
+  ticker: 'LEVE3',
+  nomeCompleto: 'Metal Leve S.A.',
+  setor: 'Bens Industriais',
+  descricao: 'A Metal Leve é líder na fabricação de pistões, blocos de motores e componentes automotivos.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/LEVE.png',
+  precoAtual: 'R$ 30,92',
+  variacao: '+11.5%',
+  tendencia: 'up',
+  dataEntrada: '06/12/2024',
+  precoIniciou: 'R$ 27,74',
+  dy: '8,14%',
+  precoTeto: 'R$ 35,27',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.8%',
+  rendProventos: '+11.5%',
+  ibovespaEpoca: '128.500',
+  ibovespaVariacao: '+1.2%',
+  percentualCarteira: '4.5%',
+  marketCap: 'R$ 4.2 bi',
+  pl: '9.8',
+  pvp: '1.4',
+  roe: '16.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1,85', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 1,42', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-15', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-20', tipo: 'Anual' }
+  ]
+},
+'EQTL3': {
+  ticker: 'EQTL3',
+  nomeCompleto: 'Equatorial Energia S.A.',
+  setor: 'Utilidade Pública',
+  descricao: 'A Equatorial é uma das principais empresas do setor elétrico brasileiro.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/EQTL.png',
+  precoAtual: 'R$ 41,00',
+  variacao: '-5.1%',
+  tendencia: 'down',
+  dataEntrada: '31/03/2022',
+  precoIniciou: 'R$ 43,13',
+  dy: '6,29%',
+  precoTeto: 'R$ 50,34',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.8%',
+  rendProventos: '-5.1%',
+  ibovespaEpoca: '109.800',
+  ibovespaVariacao: '+16.2%',
+  percentualCarteira: '6.8%',
+  marketCap: 'R$ 42.5 bi',
+  pl: '12.8',
+  pvp: '1.8',
+  roe: '14.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1.95', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 1.58', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Resultados Q3 2024', data: '2024-11-08', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-25', tipo: 'Anual' }
+  ]
+},
+'VALE3': {
+  ticker: 'VALE3',
+  nomeCompleto: 'Vale S.A.',
+  setor: 'Materiais Básicos',
+  descricao: 'A Vale é uma das maiores empresas de mineração do mundo, líder na produção de minério de ferro.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/VALE.png',
+  precoAtual: 'R$ 53,99',
+  variacao: '-23.5%',
+  tendencia: 'down',
+  dataEntrada: '17/07/2023',
+  precoIniciou: 'R$ 70,56',
+  dy: '11,27%',
+  precoTeto: 'R$ 78,20',
+  viesAtual: 'Compra',
+  variacaoHoje: '-1.2%',
+  rendProventos: '-23.5%',
+  ibovespaEpoca: '119.500',
+  ibovespaVariacao: '+7.8%',
+  percentualCarteira: '12.5%',
+  marketCap: 'R$ 285.8 bi',
+  pl: '4.2',
+  pvp: '0.9',
+  roe: '22.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 3.85', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 2.95', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 2.15', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Produção Q3 2024', data: '2024-10-28', tipo: 'Trimestral' },
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-15', tipo: 'Anual' }
+  ]
+},
+'BBAS3': {
+  ticker: 'BBAS3',
+  nomeCompleto: 'Banco do Brasil S.A.',
+  setor: 'Financeiro',
+  descricao: 'O Banco do Brasil é uma das maiores instituições financeiras do país.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BBAS.png',
+  precoAtual: 'R$ 24,70',
+  variacao: '+58.4%',
+  tendencia: 'up',
+  dataEntrada: '20/10/2021',
+  precoIniciou: 'R$ 15,60',
+  dy: '9,62%',
+  precoTeto: 'R$ 30,10',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.1%',
+  rendProventos: '+58.4%',
+  ibovespaEpoca: '105.800',
+  ibovespaVariacao: '+21.2%',
+  percentualCarteira: '8.5%',
+  marketCap: 'R$ 158.2 bi',
+  pl: '6.8',
+  pvp: '1.1',
+  roe: '18.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1.85', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 1.42', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 1.15', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-05', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'BBSR6': {
+  ticker: 'BBSR6',
+  nomeCompleto: 'Banco do Brasil Pref',
+  setor: 'Financeiro',
+  descricao: 'Ações preferenciais do Banco do Brasil S.A.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BBAS.png',
+  precoAtual: 'R$ 12,30',
+  variacao: '+22.0%',
+  tendencia: 'up',
+  dataEntrada: '12/05/2022',
+  precoIniciou: 'R$ 10,08',
+  dy: '4,92%',
+  precoTeto: 'R$ 15,10',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.5%',
+  rendProventos: '+22.0%',
+  ibovespaEpoca: '112.500',
+  ibovespaVariacao: '+13.8%',
+  percentualCarteira: '3.2%',
+  marketCap: 'R$ 158.2 bi',
+  pl: '6.8',
+  pvp: '1.1',
+  roe: '18.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0.48', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0.38', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-05', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'PETR4': {
+  ticker: 'PETR4',
+  nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
+  setor: 'Petróleo, Gás e Biocombustíveis',
+  descricao: 'A Petrobras é uma empresa integrada de energia, focada em óleo, gás natural e energia de baixo carbono.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
+  precoAtual: 'R$ 31,45',
+  variacao: '-11.8%',
+  tendencia: 'down',
+  dataEntrada: '24/05/2022',
+  precoIniciou: 'R$ 35,67',
+  dy: '18,01%',
+  precoTeto: 'R$ 37,50',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.8%',
+  rendProventos: '-11.8%',
+  ibovespaEpoca: '113.800',
+  ibovespaVariacao: '+11.5%',
+  percentualCarteira: '12.5%',
+  marketCap: 'R$ 512.8 bi',
+  pl: '3.8',
+  pvp: '1.2',
+  roe: '31.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 3.25', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 2.85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 2.15', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Produção Q3 2024', data: '2024-10-30', tipo: 'Trimestral' },
+    { nome: 'Demonstrações Financeiras 2023', data: '2024-03-15', tipo: 'Anual' }
+  ]
+},
+'SAPR4': {
+  ticker: 'SAPR4',
+  nomeCompleto: 'Sanepar S.A.',
+  setor: 'Utilidade Pública',
+  descricao: 'A Sanepar é a companhia de saneamento do Paraná.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SAPR.png',
+  precoAtual: 'R$ 6,43',
+  variacao: '+68.8%',
+  tendencia: 'up',
+  dataEntrada: '27/10/2021',
+  precoIniciou: 'R$ 3,81',
+  dy: '5,30%',
+  precoTeto: 'R$ 6,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.2%',
+  rendProventos: '+68.8%',
+  ibovespaEpoca: '106.200',
+  ibovespaVariacao: '+20.5%',
+  percentualCarteira: '2.8%',
+  marketCap: 'R$ 3.2 bi',
+  pl: '8.5',
+  pvp: '0.9',
+  roe: '12.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0.28', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0.22', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-12', tipo: 'Trimestral' },
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-18', tipo: 'Anual' }
+  ]
+},
+'ELET3': {
+  ticker: 'ELET3',
+  nomeCompleto: 'Centrais Elétricas Brasileiras S.A. - Eletrobras',
+  setor: 'Utilidade Pública',
+  descricao: 'A Eletrobras é a maior empresa de energia elétrica da América Latina.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ELET.png',
+  precoAtual: 'R$ 41,00',
+  variacao: '+1.5%',
+  tendencia: 'up',
+  dataEntrada: '20/11/2023',
+  precoIniciou: 'R$ 40,41',
+  dy: '1,12%',
+  precoTeto: 'R$ 58,27',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.8%',
+  rendProventos: '+1.5%',
+  ibovespaEpoca: '125.800',
+  ibovespaVariacao: '+1.8%',
+  percentualCarteira: '5.5%',
+  marketCap: 'R$ 85.2 bi',
+  pl: '9.8',
+  pvp: '1.4',
+  roe: '15.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0.42', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-10', tipo: 'Trimestral' },
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-20', tipo: 'Anual' }
+  ]
+},
+'ABCB4': {
+  ticker: 'ABCB4',
+  nomeCompleto: 'Banco ABC Brasil S.A.',
+  setor: 'Financeiro',
+  descricao: 'O ABC Brasil é um banco de investimento focado no segmento corporativo.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ABCB.png',
+  precoAtual: 'R$ 21,81',
+  variacao: '+22.0%',
+  tendencia: 'up',
+  dataEntrada: '19/06/2023',
+  precoIniciou: 'R$ 17,87',
+  dy: '7,42%',
+  precoTeto: 'R$ 22,30',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.5%',
+  rendProventos: '+22.0%',
+  ibovespaEpoca: '116.500',
+  ibovespaVariacao: '+9.8%',
+  percentualCarteira: '3.8%',
+  marketCap: 'R$ 4.8 bi',
+  pl: '8.5',
+  pvp: '1.2',
+  roe: '16.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1.25', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 0.95', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-08', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-25', tipo: 'Anual' }
+  ]
+},
+'SMTO3': {
+  ticker: 'SMTO3',
+  nomeCompleto: 'São Martinho S.A.',
+  setor: 'Consumo Não Cíclico',
+  descricao: 'A São Martinho é uma das maiores produtoras de açúcar e etanol do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SMTO.png',
+  precoAtual: 'R$ 24,71',
+  variacao: '+87.9%',
+  tendencia: 'up',
+  dataEntrada: '19/08/2022',
+  precoIniciou: 'R$ 13,15',
+  dy: '15,69%',
+  precoTeto: 'R$ 19,16',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.9%',
+  rendProventos: '+87.9%',
+  ibovespaEpoca: '118.200',
+  ibovespaVariacao: '+8.8%',
+  percentualCarteira: '5.8%',
+  marketCap: 'R$ 11.2 bi',
+  pl: '9.5',
+  pvp: '1.3',
+  roe: '16.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 2.85', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 2.15', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório de Safra 2023/24', data: '2024-04-05', tipo: 'Anual' },
+    { nome: 'Balanço Q3 2024', data: '2024-11-10', tipo: 'Trimestral' }
+  ]
+},
+'BBSE3': {
+  ticker: 'BBSE3',
+  nomeCompleto: 'BB Seguridade Participações S.A.',
+  setor: 'Financeiro',
+  descricao: 'A BB Seguridade é a holding de seguros, previdência e capitalização do Banco do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BBSE.png',
+  precoAtual: 'R$ 37,96',
+  variacao: '+49.0%',
+  tendencia: 'up',
+  dataEntrada: '30/06/2022',
+  precoIniciou: 'R$ 25,48',
+  dy: '7,62%',
+  precoTeto: 'R$ 33,20',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.1%',
+  rendProventos: '+49.0%',
+  ibovespaEpoca: '114.800',
+  ibovespaVariacao: '+11.2%',
+  percentualCarteira: '6.2%',
+  marketCap: 'R$ 78.5 bi',
+  pl: '12.5',
+  pvp: '2.8',
+  roe: '25.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 2.15', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 1.85', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 1.42', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-05', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'ISAE4': {
+  ticker: 'ISAE4',
+  nomeCompleto: 'Saneamento de Goiás S.A. - Saneago',
+  setor: 'Utilidade Pública',
+  descricao: 'A Saneago é responsável pelos serviços de saneamento básico em Goiás.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ISAE.png',
+  precoAtual: 'R$ 23,55',
+  variacao: '-1.9%',
+  tendencia: 'down',
+  dataEntrada: '22/10/2021',
+  precoIniciou: 'R$ 24,00',
+  dy: '9,07%',
+  precoTeto: 'R$ 26,50',
+  viesAtual: 'Neutro',
+  variacaoHoje: '-0.5%',
+  rendProventos: '-1.9%',
+  ibovespaEpoca: '106.800',
+  ibovespaVariacao: '+19.8%',
+  percentualCarteira: '2.8%',
+  marketCap: 'R$ 2.1 bi',
+  pl: '8.5',
+  pvp: '1.1',
+  roe: '14.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1.85', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 1.25', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-12', tipo: 'Trimestral' },
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-18', tipo: 'Anual' }
+  ]
+},
+'WIZC3': {
+  ticker: 'WIZC3',
+  nomeCompleto: 'WIZ Soluções e Corretagem de Seguros S.A.',
+  setor: 'Financeiro',
+  descricao: 'A WIZ é uma das maiores corretoras de seguros do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/WIZC.png',
+  precoAtual: 'R$ 27,69',
+  variacao: '+21.5%',
+  tendencia: 'up',
+  dataEntrada: '05/04/2022',
+  precoIniciou: 'R$ 22,80',
+  dy: '3,13%',
+  precoTeto: 'R$ 29,00',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.8%',
+  rendProventos: '+21.5%',
+  ibovespaEpoca: '111.500',
+  ibovespaVariacao: '+14.5%',
+  percentualCarteira: '4.2%',
+  marketCap: 'R$ 3.2 bi',
+  pl: '14.8',
+  pvp: '1.2',
+  roe: '9.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0.68', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0.52', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-20', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'KLBN11': {
+  ticker: 'KLBN11',
+  nomeCompleto: 'Klabin S.A.',
+  setor: 'Materiais Básicos',
+  descricao: 'A Klabin é a maior produtora e exportadora de papéis do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/KLBN.png',
+  precoAtual: 'R$ 19,23',
+  variacao: '-12.4%',
+  tendencia: 'down',
+  dataEntrada: '09/06/2022',
+  precoIniciou: 'R$ 21,94',
+  dy: '4,55%',
+  precoTeto: 'R$ 27,68',
+  viesAtual: 'Compra',
+  variacaoHoje: '+0.8%',
+  rendProventos: '-12.4%',
+  ibovespaEpoca: '114.200',
+  ibovespaVariacao: '+12.5%',
+  percentualCarteira: '4.8%',
+  marketCap: 'R$ 22.5 bi',
+  pl: '18.5',
+  pvp: '1.1',
+  roe: '7.8%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,68', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,52', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-15', tipo: 'Trimestral' },
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-20', tipo: 'Anual' }
+  ]
+},
+'SANB11': {
+  ticker: 'SANB11',
+  nomeCompleto: 'Banco Santander (Brasil) S.A.',
+  setor: 'Financeiro',
+  descricao: 'O Santander Brasil é uma das maiores instituições financeiras privadas do país.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/SANB.png',
+  precoAtual: 'R$ 29,91',
+  variacao: '+8.2%',
+  tendencia: 'up',
+  dataEntrada: '08/12/2022',
+  precoIniciou: 'R$ 27,63',
+  dy: '5,96%',
+  precoTeto: 'R$ 31,78',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.5%',
+  rendProventos: '+8.2%',
+  ibovespaEpoca: '124.500',
+  ibovespaVariacao: '+3.2%',
+  percentualCarteira: '7.8%',
+  marketCap: 'R$ 168.5 bi',
+  pl: '8.5',
+  pvp: '1.4',
+  roe: '18.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 1,35', dataEx: '15/06/2024', dataPagamento: '29/06/2024', status: 'Aprovado' },
+    { tipo: 'JCP', valor: 'R$ 1,15', dataEx: '15/03/2024', dataPagamento: '28/03/2024', status: 'Pago' },
+    { tipo: 'Dividendo', valor: 'R$ 0,95', dataEx: '15/12/2023', dataPagamento: '29/12/2023', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-08', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-25', tipo: 'Anual' }
+  ]
+},
+'B3SA3': {
+  ticker: 'B3SA3',
+  nomeCompleto: 'B3 S.A. - Brasil, Bolsa, Balcão',
+  setor: 'Financeiro',
+  descricao: 'A B3 é a bolsa de valores oficial do Brasil, operando mercados de ações, derivativos e commodities.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/B3SA.png',
+  precoAtual: 'R$ 14,38',
+  variacao: '+31.7%',
+  tendencia: 'up',
+  dataEntrada: '28/07/2022',
+  precoIniciou: 'R$ 10,92',
+  dy: '3,76%',
+  precoTeto: 'R$ 12,20',
+  viesAtual: 'Compra',
+  variacaoHoje: '+2.1%',
+  rendProventos: '+31.7%',
+  ibovespaEpoca: '117.500',
+  ibovespaVariacao: '+9.2%',
+  percentualCarteira: '5.5%',
+  marketCap: 'R$ 78.2 bi',
+  pl: '16.8',
+  pvp: '2.8',
+  roe: '18.5%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,48', dataEx: '15/05/2024', dataPagamento: '29/05/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,35', dataEx: '15/02/2024', dataPagamento: '28/02/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-12', tipo: 'Trimestral' },
+    { nome: 'Relatório Anual 2023', data: '2024-03-28', tipo: 'Anual' }
+  ]
+},
+'CPLE6': {
+  ticker: 'CPLE6',
+  nomeCompleto: 'Companhia Paranaense de Energia - Copel',
+  setor: 'Utilidade Pública',
+  descricao: 'A Copel é uma das maiores empresas de energia elétrica do Sul do Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/CPLE.png',
+  precoAtual: 'R$ 12,40',
+  variacao: '+127.5%',
+  tendencia: 'up',
+  dataEntrada: '10/11/2021',
+  precoIniciou: 'R$ 5,45',
+  dy: '2,26%',
+  precoTeto: 'R$ 7,25',
+  viesAtual: 'Compra',
+  variacaoHoje: '+1.8%',
+  rendProventos: '+127.5%',
+  ibovespaEpoca: '105.200',
+  ibovespaVariacao: '+21.8%',
+  percentualCarteira: '3.2%',
+  marketCap: 'R$ 35.8 bi',
+  pl: '12.5',
+  pvp: '1.8',
+  roe: '15.2%',
+  proventos: [
+    { tipo: 'Dividendo', valor: 'R$ 0,25', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
+    { tipo: 'JCP', valor: 'R$ 0,18', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
+  ],
+  relatorios: [
+    { nome: 'Relatório Trimestral Q3 2024', data: '2024-11-10', tipo: 'Trimestral' },
+    { nome: 'Relatório de Sustentabilidade 2023', data: '2024-04-15', tipo: 'Anual' }
+  ]
+},
+};
+
 };
 
 const fiisData: { [key: string]: FII } = {
@@ -1138,7 +1655,6 @@ const fiisData: { [key: string]: FII } = {
       { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
     ]
   }
-};
 
 const MetricCard = ({ title, value, color = 'primary' }: { title: string; value: string; color?: string }) => (
   <Card sx={{ height: '100%', border: '1px solid #e5e7eb' }}>
