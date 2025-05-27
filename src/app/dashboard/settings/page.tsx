@@ -59,7 +59,7 @@ function useFiisPortfolio() {
       dataEntrada: '02/01/2025',
       precoEntrada: 'R$ 186,08',
       dy: '10.50%',
-      precoTeto: 'R$ 192,00',
+      precoTeto: 'R$ 19,20',
       vies: 'Compra'
     },
     {
@@ -81,7 +81,7 @@ function useFiisPortfolio() {
       dataEntrada: '12/04/2023',
       precoEntrada: 'R$ 82,28',
       dy: '9.77%',
-      precoTeto: 'R$ 86,00',
+      precoTeto: 'R$ 87,81',
       vies: 'Compra'
     },
     {
@@ -92,7 +92,7 @@ function useFiisPortfolio() {
       dataEntrada: '08/01/2024',
       precoEntrada: 'R$ 72,12',
       dy: '11.00%',
-      precoTeto: 'R$ 66,34',
+      precoTeto: 'R$ 66,26',
       vies: 'Compra'
     },
     {
@@ -125,7 +125,7 @@ function useFiisPortfolio() {
       dataEntrada: '16/02/2022',
       precoEntrada: 'R$ 93,32',
       dy: '8.44%',
-      precoTeto: 'R$ 136,00',
+      precoTeto: 'R$ 110,40',
       vies: 'Compra'
     },
     {
@@ -136,7 +136,7 @@ function useFiisPortfolio() {
       dataEntrada: '20/06/2022',
       precoEntrada: 'R$ 161,80',
       dy: '8.44%',
-      precoTeto: 'R$ 148,67',
+      precoTeto: 'R$ 146,67',
       vies: 'Compra'
     },
     {
@@ -147,7 +147,7 @@ function useFiisPortfolio() {
       dataEntrada: '14/06/2022',
       precoEntrada: 'R$ 78,00',
       dy: '8.91%',
-      precoTeto: 'R$ 93,40',
+      precoTeto: 'R$ 93,60',
       vies: 'Compra'
     },
     {
@@ -158,7 +158,7 @@ function useFiisPortfolio() {
       dataEntrada: '02/12/2021',
       precoEntrada: 'R$ 96,99',
       dy: '13.67%',
-      precoTeto: 'R$ 93,30',
+      precoTeto: 'R$ 88,00',
       vies: 'Compra'
     },
     {
@@ -169,7 +169,7 @@ function useFiisPortfolio() {
       dataEntrada: '05/07/2022',
       precoEntrada: 'R$ 99,91',
       dy: '13.08%',
-      precoTeto: 'R$ 93,30',
+      precoTeto: 'R$ 93,20',
       vies: 'Compra'
     },
     {
@@ -180,7 +180,7 @@ function useFiisPortfolio() {
       dataEntrada: '05/01/2022',
       precoEntrada: 'R$ 103,14',
       dy: '8.42%',
-      precoTeto: 'R$ 104,09',
+      precoTeto: 'R$ 104,00',
       vies: 'Compra'
     },
     {
@@ -191,7 +191,7 @@ function useFiisPortfolio() {
       dataEntrada: '27/12/2022',
       precoEntrada: 'R$ 88,30',
       dy: '9.66%',
-      precoTeto: 'R$ 54,23',
+      precoTeto: 'R$ 94,33',
       vies: 'Compra'
     },
     {
@@ -202,7 +202,7 @@ function useFiisPortfolio() {
       dataEntrada: '18/10/2022',
       precoEntrada: 'R$ 113,85',
       dy: '7.90%',
-      precoTeto: 'R$ 120,25',
+      precoTeto: 'R$ 122,51',
       vies: 'Compra'
     },
     {
@@ -224,9 +224,53 @@ function useFiisPortfolio() {
       dataEntrada: '02/02/2022',
       precoEntrada: 'R$ 115,89',
       dy: '8.44%',
-      precoTeto: 'R$ 110,16',
+      precoTeto: 'R$ 10,16',
       vies: 'Compra'
-    }
+        },
+{
+  id: '20',
+  avatar: '',
+  ticker: 'BCRI11',
+  setor: 'Logística',
+  dataEntrada: '25/11/2021',        // ✅ CORRIGIDO
+  precoEntrada: 'R$ 104,53',        // ✅ CORRIGIDO  
+  dy: '14,71%',                     // ✅ CORRIGIDO
+  precoTeto: 'R$ 87,81',           // ✅ CORRIGIDO
+  vies: 'Compra'                   // ✅ MANTÉM IGUAL
+},
+{
+  id: '21',
+  avatar: '',
+  ticker: 'KNRI11',
+  setor: 'Logística',
+  dataEntrada: '27/06/2022',        // ✅ CORRIGIDO
+  precoEntrada: 'R$ 131,12',        // ✅ CORRIGIDO
+  dy: '8,82%',                      // ✅ CORRIGIDO
+  precoTeto: 'R$ 146,67',          // ✅ CORRIGIDO
+  vies: 'Compra'                   // ✅ MANTÉM IGUAL
+},
+{
+  id: '22',
+  avatar: '',
+  ticker: 'IRDM11',
+  setor: 'Shopping',
+  dataEntrada: '05/01/2022',        // ✅ CORRIGIDO
+  precoEntrada: 'R$ 107,04',        // ✅ CORRIGIDO
+  dy: '13,21%',                     // ✅ CORRIGIDO
+  precoTeto: 'R$ 73,20',           // ✅ CORRIGIDO
+  vies: 'Compra'                   // ✅ MANTÉM IGUAL
+},
+{
+  id: '23',
+  avatar: '',
+  ticker: 'MXRF11',
+  setor: 'Tijolo',
+  dataEntrada: '12/07/2022',        // ✅ CORRIGIDO
+  precoEntrada: 'R$ 9,69',          // ✅ CORRIGIDO
+  dy: '12,91%',                     // ✅ CORRIGIDO
+  precoTeto: 'R$ 9,40',            // ✅ CORRIGIDO
+  vies: 'Compra'                   // ✅ MANTÉM IGUAL
+}
   ];
 
   const fetchFiisPortfolioData = React.useCallback(async () => {
