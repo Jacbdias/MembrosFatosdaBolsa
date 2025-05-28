@@ -40,137 +40,110 @@ interface StatCardProps {
   diff?: number;
 }
 
-// 🎨 CARD ESTATÍSTICO COMPLETAMENTE REDESENHADO
+// 🎨 CARD ESTATÍSTICO REDESENHADO COM DESIGN LIMPO
 function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
-  const TrendIcon = trend === 'up' ? TrendUp : TrendDown;
+  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
-  const bgGradient = trend === 'up' 
-    ? 'linear-gradient(135deg, #f0fff4 0%, #dcfce7 100%)'
-    : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+  const topBorderColor = trend === 'up' ? '#10b981' : '#ef4444';
   
   return (
     <Card 
       sx={{ 
-        minHeight: 140,
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-        border: '1px solid',
-        borderColor: 'rgba(148, 163, 184, 0.2)',
-        borderRadius: 3,
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
+        backgroundColor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 2,
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
         overflow: 'hidden',
-        '&:hover': {
-          transform: 'translateY(-8px)',
-          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-          borderColor: 'rgba(99, 102, 241, 0.4)',
-        },
         '&::before': {
           content: '""',
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: '4px',
-          background: trend === 'up' 
-            ? 'linear-gradient(90deg, #10b981, #059669)'
-            : 'linear-gradient(90deg, #ef4444, #dc2626)',
+          height: '3px',
+          backgroundColor: topBorderColor,
         }
       }}
     >
-      <CardContent sx={{ p: 4, height: '100%' }}>
-        <Stack spacing={3} sx={{ height: '100%' }}>
-          {/* Header refinado */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Box>
-              <Typography 
-                color="text.secondary" 
-                variant="caption" 
-                sx={{ 
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1.2,
-                  fontSize: '0.7rem',
-                  color: '#64748b'
-                }}
-              >
-                {title}
-              </Typography>
-            </Box>
+      <CardContent sx={{ p: 3 }}>
+        <Stack spacing={2}>
+          {/* Header */}
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: '#64748b',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
+              }}
+            >
+              {title}
+            </Typography>
             <Box sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              width: 32,
+              height: 32,
+              borderRadius: 1.5,
+              backgroundColor: '#f1f5f9',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
+              color: '#64748b'
             }}>
-              <Box sx={{ color: 'white', fontSize: 20 }}>
-                {icon}
-              </Box>
+              {React.cloneElement(icon as React.ReactElement, { size: 16 })}
             </Box>
           </Stack>
           
-          {/* Valor principal com estilo aprimorado */}
-          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <Typography 
-              variant="h3" 
-              sx={{ 
-                fontWeight: 800,
-                color: '#1e293b',
-                fontSize: { xs: '1.8rem', sm: '2.2rem' },
-                lineHeight: 1,
-                letterSpacing: '-0.025em'
-              }}
-            >
-              {value}
-            </Typography>
-          </Box>
+          {/* Valor principal */}
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 700,
+              color: '#1e293b',
+              fontSize: '1.75rem',
+              lineHeight: 1
+            }}
+          >
+            {value}
+          </Typography>
           
-          {/* Indicador de tendência melhorado */}
+          {/* Indicador de tendência */}
           {diff !== undefined && trend && (
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              padding: 1.5,
-              borderRadius: 2,
-              background: bgGradient,
-              border: '1px solid',
-              borderColor: trend === 'up' ? '#bbf7d0' : '#fecaca',
-            }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
               <Box sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: trendColor,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'white'
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+                color: trendColor
               }}>
-                <TrendIcon size={14} weight="bold" />
+                <TrendIcon size={12} weight="bold" />
               </Box>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography 
-                  sx={{ 
-                    color: trendColor,
-                    fontWeight: 700,
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  {diff > 0 ? '+' : ''}{diff}%
-                </Typography>
-                <Typography 
-                  color="text.secondary" 
-                  sx={{ fontSize: '0.8rem', fontWeight: 500 }}
-                >
-                  período
-                </Typography>
-              </Stack>
-            </Box>
+              <Typography 
+                variant="body2"
+                sx={{ 
+                  color: trendColor,
+                  fontWeight: 600,
+                  fontSize: '0.875rem'
+                }}
+              >
+                {diff > 0 ? '+' : ''}{diff}%
+              </Typography>
+              <Typography 
+                variant="body2"
+                sx={{ 
+                  color: '#64748b',
+                  fontSize: '0.875rem'
+                }}
+              >
+                período
+              </Typography>
+            </Stack>
           )}
         </Stack>
       </CardContent>
@@ -228,7 +201,7 @@ export function OverviewTable({
 
   return (
     <Box>
-      {/* Grid de cards mais elegante */}
+      {/* Grid de cards redesenhado */}
       <Box
         sx={{
           display: 'grid',
@@ -238,7 +211,7 @@ export function OverviewTable({
             md: 'repeat(3, 1fr)',
             lg: 'repeat(6, 1fr)',
           },
-          gap: 3,
+          gap: 2,
           mb: 4,
         }}
       >
@@ -305,7 +278,7 @@ export function OverviewTable({
             color: '#1e293b',
             fontSize: '1.1rem'
           }}>
-            📊 Carteira de Investimentos
+            📊 Carteira de Small Caps
           </Typography>
           <Typography variant="body2" sx={{ 
             color: '#64748b',
