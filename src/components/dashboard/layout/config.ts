@@ -27,6 +27,13 @@ export const navItems = [
     href: paths.dashboard.settings, 
     icon: 'buildings' 
   },
+  // ✨ NOVO ITEM - RENTABILIDADES
+  { 
+    key: 'rentabilidades', 
+    title: 'Rentabilidades', 
+    href: paths.dashboard.rentabilidades, 
+    icon: 'chart-line' // ← USANDO ÍCONE QUE JÁ EXISTE
+  },
   {
     key: 'internacional',
     title: 'Internacional',
