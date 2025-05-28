@@ -365,6 +365,9 @@ export function DashboardEducacionalIntegrado() {
   const carteiras = { fiis: carteiraFIIs, 'small-caps': carteiraSmallCaps };
   const carteira = carteiras[carteiraSelecionada];
   
+  // Para passar para os novos componentes
+  const carteiraCompleta = carteira;
+  
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -678,64 +681,7 @@ export function DashboardEducacionalIntegrado() {
           </Card>
         </Grid>
         
-        {/* Próximos Passos */}
-        <Grid xs={12}>
-          <Card sx={{ backgroundColor: '#fefbef', border: '1px solid #f59e0b' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: '#92400e' }}>
-                🚀 Próximas Funcionalidades
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <Grid xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <ChartLine size={32} color="#f59e0b" />
-                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
-                      Gráficos de Evolução
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Timeline da performance
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Calculator size={32} color="#f59e0b" />
-                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
-                      Calculadora TIR
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Taxa interna de retorno
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Target size={32} color="#f59e0b" />
-                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
-                      Metas de Investimento
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Projeções personalizadas
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Calendar size={32} color="#f59e0b" />
-                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
-                      Agenda de Dividendos
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Próximos pagamentos
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-                      {/* 📈 GRÁFICOS DE EVOLUÇÃO */}
+        {/* 📈 GRÁFICOS DE EVOLUÇÃO */}
         <Grid xs={12}>
           <GraficosEvolucao carteira={carteiraCompleta} />
         </Grid>
@@ -749,14 +695,72 @@ export function DashboardEducacionalIntegrado() {
         <Grid xs={12}>
           <AgendaDividendos carteira={carteiraCompleta} />
         </Grid>
-  
+        
+        {/* Próximos Passos */}
+        <Grid xs={12}>
+          <Card sx={{ backgroundColor: '#fefbef', border: '1px solid #f59e0b' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: '#92400e' }}>
+                🚀 Funcionalidades Integradas
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2 }}>
+                    <ChartLine size={32} color="#f59e0b" />
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                      ✅ Gráficos de Evolução
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Timeline da performance
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2 }}>
+                    <Calculator size={32} color="#f59e0b" />
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                      ✅ Simulação TIR
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Taxa interna de retorno
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2 }}>
+                    <Target size={32} color="#f59e0b" />
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                      ✅ Metas de Investimento
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Projeções personalizadas
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2 }}>
+                    <Calendar size={32} color="#f59e0b" />
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                      ✅ Agenda de Dividendos
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Próximos pagamentos
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+              
               <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Button variant="outlined" color="warning" sx={{ mr: 2 }}>
-                  📊 Solicitar Gráficos
-                </Button>
-                <Button variant="outlined" color="warning">
-                  📈 Adicionar Mais Carteiras
-                </Button>
+                <Alert severity="success">
+                  <Typography variant="body2">
+                    <strong>🎉 Dashboard Completo!</strong> Todas as funcionalidades educacionais foram integradas com sucesso. 
+                    Agora você pode explorar análises completas, gráficos interativos, metas personalizadas e agenda de dividendos.
+                  </Typography>
+                </Alert>
               </Box>
             </CardContent>
           </Card>
