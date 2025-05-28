@@ -10,7 +10,6 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 import { Package } from '@phosphor-icons/react/dist/ssr/Package';
-import { TrendingUp } from '@phosphor-icons/react/dist/ssr/TrendingUp'; // ✨ NOVO ÍCONE
 
 // Novos ícones melhorados
 import { Book } from '@phosphor-icons/react/dist/ssr/Book';
@@ -26,7 +25,7 @@ export const navIcons = {
   'chart-pie': ChartPie,
   'chart-bar': ChartBar,
   'chart-line-up': ChartLineUp,
-  'chart-line': ChartLine,        // Para Análise de Carteira
+  'chart-line': ChartLine,        // ← JÁ EXISTE, USADO PARA RENTABILIDADES
   'buildings': Buildings,
   'plugs-connected': PlugsConnectedIcon,
   'x-square': XSquare,
@@ -34,7 +33,6 @@ export const navIcons = {
   'users': UsersIcon,
   'globe': Globe,
   'package': Package,
-  'trending-up': TrendingUp,      // ✨ NOVO ÍCONE PARA RENTABILIDADES
   
   // Ícones dos recursos exclusivos
   'lightbulb': Lightbulb,         // Para Dicas de Investimentos
