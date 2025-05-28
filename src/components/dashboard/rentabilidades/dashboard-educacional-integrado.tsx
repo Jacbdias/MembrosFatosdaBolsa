@@ -123,31 +123,68 @@ const dadosSmallCapsReais = [
   { id: "16", ticker: "NEOE3", setor: "Energia", dataEntrada: "04/05/2021", precoEntrada: "R$ 15,94", precoAtual: "R$ 24,40", dy: "4,29%", precoTeto: "R$ 21,00", vies: "Aguardar" }
 ];
 
-// 🧮 FUNÇÃO PARA PROCESSAR DADOS E CALCULAR MÉTRICAS
+// 🧮 FUNÇÃO PARA PROCESSAR CARTEIRA - VERSÃO CORRIGIDA E AUDITADA
 function processarCarteira(dadosRaw: any[], valorInvestimentoSimulado: number = 50000): CarteiraEducacional {
+  console.log('🔍 AUDITANDO CÁLCULOS DA CARTEIRA...');
+  console.log('💰 Valor total simulado:', valorInvestimentoSimulado);
+  console.log('📊 Quantidade de ativos:', dadosRaw.length);
+  
   const ativosProcessados = dadosRaw.map(ativo => {
     // Converter strings para números
     const precoEntrada = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
     const precoAtual = parseFloat(ativo.precoAtual.replace('R$ ', '').replace(',', '.'));
     const dyAnual = parseFloat(ativo.dy.replace('%', '').replace(',', '.'));
     
-    // Simular investimento igual para todos os ativos
+    // CORREÇÃO: Simular investimento igual para todos os ativos
     const valorPorAtivo = valorInvestimentoSimulado / dadosRaw.length;
     const quantidadeCotasSimulada = valorPorAtivo / precoEntrada;
     const valorAtualSimulado = quantidadeCotasSimulada * precoAtual;
     
-    // Calcular tempo investido
-    const dataEntrada = new Date(ativo.dataEntrada.split('/').reverse().join('-'));
+    // Calcular tempo investido em anos
+    const partesData = ativo.dataEntrada.split('/');
+    const dataEntrada = new Date(parseInt(partesData[2]), parseInt(partesData[1]) - 1, parseInt(partesData[0]));
     const hoje = new Date();
     const tempoInvestidoAnos = (hoje.getTime() - dataEntrada.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
     
-    // Calcular dividendos simulados baseado no DY e tempo
-    const dividendosSimulados = (valorPorAtivo * dyAnual / 100) * tempoInvestidoAnos;
+    // CORREÇÃO: Cálculo de dividendos mais realista
+    let dividendosSimulados = 0;
     
-    // Rentabilidades
+    if (dyAnual > 0) {
+      if (ativo.ticker.includes('11')) {
+        // FIIs: pagam mensalmente
+        dividendosSimulados = (valorPorAtivo * dyAnual / 100) * tempoInvestidoAnos;
+      } else {
+        // Small Caps: pagam anualmente (se pagam)
+        const anosCompletos = Math.floor(tempoInvestidoAnos);
+        dividendosSimulados = (valorPorAtivo * dyAnual / 100) * anosCompletos;
+        
+        // Adicionar proporção do ano atual
+        const mesesNoAnoAtual = (tempoInvestidoAnos - anosCompletos) * 12;
+        if (mesesNoAnoAtual >= 6) {
+          dividendosSimulados += (valorPorAtivo * dyAnual / 100) * 0.5;
+        }
+      }
+    }
+    
+    // CORREÇÃO: Rentabilidades
     const rentabilidadeCapital = ((valorAtualSimulado - valorPorAtivo) / valorPorAtivo) * 100;
-    const rentabilidadeTotal = rentabilidadeCapital + ((dividendosSimulados / valorPorAtivo) * 100);
+    const rentabilidadeDividendos = valorPorAtivo > 0 ? (dividendosSimulados / valorPorAtivo) * 100 : 0;
+    const rentabilidadeTotal = rentabilidadeCapital + rentabilidadeDividendos;
+    
+    // CORREÇÃO: DY realizado anualizado
     const dyRealizado = tempoInvestidoAnos > 0 ? (dividendosSimulados / valorPorAtivo / tempoInvestidoAnos) * 100 : 0;
+    
+    // Log para auditoria
+    console.log(`📊 ${ativo.ticker}:`, {
+      investido: `R$ ${valorPorAtivo.toFixed(0)}`,
+      atual: `R$ ${valorAtualSimulado.toFixed(0)}`,
+      dividendos: `R$ ${dividendosSimulados.toFixed(0)}`,
+      rentabCapital: `${rentabilidadeCapital.toFixed(1)}%`,
+      rentabTotal: `${rentabilidadeTotal.toFixed(1)}%`,
+      tempo: `${tempoInvestidoAnos.toFixed(1)} anos`,
+      dyOriginal: `${dyAnual}%`,
+      dyRealizado: `${dyRealizado.toFixed(1)}%`
+    });
     
     return {
       ...ativo,
@@ -161,12 +198,27 @@ function processarCarteira(dadosRaw: any[], valorInvestimentoSimulado: number = 
     };
   });
   
-  // Calcular totais
+  // AUDITORIA: Calcular totais
   const valorInicialTotal = ativosProcessados.reduce((sum, ativo) => sum + ativo.valorInvestidoSimulado, 0);
   const valorAtualTotal = ativosProcessados.reduce((sum, ativo) => sum + ativo.valorAtualSimulado, 0);
   const dividendosTotais = ativosProcessados.reduce((sum, ativo) => sum + ativo.dividendosRecebidosSimulados, 0);
+  
+  // CORREÇÃO: Rentabilidade total da carteira
   const rentabilidadeTotal = ((valorAtualTotal + dividendosTotais - valorInicialTotal) / valorInicialTotal) * 100;
-  const dyMedio = ativosProcessados.reduce((sum, ativo) => sum + ativo.dyRealizado, 0) / ativosProcessados.length;
+  
+  // CORREÇÃO: DY médio ponderado por valor
+  const dyMedio = valorInicialTotal > 0 ? 
+    ativosProcessados.reduce((sum, ativo) => {
+      const peso = ativo.valorInvestidoSimulado / valorInicialTotal;
+      return sum + (ativo.dyRealizado * peso);
+    }, 0) : 0;
+  
+  console.log('📈 TOTAIS DA CARTEIRA:');
+  console.log('💰 Valor inicial:', `R$ ${valorInicialTotal.toFixed(0)}`);
+  console.log('💰 Valor atual:', `R$ ${valorAtualTotal.toFixed(0)}`);
+  console.log('💵 Dividendos:', `R$ ${dividendosTotais.toFixed(0)}`);
+  console.log('📊 Rentabilidade total:', `${rentabilidadeTotal.toFixed(1)}%`);
+  console.log('📊 DY médio:', `${dyMedio.toFixed(1)}%`);
   
   // Encontrar extremos
   const melhorAtivo = ativosProcessados.reduce((prev, current) => 
@@ -181,11 +233,27 @@ function processarCarteira(dadosRaw: any[], valorInvestimentoSimulado: number = 
     current.dividendosRecebidosSimulados > prev.dividendosRecebidosSimulados ? current : prev
   ).ticker;
   
-  // Setor mais presente
-  const setores = ativosProcessados.map(a => a.setor);
-  const setorMaisFrequente = setores.reduce((a, b, i, arr) => 
-    arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-  );
+  // CORREÇÃO: Setor mais presente
+  const contadorSetores = ativosProcessados.reduce((acc, ativo) => {
+    acc[ativo.setor] = (acc[ativo.setor] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const setorMaisFrequente = Object.entries(contadorSetores).reduce((a, b) => 
+    a[1] > b[1] ? a : b
+  )[0];
+  
+  // CORREÇÃO: Recomendação baseada em performance e risco
+  let recomendacao: 'Forte' | 'Moderada' | 'Cuidado' = 'Moderada';
+  if (rentabilidadeTotal > 20) recomendacao = 'Forte';
+  else if (rentabilidadeTotal < 0) recomendacao = 'Cuidado';
+  
+  console.log('🏆 ANÁLISE FINAL:');
+  console.log('- Melhor ativo:', melhorAtivo);
+  console.log('- Pior ativo:', piorAtivo);
+  console.log('- Maior dividendo:', ativoMaiorDividendo);
+  console.log('- Setor dominante:', setorMaisFrequente);
+  console.log('- Recomendação:', recomendacao);
   
   return {
     id: dadosRaw === dadosFIIsReais ? 'fiis' : 'small-caps',
@@ -206,7 +274,7 @@ function processarCarteira(dadosRaw: any[], valorInvestimentoSimulado: number = 
     ativoMaiorDividendo,
     quantidadeAtivos: ativosProcessados.length,
     setorMaisPresentente: setorMaisFrequente,
-    recomendacao: rentabilidadeTotal > 15 ? 'Forte' : rentabilidadeTotal > 5 ? 'Moderada' : 'Cuidado'
+    recomendacao
   };
 }
 
