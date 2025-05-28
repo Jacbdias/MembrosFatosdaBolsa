@@ -278,14 +278,17 @@ function useFiisPortfolio() {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI - VERSÃO MELHORADA');
+      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI - COM TOKEN');
+
+      // 🔑 TOKEN BRAPI CONFIGURADO
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
       // 📋 EXTRAIR TODOS OS TICKERS
       const tickers = fiisPortfolioBase.map(fii => fii.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 TENTAR BUSCAR EM LOTES MENORES PARA EVITAR ERROS 404
-      const LOTE_SIZE = 5; // Buscar 5 FIIs por vez
+      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN
+      const LOTE_SIZE = 5;
       const cotacoesMap = new Map();
       let sucessosTotal = 0;
       let falhasTotal = 0;
@@ -293,10 +296,12 @@ function useFiisPortfolio() {
       for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
         const lote = tickers.slice(i, i + LOTE_SIZE);
         const tickersString = lote.join(',');
-        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?range=1d&interval=1d&fundamental=true`;
+        
+        // 🔑 URL COM TOKEN DE AUTENTICAÇÃO
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
         
         console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
-        console.log(`🌐 URL: ${apiUrl}`);
+        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO')}`);
 
         try {
           const response = await fetch(apiUrl, {
@@ -315,7 +320,7 @@ function useFiisPortfolio() {
               apiData.results.forEach((quote: any) => {
                 console.log(`🔍 Processando: ${quote.symbol}`);
                 console.log(`💰 Preço: ${quote.regularMarketPrice}`);
-                console.log(`📈 Variação: ${quote.regularMarketChange}%`);
+                console.log(`📈 Variação: ${quote.regularMarketChangePercent}%`);
                 
                 if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
                   cotacoesMap.set(quote.symbol, {
@@ -335,6 +340,11 @@ function useFiisPortfolio() {
             }
           } else {
             console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+            
+            // LOG DA RESPOSTA DE ERRO
+            const errorText = await response.text();
+            console.error('📄 Resposta de erro:', errorText);
+            
             falhasTotal += lote.length;
           }
         } catch (loteError) {
@@ -343,7 +353,7 @@ function useFiisPortfolio() {
         }
 
         // DELAY entre requisições para evitar rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
       console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
