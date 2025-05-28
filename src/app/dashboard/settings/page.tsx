@@ -278,64 +278,108 @@ function useFiisPortfolio() {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI');
+      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI - VERSÃO MELHORADA');
 
       // 📋 EXTRAIR TODOS OS TICKERS
       const tickers = fiisPortfolioBase.map(fii => fii.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔥 CHAMAR API REAL - BRAPI (MESMO QUE VOCÊ USA)
-      const tickersString = tickers.join(',');
-      const apiUrl = `https://brapi.dev/api/quote/${tickersString}?range=1d&interval=1d&fundamental=true&dividends=true`;
-      
-      console.log('🌐 URL da API:', apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'FIIs-Portfolio-App'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-      }
-
-      const apiData = await response.json();
-      console.log('📊 Dados da API recebidos:', apiData);
-
-      if (!apiData.results || !Array.isArray(apiData.results)) {
-        throw new Error('Formato de resposta da API inválido');
-      }
-
-      // 🔄 PROCESSAR DADOS DA API
+      // 🔄 TENTAR BUSCAR EM LOTES MENORES PARA EVITAR ERROS 404
+      const LOTE_SIZE = 5; // Buscar 5 FIIs por vez
       const cotacoesMap = new Map();
-      apiData.results.forEach((quote: any) => {
-        if (quote.symbol && quote.regularMarketPrice) {
-          cotacoesMap.set(quote.symbol, {
-            precoAtual: quote.regularMarketPrice,
-            variacao: quote.regularMarketChange || 0,
-            variacaoPercent: quote.regularMarketChangePercent || 0,
-            volume: quote.regularMarketVolume || 0,
-            dadosCompletos: quote
-          });
-        }
-      });
+      let sucessosTotal = 0;
+      let falhasTotal = 0;
 
-      console.log(`✅ ${cotacoesMap.size} cotações processadas com sucesso`);
+      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
+        const lote = tickers.slice(i, i + LOTE_SIZE);
+        const tickersString = lote.join(',');
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?range=1d&interval=1d&fundamental=true`;
+        
+        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+        console.log(`🌐 URL: ${apiUrl}`);
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'FIIs-Portfolio-App'
+            }
+          });
+
+          if (response.ok) {
+            const apiData = await response.json();
+            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+
+            if (apiData.results && Array.isArray(apiData.results)) {
+              apiData.results.forEach((quote: any) => {
+                console.log(`🔍 Processando: ${quote.symbol}`);
+                console.log(`💰 Preço: ${quote.regularMarketPrice}`);
+                console.log(`📈 Variação: ${quote.regularMarketChange}%`);
+                
+                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
+                  cotacoesMap.set(quote.symbol, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    dadosCompletos: quote
+                  });
+                  sucessosTotal++;
+                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
+                } else {
+                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
+                  falhasTotal++;
+                }
+              });
+            }
+          } else {
+            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+            falhasTotal += lote.length;
+          }
+        } catch (loteError) {
+          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
+          falhasTotal += lote.length;
+        }
+
+        // DELAY entre requisições para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+      console.log('🗺️ Mapa de cotações:', Array.from(cotacoesMap.entries()));
 
       // 🔥 COMBINAR DADOS BASE COM COTAÇÕES REAIS
       const portfolioAtualizado = fiisPortfolioBase.map((fii) => {
         const cotacao = cotacoesMap.get(fii.ticker);
         const precoEntradaNum = parseFloat(fii.precoEntrada.replace('R$ ', '').replace(',', '.'));
         
-        if (cotacao) {
+        console.log(`\n🔄 Processando ${fii.ticker}:`);
+        console.log(`💵 Preço entrada: R$ ${precoEntradaNum}`);
+        
+        if (cotacao && cotacao.precoAtual > 0) {
           // 📊 PREÇO E PERFORMANCE REAIS
           const precoAtualNum = cotacao.precoAtual;
           const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
           
-          console.log(`📈 ${fii.ticker}: Entrada R$ ${precoEntradaNum.toFixed(2)} → Atual R$ ${precoAtualNum.toFixed(2)} (${performance.toFixed(1)}%)`);
+          console.log(`💰 Preço atual: R$ ${precoAtualNum}`);
+          console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          
+          // VALIDAR SE O PREÇO FAZ SENTIDO (não pode ser muito diferente)
+          const diferencaPercent = Math.abs(performance);
+          if (diferencaPercent > 500) {
+            console.warn(`🚨 ${fii.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+            return {
+              ...fii,
+              precoAtual: fii.precoEntrada,
+              performance: 0,
+              variacao: 0,
+              variacaoPercent: 0,
+              volume: 0,
+              quotacoesReais: cotacao.dadosCompletos,
+              statusApi: 'suspicious_price'
+            };
+          }
           
           return {
             ...fii,
@@ -349,7 +393,7 @@ function useFiisPortfolio() {
           };
         } else {
           // ⚠️ FALLBACK PARA FIIs SEM COTAÇÃO
-          console.warn(`⚠️ ${fii.ticker}: Cotação não encontrada, usando preço de entrada`);
+          console.warn(`⚠️ ${fii.ticker}: Sem cotação válida, usando preço de entrada`);
           
           return {
             ...fii,
@@ -366,11 +410,13 @@ function useFiisPortfolio() {
 
       // 📊 ESTATÍSTICAS FINAIS
       const sucessos = portfolioAtualizado.filter(f => f.statusApi === 'success').length;
-      const falhas = portfolioAtualizado.filter(f => f.statusApi === 'not_found').length;
+      const suspeitos = portfolioAtualizado.filter(f => f.statusApi === 'suspicious_price').length;
+      const naoEncontrados = portfolioAtualizado.filter(f => f.statusApi === 'not_found').length;
       
-      console.log('📊 RESULTADOS FINAIS:');
+      console.log('\n📊 ESTATÍSTICAS FINAIS:');
       console.log(`✅ Sucessos: ${sucessos}/${portfolioAtualizado.length}`);
-      console.log(`❌ Falhas: ${falhas}/${portfolioAtualizado.length}`);
+      console.log(`🚨 Preços suspeitos: ${suspeitos}/${portfolioAtualizado.length}`);
+      console.log(`❌ Não encontrados: ${naoEncontrados}/${portfolioAtualizado.length}`);
       
       if (sucessos > 0) {
         const performanceMedia = portfolioAtualizado
@@ -381,18 +427,20 @@ function useFiisPortfolio() {
 
       setPortfolio(portfolioAtualizado);
 
-      // ⚠️ ALERTAR SE MUITAS FALHAS
-      if (falhas > sucessos) {
-        setError(`Apenas ${sucessos} de ${portfolioAtualizado.length} FIIs com cotação atualizada`);
+      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
+      if (sucessos < portfolioAtualizado.length / 2) {
+        setError(`Apenas ${sucessos} de ${portfolioAtualizado.length} FIIs com cotação válida`);
+      } else if (suspeitos > 0) {
+        setError(`${suspeitos} FIIs com preços suspeitos foram ignorados`);
       }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(`Erro na API: ${errorMessage}`);
-      console.error('❌ Erro ao buscar cotações reais:', err);
+      console.error('❌ Erro geral ao buscar cotações:', err);
       
       // 🔄 FALLBACK: USAR DADOS ESTÁTICOS
-      console.log('🔄 Usando fallback com preços de entrada...');
+      console.log('🔄 Usando fallback completo com preços de entrada...');
       const portfolioFallback = fiisPortfolioBase.map(fii => ({
         ...fii,
         precoAtual: fii.precoEntrada,
