@@ -409,9 +409,15 @@ export function SettingsTable({
     }
   ];
 
-  console.log("✅ SettingsTable iniciado!");
-  console.log("📊 Dados dos FIIs:", dadosReais.length, "itens");
-  console.log("🎯 Primeiro ativo:", dadosReais[0]?.ticker);
+  // 🔥 CORREÇÃO: PRIORIZAR DADOS DA API (rows) SOBRE DADOS ESTÁTICOS
+const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
+
+console.log("✅ SettingsTable iniciado!");
+console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
+console.log("📊 Dados estáticos (fallback):", dadosReais.length, "itens");
+console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
+console.log("🔍 Primeiro ativo da API:", rows[0]?.ticker, "- Preço atual:", rows[0]?.precoAtual);
+console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
 
   // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
   const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
