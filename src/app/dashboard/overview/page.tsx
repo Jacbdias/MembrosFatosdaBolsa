@@ -10,6 +10,25 @@ import { OverviewTable } from '@/components/dashboard/overview/overview-table';
 // 🔥 IMPORTAR O HOOK PARA DADOS FINANCEIROS REAIS
 import { useFinancialData } from '@/hooks/useFinancialData';
 
+// 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
+function calcularViesAutomatico(precoTeto: string, precoAtual: string): string {
+  // Remover formatação e converter para números
+  const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
+  const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+  
+  // Verificar se os valores são válidos
+  if (isNaN(precoTetoNum) || isNaN(precoAtualNum) || precoAtual === 'N/A') {
+    return 'Aguardar'; // Default se não conseguir calcular
+  }
+  
+  // 🎯 LÓGICA: Preço Teto > Preço Atual = COMPRA
+  if (precoTetoNum > precoAtualNum) {
+    return 'Compra';
+  } else {
+    return 'Aguardar';
+  }
+}
+
 const ativos = [
   {
     id: '1',
@@ -21,7 +40,7 @@ const ativos = [
     precoAtual: 'R$ 21,67',
     dy: '5,95%',
     precoTeto: 'R$ 23,76',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '2',
@@ -33,7 +52,7 @@ const ativos = [
     precoAtual: 'R$ 18,93',
     dy: '1,71%',
     precoTeto: 'R$ 31,50',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '3',
@@ -45,7 +64,7 @@ const ativos = [
     precoAtual: 'R$ 13,97',
     dy: '11,07%',
     precoTeto: 'R$ 31,37',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '4',
@@ -57,7 +76,7 @@ const ativos = [
     precoAtual: 'R$ 5,12',
     dy: '4,96%',
     precoTeto: 'R$ 8,35',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '5',
@@ -69,7 +88,7 @@ const ativos = [
     precoAtual: 'R$ 38,80',
     dy: '0,18%',
     precoTeto: 'R$ 48,70',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '6',
@@ -81,7 +100,7 @@ const ativos = [
     precoAtual: 'R$ 8,25',
     dy: '4,80%',
     precoTeto: 'R$ 14,00',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '7',
@@ -93,7 +112,7 @@ const ativos = [
     precoAtual: 'R$ 20,97',
     dy: '3,51%',
     precoTeto: 'R$ 35,00',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '8',
@@ -105,7 +124,7 @@ const ativos = [
     precoAtual: 'R$ 6,92',
     dy: '5,68%',
     precoTeto: 'R$ 14,07',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '9',
@@ -117,7 +136,7 @@ const ativos = [
     precoAtual: 'R$ 61,00',
     dy: '6,77%',
     precoTeto: 'R$ 117,90',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '10',
@@ -129,7 +148,7 @@ const ativos = [
     precoAtual: 'R$ 12,59',
     dy: '5,20%',
     precoTeto: 'R$ 17,50',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '11',
@@ -141,7 +160,7 @@ const ativos = [
     precoAtual: 'R$ 13,17',
     dy: '7,83%',
     precoTeto: 'R$ 30,00',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '12',
@@ -153,7 +172,7 @@ const ativos = [
     precoAtual: 'R$ 4,32',
     dy: '1,15%',
     precoTeto: 'R$ 11,90',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '13',
@@ -165,7 +184,7 @@ const ativos = [
     precoAtual: 'R$ 15,54',
     dy: '2,64%',
     precoTeto: 'R$ 15,00',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '14',
@@ -177,7 +196,7 @@ const ativos = [
     precoAtual: 'R$ 4,70',
     dy: '0,00%',
     precoTeto: 'R$ 10,79',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '15',
@@ -189,7 +208,7 @@ const ativos = [
     precoAtual: 'R$ 30,53',
     dy: '4,46%',
     precoTeto: 'R$ 29,00',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
   {
     id: '16',
@@ -201,13 +220,31 @@ const ativos = [
     precoAtual: 'R$ 24,40',
     dy: '4,29%',
     precoTeto: 'R$ 21,00',
-    vies: 'Compra',
+    // vies removido - será calculado automaticamente
   },
 ];
 
 export default function Page(): React.JSX.Element {
   // 🔥 BUSCAR DADOS REAIS DA API FINANCEIRA
   const { marketData, loading, error, refetch } = useFinancialData();
+
+  // 🎯 ADICIONAR VIÉS CALCULADO AUTOMATICAMENTE AOS ATIVOS
+  const ativosComVies = React.useMemo(() => {
+    return ativos.map(ativo => ({
+      ...ativo,
+      vies: calcularViesAutomatico(ativo.precoTeto, ativo.precoAtual)
+    }));
+  }, []);
+
+  // Log para debug
+  React.useEffect(() => {
+    console.log('🎯 ATIVOS COM VIÉS AUTOMÁTICO:');
+    ativosComVies.forEach(ativo => {
+      const precoTeto = parseFloat(ativo.precoTeto.replace('R$ ', '').replace(',', '.'));
+      const precoAtual = parseFloat(ativo.precoAtual.replace('R$ ', '').replace(',', '.'));
+      console.log(`📊 ${ativo.ticker}: Teto R$ ${precoTeto.toFixed(2)} vs Atual R$ ${precoAtual.toFixed(2)} = ${ativo.vies}`);
+    });
+  }, [ativosComVies]);
 
   // DADOS PADRÃO CASO A API FALHE (seus dados atuais)
   const dadosCardsPadrao = {
@@ -272,6 +309,13 @@ export default function Page(): React.JSX.Element {
         </Grid>
       )}
 
+      {/* Indicador de viés automático */}
+      <Grid xs={12}>
+        <Alert severity="info" sx={{ mb: 1 }}>
+          🎯 Viés calculado automaticamente: Preço Teto > Preço Atual = COMPRA | Caso contrário = AGUARDAR
+        </Alert>
+      </Grid>
+
       {/* Filtros de busca */}
       <Grid xs={12}>
         <OverviewFilters />
@@ -280,8 +324,8 @@ export default function Page(): React.JSX.Element {
       {/* Tabela principal com cards e dados */}
       <Grid xs={12}>
         <OverviewTable 
-          count={ativos.length} 
-          rows={ativos} 
+          count={ativosComVies.length} 
+          rows={ativosComVies} // 🔥 DADOS COM VIÉS AUTOMÁTICO!
           page={0} 
           rowsPerPage={5}
           cardsData={dadosCards} // 🔥 DADOS REAIS DA API OU FALLBACK!
