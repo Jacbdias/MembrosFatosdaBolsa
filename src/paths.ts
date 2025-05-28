@@ -31,5 +31,5 @@ export type Paths = typeof paths;
 console.log('=== DEBUG PATHS ===');
 console.log('Paths loaded:', paths);
 console.log('recursosExclusivos path:', paths.dashboard.recursosExclusivos);
-console.log('rentabilidades path:', paths.dashboard.rentabilidades); // ✨ NOVA LINHA DE DEBUG
+console.log('rentabilidades path:', paths.dashboard.rentabilidades); // ✨ NOVA LINHA
 console.log('==================');
