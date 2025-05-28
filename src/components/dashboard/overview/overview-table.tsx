@@ -86,15 +86,13 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Avatar>
           </Stack>
           
-          {/* Valor principal */}
+          {/* Valor principal - SEMPRE PRETO */}
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
             <Typography 
               variant="h4" 
               sx={{ 
                 fontWeight: 700,
-                color: trend && diff !== undefined ? 
-                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
-                  : 'text.primary',
+                color: 'text.primary', // ✅ SEMPRE PRETO
                 fontSize: { xs: '1.5rem', sm: '2rem' }
               }}
             >
@@ -102,7 +100,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Typography>
           </Box>
           
-          {/* Trend indicator */}
+          {/* Trend indicator - SÓ A VARIAÇÃO MUDA DE COR */}
           {diff !== undefined && trend && (
             <Stack direction="row" spacing={0.5} alignItems="center">
               <TrendIcon 
@@ -111,7 +109,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
               />
               <Typography 
                 sx={{ 
-                  color: trendColor,
+                  color: trendColor, // ✅ SÓ A VARIAÇÃO MUDA DE COR
                   fontWeight: 600,
                   fontSize: '0.8rem'
                 }}
