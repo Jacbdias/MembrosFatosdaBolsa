@@ -3,7 +3,6 @@
 
 import * as React from 'react';
 import { GraficosEvolucao } from './graficos-evolucao';
-import { MetasInvestimento } from './metas-investimento';
 import { AgendaDividendos } from './agenda-dividendos';
 import {
   Box,
@@ -686,11 +685,6 @@ export function DashboardEducacionalIntegrado() {
           <GraficosEvolucao carteira={carteiraCompleta} />
         </Grid>
         
-        {/* 🎯 METAS DE INVESTIMENTO */}
-        <Grid xs={12}>
-          <MetasInvestimento />
-        </Grid>
-        
         {/* 📅 AGENDA DE DIVIDENDOS */}
         <Grid xs={12}>
           <AgendaDividendos carteira={carteiraCompleta} />
@@ -731,18 +725,6 @@ export function DashboardEducacionalIntegrado() {
                 
                 <Grid xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Target size={32} color="#f59e0b" />
-                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
-                      ✅ Metas de Investimento
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Projeções personalizadas
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid xs={12} sm={6} md={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Calendar size={32} color="#f59e0b" />
                     <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
                       ✅ Agenda de Dividendos
@@ -752,13 +734,25 @@ export function DashboardEducacionalIntegrado() {
                     </Typography>
                   </Box>
                 </Grid>
+                
+                <Grid xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2 }}>
+                    <Target size={32} color="#10b981" />
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                      💡 Análise Avançada
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Insights educacionais
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
               
               <Box sx={{ mt: 3, textAlign: 'center' }}>
                 <Alert severity="success">
                   <Typography variant="body2">
-                    <strong>🎉 Dashboard Completo!</strong> Todas as funcionalidades educacionais foram integradas com sucesso. 
-                    Agora você pode explorar análises completas, gráficos interativos, metas personalizadas e agenda de dividendos.
+                    <strong>🎉 Dashboard Educacional Completo!</strong> Análises detalhadas da carteira, 
+                    gráficos de evolução temporal e agenda completa de dividendos já integrados.
                   </Typography>
                 </Alert>
               </Box>
