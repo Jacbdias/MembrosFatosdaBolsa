@@ -2,6 +2,9 @@
 'use client';
 
 import * as React from 'react';
+import { GraficosEvolucao } from './graficos-evolucao';
+import { MetasInvestimento } from './metas-investimento';
+import { AgendaDividendos } from './agenda-dividendos';
 import {
   Box,
   Card,
@@ -732,7 +735,21 @@ export function DashboardEducacionalIntegrado() {
                   </Box>
                 </Grid>
               </Grid>
-              
+                      {/* 📈 GRÁFICOS DE EVOLUÇÃO */}
+        <Grid xs={12}>
+          <GraficosEvolucao carteira={carteiraCompleta} />
+        </Grid>
+        
+        {/* 🎯 METAS DE INVESTIMENTO */}
+        <Grid xs={12}>
+          <MetasInvestimento />
+        </Grid>
+        
+        {/* 📅 AGENDA DE DIVIDENDOS */}
+        <Grid xs={12}>
+          <AgendaDividendos carteira={carteiraCompleta} />
+        </Grid>
+  
               <Box sx={{ mt: 3, textAlign: 'center' }}>
                 <Button variant="outlined" color="warning" sx={{ mr: 2 }}>
                   📊 Solicitar Gráficos
