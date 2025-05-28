@@ -5,34 +5,38 @@ import * as React from 'react';
 import { Box, CircularProgress, Alert, Button, Typography } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2';
 
+// Importar o header
+import { RentabilidadeHeader } from '@/components/dashboard/rentabilidades/rentabilidade-header';
+
+// Importar o hook (temporário)
+import { useRentabilidadeCompleta } from '@/hooks/useRentabilidadeCompleta';
+
 export default function RentabilidadesPage(): React.JSX.Element {
-  console.log('🚀 PÁGINA RENTABILIDADES CARREGADA!');
+  console.log('🚀 PÁGINA RENTABILIDADES COM HEADER FUNCIONAL!');
 
-  const [loading, setLoading] = React.useState(true);
+  const {
+    loading,
+    error,
+    resumoGeral,
+    metricas,
+    refetchDados
+  } = useRentabilidadeCompleta();
 
-  // Simular carregamento
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading) {
+  // Error state
+  if (error) {
     return (
       <Grid container spacing={3}>
         <Grid xs={12}>
-          <Box 
-            display="flex" 
-            justifyContent="center" 
-            alignItems="center" 
-            minHeight="400px"
-            flexDirection="column"
-            gap={2}
+          <Alert 
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={refetchDados}>
+                🔄 Tentar Novamente
+              </Button>
+            }
           >
-            <CircularProgress size={50} />
-            <Typography variant="h6" color="text.secondary">
-              📊 Carregando análise de rentabilidades...
-            </Typography>
-          </Box>
+            <strong>Erro ao carregar dados:</strong> {error}
+          </Alert>
         </Grid>
       </Grid>
     );
@@ -40,53 +44,78 @@ export default function RentabilidadesPage(): React.JSX.Element {
 
   return (
     <Box sx={{ py: 3 }}>
-      <Grid container spacing={3}>
-        {/* Header Temporário */}
+      <Grid container spacing={4}>
+        {/* 🔝 HEADER - Cards com dados reais */}
         <Grid xs={12}>
-          <Alert severity="success" sx={{ mb: 3 }}>
-            🎉 <strong>Página de Rentabilidades criada com sucesso!</strong> 
-            <br />Em breve, aqui teremos análises completas de performance, gráficos e relatórios.
-          </Alert>
+          <RentabilidadeHeader 
+            resumoGeral={resumoGeral}
+            metricas={metricas}
+            loading={loading}
+          />
         </Grid>
 
-        {/* Conteúdo Temporário */}
-        <Grid xs={12}>
-          <Box
-            sx={{
-              p: 6,
-              textAlign: 'center',
-              backgroundColor: '#f8fafc',
-              borderRadius: 3,
-              border: '2px dashed #e2e8f0'
-            }}
-          >
-            <Typography variant="h3" sx={{ mb: 2, fontWeight: 800 }}>
-              📈 Rentabilidades
-            </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-              Análise completa da performance dos seus investimentos
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Box sx={{ p: 3, backgroundColor: 'white', borderRadius: 2, minWidth: 200 }}>
-                <Typography variant="h4" color="primary">+23.8%</Typography>
-                <Typography variant="body2">Rentabilidade Total</Typography>
-              </Box>
-              <Box sx={{ p: 3, backgroundColor: 'white', borderRadius: 2, minWidth: 200 }}>
-                <Typography variant="h4" color="success.main">R$ 45.200</Typography>
-                <Typography variant="body2">Dividendos Recebidos</Typography>
-              </Box>
-              <Box sx={{ p: 3, backgroundColor: 'white', borderRadius: 2, minWidth: 200 }}>
-                <Typography variant="h4" color="info.main">18.5%</Typography>
-                <Typography variant="body2">Rentabilidade Anualizada</Typography>
-              </Box>
-            </Box>
+        {/* 🚧 Seções em desenvolvimento */}
+        {!loading && (
+          <>
+            <Grid xs={12}>
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <strong>🎯 Próximos componentes em desenvolvimento:</strong>
+                <br />• Filtros interativos • Gráfico de evolução • Tabela de performance • Comparação com benchmarks
+              </Alert>
+            </Grid>
 
-            <Typography variant="body1" color="text.secondary" sx={{ mt: 4 }}>
-              🚧 Em desenvolvimento: Gráficos, comparações com benchmarks, análise de risco e relatórios detalhados.
-            </Typography>
-          </Box>
-        </Grid>
+            <Grid xs={12}>
+              <Box
+                sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: 3,
+                  border: '2px dashed #e2e8f0',
+                  mt: 2
+                }}
+              >
+                <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
+                  🔄 Em Desenvolvimento
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                  Os próximos componentes serão implementados aqui:
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, backgroundColor: 'white', borderRadius: 2 }}>
+                      <Typography variant="h6" color="primary">📊</Typography>
+                      <Typography variant="body2">Filtros Avançados</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, backgroundColor: 'white', borderRadius: 2 }}>
+                      <Typography variant="h6" color="success.main">📈</Typography>
+                      <Typography variant="body2">Gráfico Evolução</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, backgroundColor: 'white', borderRadius: 2 }}>
+                      <Typography variant="h6" color="warning.main">🏆</Typography>
+                      <Typography variant="body2">Ranking Ativos</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, backgroundColor: 'white', borderRadius: 2 }}>
+                      <Typography variant="h6" color="info.main">⚖️</Typography>
+                      <Typography variant="body2">Benchmarks</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
+                  💡 <strong>Dica:</strong> Os cards acima já estão funcionais com dados reais e animações!
+                </Typography>
+              </Box>
+            </Grid>
+          </>
+        )}
       </Grid>
     </Box>
   );
