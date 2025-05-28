@@ -262,9 +262,39 @@ export function OverviewTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row, index) => {
-                row.vies = 'Compra';
-                return (
+{rows.map((row, index) => {
+  // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
+  const calcularVies = (precoTeto: string, precoAtual: string) => {
+    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
+    const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+    
+    if (isNaN(precoTetoNum) || isNaN(precoAtualNum)) {
+      return 'Aguardar';
+    }
+    
+    return precoTetoNum > precoAtualNum ? 'Compra' : 'Aguardar';
+  };
+  
+  const getViesStyle = (vies: string) => {
+    if (vies === 'Compra') {
+      return {
+        backgroundColor: '#e8f5e8',
+        color: '#2e7d32',
+        border: '1px solid #4caf50'
+      };
+    } else {
+      return {
+        backgroundColor: '#fff3cd',
+        color: '#856404',
+        border: '1px solid #ffc107'
+      };
+    }
+  };
+  
+  const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
+  const estiloVies = getViesStyle(viesCalculado);
+  
+  return (
                   <TableRow 
                     hover 
                     key={row.id}
