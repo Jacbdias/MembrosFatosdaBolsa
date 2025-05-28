@@ -103,11 +103,24 @@ const dadosFIIsReais = [
   { id: "19", ticker: "ALZR11", setor: "Híbrido", dataEntrada: "02/02/2022", precoEntrada: "R$ 115,89", precoAtual: "R$ 100,70", dy: "8.44%", precoTeto: "R$ 110,16", vies: "Compra" }
 ];
 
-// 🎯 DADOS SIMULADOS SMALL CAPS (baseado no seu overview)
-const dadosSmallCapsSimulados = [
-  { id: "1", ticker: "ATOM3", setor: "Tecnologia", dataEntrada: "15/01/2022", precoEntrada: "R$ 15,80", precoAtual: "R$ 18,45", dy: "2.1%", precoTeto: "R$ 22,00", vies: "Compra" },
-  { id: "2", ticker: "RECV3", setor: "Varejo", dataEntrada: "20/03/2022", precoEntrada: "R$ 8,45", precoAtual: "R$ 7,92", dy: "1.8%", precoTeto: "R$ 12,00", vies: "Compra" },
-  { id: "3", ticker: "LWSA3", setor: "Logística", dataEntrada: "10/02/2022", precoEntrada: "R$ 12,30", precoAtual: "R$ 15,67", dy: "0.5%", precoTeto: "R$ 18,00", vies: "Compra" },
+// 🎯 SEUS DADOS REAIS DE SMALL CAPS
+const dadosSmallCapsReais = [
+  { id: "1", ticker: "ALOS3", setor: "Shoppings", dataEntrada: "15/01/2021", precoEntrada: "R$ 26,68", precoAtual: "R$ 21,67", dy: "5,95%", precoTeto: "R$ 23,76", vies: "Compra" },
+  { id: "2", ticker: "TUPY3", setor: "Industrial", dataEntrada: "04/11/2020", precoEntrada: "R$ 20,36", precoAtual: "R$ 18,93", dy: "1,71%", precoTeto: "R$ 31,50", vies: "Compra" },
+  { id: "3", ticker: "RECV3", setor: "Petróleo", dataEntrada: "23/07/2023", precoEntrada: "R$ 22,29", precoAtual: "R$ 13,97", dy: "11,07%", precoTeto: "R$ 31,37", vies: "Compra" },
+  { id: "4", ticker: "CSED3", setor: "Educação", dataEntrada: "10/12/2023", precoEntrada: "R$ 4,49", precoAtual: "R$ 5,12", dy: "4,96%", precoTeto: "R$ 8,35", vies: "Compra" },
+  { id: "5", ticker: "PRIO3", setor: "Petróleo", dataEntrada: "04/08/2022", precoEntrada: "R$ 23,35", precoAtual: "R$ 38,80", dy: "0,18%", precoTeto: "R$ 48,70", vies: "Compra" },
+  { id: "6", ticker: "RAPT4", setor: "Industrial", dataEntrada: "16/09/2021", precoEntrada: "R$ 16,69", precoAtual: "R$ 8,25", dy: "4,80%", precoTeto: "R$ 14,00", vies: "Compra" },
+  { id: "7", ticker: "SMTO3", setor: "Sucroenergetico", dataEntrada: "10/11/2022", precoEntrada: "R$ 28,20", precoAtual: "R$ 20,97", dy: "3,51%", precoTeto: "R$ 35,00", vies: "Compra" },
+  { id: "8", ticker: "FESA4", setor: "Commodities", dataEntrada: "11/12/2020", precoEntrada: "R$ 4,49", precoAtual: "R$ 6,92", dy: "5,68%", precoTeto: "R$ 14,07", vies: "Compra" },
+  { id: "9", ticker: "UNIP6", setor: "Químico", dataEntrada: "08/12/2020", precoEntrada: "R$ 42,41", precoAtual: "R$ 61,00", dy: "6,77%", precoTeto: "R$ 117,90", vies: "Compra" },
+  { id: "10", ticker: "FLRY3", setor: "Saúde", dataEntrada: "19/05/2022", precoEntrada: "R$ 14,63", precoAtual: "R$ 12,59", dy: "5,20%", precoTeto: "R$ 17,50", vies: "Compra" },
+  { id: "11", ticker: "EZTC3", setor: "Construção Civil", dataEntrada: "07/10/2022", precoEntrada: "R$ 22,61", precoAtual: "R$ 13,17", dy: "7,83%", precoTeto: "R$ 30,00", vies: "Compra" },
+  { id: "12", ticker: "JALL3", setor: "Sucroenergetico", dataEntrada: "17/06/2022", precoEntrada: "R$ 8,36", precoAtual: "R$ 4,32", dy: "1,15%", precoTeto: "R$ 11,90", vies: "Compra" },
+  { id: "13", ticker: "YDUQ3", setor: "Educação", dataEntrada: "11/11/2020", precoEntrada: "R$ 27,16", precoAtual: "R$ 15,54", dy: "2,64%", precoTeto: "R$ 15,00", vies: "Aguardar" },
+  { id: "14", ticker: "SIMH3", setor: "Logística", dataEntrada: "03/12/2020", precoEntrada: "R$ 7,98", precoAtual: "R$ 4,70", dy: "0,00%", precoTeto: "R$ 10,79", vies: "Compra" },
+  { id: "15", ticker: "ALUP11", setor: "Energia", dataEntrada: "25/11/2020", precoEntrada: "R$ 24,40", precoAtual: "R$ 30,53", dy: "4,46%", precoTeto: "R$ 29,00", vies: "Aguardar" },
+  { id: "16", ticker: "NEOE3", setor: "Energia", dataEntrada: "04/05/2021", precoEntrada: "R$ 15,94", precoAtual: "R$ 24,40", dy: "4,29%", precoTeto: "R$ 21,00", vies: "Aguardar" }
 ];
 
 // 🧮 FUNÇÃO PARA PROCESSAR DADOS E CALCULAR MÉTRICAS
@@ -275,7 +288,7 @@ export function DashboardEducacionalIntegrado() {
   );
   
   const carteiraSmallCaps = React.useMemo(() => 
-    processarCarteira(dadosSmallCapsSimulados, valorSimulacao), [valorSimulacao]
+    processarCarteira(dadosSmallCapsReais, valorSimulacao), [valorSimulacao]
   );
   
   const carteiras = { fiis: carteiraFIIs, 'small-caps': carteiraSmallCaps };
