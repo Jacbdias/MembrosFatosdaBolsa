@@ -420,7 +420,6 @@ console.log("🔍 Primeiro ativo da API:", rows[0]?.ticker, "- Preço atual:", r
 console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
 
   // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
-  const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
   
   const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
 
