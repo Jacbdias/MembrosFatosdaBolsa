@@ -278,9 +278,9 @@ function useFiisPortfolio() {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI - COM TOKEN');
+      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI - COM TOKEN VALIDADO');
 
-      // 🔑 TOKEN BRAPI CONFIGURADO
+      // 🔑 TOKEN BRAPI FUNCIONANDO (TESTADO: ✅)
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
       // 📋 EXTRAIR TODOS OS TICKERS
@@ -297,11 +297,11 @@ function useFiisPortfolio() {
         const lote = tickers.slice(i, i + LOTE_SIZE);
         const tickersString = lote.join(',');
         
-        // 🔑 URL COM TOKEN DE AUTENTICAÇÃO
+        // 🔑 URL COM TOKEN DE AUTENTICAÇÃO VALIDADO
         const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
         
         console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
-        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO')}`);
+        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_FUNCIONANDO')}`);
 
         try {
           const response = await fetch(apiUrl, {
@@ -446,7 +446,7 @@ function useFiisPortfolio() {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(`Erro na API: ${errorMessage}`);
+      setError(errorMessage);
       console.error('❌ Erro geral ao buscar cotações:', err);
       
       // 🔄 FALLBACK: USAR DADOS ESTÁTICOS
@@ -486,12 +486,12 @@ function useFiisPortfolio() {
 
 export default function Page(): React.JSX.Element {
   console.log("🔥 PÁGINA SETTINGS (FIIs) CARREGADA!");
-  console.log("🎯 USANDO SettingsTable COM EMPRESAS CORRETAS");
+  console.log("🎯 USANDO SettingsTable COM EMPRESAS CORRETAS E TOKEN VALIDADO");
 
   // 🔥 DADOS REAIS DO MERCADO
   const { marketData, loading: marketLoading, error: marketError, refetch: refetchMarket } = useFinancialData();
   
-  // 🔥 DADOS REAIS DOS FIIs COM API BRAPI
+  // 🔥 DADOS REAIS DOS FIIs COM API BRAPI AUTENTICADA
   const { portfolio: fiisPortfolio, loading: portfolioLoading, error: portfolioError, refetch: refetchPortfolio } = useFiisPortfolio();
 
   // DADOS PADRÃO CASO A API FALHE
@@ -631,7 +631,7 @@ export default function Page(): React.JSX.Element {
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <CircularProgress size={40} />
             <Box ml={2} sx={{ fontSize: '1.1rem' }}>
-              🏢 Carregando carteira de FIIs...
+              🏢 Carregando carteira de FIIs com cotações reais...
             </Box>
           </Box>
         </Grid>
@@ -671,7 +671,7 @@ export default function Page(): React.JSX.Element {
       {!hasError && marketData && fiisPortfolio.length > 0 && (
         <Grid xs={12}>
           <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Carteira de FIIs atualizada com sucesso - Cotações reais do mercado
+            ✅ Carteira de FIIs atualizada com sucesso - Cotações reais do mercado via BRAPI
           </Alert>
         </Grid>
       )}
@@ -683,7 +683,7 @@ export default function Page(): React.JSX.Element {
       <Grid xs={12}>
         <SettingsTable 
           count={fiisPortfolio.length} 
-          rows={fiisPortfolio} // 🔥 DADOS REAIS DOS FIIs COM API BRAPI!
+          rows={fiisPortfolio} // 🔥 DADOS REAIS DOS FIIs COM API BRAPI AUTENTICADA!
           page={0} 
           rowsPerPage={5}
           cardsData={dadosCards} // 🔥 CARDS COM IFIX CALCULADO!
