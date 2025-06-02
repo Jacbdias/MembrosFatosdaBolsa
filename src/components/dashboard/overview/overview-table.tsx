@@ -188,9 +188,10 @@ export function OverviewTable({
 }: OverviewTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
+  // 🔥 VALORES CORRIGIDOS - AGORA SEM ABREVIAÇÕES
   const defaultCards = {
-    ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
-    indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
+    ibovespa: { value: "137.456", trend: "up" as const, diff: 0.2 },
+    indiceSmall: { value: "2.124", trend: "up" as const, diff: 0.24 },
     carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
     dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
