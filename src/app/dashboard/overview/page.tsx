@@ -253,7 +253,7 @@ function useBrapiCotacoesValidadas() {
               const quote = apiData.results[0];
               console.log(`✅ ${ticker}: R$ ${quote.regularMarketPrice} (${quote.shortName})`);
               
-              if (quote.regularMarketPrice && quote.regularMarketPrice > 0) {
+              if (quote.regularMarketPrice != null && !isNaN(quote.regularMarketPrice) && quote.regularMarketPrice > 0) {
                 cotacoesMap.set(ticker, {
                   precoAtual: quote.regularMarketPrice,
                   variacao: quote.regularMarketChange || 0,
@@ -314,7 +314,7 @@ function useBrapiCotacoesValidadas() {
         const cotacao = cotacoesMap.get(ativo.tickerBrapi);
         const precoEntradaNum = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
         
-        if (cotacao && cotacao.precoAtual > 0) {
+        if (cotacao && cotacao.precoAtual != null && !isNaN(cotacao.precoAtual) && cotacao.precoAtual > 0) {
           const precoAtualNum = cotacao.precoAtual;
           const precoAtualFormatado = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
           const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
@@ -366,10 +366,10 @@ function useBrapiCotacoesValidadas() {
 
       if (sucessosTotal === 0) {
         setError('Nenhuma cotação foi obtida da Brapi');
-      } else if (sucessosTotal < ativosComCotacoes.length / 2) {
+      } else if (sucessosTotal < ativosComCotacoes.length / 3) { // Mudado de /2 para /3
         setError(`Apenas ${sucessosTotal} de ${ativosComCotacoes.length} ações atualizadas`);
       } else {
-        setError(null);
+        setError(null); // Limpar erro se teve sucesso suficiente
       }
 
     } catch (err) {
