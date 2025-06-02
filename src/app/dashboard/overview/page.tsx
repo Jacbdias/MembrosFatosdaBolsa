@@ -555,7 +555,7 @@ export default function Page(): React.JSX.Element {
           rows={ativosAtualizados}
           page={0} 
           rowsPerPage={5}
-          cardsData={dadosCards}  {/* 🔥 DADOS SERÃO EXPANDIDOS AUTOMATICAMENTE NO COMPONENTE */}
+          cardsData={dadosCards}
         />
       </Grid>
     </Grid>
