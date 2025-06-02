@@ -32,46 +32,32 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-// 🔧 FUNÇÃO PARA EXPANDIR VALORES ABREVIADOS VINDOS DA API
-function expandirValorAbreviado(value: string): string {
+// 🔧 FUNÇÃO DINÂMICA PARA EXPANDIR VALORES - SEM HARDCODE
+function expandirValorAbreviadoDinamico(value: string, ibovespaReal?: any): string {
   // Se o valor já é uma porcentagem, retorna como está
   if (value.includes('%')) {
     return value;
   }
   
-  // Converter abreviações para valores completos
   const valueStr = value.toString().toLowerCase();
   
-  // 🎯 VALORES ESPECÍFICOS HARDCODED PARA PRECISÃO
-  if (value === "140109") return "140.109";  // Ibovespa preciso
-  if (value === "3200") return "3.200";      // IFIX preciso
-  
-  // 💰 IBOVESPA: Se contém 'k' e é um valor grande (>100k), usar formato mais preciso
+  // 💰 SE CONTÉM 'K' - USAR DADOS REAIS DO IBOVESPA QUANDO APLICÁVEL
   if (valueStr.includes('k')) {
     const numero = parseFloat(valueStr.replace('k', '').replace(',', '.'));
     if (!isNaN(numero)) {
       const valorCompleto = numero * 1000;
       
-      // 🎯 VALORES ESPECIAIS: Para o Ibovespa, usar valor mais preciso
-      if (numero >= 135 && numero <= 145) {
-        // Se é um valor próximo ao Ibovespa atual (140k), usar valor mais preciso
-        return "140.109"; // Valor real da BRAPI
-      } else if (numero >= 3 && numero <= 4) {
-        // Se é um valor próximo ao IFIX (3k), usar valor mais preciso
-        return "3.200"; // Valor estimado do IFIX
-      } else if (valorCompleto >= 100000) {
-        // Para outros valores grandes, manter alguma precisão
-        return valorCompleto.toLocaleString('pt-BR', { 
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0 
-        });
-      } else {
-        // Para valores menores
-        return valorCompleto.toLocaleString('pt-BR', { 
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0 
-        });
+      // 🎯 SE É UM VALOR PRÓXIMO AO IBOVESPA E TEMOS DADOS REAIS
+      if (numero >= 130 && numero <= 150 && ibovespaReal && ibovespaReal.valorFormatado) {
+        console.log(`🔄 Convertendo ${value} para Ibovespa real: ${ibovespaReal.valorFormatado}`);
+        return ibovespaReal.valorFormatado;
       }
+      
+      // Para outros valores, conversão normal
+      return valorCompleto.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0 
+      });
     }
   }
   
@@ -99,7 +85,7 @@ function expandirValorAbreviado(value: string): string {
     }
   }
   
-  // Se é um número simples grande (>= 1000), formatar com pontos brasileiros
+  // Se é um número simples grande, formatar
   const numeroSimples = parseFloat(value.replace(/\./g, '').replace(',', '.'));
   if (!isNaN(numeroSimples) && numeroSimples >= 1000) {
     return numeroSimples.toLocaleString('pt-BR', { 
@@ -108,7 +94,6 @@ function expandirValorAbreviado(value: string): string {
     });
   }
   
-  // Se não tem abreviação, retorna o valor original
   return value;
 }
 
@@ -118,16 +103,33 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
+  ibovespaReal?: any;
 }
 
-// 🎨 CARD ESTATÍSTICO REDESENHADO COM DESIGN LIMPO
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
+// 🎨 CARD ESTATÍSTICO COM DADOS DINÂMICOS DO IBOVESPA
+function StatCard({ title, value, icon, trend, diff, ibovespaReal }: StatCardProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   const topBorderColor = trend === 'up' ? '#10b981' : '#ef4444';
   
-  // 🔥 APLICAR EXPANSÃO DE VALORES ABREVIADOS AQUI
-  const valorExpandido = expandirValorAbreviado(value);
+  // 🔥 USAR DADOS REAIS DO IBOVESPA SE DISPONÍVEL
+  let valorFinal = value;
+  let trendFinal = trend;
+  let diffFinal = diff;
+  
+  if (title === 'IBOVESPA' && ibovespaReal) {
+    valorFinal = ibovespaReal.valorFormatado;
+    trendFinal = ibovespaReal.trend;
+    diffFinal = ibovespaReal.variacaoPercent;
+    console.log(`🎯 IBOVESPA ATUALIZADO: ${valorFinal} (${trendFinal}) ${diffFinal}%`);
+  } else {
+    // Para outros cards, usar expansão dinâmica
+    valorFinal = expandirValorAbreviadoDinamico(value, ibovespaReal);
+  }
+  
+  const TrendIconFinal = trendFinal === 'up' ? ArrowUpIcon : ArrowDownIcon;
+  const trendColorFinal = trendFinal === 'up' ? '#10b981' : '#ef4444';
+  const topBorderColorFinal = trendFinal === 'up' ? '#10b981' : '#ef4444';
   
   return (
     <Card 
@@ -145,7 +147,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
           left: 0,
           right: 0,
           height: '3px',
-          backgroundColor: topBorderColor,
+          backgroundColor: topBorderColorFinal,
         }
       }}
     >
@@ -179,7 +181,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Box>
           </Stack>
           
-          {/* Valor principal - AGORA EXPANDIDO */}
+          {/* Valor principal - AGORA DINÂMICO */}
           <Typography 
             variant="h4" 
             sx={{ 
@@ -189,11 +191,11 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
               lineHeight: 1
             }}
           >
-            {valorExpandido}
+            {valorFinal}
           </Typography>
           
-          {/* Indicador de tendência */}
-          {diff !== undefined && trend && (
+          {/* Indicador de tendência - AGORA DINÂMICO */}
+          {diffFinal !== undefined && trendFinal && (
             <Stack direction="row" alignItems="center" spacing={1}>
               <Box sx={{
                 display: 'flex',
@@ -202,20 +204,20 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
                 width: 20,
                 height: 20,
                 borderRadius: '50%',
-                backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
-                color: trendColor
+                backgroundColor: trendFinal === 'up' ? '#dcfce7' : '#fee2e2',
+                color: trendColorFinal
               }}>
-                <TrendIcon size={12} weight="bold" />
+                <TrendIconFinal size={12} weight="bold" />
               </Box>
               <Typography 
                 variant="body2"
                 sx={{ 
-                  color: trendColor,
+                  color: trendColorFinal,
                   fontWeight: 600,
                   fontSize: '0.875rem'
                 }}
               >
-                {diff > 0 ? '+' : ''}{diff}%
+                {diffFinal > 0 ? '+' : ''}{typeof diffFinal === 'number' ? diffFinal.toFixed(2) : diffFinal}%
               </Typography>
               <Typography 
                 variant="body2"
@@ -260,6 +262,7 @@ interface OverviewTableProps {
     ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
+  ibovespaReal?: any;
 }
 
 export function OverviewTable({
@@ -268,20 +271,21 @@ export function OverviewTable({
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
+  ibovespaReal
 }: OverviewTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // 🔥 VALORES PADRÃO ATUALIZADOS COM DADOS REAIS DA BRAPI (CASO A API FALHE COMPLETAMENTE)
+  // 🔥 VALORES PADRÃO ATUALIZADOS (FALLBACK)
   const defaultCards = {
-    ibovespa: { value: "140.109", trend: "up" as const, diff: 0.34 },  // 💰 Valor real da BRAPI: 140.109,62
-    indiceSmall: { value: "3.200", trend: "up" as const, diff: 0.24 }, // 📊 IFIX estimado em 3.200 pontos
+    ibovespa: { value: "136985", trend: "down" as const, diff: -0.02 },
+    indiceSmall: { value: "3200", trend: "up" as const, diff: 0.24 },
     carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
     dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
-  // 🔧 COMBINAR DADOS - A EXPANSÃO ACONTECE NO COMPONENTE StatCard
+  // 🔧 COMBINAR DADOS
   const cards = { ...defaultCards, ...cardsData };
 
   return (
@@ -305,14 +309,16 @@ export function OverviewTable({
           value={cards.ibovespa.value} 
           icon={<CurrencyDollarIcon />} 
           trend={cards.ibovespa.trend} 
-          diff={cards.ibovespa.diff} 
+          diff={cards.ibovespa.diff}
+          ibovespaReal={ibovespaReal}
         />
         <StatCard 
           title="ÍNDICE SMALL" 
           value={cards.indiceSmall.value} 
           icon={<UsersThreeIcon />} 
           trend={cards.indiceSmall.trend} 
-          diff={cards.indiceSmall.diff} 
+          diff={cards.indiceSmall.diff}
+          ibovespaReal={ibovespaReal}
         />
         <StatCard 
           title="CARTEIRA HOJE" 
@@ -320,6 +326,7 @@ export function OverviewTable({
           icon={<ListBulletsIcon />}
           trend={cards.carteiraHoje.trend}
           diff={cards.carteiraHoje.diff}
+          ibovespaReal={ibovespaReal}
         />
         <StatCard 
           title="DIVIDEND YIELD" 
@@ -327,20 +334,23 @@ export function OverviewTable({
           icon={<ChartBarIcon />}
           trend={cards.dividendYield.trend}
           diff={cards.dividendYield.diff}
+          ibovespaReal={ibovespaReal}
         />
         <StatCard 
           title="IBOVESPA PERÍODO" 
           value={cards.ibovespaPeriodo.value} 
           icon={<CurrencyDollarIcon />} 
           trend={cards.ibovespaPeriodo.trend} 
-          diff={cards.ibovespaPeriodo.diff} 
+          diff={cards.ibovespaPeriodo.diff}
+          ibovespaReal={ibovespaReal}
         />
         <StatCard 
           title="CARTEIRA PERÍODO" 
           value={cards.carteiraPeriodo.value} 
           icon={<ChartBarIcon />} 
           trend={cards.carteiraPeriodo.trend} 
-          diff={cards.carteiraPeriodo.diff} 
+          diff={cards.carteiraPeriodo.diff}
+          ibovespaReal={ibovespaReal}
         />
       </Box>
       
@@ -363,7 +373,7 @@ export function OverviewTable({
             color: '#1e293b',
             fontSize: '1.1rem'
           }}>
-            📊 Carteira de Small Caps
+            📊 Carteira de Ações
           </Typography>
           <Typography variant="body2" sx={{ 
             color: '#64748b',
@@ -374,7 +384,7 @@ export function OverviewTable({
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '800px' }}>
+          <Table sx={{ minWidth: '1200px' }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -382,7 +392,7 @@ export function OverviewTable({
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
-                  width: '80px',
+                  width: '60px',
                   color: '#475569',
                   fontSize: '0.8rem',
                   textTransform: 'uppercase',
@@ -390,18 +400,101 @@ export function OverviewTable({
                 }}>
                   #
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Ativo</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Setor</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Preço Inicial</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>DY</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Teto</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: 'center', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase' }}>Viés</TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '200px',
+                  minWidth: '200px'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '120px',
+                  minWidth: '120px'
+                }}>
+                  Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '100px',
+                  minWidth: '100px'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '110px',
+                  minWidth: '110px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '110px',
+                  minWidth: '110px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '80px',
+                  minWidth: '80px'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '110px',
+                  minWidth: '110px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '100px',
+                  minWidth: '100px'
+                }}>
+                  Viés
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((row, index) => {
+                // 🎯 LÓGICA CORRETA DO VIÉS: Preço Atual < Preço Teto = COMPRA
                 const calcularVies = (precoTeto: string, precoAtual: string) => {
                   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
                   const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
@@ -410,7 +503,8 @@ export function OverviewTable({
                     return 'Aguardar';
                   }
                   
-                  return precoTetoNum > precoAtualNum ? 'Compra' : 'Aguardar';
+                  // 🎯 LÓGICA CORRETA: Preço Atual < Preço Teto = COMPRA (ação está barata)
+                  return precoAtualNum < precoTetoNum ? 'Compra' : 'Aguardar';
                 };
                 
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
@@ -488,35 +582,40 @@ export function OverviewTable({
                     <TableCell sx={{ 
                       textAlign: 'center',
                       color: '#64748b',
-                      fontSize: '0.85rem'
+                      fontSize: '0.85rem',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.dataEntrada}
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 600,
-                      color: '#475569'
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.precoEntrada}
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 700,
-                      color: performance >= 0 ? '#10b981' : '#ef4444'
+                      color: performance >= 0 ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.precoAtual}
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 600,
-                      color: '#6366f1'
+                      color: '#6366f1',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.dy}
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 600,
-                      color: '#475569'
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.precoTeto}
                     </TableCell>
