@@ -233,19 +233,20 @@ function useBrapiCotacoes() {
       const tickers = ativosBase.map(ativo => ativo.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 BUSCAR EM LOTES PARA EVITAR RATE LIMITING
-      const LOTE_SIZE = 4;
+      // 🔄 TESTAR CADA TICKER INDIVIDUALMENTE PARA IDENTIFICAR PROBLEMAS
       const cotacoesMap = new Map();
       let sucessosTotal = 0;
       let falhasTotal = 0;
+      const tickersProblematicos = [];
 
-      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
-        const lote = tickers.slice(i, i + LOTE_SIZE);
-        const tickersString = lote.join(',');
+      console.log('\n🧪 === TESTANDO CADA TICKER INDIVIDUALMENTE ===');
+
+      for (let i = 0; i < tickers.length; i++) {
+        const ticker = tickers[i];
+        const apiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
         
-        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}`;
-        
-        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+        console.log(`\n🔍 [${i+1}/${tickers.length}] Testando: ${ticker}`);
+        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO')}`);
 
         try {
           const response = await fetch(apiUrl, {
@@ -257,42 +258,90 @@ function useBrapiCotacoes() {
             }
           });
 
+          console.log(`📊 Status HTTP: ${response.status} ${response.statusText}`);
+
           if (response.ok) {
             const apiData = await response.json();
-            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+            console.log(`📋 Resposta completa:`, apiData);
 
-            if (apiData.results && Array.isArray(apiData.results)) {
-              apiData.results.forEach((quote: any) => {
-                console.log(`🔍 Processando: ${quote.symbol}`);
-                console.log(`💰 Preço: ${quote.regularMarketPrice}`);
-                
-                if (quote.symbol && quote.regularMarketPrice != null && quote.regularMarketPrice > 0) {
-                  cotacoesMap.set(quote.symbol, {
-                    precoAtual: quote.regularMarketPrice,
-                    variacao: quote.regularMarketChange || 0,
-                    variacaoPercent: quote.regularMarketChangePercent || 0,
-                    volume: quote.regularMarketVolume || 0,
-                    dadosCompletos: quote
-                  });
-                  sucessosTotal++;
-                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
-                } else {
-                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos`);
-                  falhasTotal++;
-                }
-              });
+            if (apiData.results && Array.isArray(apiData.results) && apiData.results.length > 0) {
+              const quote = apiData.results[0];
+              console.log(`🔍 Dados do ticker ${ticker}:`);
+              console.log(`   Symbol: ${quote.symbol}`);
+              console.log(`   Preço: ${quote.regularMarketPrice}`);
+              console.log(`   Nome: ${quote.shortName}`);
+              console.log(`   Moeda: ${quote.currency}`);
+              
+              if (quote.symbol && quote.regularMarketPrice != null && quote.regularMarketPrice > 0) {
+                cotacoesMap.set(quote.symbol, {
+                  precoAtual: quote.regularMarketPrice,
+                  variacao: quote.regularMarketChange || 0,
+                  variacaoPercent: quote.regularMarketChangePercent || 0,
+                  volume: quote.regularMarketVolume || 0,
+                  dadosCompletos: quote
+                });
+                sucessosTotal++;
+                console.log(`✅ ${ticker}: R$ ${quote.regularMarketPrice} - SUCESSO!`);
+              } else {
+                console.warn(`⚠️ ${ticker}: Dados inválidos - preço: ${quote.regularMarketPrice}`);
+                falhasTotal++;
+                tickersProblematicos.push(`${ticker} (dados inválidos)`);
+              }
+            } else {
+              console.warn(`⚠️ ${ticker}: Resposta sem results ou array vazio`);
+              console.warn(`   Results:`, apiData.results);
+              falhasTotal++;
+              tickersProblematicos.push(`${ticker} (sem results)`);
             }
           } else {
-            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
-            falhasTotal += lote.length;
+            console.error(`❌ ${ticker}: Erro HTTP ${response.status}`);
+            
+            try {
+              const errorText = await response.text();
+              console.error(`📄 Erro detalhado:`, errorText);
+              
+              if (errorText.includes('não encontramos')) {
+                tickersProblematicos.push(`${ticker} (não encontrado na Brapi)`);
+              } else if (errorText.includes('limite')) {
+                tickersProblematicos.push(`${ticker} (rate limit)`);
+              } else {
+                tickersProblematicos.push(`${ticker} (erro HTTP ${response.status})`);
+              }
+            } catch (e) {
+              console.error(`📄 Erro ao ler resposta de erro:`, e);
+              tickersProblematicos.push(`${ticker} (erro de resposta)`);
+            }
+            
+            falhasTotal++;
           }
-        } catch (loteError) {
-          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
-          falhasTotal += lote.length;
+        } catch (tickerError) {
+          console.error(`❌ ${ticker}: Erro de rede:`, tickerError);
+          falhasTotal++;
+          tickersProblematicos.push(`${ticker} (erro de rede)`);
         }
 
-        // DELAY entre requisições
-        await new Promise(resolve => setTimeout(resolve, 600));
+        // DELAY entre cada ticker para evitar rate limiting
+        if (i < tickers.length - 1) { // Não fazer delay no último
+          console.log(`⏱️ Aguardando 800ms...`);
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+      }
+
+      // LOG FINAL DOS PROBLEMAS
+      console.log('\n📊 === RESULTADOS DO TESTE INDIVIDUAL ===');
+      console.log(`✅ Sucessos: ${sucessosTotal}`);
+      console.log(`❌ Falhas: ${falhasTotal}`);
+      
+      if (tickersProblematicos.length > 0) {
+        console.log('\n🚨 TICKERS PROBLEMÁTICOS:');
+        tickersProblematicos.forEach(problema => console.log(`   • ${problema}`));
+      }
+      
+      if (cotacoesMap.size > 0) {
+        console.log('\n✅ COTAÇÕES ENCONTRADAS:');
+        Array.from(cotacoesMap.entries()).forEach(([ticker, dados]) => {
+          console.log(`   • ${ticker}: R$ ${dados.precoAtual}`);
+        });
       }
 
       console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
