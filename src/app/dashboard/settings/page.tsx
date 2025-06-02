@@ -207,117 +207,164 @@ const ativosBase = [
   },
 ];
 
-// 🎯 HOOK PARA BUSCAR COTAÇÕES DIRETAMENTE DA BRAPI (SEM API ROUTE)
+// 🎯 HOOK OTIMIZADO PARA BUSCAR COTAÇÕES DA BRAPI
 function useBrapiQuotesDireto() {
   const [portfolio, setPortfolio] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = React.useState<string>('');
+  const [debugInfo, setDebugInfo] = React.useState<any>({});
 
   const fetchQuotes = React.useCallback(async () => {
+    const startTime = performance.now();
+    
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 BUSCANDO COTAÇÕES DIRETO DA BRAPI (FRONTEND)');
+      console.log('🚀 INICIANDO BUSCA DE COTAÇÕES DA BRAPI');
+      console.log(`📅 Timestamp: ${new Date().toISOString()}`);
 
-      // 🔑 TOKEN BRAPI FUNCIONANDO (MESMO DO LOG DE BUILD)
+      // 🔑 TOKEN BRAPI VALIDADO
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
-      // 📋 EXTRAIR TODOS OS TICKERS DOS ATIVOS
+      // 📋 EXTRAIR TODOS OS TICKERS
       const tickers = ativosBase.map(ativo => ativo.ticker);
-      console.log('🎯 Tickers para buscar:', tickers.join(', '));
+      console.log(`🎯 ${tickers.length} Tickers para buscar:`, tickers.join(', '));
 
-      // 🔄 BUSCAR EM LOTES MENORES COM DELAY (MESMO PADRÃO DOS FIIS)
-      const LOTE_SIZE = 5;
+      // 🔄 BUSCAR EM LOTES MENORES - OTIMIZADO
+      const LOTE_SIZE = 4; // Reduzido para 4 para ser mais conservador
       const cotacoesMap = new Map();
       let sucessosTotal = 0;
       let falhasTotal = 0;
+      const detalhesDebug = [];
 
       for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
         const lote = tickers.slice(i, i + LOTE_SIZE);
         const tickersString = lote.join(',');
+        const loteNum = Math.floor(i/LOTE_SIZE) + 1;
         
-        // 🔑 URL DIRETA PARA BRAPI (SEM USAR SUA API ROUTE)
-        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d`;
+        // 🔑 URL OTIMIZADA
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}`;
         
-        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+        console.log(`\n🔍 === LOTE ${loteNum}/${Math.ceil(tickers.length/LOTE_SIZE)} ===`);
+        console.log(`📋 Tickers: ${lote.join(', ')}`);
+        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO')}`);
 
         try {
           const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Acoes-Portfolio-Frontend'
+              'User-Agent': 'Portfolio-App',
+              'Cache-Control': 'no-cache'
             }
           });
 
+          console.log(`📊 Status HTTP: ${response.status} ${response.statusText}`);
+
           if (response.ok) {
             const apiData = await response.json();
-            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+            console.log(`✅ Dados recebidos:`, apiData);
+
+            const loteInfo = {
+              lote: loteNum,
+              tickers: lote,
+              status: response.status,
+              resultados: 0,
+              dados: apiData
+            };
 
             if (apiData.results && Array.isArray(apiData.results)) {
-              apiData.results.forEach((quote: any) => {
-                console.log(`🔍 Processando: ${quote.symbol}`);
+              console.log(`📈 Processando ${apiData.results.length} resultados:`);
+              
+              apiData.results.forEach((quote: any, index: number) => {
+                console.log(`\n--- RESULTADO ${index + 1} ---`);
+                console.log(`🏢 Symbol: ${quote.symbol}`);
                 console.log(`💰 Preço: ${quote.regularMarketPrice}`);
                 console.log(`📈 Variação: ${quote.regularMarketChangePercent}%`);
+                console.log(`📅 Última atualização: ${quote.regularMarketTime}`);
                 
-                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
+                if (quote.symbol && quote.regularMarketPrice != null && quote.regularMarketPrice > 0) {
                   cotacoesMap.set(quote.symbol, {
                     precoAtual: quote.regularMarketPrice,
                     variacao: quote.regularMarketChange || 0,
                     variacaoPercent: quote.regularMarketChangePercent || 0,
                     volume: quote.regularMarketVolume || 0,
+                    tempo: quote.regularMarketTime,
                     dadosCompletos: quote
                   });
                   sucessosTotal++;
-                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
+                  loteInfo.resultados++;
+                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice} - PROCESSADO`);
                 } else {
-                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
+                  console.warn(`⚠️ ${quote.symbol || 'UNKNOWN'}: Dados inválidos`);
+                  console.warn(`   Preço: ${quote.regularMarketPrice}`);
+                  console.warn(`   Tipo preço: ${typeof quote.regularMarketPrice}`);
                   falhasTotal++;
                 }
               });
+            } else {
+              console.warn(`⚠️ Lote ${loteNum}: Sem array 'results' na resposta`);
+              falhasTotal += lote.length;
             }
+
+            detalhesDebug.push(loteInfo);
+
           } else {
-            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+            console.error(`❌ Erro HTTP ${response.status} para lote ${loteNum}`);
             
-            // LOG DA RESPOSTA DE ERRO
-            const errorText = await response.text();
-            console.error('📄 Resposta de erro:', errorText);
+            try {
+              const errorText = await response.text();
+              console.error(`📄 Resposta de erro:`, errorText);
+            } catch (e) {
+              console.error(`📄 Erro ao ler resposta de erro:`, e);
+            }
             
             falhasTotal += lote.length;
           }
         } catch (loteError) {
-          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
+          console.error(`❌ Erro de rede no lote ${loteNum}:`, loteError);
           falhasTotal += lote.length;
         }
 
-        // DELAY entre requisições para evitar rate limiting
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // DELAY PROGRESSIVO - mais conservador
+        const delay = 800; // 800ms entre lotes
+        console.log(`⏱️ Aguardando ${delay}ms antes do próximo lote...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+      const endTime = performance.now();
+      const tempoTotal = Math.round(endTime - startTime);
 
-      // 🔥 COMBINAR DADOS BASE COM COTAÇÕES REAIS
+      console.log(`\n📊 === ESTATÍSTICAS FINAIS ===`);
+      console.log(`✅ Sucessos: ${sucessosTotal}`);
+      console.log(`❌ Falhas: ${falhasTotal}`);
+      console.log(`⏱️ Tempo total: ${tempoTotal}ms`);
+      console.log(`🗺️ Cotações encontradas:`, Array.from(cotacoesMap.keys()));
+
+      // 🔥 PROCESSAR DADOS FINAIS
       const portfolioAtualizado = ativosBase.map((ativo) => {
         const cotacao = cotacoesMap.get(ativo.ticker);
         const precoEntradaNum = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
         
-        console.log(`\n🔄 Processando ${ativo.ticker}:`);
-        console.log(`💵 Preço entrada: R$ ${precoEntradaNum}`);
+        console.log(`\n🔄 === PROCESSANDO ${ativo.ticker} ===`);
+        console.log(`💵 Preço entrada: R$ ${precoEntradaNum.toFixed(2)}`);
         
         if (cotacao && cotacao.precoAtual > 0) {
-          // 📊 PREÇO E PERFORMANCE REAIS
           const precoAtualNum = cotacao.precoAtual;
           const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
           
-          console.log(`💰 Preço atual: R$ ${precoAtualNum}`);
+          console.log(`💰 Preço atual (API): R$ ${precoAtualNum.toFixed(2)}`);
           console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          console.log(`🎯 Preço teto: ${ativo.precoTeto}`);
           
-          // VALIDAR SE O PREÇO FAZ SENTIDO (não pode ser muito diferente)
+          // VERIFICAÇÃO DE SANIDADE DOS DADOS
           const diferencaPercent = Math.abs(performance);
-          if (diferencaPercent > 500) {
-            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+          if (diferencaPercent > 300) { // Reduzido de 500 para 300
+            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}%`);
+            console.warn(`🚨 Usando preço de entrada como fallback`);
+            
             return {
               ...ativo,
               precoAtual: ativo.precoEntrada,
@@ -327,9 +374,17 @@ function useBrapiQuotesDireto() {
               volume: 0,
               vies: calcularViesAutomatico(ativo.precoTeto, precoEntradaNum),
               dy: ativo.dy,
-              statusApi: 'suspicious_price'
+              statusApi: 'suspicious_price',
+              ultimaAtualizacao: new Date().toISOString()
             };
           }
+          
+          const viasCalculado = calcularViesAutomatico(ativo.precoTeto, precoAtualNum);
+          const dyAtualizado = calcularDYAtualizado(ativo.dy, ativo.precoEntrada, precoAtualNum);
+          
+          console.log(`🎯 Viés calculado: ${viasCalculado}`);
+          console.log(`💎 DY atualizado: ${dyAtualizado}`);
+          console.log(`✅ ${ativo.ticker}: DADOS ATUALIZADOS COM SUCESSO!`);
           
           return {
             ...ativo,
@@ -338,13 +393,14 @@ function useBrapiQuotesDireto() {
             variacao: cotacao.variacao,
             variacaoPercent: cotacao.variacaoPercent,
             volume: cotacao.volume,
-            vies: calcularViesAutomatico(ativo.precoTeto, precoAtualNum),
-            dy: calcularDYAtualizado(ativo.dy, ativo.precoEntrada, precoAtualNum),
-            statusApi: 'success'
+            vies: viasCalculado,
+            dy: dyAtualizado,
+            statusApi: 'success',
+            ultimaAtualizacao: cotacao.tempo || new Date().toISOString()
           };
         } else {
-          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
-          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
+          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida na API`);
+          console.warn(`⚠️ Usando dados de entrada como fallback`);
           
           return {
             ...ativo,
@@ -355,38 +411,49 @@ function useBrapiQuotesDireto() {
             volume: 0,
             vies: calcularViesAutomatico(ativo.precoTeto, precoEntradaNum),
             dy: ativo.dy,
-            statusApi: 'not_found'
+            statusApi: 'not_found',
+            ultimaAtualizacao: new Date().toISOString()
           };
         }
       });
 
-      // 📊 ESTATÍSTICAS FINAIS
-      const sucessos = portfolioAtualizado.filter(a => a.statusApi === 'success').length;
-      const suspeitos = portfolioAtualizado.filter(a => a.statusApi === 'suspicious_price').length;
-      const naoEncontrados = portfolioAtualizado.filter(a => a.statusApi === 'not_found').length;
-      
-      console.log('\n📊 ESTATÍSTICAS FINAIS:');
-      console.log(`✅ Sucessos: ${sucessos}/${portfolioAtualizado.length}`);
-      console.log(`🚨 Preços suspeitos: ${suspeitos}/${portfolioAtualizado.length}`);
-      console.log(`❌ Não encontrados: ${naoEncontrados}/${portfolioAtualizado.length}`);
+      // SALVAR INFORMAÇÕES DE DEBUG
+      const debugData = {
+        timestamp: new Date().toISOString(),
+        tempoExecucao: tempoTotal,
+        sucessos: sucessosTotal,
+        falhas: falhasTotal,
+        totalAtivos: ativosBase.length,
+        detalhesLotes: detalhesDebug,
+        cotacoesEncontradas: Array.from(cotacoesMap.entries())
+      };
 
+      setDebugInfo(debugData);
       setPortfolio(portfolioAtualizado);
       setLastUpdate(new Date().toLocaleString('pt-BR'));
 
-      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
-      if (sucessos < portfolioAtualizado.length / 2) {
-        setError(`Apenas ${sucessos} de ${portfolioAtualizado.length} ações com cotação válida`);
-      } else if (suspeitos > 0) {
-        setError(`${suspeitos} ações com preços suspeitos foram ignorados`);
+      // DEFINIR MENSAGENS DE ERRO BASEADAS NA QUALIDADE DOS DADOS
+      if (sucessosTotal === 0) {
+        setError('Nenhuma cotação foi obtida da API Brapi');
+      } else if (sucessosTotal < portfolioAtualizado.length / 2) {
+        setError(`Apenas ${sucessosTotal} de ${portfolioAtualizado.length} ações atualizadas`);
+      } else {
+        setError(null); // Limpar erro se teve sucesso suficiente
       }
+
+      console.log(`\n🎉 === PROCESSAMENTO CONCLUÍDO ===`);
+      console.log(`📊 Portfolio atualizado com ${portfolioAtualizado.length} ativos`);
+      console.log(`✅ ${sucessosTotal} cotações atualizadas com sucesso`);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(errorMessage);
-      console.error('❌ Erro geral ao buscar cotações:', err);
+      console.error('❌ ERRO GERAL:', errorMessage);
+      console.error('❌ Stack trace:', err);
       
-      // 🔄 FALLBACK: USAR DADOS ESTÁTICOS
-      console.log('🔄 Usando fallback completo com preços de entrada...');
+      setError(`Erro na API: ${errorMessage}`);
+      
+      // FALLBACK COMPLETO
+      console.log('🔄 Aplicando fallback completo...');
       const portfolioFallback = ativosBase.map(ativo => {
         const precoEntradaNum = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
         return {
@@ -398,38 +465,46 @@ function useBrapiQuotesDireto() {
           volume: 0,
           vies: calcularViesAutomatico(ativo.precoTeto, precoEntradaNum),
           dy: ativo.dy,
-          statusApi: 'error'
+          statusApi: 'error',
+          ultimaAtualizacao: new Date().toISOString()
         };
       });
       setPortfolio(portfolioFallback);
     } finally {
       setLoading(false);
+      console.log('🏁 Hook finalizado');
     }
   }, []);
 
-  // Buscar cotações ao montar o componente
+  // EXECUTAR AO MONTAR
   React.useEffect(() => {
+    console.log('🚀 Montando componente - iniciando busca de cotações');
     fetchQuotes();
 
-    // ATUALIZAR A CADA 5 MINUTOS
-    const interval = setInterval(fetchQuotes, 5 * 60 * 1000);
+    // ATUALIZAR A CADA 3 MINUTOS (reduzido de 5 para 3)
+    const interval = setInterval(() => {
+      console.log('🔄 Intervalo de atualização ativado');
+      fetchQuotes();
+    }, 3 * 60 * 1000);
     
-    return () => clearInterval(interval);
+    return () => {
+      console.log('🛑 Limpando intervalo de atualização');
+      clearInterval(interval);
+    };
   }, [fetchQuotes]);
 
-  return { portfolio, loading, error, refetch: fetchQuotes, lastUpdate };
+  return { portfolio, loading, error, refetch: fetchQuotes, lastUpdate, debugInfo };
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🔥 PÁGINA OVERVIEW (AÇÕES) - USANDO BRAPI DIRETO NO FRONTEND");
+  console.log("🔥 === PÁGINA OVERVIEW (AÇÕES) CARREGADA ===");
+  console.log("🎯 Versão: Brapi Direto Otimizada");
 
-  // 🔥 BUSCAR DADOS REAIS DA API FINANCEIRA (que está funcionando)
+  // HOOKS
   const { marketData, loading: marketLoading, error: marketError, refetch: marketRefetch } = useFinancialData();
-  
-  // 🎯 BUSCAR COTAÇÕES DIRETO DA BRAPI (SEM API ROUTE PROBLEMÁTICA)
-  const { portfolio: ativosAtualizados, loading: quotesLoading, error: quotesError, refetch: quotesRefetch, lastUpdate } = useBrapiQuotesDireto();
+  const { portfolio: ativosAtualizados, loading: quotesLoading, error: quotesError, refetch: quotesRefetch, lastUpdate, debugInfo } = useBrapiQuotesDireto();
 
-  // DADOS PADRÃO CASO A API FALHE
+  // DADOS PADRÃO
   const dadosCardsPadrao = {
     ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
     indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
@@ -439,20 +514,29 @@ export default function Page(): React.JSX.Element {
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
-  // 🚀 USAR DADOS DA API SE DISPONÍVEIS, SENÃO USA DADOS PADRÃO
   const dadosCards = marketData || dadosCardsPadrao;
 
-  // Log para debug
+  // DEBUG LOG DOS RESULTADOS FINAIS
   React.useEffect(() => {
-    console.log('🎯 ATIVOS COM COTAÇÕES ATUALIZADAS:');
-    ativosAtualizados.forEach(ativo => {
-      const precoTeto = parseFloat(ativo.precoTeto.replace('R$ ', '').replace(',', '.'));
-      const precoAtual = parseFloat(ativo.precoAtual.replace('R$ ', '').replace(',', '.'));
-      console.log(`📊 ${ativo.ticker}: Teto R$ ${precoTeto.toFixed(2)} vs Atual R$ ${precoAtual.toFixed(2)} = ${ativo.vies} (${ativo.statusApi})`);
-    });
-  }, [ativosAtualizados]);
+    if (ativosAtualizados.length > 0) {
+      console.log('\n🎯 === RESULTADOS FINAIS PARA INTERFACE ===');
+      ativosAtualizados.forEach(ativo => {
+        const precoTeto = parseFloat(ativo.precoTeto.replace('R$ ', '').replace(',', '.'));
+        const precoAtual = parseFloat(ativo.precoAtual.replace('R$ ', '').replace(',', '.'));
+        console.log(`📊 ${ativo.ticker}:`);
+        console.log(`   💰 Preço: ${ativo.precoAtual} (Status: ${ativo.statusApi})`);
+        console.log(`   🎯 Teto: ${ativo.precoTeto} → Viés: ${ativo.vies}`);
+        console.log(`   📈 Performance: ${ativo.performance?.toFixed(2)}%`);
+      });
+      
+      // Log do debug info
+      if (debugInfo.timestamp) {
+        console.log('\n📊 Debug Info:', debugInfo);
+      }
+    }
+  }, [ativosAtualizados, debugInfo]);
 
-  // Loading state
+  // LOADING STATE
   if (quotesLoading || marketLoading) {
     return (
       <Grid container spacing={3}>
@@ -460,7 +544,7 @@ export default function Page(): React.JSX.Element {
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <CircularProgress size={40} />
             <Box ml={2} sx={{ fontSize: '1.1rem' }}>
-              🔄 Carregando cotações direto da Brapi...
+              🔄 Carregando cotações otimizadas da Brapi...
             </Box>
           </Box>
         </Grid>
@@ -470,7 +554,7 @@ export default function Page(): React.JSX.Element {
 
   return (
     <Grid container spacing={3}>
-      {/* Alerta se Brapi estiver offline */}
+      {/* Alertas de Status */}
       {quotesError && (
         <Grid xs={12}>
           <Alert 
@@ -482,67 +566,65 @@ export default function Page(): React.JSX.Element {
             }
             sx={{ mb: 1 }}
           >
-            ⚠️ Aviso: {quotesError} - Alguns dados podem estar desatualizados
+            ⚠️ {quotesError}
           </Alert>
         </Grid>
       )}
 
-      {/* Alerta se API de mercado estiver offline */}
       {marketError && (
         <Grid xs={12}>
           <Alert 
             severity="warning"
             action={
               <Button color="inherit" size="small" onClick={marketRefetch}>
-                🔄 Tentar Novamente
+                🔄 Recarregar Mercado
               </Button>
             }
             sx={{ mb: 1 }}
           >
-            ⚠️ API de mercado temporariamente offline - usando dados locais. 
-            {marketData ? ' Alguns dados podem estar desatualizados.' : ''}
+            ⚠️ API de mercado offline - usando dados locais
           </Alert>
         </Grid>
       )}
 
-      {/* Indicador de sucesso das cotações */}
+      {/* Status de Sucesso */}
       {!quotesError && ativosAtualizados.length > 0 && (
         <Grid xs={12}>
           <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Cotações atualizadas pela Brapi ({ativosAtualizados.filter(a => a.statusApi === 'success').length}/{ativosAtualizados.length} ações) - Última atualização: {lastUpdate}
+            ✅ Cotações Brapi: {ativosAtualizados.filter(a => a.statusApi === 'success').length}/{ativosAtualizados.length} atualizadas
+            {lastUpdate && ` • Última atualização: ${lastUpdate}`}
+            {debugInfo.tempoExecucao && ` • Tempo: ${debugInfo.tempoExecucao}ms`}
           </Alert>
         </Grid>
       )}
 
-      {/* Indicador de sucesso da API de mercado */}
       {!marketError && marketData && (
         <Grid xs={12}>
           <Alert severity="info" sx={{ mb: 1 }}>
-            📈 Dados de mercado atualizados em tempo real (Ibovespa funcionando!)
+            📈 Dados de mercado em tempo real (Ibovespa ativo)
           </Alert>
         </Grid>
       )}
 
-      {/* Indicador de viés automático */}
+      {/* Info do Viés */}
       <Grid xs={12}>
         <Alert severity="info" sx={{ mb: 1 }}>
-          🎯 Viés calculado automaticamente: Preço Teto > Preço Atual = COMPRA | Caso contrário = AGUARDAR
+          🎯 Viés automático: Preço Teto > Preço Atual = COMPRA | Caso contrário = AGUARDAR
         </Alert>
       </Grid>
 
-      {/* Filtros de busca */}
+      {/* Componentes */}
       <Grid xs={12}>
         <OverviewFilters />
       </Grid>
       
-      {/* Tabela principal com cards e dados */}
       <Grid xs={12}>
         <OverviewTable 
           count={ativosAtualizados.length} 
-          rows={ativosAtualizados} // 🔥 DADOS COM COTAÇÕES REAIS DA BRAPI!
+          rows={ativosAtualizados}
           page={0} 
           rowsPerPage={5}
-          cardsData={dadosCards} // 🔥 DADOS REAIS DA API OU FALLBACK!
+          cardsData={dadosCards}
         />
       </Grid>
     </Grid>
