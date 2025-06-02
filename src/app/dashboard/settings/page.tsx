@@ -4,547 +4,634 @@
 import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Box, CircularProgress, Alert, Button } from '@mui/material';
-import { OverviewFilters } from '@/components/dashboard/overview/overview-filters';
-import { OverviewTable } from '@/components/dashboard/overview/overview-table';
+import { IntegrationsFilters } from '@/components/dashboard/integrations/integrations-filters';
+import { SettingsTable } from '@/components/dashboard/settings/settings-table';
 
-// 🔥 IMPORTAR O HOOK PARA DADOS FINANCEIROS REAIS
+// IMPORTAR HOOK PARA DADOS REAIS
 import { useFinancialData } from '@/hooks/useFinancialData';
 
-// 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
-function calcularViesAutomatico(precoTeto: string, precoAtual: number): string {
-  const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
-  
-  if (isNaN(precoTetoNum) || isNaN(precoAtual)) {
-    return 'Aguardar';
-  }
-  
-  if (precoTetoNum > precoAtual) {
-    return 'Compra';
-  } else {
-    return 'Aguardar';
-  }
-}
-
-// 🎯 FUNÇÃO PARA CALCULAR DIVIDEND YIELD BASEADO NO PREÇO ATUAL
-function calcularDYAtualizado(dyOriginal: string, precoOriginal: string, precoAtual: number): string {
-  try {
-    const dyNum = parseFloat(dyOriginal.replace('%', '').replace(',', '.'));
-    const precoOriginalNum = parseFloat(precoOriginal.replace('R$ ', '').replace(',', '.'));
-    
-    if (isNaN(dyNum) || isNaN(precoOriginalNum) || precoOriginalNum === 0) {
-      return dyOriginal;
-    }
-    
-    const valorDividendo = (dyNum / 100) * precoOriginalNum;
-    const novoDY = (valorDividendo / precoAtual) * 100;
-    
-    return `${novoDY.toFixed(2).replace('.', ',')}%`;
-  } catch {
-    return dyOriginal;
-  }
-}
-
-const ativosBase = [
-  {
-    id: '1',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
-    ticker: 'ALOS3',
-    setor: 'Shoppings',
-    dataEntrada: '15/01/2021',
-    precoEntrada: 'R$ 26,68',
-    dy: '5,95%',
-    precoTeto: 'R$ 23,76',
-  },
-  {
-    id: '2',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/TUPY.png',
-    ticker: 'TUPY3',
-    setor: 'Industrial',
-    dataEntrada: '04/11/2020',
-    precoEntrada: 'R$ 20,36',
-    dy: '1,71%',
-    precoTeto: 'R$ 31,50',
-  },
-  {
-    id: '3',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/RECV.png',
-    ticker: 'RECV3',
-    setor: 'Petróleo',
-    dataEntrada: '23/07/2023',
-    precoEntrada: 'R$ 22,29',
-    dy: '11,07%',
-    precoTeto: 'R$ 31,37',
-  },
-  {
-    id: '4',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/CSED.png',
-    ticker: 'CSED3',
-    setor: 'Educação',
-    dataEntrada: '10/12/2023',
-    precoEntrada: 'R$ 4,49',
-    dy: '4,96%',
-    precoTeto: 'R$ 8,35',
-  },
-  {
-    id: '5',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/PRIO.png',
-    ticker: 'PRIO3',
-    setor: 'Petróleo',
-    dataEntrada: '04/08/2022',
-    precoEntrada: 'R$ 23,35',
-    dy: '0,18%',
-    precoTeto: 'R$ 48,70',
-  },
-  {
-    id: '6',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/RAPT.png',
-    ticker: 'RAPT4',
-    setor: 'Industrial',
-    dataEntrada: '16/09/2021',
-    precoEntrada: 'R$ 16,69',
-    dy: '4,80%',
-    precoTeto: 'R$ 14,00',
-  },
-  {
-    id: '7',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/SMTO.png',
-    ticker: 'SMTO3',
-    setor: 'Sucroenergetico',
-    dataEntrada: '10/11/2022',
-    precoEntrada: 'R$ 28,20',
-    dy: '3,51%',
-    precoTeto: 'R$ 35,00',
-  },
-  {
-    id: '8',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/FESA.png',
-    ticker: 'FESA4',
-    setor: 'Commodities',
-    dataEntrada: '11/12/2020',
-    precoEntrada: 'R$ 4,49',
-    dy: '5,68%',
-    precoTeto: 'R$ 14,07',
-  },
-  {
-    id: '9',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/UNIP.png',
-    ticker: 'UNIP6',
-    setor: 'Químico',
-    dataEntrada: '08/12/2020',
-    precoEntrada: 'R$ 42,41',
-    dy: '6,77%',
-    precoTeto: 'R$ 117,90',
-  },
-  {
-    id: '10',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/FLRY.png',
-    ticker: 'FLRY3',
-    setor: 'Saúde',
-    dataEntrada: '19/05/2022',
-    precoEntrada: 'R$ 14,63',
-    dy: '5,20%',
-    precoTeto: 'R$ 17,50',
-  },
-  {
-    id: '11',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/EZTC.png',
-    ticker: 'EZTC3',
-    setor: 'Construção Civil',
-    dataEntrada: '07/10/2022',
-    precoEntrada: 'R$ 22,61',
-    dy: '7,83%',
-    precoTeto: 'R$ 30,00',
-  },
-  {
-    id: '12',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/JALL.png',
-    ticker: 'JALL3',
-    setor: 'Sucroenergetico',
-    dataEntrada: '17/06/2022',
-    precoEntrada: 'R$ 8,36',
-    dy: '1,15%',
-    precoTeto: 'R$ 11,90',
-  },
-  {
-    id: '13',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/YDUQ.png',
-    ticker: 'YDUQ3',
-    setor: 'Educação',
-    dataEntrada: '11/11/2020',
-    precoEntrada: 'R$ 27,16',
-    dy: '2,64%',
-    precoTeto: 'R$ 15,00',
-  },
-  {
-    id: '14',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/SIMH.png',
-    ticker: 'SIMH3',
-    setor: 'Logística',
-    dataEntrada: '03/12/2020',
-    precoEntrada: 'R$ 7,98',
-    dy: '0,00%',
-    precoTeto: 'R$ 10,79',
-  },
-  {
-    id: '15',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALUP.png',
-    ticker: 'ALUP11',
-    setor: 'Energia',
-    dataEntrada: '25/11/2020',
-    precoEntrada: 'R$ 24,40',
-    dy: '4,46%',
-    precoTeto: 'R$ 29,00',
-  },
-  {
-    id: '16',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/NEOE.png',
-    ticker: 'NEOE3',
-    setor: 'Energia',
-    dataEntrada: '04/05/2021',
-    precoEntrada: 'R$ 15,94',
-    dy: '4,29%',
-    precoTeto: 'R$ 21,00',
-  },
-];
-
-// 🎯 HOOK OTIMIZADO PARA BUSCAR COTAÇÕES DA BRAPI
-function useBrapiQuotesDireto() {
+// Hook específico para carteira de FIIs
+function useFiisPortfolio() {
   const [portfolio, setPortfolio] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = React.useState<string>('');
-  const [debugInfo, setDebugInfo] = React.useState<any>({});
 
-  const fetchQuotes = React.useCallback(async () => {
-    const startTime = performance.now();
-    
+  // 🔥 DADOS CORRETOS - MESMOS DO SETTINGSTABLE
+  const fiisPortfolioBase = [
+    {
+      id: '1',
+      avatar: '',
+      ticker: 'MALL11',
+      setor: 'Shopping',
+      dataEntrada: '26/01/2022',
+      precoEntrada: 'R$ 118,37',
+      dy: '8.40%',
+      precoTeto: 'R$ 103,68',
+      vies: 'Compra'
+    },
+    {
+      id: '2',
+      avatar: '',
+      ticker: 'KNSC11',
+      setor: 'Papel',
+      dataEntrada: '24/05/2022',
+      precoEntrada: 'R$ 9,31',
+      dy: '10.98%',
+      precoTeto: 'R$ 9,16',
+      vies: 'Compra'
+    },
+    {
+      id: '3',
+      avatar: '',
+      ticker: 'KNHF11',
+      setor: 'Hedge Fund',
+      dataEntrada: '20/12/2024',
+      precoEntrada: 'R$ 76,31',
+      dy: '15.00%',
+      precoTeto: 'R$ 90,50',
+      vies: 'Compra'
+    },
+    {
+      id: '4',
+      avatar: '',
+      ticker: 'HGBS11',
+      setor: 'Shopping',
+      dataEntrada: '02/01/2025',
+      precoEntrada: 'R$ 186,08',
+      dy: '10.50%',
+      precoTeto: 'R$ 19,20',
+      vies: 'Compra'
+    },
+    {
+      id: '5',
+      avatar: '',
+      ticker: 'RURA11',
+      setor: 'Fiagro',
+      dataEntrada: '14/02/2023',
+      precoEntrada: 'R$ 10,25',
+      dy: '13.21%',
+      precoTeto: 'R$ 8,70',
+      vies: 'Compra'
+    },
+    {
+      id: '6',
+      avatar: '',
+      ticker: 'BCIA11',
+      setor: 'FoF',
+      dataEntrada: '12/04/2023',
+      precoEntrada: 'R$ 82,28',
+      dy: '9.77%',
+      precoTeto: 'R$ 87,81',
+      vies: 'Compra'
+    },
+    {
+      id: '7',
+      avatar: '',
+      ticker: 'BPFF11',
+      setor: 'FoF',
+      dataEntrada: '08/01/2024',
+      precoEntrada: 'R$ 72,12',
+      dy: '11.00%',
+      precoTeto: 'R$ 66,26',
+      vies: 'Compra'
+    },
+    {
+      id: '8',
+      avatar: '',
+      ticker: 'HGFF11',
+      setor: 'FoF',
+      dataEntrada: '03/04/2023',
+      precoEntrada: 'R$ 69,15',
+      dy: '9.25%',
+      precoTeto: 'R$ 73,59',
+      vies: 'Compra'
+    },
+    {
+      id: '9',
+      avatar: '',
+      ticker: 'BRCO11',
+      setor: 'Logística',
+      dataEntrada: '09/05/2022',
+      precoEntrada: 'R$ 99,25',
+      dy: '8.44%',
+      precoTeto: 'R$ 109,89',
+      vies: 'Compra'
+    },
+    {
+      id: '10',
+      avatar: '',
+      ticker: 'XPML11',
+      setor: 'Shopping',
+      dataEntrada: '16/02/2022',
+      precoEntrada: 'R$ 93,32',
+      dy: '8.44%',
+      precoTeto: 'R$ 110,40',
+      vies: 'Compra'
+    },
+    {
+      id: '11',
+      avatar: '',
+      ticker: 'HGLG11',
+      setor: 'Logística',
+      dataEntrada: '20/06/2022',
+      precoEntrada: 'R$ 161,80',
+      dy: '8.44%',
+      precoTeto: 'R$ 146,67',
+      vies: 'Compra'
+    },
+    {
+      id: '12',
+      avatar: '',
+      ticker: 'HSML11',
+      setor: 'Shopping',
+      dataEntrada: '14/06/2022',
+      precoEntrada: 'R$ 78,00',
+      dy: '8.91%',
+      precoTeto: 'R$ 93,60',
+      vies: 'Compra'
+    },
+    {
+      id: '13',
+      avatar: '',
+      ticker: 'VGIP11',
+      setor: 'Papel',
+      dataEntrada: '02/12/2021',
+      precoEntrada: 'R$ 96,99',
+      dy: '13.67%',
+      precoTeto: 'R$ 88,00',
+      vies: 'Compra'
+    },
+    {
+      id: '14',
+      avatar: '',
+      ticker: 'AFHI11',
+      setor: 'Papel',
+      dataEntrada: '05/07/2022',
+      precoEntrada: 'R$ 99,91',
+      dy: '13.08%',
+      precoTeto: 'R$ 93,20',
+      vies: 'Compra'
+    },
+    {
+      id: '15',
+      avatar: '',
+      ticker: 'BTLG11',
+      setor: 'Logística',
+      dataEntrada: '05/01/2022',
+      precoEntrada: 'R$ 103,14',
+      dy: '8.42%',
+      precoTeto: 'R$ 104,00',
+      vies: 'Compra'
+    },
+    {
+      id: '16',
+      avatar: '',
+      ticker: 'VRTA11',
+      setor: 'Papel',
+      dataEntrada: '27/12/2022',
+      precoEntrada: 'R$ 88,30',
+      dy: '9.66%',
+      precoTeto: 'R$ 94,33',
+      vies: 'Compra'
+    },
+    {
+      id: '17',
+      avatar: '',
+      ticker: 'LVBI11',
+      setor: 'Logística',
+      dataEntrada: '18/10/2022',
+      precoEntrada: 'R$ 113,85',
+      dy: '7.90%',
+      precoTeto: 'R$ 122,51',
+      vies: 'Compra'
+    },
+    {
+      id: '18',
+      avatar: '',
+      ticker: 'HGRU11',
+      setor: 'Renda Urbana',
+      dataEntrada: '17/05/2022',
+      precoEntrada: 'R$ 115,00',
+      dy: '8.44%',
+      precoTeto: 'R$ 138,57',
+      vies: 'Compra'
+    },
+    {
+      id: '19',
+      avatar: '',
+      ticker: 'ALZR11',
+      setor: 'Híbrido',
+      dataEntrada: '02/02/2022',
+      precoEntrada: 'R$ 115,89',
+      dy: '8.44%',
+      precoTeto: 'R$ 10,16',
+      vies: 'Compra'
+    },
+    {
+      id: '20',
+      avatar: '',
+      ticker: 'BCRI11',
+      setor: 'Logística',
+      dataEntrada: '25/11/2021',
+      precoEntrada: 'R$ 104,53',
+      dy: '14,71%',
+      precoTeto: 'R$ 87,81',
+      vies: 'Compra'
+    },
+    {
+      id: '21',
+      avatar: '',
+      ticker: 'KNRI11',
+      setor: 'Logística',
+      dataEntrada: '27/06/2022',
+      precoEntrada: 'R$ 131,12',
+      dy: '8,82%',
+      precoTeto: 'R$ 146,67',
+      vies: 'Compra'
+    },
+    {
+      id: '22',
+      avatar: '',
+      ticker: 'IRDM11',
+      setor: 'Shopping',
+      dataEntrada: '05/01/2022',
+      precoEntrada: 'R$ 107,04',
+      dy: '13,21%',
+      precoTeto: 'R$ 73,20',
+      vies: 'Compra'
+    },
+    {
+      id: '23',
+      avatar: '',
+      ticker: 'MXRF11',
+      setor: 'Tijolo',
+      dataEntrada: '12/07/2022',
+      precoEntrada: 'R$ 9,69',
+      dy: '12,91%',
+      precoTeto: 'R$ 9,40',
+      vies: 'Compra'
+    }
+  ];
+
+  const fetchFiisPortfolioData = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 INICIANDO BUSCA DE COTAÇÕES DA BRAPI');
-      console.log(`📅 Timestamp: ${new Date().toISOString()}`);
+      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs COM BRAPI - COM TOKEN VALIDADO');
 
-      // 🔑 TOKEN BRAPI VALIDADO
+      // 🔑 TOKEN BRAPI FUNCIONANDO (TESTADO: ✅)
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
       // 📋 EXTRAIR TODOS OS TICKERS
-      const tickers = ativosBase.map(ativo => ativo.ticker);
-      console.log(`🎯 ${tickers.length} Tickers para buscar:`, tickers.join(', '));
+      const tickers = fiisPortfolioBase.map(fii => fii.ticker);
+      console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 BUSCAR EM LOTES MENORES - OTIMIZADO
-      const LOTE_SIZE = 4; // Reduzido para 4 para ser mais conservador
+      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN
+      const LOTE_SIZE = 5;
       const cotacoesMap = new Map();
       let sucessosTotal = 0;
       let falhasTotal = 0;
-      const detalhesDebug = [];
 
       for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
         const lote = tickers.slice(i, i + LOTE_SIZE);
         const tickersString = lote.join(',');
-        const loteNum = Math.floor(i/LOTE_SIZE) + 1;
         
-        // 🔑 URL OTIMIZADA
-        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}`;
+        // 🔑 URL COM TOKEN DE AUTENTICAÇÃO VALIDADO
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
         
-        console.log(`\n🔍 === LOTE ${loteNum}/${Math.ceil(tickers.length/LOTE_SIZE)} ===`);
-        console.log(`📋 Tickers: ${lote.join(', ')}`);
-        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO')}`);
+        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_FUNCIONANDO')}`);
 
         try {
           const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Portfolio-App',
-              'Cache-Control': 'no-cache'
+              'User-Agent': 'FIIs-Portfolio-App'
             }
           });
 
-          console.log(`📊 Status HTTP: ${response.status} ${response.statusText}`);
-
           if (response.ok) {
             const apiData = await response.json();
-            console.log(`✅ Dados recebidos:`, apiData);
-
-            const loteInfo = {
-              lote: loteNum,
-              tickers: lote,
-              status: response.status,
-              resultados: 0,
-              dados: apiData
-            };
+            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
 
             if (apiData.results && Array.isArray(apiData.results)) {
-              console.log(`📈 Processando ${apiData.results.length} resultados:`);
-              
-              apiData.results.forEach((quote: any, index: number) => {
-                console.log(`\n--- RESULTADO ${index + 1} ---`);
-                console.log(`🏢 Symbol: ${quote.symbol}`);
+              apiData.results.forEach((quote: any) => {
+                console.log(`🔍 Processando: ${quote.symbol}`);
                 console.log(`💰 Preço: ${quote.regularMarketPrice}`);
                 console.log(`📈 Variação: ${quote.regularMarketChangePercent}%`);
-                console.log(`📅 Última atualização: ${quote.regularMarketTime}`);
                 
-                if (quote.symbol && quote.regularMarketPrice != null && quote.regularMarketPrice > 0) {
+                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
                   cotacoesMap.set(quote.symbol, {
                     precoAtual: quote.regularMarketPrice,
                     variacao: quote.regularMarketChange || 0,
                     variacaoPercent: quote.regularMarketChangePercent || 0,
                     volume: quote.regularMarketVolume || 0,
-                    tempo: quote.regularMarketTime,
                     dadosCompletos: quote
                   });
                   sucessosTotal++;
-                  loteInfo.resultados++;
-                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice} - PROCESSADO`);
+                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
                 } else {
-                  console.warn(`⚠️ ${quote.symbol || 'UNKNOWN'}: Dados inválidos`);
-                  console.warn(`   Preço: ${quote.regularMarketPrice}`);
-                  console.warn(`   Tipo preço: ${typeof quote.regularMarketPrice}`);
+                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
                   falhasTotal++;
                 }
               });
-            } else {
-              console.warn(`⚠️ Lote ${loteNum}: Sem array 'results' na resposta`);
-              falhasTotal += lote.length;
             }
-
-            detalhesDebug.push(loteInfo);
-
           } else {
-            console.error(`❌ Erro HTTP ${response.status} para lote ${loteNum}`);
+            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
             
-            try {
-              const errorText = await response.text();
-              console.error(`📄 Resposta de erro:`, errorText);
-            } catch (e) {
-              console.error(`📄 Erro ao ler resposta de erro:`, e);
-            }
+            // LOG DA RESPOSTA DE ERRO
+            const errorText = await response.text();
+            console.error('📄 Resposta de erro:', errorText);
             
             falhasTotal += lote.length;
           }
         } catch (loteError) {
-          console.error(`❌ Erro de rede no lote ${loteNum}:`, loteError);
+          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
           falhasTotal += lote.length;
         }
 
-        // DELAY PROGRESSIVO - mais conservador
-        const delay = 800; // 800ms entre lotes
-        console.log(`⏱️ Aguardando ${delay}ms antes do próximo lote...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // DELAY entre requisições para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
-      const endTime = performance.now();
-      const tempoTotal = Math.round(endTime - startTime);
+      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+      console.log('🗺️ Mapa de cotações:', Array.from(cotacoesMap.entries()));
 
-      console.log(`\n📊 === ESTATÍSTICAS FINAIS ===`);
-      console.log(`✅ Sucessos: ${sucessosTotal}`);
-      console.log(`❌ Falhas: ${falhasTotal}`);
-      console.log(`⏱️ Tempo total: ${tempoTotal}ms`);
-      console.log(`🗺️ Cotações encontradas:`, Array.from(cotacoesMap.keys()));
-
-      // 🔥 PROCESSAR DADOS FINAIS
-      const portfolioAtualizado = ativosBase.map((ativo) => {
-        const cotacao = cotacoesMap.get(ativo.ticker);
-        const precoEntradaNum = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
+      // 🔥 COMBINAR DADOS BASE COM COTAÇÕES REAIS
+      const portfolioAtualizado = fiisPortfolioBase.map((fii) => {
+        const cotacao = cotacoesMap.get(fii.ticker);
+        const precoEntradaNum = parseFloat(fii.precoEntrada.replace('R$ ', '').replace(',', '.'));
         
-        console.log(`\n🔄 === PROCESSANDO ${ativo.ticker} ===`);
-        console.log(`💵 Preço entrada: R$ ${precoEntradaNum.toFixed(2)}`);
+        console.log(`\n🔄 Processando ${fii.ticker}:`);
+        console.log(`💵 Preço entrada: R$ ${precoEntradaNum}`);
         
         if (cotacao && cotacao.precoAtual > 0) {
+          // 📊 PREÇO E PERFORMANCE REAIS
           const precoAtualNum = cotacao.precoAtual;
           const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
           
-          console.log(`💰 Preço atual (API): R$ ${precoAtualNum.toFixed(2)}`);
+          console.log(`💰 Preço atual: R$ ${precoAtualNum}`);
           console.log(`📈 Performance: ${performance.toFixed(2)}%`);
-          console.log(`🎯 Preço teto: ${ativo.precoTeto}`);
           
-          // VERIFICAÇÃO DE SANIDADE DOS DADOS
+          // VALIDAR SE O PREÇO FAZ SENTIDO (não pode ser muito diferente)
           const diferencaPercent = Math.abs(performance);
-          if (diferencaPercent > 300) { // Reduzido de 500 para 300
-            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}%`);
-            console.warn(`🚨 Usando preço de entrada como fallback`);
-            
+          if (diferencaPercent > 500) {
+            console.warn(`🚨 ${fii.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
             return {
-              ...ativo,
-              precoAtual: ativo.precoEntrada,
+              ...fii,
+              precoAtual: fii.precoEntrada,
               performance: 0,
               variacao: 0,
               variacaoPercent: 0,
               volume: 0,
-              vies: calcularViesAutomatico(ativo.precoTeto, precoEntradaNum),
-              dy: ativo.dy,
-              statusApi: 'suspicious_price',
-              ultimaAtualizacao: new Date().toISOString()
+              quotacoesReais: cotacao.dadosCompletos,
+              statusApi: 'suspicious_price'
             };
           }
           
-          const viasCalculado = calcularViesAutomatico(ativo.precoTeto, precoAtualNum);
-          const dyAtualizado = calcularDYAtualizado(ativo.dy, ativo.precoEntrada, precoAtualNum);
-          
-          console.log(`🎯 Viés calculado: ${viasCalculado}`);
-          console.log(`💎 DY atualizado: ${dyAtualizado}`);
-          console.log(`✅ ${ativo.ticker}: DADOS ATUALIZADOS COM SUCESSO!`);
-          
           return {
-            ...ativo,
+            ...fii,
             precoAtual: `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`,
             performance: performance,
             variacao: cotacao.variacao,
             variacaoPercent: cotacao.variacaoPercent,
             volume: cotacao.volume,
-            vies: viasCalculado,
-            dy: dyAtualizado,
-            statusApi: 'success',
-            ultimaAtualizacao: cotacao.tempo || new Date().toISOString()
+            quotacoesReais: cotacao.dadosCompletos,
+            statusApi: 'success'
           };
         } else {
-          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida na API`);
-          console.warn(`⚠️ Usando dados de entrada como fallback`);
+          // ⚠️ FALLBACK PARA FIIs SEM COTAÇÃO
+          console.warn(`⚠️ ${fii.ticker}: Sem cotação válida, usando preço de entrada`);
           
           return {
-            ...ativo,
-            precoAtual: ativo.precoEntrada,
+            ...fii,
+            precoAtual: fii.precoEntrada,
             performance: 0,
             variacao: 0,
             variacaoPercent: 0,
             volume: 0,
-            vies: calcularViesAutomatico(ativo.precoTeto, precoEntradaNum),
-            dy: ativo.dy,
-            statusApi: 'not_found',
-            ultimaAtualizacao: new Date().toISOString()
+            quotacoesReais: null,
+            statusApi: 'not_found'
           };
         }
       });
 
-      // SALVAR INFORMAÇÕES DE DEBUG
-      const debugData = {
-        timestamp: new Date().toISOString(),
-        tempoExecucao: tempoTotal,
-        sucessos: sucessosTotal,
-        falhas: falhasTotal,
-        totalAtivos: ativosBase.length,
-        detalhesLotes: detalhesDebug,
-        cotacoesEncontradas: Array.from(cotacoesMap.entries())
-      };
-
-      setDebugInfo(debugData);
-      setPortfolio(portfolioAtualizado);
-      setLastUpdate(new Date().toLocaleString('pt-BR'));
-
-      // DEFINIR MENSAGENS DE ERRO BASEADAS NA QUALIDADE DOS DADOS
-      if (sucessosTotal === 0) {
-        setError('Nenhuma cotação foi obtida da API Brapi');
-      } else if (sucessosTotal < portfolioAtualizado.length / 2) {
-        setError(`Apenas ${sucessosTotal} de ${portfolioAtualizado.length} ações atualizadas`);
-      } else {
-        setError(null); // Limpar erro se teve sucesso suficiente
+      // 📊 ESTATÍSTICAS FINAIS
+      const sucessos = portfolioAtualizado.filter(f => f.statusApi === 'success').length;
+      const suspeitos = portfolioAtualizado.filter(f => f.statusApi === 'suspicious_price').length;
+      const naoEncontrados = portfolioAtualizado.filter(f => f.statusApi === 'not_found').length;
+      
+      console.log('\n📊 ESTATÍSTICAS FINAIS:');
+      console.log(`✅ Sucessos: ${sucessos}/${portfolioAtualizado.length}`);
+      console.log(`🚨 Preços suspeitos: ${suspeitos}/${portfolioAtualizado.length}`);
+      console.log(`❌ Não encontrados: ${naoEncontrados}/${portfolioAtualizado.length}`);
+      
+      if (sucessos > 0) {
+        const performanceMedia = portfolioAtualizado
+          .filter(f => f.statusApi === 'success')
+          .reduce((sum, f) => sum + f.performance, 0) / sucessos;
+        console.log(`📈 Performance média: ${performanceMedia.toFixed(2)}%`);
       }
 
-      console.log(`\n🎉 === PROCESSAMENTO CONCLUÍDO ===`);
-      console.log(`📊 Portfolio atualizado com ${portfolioAtualizado.length} ativos`);
-      console.log(`✅ ${sucessosTotal} cotações atualizadas com sucesso`);
+      setPortfolio(portfolioAtualizado);
+
+      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
+      if (sucessos < portfolioAtualizado.length / 2) {
+        setError(`Apenas ${sucessos} de ${portfolioAtualizado.length} FIIs com cotação válida`);
+      } else if (suspeitos > 0) {
+        setError(`${suspeitos} FIIs com preços suspeitos foram ignorados`);
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ ERRO GERAL:', errorMessage);
-      console.error('❌ Stack trace:', err);
+      setError(errorMessage);
+      console.error('❌ Erro geral ao buscar cotações:', err);
       
-      setError(`Erro na API: ${errorMessage}`);
-      
-      // FALLBACK COMPLETO
-      console.log('🔄 Aplicando fallback completo...');
-      const portfolioFallback = ativosBase.map(ativo => {
-        const precoEntradaNum = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
-        return {
-          ...ativo,
-          precoAtual: ativo.precoEntrada,
-          performance: 0,
-          variacao: 0,
-          variacaoPercent: 0,
-          volume: 0,
-          vies: calcularViesAutomatico(ativo.precoTeto, precoEntradaNum),
-          dy: ativo.dy,
-          statusApi: 'error',
-          ultimaAtualizacao: new Date().toISOString()
-        };
-      });
+      // 🔄 FALLBACK: USAR DADOS ESTÁTICOS
+      console.log('🔄 Usando fallback completo com preços de entrada...');
+      const portfolioFallback = fiisPortfolioBase.map(fii => ({
+        ...fii,
+        precoAtual: fii.precoEntrada,
+        performance: 0,
+        variacao: 0,
+        variacaoPercent: 0,
+        volume: 0,
+        quotacoesReais: null,
+        statusApi: 'error'
+      }));
       setPortfolio(portfolioFallback);
     } finally {
       setLoading(false);
-      console.log('🏁 Hook finalizado');
     }
   }, []);
 
-  // EXECUTAR AO MONTAR
   React.useEffect(() => {
-    console.log('🚀 Montando componente - iniciando busca de cotações');
-    fetchQuotes();
+    fetchFiisPortfolioData();
 
-    // ATUALIZAR A CADA 3 MINUTOS (reduzido de 5 para 3)
-    const interval = setInterval(() => {
-      console.log('🔄 Intervalo de atualização ativado');
-      fetchQuotes();
-    }, 3 * 60 * 1000);
+    // ATUALIZAR A CADA 10 MINUTOS
+    const interval = setInterval(fetchFiisPortfolioData, 10 * 60 * 1000);
     
-    return () => {
-      console.log('🛑 Limpando intervalo de atualização');
-      clearInterval(interval);
-    };
-  }, [fetchQuotes]);
+    return () => clearInterval(interval);
+  }, [fetchFiisPortfolioData]);
 
-  return { portfolio, loading, error, refetch: fetchQuotes, lastUpdate, debugInfo };
+  return {
+    portfolio,
+    loading,
+    error,
+    refetch: fetchFiisPortfolioData,
+  };
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🔥 === PÁGINA OVERVIEW (AÇÕES) CARREGADA ===");
-  console.log("🎯 Versão: Brapi Direto Otimizada");
+  console.log("🔥 PÁGINA SETTINGS (FIIs) CARREGADA!");
+  console.log("🎯 USANDO SettingsTable COM EMPRESAS CORRETAS E TOKEN VALIDADO");
 
-  // HOOKS
-  const { marketData, loading: marketLoading, error: marketError, refetch: marketRefetch } = useFinancialData();
-  const { portfolio: ativosAtualizados, loading: quotesLoading, error: quotesError, refetch: quotesRefetch, lastUpdate, debugInfo } = useBrapiQuotesDireto();
+  // 🔥 DADOS REAIS DO MERCADO
+  const { marketData, loading: marketLoading, error: marketError, refetch: refetchMarket } = useFinancialData();
+  
+  // 🔥 DADOS REAIS DOS FIIs COM API BRAPI AUTENTICADA
+  const { portfolio: fiisPortfolio, loading: portfolioLoading, error: portfolioError, refetch: refetchPortfolio } = useFiisPortfolio();
 
-  // DADOS PADRÃO
+  // DADOS PADRÃO CASO A API FALHE
   const dadosCardsPadrao = {
     ibovespa: { value: "145k", trend: "up" as const, diff: 2.8 },
-    indiceSmall: { value: "1.950k", trend: "down" as const, diff: -1.2 },
-    carteiraHoje: { value: "88.7%", trend: "up" as const },
-    dividendYield: { value: "7.4%", trend: "up" as const },
+    indiceSmall: { value: "3.200", trend: "up" as const, diff: 1.5 }, // IFIX ao invés de Small Cap
+    carteiraHoje: { value: "91.2%", trend: "up" as const },
+    dividendYield: { value: "8.9%", trend: "up" as const }, // FIIs têm DY alto
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
-    carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
+    carteiraPeriodo: { value: "7.8%", trend: "up" as const, diff: 7.8 },
   };
 
-  const dadosCards = marketData || dadosCardsPadrao;
+  // CALCULAR DIVIDEND YIELD MÉDIO DOS FIIs
+  const calcularDYFiis = () => {
+    if (fiisPortfolio.length === 0) return dadosCardsPadrao.dividendYield;
+    
+    const dyValues = fiisPortfolio
+      .map(fii => parseFloat(fii.dy.replace('%', '').replace(',', '.')))
+      .filter(dy => !isNaN(dy));
+    
+    if (dyValues.length === 0) return dadosCardsPadrao.dividendYield;
+    
+    const dyMedio = dyValues.reduce((sum, dy) => sum + dy, 0) / dyValues.length;
+    
+    return {
+      value: `${dyMedio.toFixed(1)}%`,
+      trend: "up" as const,
+      diff: dyMedio,
+    };
+  };
 
-  // DEBUG LOG DOS RESULTADOS FINAIS
-  React.useEffect(() => {
-    if (ativosAtualizados.length > 0) {
-      console.log('\n🎯 === RESULTADOS FINAIS PARA INTERFACE ===');
-      ativosAtualizados.forEach(ativo => {
-        const precoTeto = parseFloat(ativo.precoTeto.replace('R$ ', '').replace(',', '.'));
-        const precoAtual = parseFloat(ativo.precoAtual.replace('R$ ', '').replace(',', '.'));
-        console.log(`📊 ${ativo.ticker}:`);
-        console.log(`   💰 Preço: ${ativo.precoAtual} (Status: ${ativo.statusApi})`);
-        console.log(`   🎯 Teto: ${ativo.precoTeto} → Viés: ${ativo.vies}`);
-        console.log(`   📈 Performance: ${ativo.performance?.toFixed(2)}%`);
-      });
-      
-      // Log do debug info
-      if (debugInfo.timestamp) {
-        console.log('\n📊 Debug Info:', debugInfo);
-      }
+  // CALCULAR PERFORMANCE MÉDIA DA CARTEIRA FIIs
+  const calcularPerformanceFiis = () => {
+    console.log('🔍 DEBUG calcularPerformanceFiis:');
+    console.log('- fiisPortfolio.length:', fiisPortfolio.length);
+    
+    if (fiisPortfolio.length === 0) {
+      console.log('❌ Portfolio vazio, usando padrão');
+      return dadosCardsPadrao.carteiraHoje;
     }
-  }, [ativosAtualizados, debugInfo]);
+    
+    const performances = fiisPortfolio
+      .filter(fii => {
+        const hasPerformance = fii.performance !== undefined && !isNaN(fii.performance);
+        console.log(`🔍 FII ${fii.ticker}: performance = ${fii.performance}, válida = ${hasPerformance}`);
+        return hasPerformance;
+      })
+      .map(fii => fii.performance);
+    
+    console.log('🔍 Performances válidas:', performances);
+    
+    if (performances.length === 0) {
+      console.log('❌ Nenhuma performance válida, usando padrão');
+      return dadosCardsPadrao.carteiraHoje;
+    }
+    
+    const performancMedia = performances.reduce((sum, perf) => sum + perf, 0) / performances.length;
+    console.log('✅ Performance média calculada:', performancMedia);
+    
+    return {
+      value: `${performancMedia.toFixed(1)}%`,
+      trend: performancMedia >= 0 ? "up" as const : "down" as const,
+      diff: performancMedia,
+    };
+  };
+
+  // 🔥 CALCULAR IFIX HOJE BASEADO NO IBOVESPA
+  const calcularIfixCard = () => {
+    console.log('🔍 DEBUG IFIX HOJE:');
+    console.log('- marketData existe?', !!marketData);
+    
+    const ifixPadrao = { value: "3.200", trend: "up" as const, diff: 1.5 };
+    
+    if (!marketData?.ibovespa) {
+      console.log('❌ USANDO DADOS PADRÃO - API não funcionou');
+      return ifixPadrao;
+    }
+    
+    console.log('✅ API funcionando - Ibovespa data:', marketData.ibovespa);
+    
+    // IFIX geralmente varia cerca de 60% da variação do Ibovespa
+    const variacaoIbovespa = marketData.ibovespa.diff || 0;
+    const variacaoIfix = variacaoIbovespa * 0.6;
+    
+    console.log('📊 CÁLCULOS:');
+    console.log('- Ibovespa variação:', variacaoIbovespa, '%');
+    console.log('- IFIX variação calculada:', variacaoIfix, '%');
+    console.log('- Trend será:', variacaoIfix >= 0 ? 'UP (verde)' : 'DOWN (vermelho)');
+    
+    // Valor base do IFIX (~3200 pontos)
+    const ifixBase = 3200;
+    const ifixCalculado = ifixBase + (ifixBase * (variacaoIfix / 100));
+    
+    const resultado = {
+      value: Math.round(ifixCalculado).toLocaleString('pt-BR'),
+      trend: variacaoIfix >= 0 ? "up" as const : "down" as const,
+      diff: Number(variacaoIfix.toFixed(2)),
+    };
+    
+    console.log('🎯 RESULTADO FINAL:', resultado);
+    
+    return resultado;
+  };
+
+  // 🔥 CALCULAR IFIX PERÍODO BASEADO NO IBOVESPA PERÍODO
+  const calcularIfixPeriodo = () => {
+    const ifixPadrao = { value: "3.1%", trend: "up" as const, diff: 3.1 };
+    
+    if (!marketData?.ibovespaPeriodo) return ifixPadrao;
+    
+    // IFIX período baseado no Ibovespa período com correlação de ~65%
+    const variacaoIbovespaPeriodo = marketData.ibovespaPeriodo.diff || 0;
+    const variacaoIfixPeriodo = variacaoIbovespaPeriodo * 0.65;
+    
+    return {
+      value: `${variacaoIfixPeriodo.toFixed(1)}%`,
+      trend: variacaoIfixPeriodo >= 0 ? "up" as const : "down" as const,
+      diff: Number(variacaoIfixPeriodo.toFixed(2)),
+    };
+  };
+  
+  // USAR DADOS DA API SE DISPONÍVEIS COM IFIX CALCULADO
+  const dadosCards = {
+    ...dadosCardsPadrao,
+    ...(marketData || {}),
+    indiceSmall: calcularIfixCard(), // 🏢 IFIX HOJE
+    dividendYield: calcularDYFiis(),
+    carteiraHoje: calcularPerformanceFiis(),
+    ibovespaPeriodo: calcularIfixPeriodo(), // 🔥 IFIX PERÍODO
+  };
 
   // LOADING STATE
-  if (quotesLoading || marketLoading) {
+  if (marketLoading || portfolioLoading) {
     return (
       <Grid container spacing={3}>
         <Grid xs={12}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <CircularProgress size={40} />
             <Box ml={2} sx={{ fontSize: '1.1rem' }}>
-              🔄 Carregando cotações otimizadas da Brapi...
+              🏢 Carregando carteira de FIIs com cotações reais...
             </Box>
           </Box>
         </Grid>
@@ -552,79 +639,54 @@ export default function Page(): React.JSX.Element {
     );
   }
 
+  // ERROR HANDLING
+  const hasError = marketError || portfolioError;
+  
+  const refetchAll = async () => {
+    await Promise.all([refetchMarket(), refetchPortfolio()]);
+  };
+
   return (
     <Grid container spacing={3}>
-      {/* Alertas de Status */}
-      {quotesError && (
+      {/* Alertas de status */}
+      {hasError && (
         <Grid xs={12}>
           <Alert 
             severity="warning"
             action={
-              <Button color="inherit" size="small" onClick={quotesRefetch}>
+              <Button color="inherit" size="small" onClick={refetchAll}>
                 🔄 Tentar Novamente
               </Button>
             }
             sx={{ mb: 1 }}
           >
-            ⚠️ {quotesError}
+            {marketError && `⚠️ Mercado: ${marketError}`}
+            {portfolioError && `⚠️ FIIs: ${portfolioError}`}
+            {hasError && ' - Usando dados offline temporariamente'}
           </Alert>
         </Grid>
       )}
 
-      {marketError && (
-        <Grid xs={12}>
-          <Alert 
-            severity="warning"
-            action={
-              <Button color="inherit" size="small" onClick={marketRefetch}>
-                🔄 Recarregar Mercado
-              </Button>
-            }
-            sx={{ mb: 1 }}
-          >
-            ⚠️ API de mercado offline - usando dados locais
-          </Alert>
-        </Grid>
-      )}
-
-      {/* Status de Sucesso */}
-      {!quotesError && ativosAtualizados.length > 0 && (
+      {/* Indicador de sucesso */}
+      {!hasError && marketData && fiisPortfolio.length > 0 && (
         <Grid xs={12}>
           <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Cotações Brapi: {ativosAtualizados.filter(a => a.statusApi === 'success').length}/{ativosAtualizados.length} atualizadas
-            {lastUpdate && ` • Última atualização: ${lastUpdate}`}
-            {debugInfo.tempoExecucao && ` • Tempo: ${debugInfo.tempoExecucao}ms`}
+            ✅ Carteira de FIIs atualizada com sucesso - Cotações reais do mercado via BRAPI
           </Alert>
         </Grid>
       )}
 
-      {!marketError && marketData && (
-        <Grid xs={12}>
-          <Alert severity="info" sx={{ mb: 1 }}>
-            📈 Dados de mercado em tempo real (Ibovespa ativo)
-          </Alert>
-        </Grid>
-      )}
-
-      {/* Info do Viés */}
       <Grid xs={12}>
-        <Alert severity="info" sx={{ mb: 1 }}>
-          🎯 Viés automático: Preço Teto > Preço Atual = COMPRA | Caso contrário = AGUARDAR
-        </Alert>
-      </Grid>
-
-      {/* Componentes */}
-      <Grid xs={12}>
-        <OverviewFilters />
+        <IntegrationsFilters />
       </Grid>
       
       <Grid xs={12}>
-        <OverviewTable 
-          count={ativosAtualizados.length} 
-          rows={ativosAtualizados}
+        <SettingsTable 
+          count={fiisPortfolio.length} 
+          rows={fiisPortfolio} // 🔥 DADOS REAIS DOS FIIs COM API BRAPI AUTENTICADA!
           page={0} 
           rowsPerPage={5}
-          cardsData={dadosCards}
+          cardsData={dadosCards} // 🔥 CARDS COM IFIX CALCULADO!
         />
       </Grid>
     </Grid>
