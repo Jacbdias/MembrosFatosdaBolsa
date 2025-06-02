@@ -764,6 +764,7 @@ export default function Page(): React.JSX.Element {
           page={0} 
           rowsPerPage={5}
           cardsData={dadosCards}
+          ibovespaReal={ibovespaData}
         />
       </Grid>
     </Grid>
