@@ -32,6 +32,75 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
+// 🔧 FUNÇÃO PARA EXPANDIR VALORES ABREVIADOS VINDOS DA API
+function expandirValorAbreviado(value: string): string {
+  // Se o valor já é uma porcentagem, retorna como está
+  if (value.includes('%')) {
+    return value;
+  }
+  
+  // Converter abreviações para valores completos
+  const valueStr = value.toString().toLowerCase();
+  
+  // 💰 IBOVESPA: Se contém 'k' e é um valor grande (>100k), usar formato mais preciso
+  if (valueStr.includes('k')) {
+    const numero = parseFloat(valueStr.replace('k', '').replace(',', '.'));
+    if (!isNaN(numero)) {
+      const valorCompleto = numero * 1000;
+      
+      // Para valores do Ibovespa (>100.000), mostrar com mais precisão
+      if (valorCompleto >= 100000) {
+        return valorCompleto.toLocaleString('pt-BR', { 
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0 
+        });
+      } else {
+        // Para outros valores menores
+        return valorCompleto.toLocaleString('pt-BR', { 
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0 
+        });
+      }
+    }
+  }
+  
+  // Se contém 'm', multiplica por 1.000.000
+  if (valueStr.includes('m')) {
+    const numero = parseFloat(valueStr.replace('m', '').replace(',', '.'));
+    if (!isNaN(numero)) {
+      const valorCompleto = numero * 1000000;
+      return valorCompleto.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0 
+      });
+    }
+  }
+  
+  // Se contém 'b', multiplica por 1.000.000.000
+  if (valueStr.includes('b')) {
+    const numero = parseFloat(valueStr.replace('b', '').replace(',', '.'));
+    if (!isNaN(numero)) {
+      const valorCompleto = numero * 1000000000;
+      return valorCompleto.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0 
+      });
+    }
+  }
+  
+  // Se é um número simples como "140.109", formatar com pontos brasileiros
+  const numeroSimples = parseFloat(value.replace(',', '.'));
+  if (!isNaN(numeroSimples) && numeroSimples >= 1000) {
+    return numeroSimples.toLocaleString('pt-BR', { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    });
+  }
+  
+  // Se não tem abreviação, retorna o valor original
+  return value;
+}
+
 interface StatCardProps {
   title: string;
   value: string;
@@ -45,6 +114,9 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   const topBorderColor = trend === 'up' ? '#10b981' : '#ef4444';
+  
+  // 🔥 APLICAR EXPANSÃO DE VALORES ABREVIADOS AQUI
+  const valorExpandido = expandirValorAbreviado(value);
   
   return (
     <Card 
@@ -96,7 +168,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
             </Box>
           </Stack>
           
-          {/* Valor principal */}
+          {/* Valor principal - AGORA EXPANDIDO */}
           <Typography 
             variant="h4" 
             sx={{ 
@@ -106,7 +178,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
               lineHeight: 1
             }}
           >
-            {value}
+            {valorExpandido}
           </Typography>
           
           {/* Indicador de tendência */}
@@ -188,16 +260,17 @@ export function OverviewTable({
 }: OverviewTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // 🔥 VALORES CORRIGIDOS - AGORA SEM ABREVIAÇÕES
+  // 🔥 VALORES PADRÃO ATUALIZADOS COM DADOS REAIS DA BRAPI (CASO A API FALHE COMPLETAMENTE)
   const defaultCards = {
-    ibovespa: { value: "137.456", trend: "up" as const, diff: 0.2 },
-    indiceSmall: { value: "2.124", trend: "up" as const, diff: 0.24 },
+    ibovespa: { value: "140.109", trend: "up" as const, diff: 0.34 },  // 💰 Valor real da BRAPI: 140.109,62
+    indiceSmall: { value: "3.200", trend: "up" as const, diff: 0.24 }, // 📊 IFIX estimado em 3.200 pontos
     carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
     dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
+  // 🔧 COMBINAR DADOS - A EXPANSÃO ACONTECE NO COMPONENTE StatCard
   const cards = { ...defaultCards, ...cardsData };
 
   return (
@@ -463,7 +536,7 @@ export function OverviewTable({
           component="div"
           count={count}
           onPageChange={noop}
-          onRowsPerPageChange={noop}
+          onRowsPerPage={noop}
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
