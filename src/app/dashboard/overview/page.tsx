@@ -391,14 +391,15 @@ function useBrapiCotacoesValidadas() {
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🔥 PÁGINA OVERVIEW (AÇÕES) - VERSÃO CORRIGIDA COM PADRÃO DOS FIIs");
+  console.log("🔥 PÁGINA OVERVIEW (AÇÕES) - VERSÃO FINAL COM VALORES EXPANDIDOS");
 
   const { marketData, loading: marketLoading, error: marketError, refetch: marketRefetch } = useFinancialData();
   const { ativosAtualizados, loading: cotacoesLoading, error: cotacoesError, refetch: cotacoesRefetch } = useBrapiCotacoesValidadas();
 
+  // 🔥 DADOS PADRÃO ATUALIZADOS COM VALORES REAIS
   const dadosCardsPadrao = {
-    ibovespa: { value: "137k", trend: "up" as const, diff: 0.2 },
-    indiceSmall: { value: "2k", trend: "up" as const, diff: 0.24 },
+    ibovespa: { value: "140.109", trend: "up" as const, diff: 0.34 },  // 💰 VALOR REAL DA BRAPI
+    indiceSmall: { value: "3.200", trend: "up" as const, diff: 0.24 }, // 📊 IFIX ESTIMADO
     carteiraHoje: { value: "88.7%", trend: "up" as const },
     dividendYield: { value: "7.4%", trend: "up" as const },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
@@ -459,7 +460,8 @@ export default function Page(): React.JSX.Element {
     };
   };
 
-  // USAR DADOS DA API SE DISPONÍVEIS COM CÁLCULOS PERSONALIZADOS
+  // 🔥 USAR DADOS DA API SE DISPONÍVEIS COM CÁLCULOS PERSONALIZADOS
+  // A FUNÇÃO expandirValorAbreviado() NO COMPONENTE OverviewTable CUIDARÁ DA EXPANSÃO
   const dadosCards = {
     ...dadosCardsPadrao,
     ...(marketData || {}),
@@ -532,7 +534,7 @@ export default function Page(): React.JSX.Element {
       {!marketError && marketData && (
         <Grid xs={12}>
           <Alert severity="info" sx={{ mb: 1 }}>
-            📈 Dados de mercado em tempo real (Ibovespa: {marketData.ibovespa?.value || '137k'} pts)
+            📈 Dados de mercado em tempo real (Ibovespa: {marketData.ibovespa?.value || '140.109'} pts)
           </Alert>
         </Grid>
       )}
@@ -553,7 +555,7 @@ export default function Page(): React.JSX.Element {
           rows={ativosAtualizados}
           page={0} 
           rowsPerPage={5}
-          cardsData={dadosCards}
+          cardsData={dadosCards}  {/* 🔥 DADOS SERÃO EXPANDIDOS AUTOMATICAMENTE NO COMPONENTE */}
         />
       </Grid>
     </Grid>
