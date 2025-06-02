@@ -384,7 +384,7 @@ export function OverviewTable({
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '100%', width: '100%' }}>
+          <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -392,12 +392,11 @@ export function OverviewTable({
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
-                  width: '40px',
+                  width: '80px',
                   color: '#475569',
                   fontSize: '0.8rem',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  padding: '8px 4px'
+                  letterSpacing: '0.05em'
                 }}>
                   #
                 </TableCell>
@@ -405,10 +404,7 @@ export function OverviewTable({
                   fontWeight: 700, 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '140px',
-                  minWidth: '140px',
-                  padding: '8px 8px'
+                  textTransform: 'uppercase'
                 }}>
                   Ativo
                 </TableCell>
@@ -417,10 +413,7 @@ export function OverviewTable({
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '90px',
-                  minWidth: '90px',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
                   Setor
                 </TableCell>
@@ -429,10 +422,7 @@ export function OverviewTable({
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '80px',
-                  minWidth: '80px',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
                   Entrada
                 </TableCell>
@@ -441,36 +431,25 @@ export function OverviewTable({
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '90px',
-                  minWidth: '90px',
-                  whiteSpace: 'nowrap',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
-                  P. Inicial
+                  Preço Inicial
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '90px',
-                  minWidth: '90px',
-                  whiteSpace: 'nowrap',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
-                  P. Atual
+                  Preço Atual
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '60px',
-                  minWidth: '60px',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
                   DY
                 </TableCell>
@@ -479,11 +458,7 @@ export function OverviewTable({
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '80px',
-                  minWidth: '80px',
-                  whiteSpace: 'nowrap',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
                   Teto
                 </TableCell>
@@ -492,10 +467,7 @@ export function OverviewTable({
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '80px',
-                  minWidth: '80px',
-                  padding: '8px 4px'
+                  textTransform: 'uppercase'
                 }}>
                   Viés
                 </TableCell>
@@ -542,19 +514,18 @@ export function OverviewTable({
                       textAlign: 'center', 
                       fontWeight: 800, 
                       fontSize: '1rem',
-                      color: '#6366f1',
-                      padding: '8px 4px'
+                      color: '#6366f1'
                     }}>
                       {index + 1}
                     </TableCell>
-                    <TableCell sx={{ padding: '8px 8px' }}>
-                      <Stack direction="row" spacing={1.5} alignItems="center">
+                    <TableCell>
+                      <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar} 
                           alt={row.ticker}
                           sx={{ 
-                            width: 32, 
-                            height: 32,
+                            width: 40, 
+                            height: 40,
                             border: '2px solid',
                             borderColor: 'rgba(99, 102, 241, 0.2)'
                           }}
@@ -563,20 +534,20 @@ export function OverviewTable({
                           <Typography variant="subtitle1" sx={{ 
                             fontWeight: 700,
                             color: '#1e293b',
-                            fontSize: '0.9rem'
+                            fontSize: '0.95rem'
                           }}>
                             {row.ticker}
                           </Typography>
                           <Typography variant="caption" sx={{ 
                             color: '#64748b',
-                            fontSize: '0.7rem'
+                            fontSize: '0.75rem'
                           }}>
                             {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
                           </Typography>
                         </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', padding: '8px 4px' }}>
+                    <TableCell sx={{ textAlign: 'center' }}>
                       <Chip 
                         label={row.setor}
                         size="small"
@@ -584,18 +555,16 @@ export function OverviewTable({
                           backgroundColor: 'rgba(99, 102, 241, 0.1)',
                           color: '#6366f1',
                           fontWeight: 600,
-                          fontSize: '0.7rem',
-                          border: '1px solid rgba(99, 102, 241, 0.2)',
-                          height: '20px'
+                          fontSize: '0.75rem',
+                          border: '1px solid rgba(99, 102, 241, 0.2)'
                         }}
                       />
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       color: '#64748b',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'nowrap',
-                      padding: '8px 4px'
+                      fontSize: '0.85rem',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.dataEntrada}
                     </TableCell>
@@ -603,9 +572,7 @@ export function OverviewTable({
                       textAlign: 'center',
                       fontWeight: 600,
                       color: '#475569',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.8rem',
-                      padding: '8px 4px'
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.precoEntrada}
                     </TableCell>
@@ -613,9 +580,7 @@ export function OverviewTable({
                       textAlign: 'center',
                       fontWeight: 700,
                       color: performance >= 0 ? '#10b981' : '#ef4444',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.8rem',
-                      padding: '8px 4px'
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.precoAtual}
                     </TableCell>
@@ -623,9 +588,7 @@ export function OverviewTable({
                       textAlign: 'center',
                       fontWeight: 600,
                       color: '#6366f1',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.8rem',
-                      padding: '8px 4px'
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.dy}
                     </TableCell>
@@ -633,13 +596,11 @@ export function OverviewTable({
                       textAlign: 'center',
                       fontWeight: 600,
                       color: '#475569',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.8rem',
-                      padding: '8px 4px'
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.precoTeto}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', padding: '8px 4px' }}>
+                    <TableCell sx={{ textAlign: 'center' }}>
                       <Chip
                         label={viesCalculado}
                         size="small"
@@ -647,12 +608,11 @@ export function OverviewTable({
                           backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
                           color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
                           fontWeight: 700,
-                          fontSize: '0.7rem',
+                          fontSize: '0.75rem',
                           border: '1px solid',
                           borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          height: '20px'
+                          letterSpacing: '0.05em'
                         }}
                       />
                     </TableCell>
