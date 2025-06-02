@@ -396,10 +396,10 @@ export default function Page(): React.JSX.Element {
   const { marketData, loading: marketLoading, error: marketError, refetch: marketRefetch } = useFinancialData();
   const { ativosAtualizados, loading: cotacoesLoading, error: cotacoesError, refetch: cotacoesRefetch } = useBrapiCotacoesValidadas();
 
-  // 🔥 DADOS PADRÃO ATUALIZADOS COM VALORES REAIS
+  // 🔥 DADOS PADRÃO ATUALIZADOS COM VALORES REAIS E PRECISOS
   const dadosCardsPadrao = {
-    ibovespa: { value: "140.109", trend: "up" as const, diff: 0.34 },  // 💰 VALOR REAL DA BRAPI
-    indiceSmall: { value: "3.200", trend: "up" as const, diff: 0.24 }, // 📊 IFIX ESTIMADO
+    ibovespa: { value: "140109", trend: "up" as const, diff: 0.34 },      // 💰 VALOR REAL: 140.109 (sem pontos para não confundir)
+    indiceSmall: { value: "3200", trend: "up" as const, diff: 0.24 },     // 📊 IFIX: 3.200 (sem pontos)
     carteiraHoje: { value: "88.7%", trend: "up" as const },
     dividendYield: { value: "7.4%", trend: "up" as const },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
