@@ -54,7 +54,7 @@ const ativosBase = [
     id: '1',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
     ticker: 'ALOS3',
-    tickerBrapi: 'ALOS3', // Confirmado que funciona
+    tickerBrapi: 'ALOS3',
     setor: 'Shoppings',
     dataEntrada: '15/01/2021',
     precoEntrada: 'R$ 26,68',
@@ -65,7 +65,7 @@ const ativosBase = [
     id: '2',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/TUPY.png',
     ticker: 'TUPY3',
-    tickerBrapi: 'TUPY3', // Vamos testar
+    tickerBrapi: 'TUPY3',
     setor: 'Industrial',
     dataEntrada: '04/11/2020',
     precoEntrada: 'R$ 20,36',
@@ -76,7 +76,7 @@ const ativosBase = [
     id: '3',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
     ticker: 'PETR4',
-    tickerBrapi: 'PETR4', // Sabemos que funciona
+    tickerBrapi: 'PETR4',
     setor: 'Petróleo',
     dataEntrada: '01/01/2022',
     precoEntrada: 'R$ 30,00',
@@ -87,7 +87,7 @@ const ativosBase = [
     id: '4',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/VALE.png',
     ticker: 'VALE3',
-    tickerBrapi: 'VALE3', // Sabemos que funciona
+    tickerBrapi: 'VALE3',
     setor: 'Mineração',
     dataEntrada: '01/01/2022',
     precoEntrada: 'R$ 80,00',
@@ -98,7 +98,7 @@ const ativosBase = [
     id: '5',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/ITUB.png',
     ticker: 'ITUB4',
-    tickerBrapi: 'ITUB4', // Banco Itaú - comum na Brapi
+    tickerBrapi: 'ITUB4',
     setor: 'Bancário',
     dataEntrada: '01/01/2022',
     precoEntrada: 'R$ 25,00',
@@ -109,7 +109,7 @@ const ativosBase = [
     id: '6',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/BBDC.png',
     ticker: 'BBDC4',
-    tickerBrapi: 'BBDC4', // Bradesco - comum na Brapi
+    tickerBrapi: 'BBDC4',
     setor: 'Bancário',
     dataEntrada: '01/01/2022',
     precoEntrada: 'R$ 20,00',
@@ -120,7 +120,7 @@ const ativosBase = [
     id: '7',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/ABEV.png',
     ticker: 'ABEV3',
-    tickerBrapi: 'ABEV3', // Ambev - comum na Brapi
+    tickerBrapi: 'ABEV3',
     setor: 'Bebidas',
     dataEntrada: '01/01/2022',
     precoEntrada: 'R$ 15,00',
@@ -131,14 +131,13 @@ const ativosBase = [
     id: '8',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/MGLU.png',
     ticker: 'MGLU3',
-    tickerBrapi: 'MGLU3', // Magazine Luiza - comum na Brapi
+    tickerBrapi: 'MGLU3',
     setor: 'Varejo',
     dataEntrada: '01/01/2022',
     precoEntrada: 'R$ 10,00',
     dy: '0,00%',
     precoTeto: 'R$ 15,00',
   },
-  // Mantendo algumas das suas ações originais para teste
   {
     id: '9',
     avatar: 'https://www.ivalor.com.br/media/emp/logos/RECV.png',
@@ -163,165 +162,134 @@ const ativosBase = [
   }
 ];
 
-// 🚀 HOOK PARA BUSCAR COTAÇÕES REAIS DA BRAPI COM TICKERS VALIDADOS
+// 🚀 HOOK PARA BUSCAR COTAÇÕES REAIS DA BRAPI - VERSÃO CORRIGIDA BASEADA NO PADRÃO DOS FIIs
 function useBrapiCotacoesValidadas() {
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = React.useState<string>('');
-  const [debugInfo, setDebugInfo] = React.useState<any>({});
 
   const buscarCotacoes = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 BUSCANDO COTAÇÕES COM TICKERS VALIDADOS PARA BRAPI');
+      console.log('🚀 BUSCANDO COTAÇÕES DAS AÇÕES COM PADRÃO DOS FIIs FUNCIONANDO');
 
-      // 🔑 TOKEN VALIDADO
+      // 🔑 TOKEN BRAPI FUNCIONANDO (MESMO DOS FIIs)
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
-      // 📋 EXTRAIR TICKERS PARA BRAPI
+      // 📋 EXTRAIR TODOS OS TICKERS
       const tickers = ativosBase.map(ativo => ativo.tickerBrapi);
-      console.log('🎯 Tickers para buscar na Brapi:', tickers.join(', '));
+      console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🧪 PRIMEIRO, TESTAR ALGUNS TICKERS CONHECIDOS
-      const tickersConhecidos = ['PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'ABEV3'];
-      console.log('\n🧪 TESTE INICIAL COM TICKERS CONHECIDOS:', tickersConhecidos.join(', '));
-
-      const testeUrl = `https://brapi.dev/api/quote/${tickersConhecidos.join(',')}?token=${BRAPI_TOKEN}`;
-      console.log('🌐 URL de teste:', testeUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
-
-      const testeResponse = await fetch(testeUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Portfolio-Test-App',
-          'Cache-Control': 'no-cache'
-        }
-      });
-
-      console.log(`📊 Status do teste: ${testeResponse.status} ${testeResponse.statusText}`);
-
-      if (testeResponse.ok) {
-        const testeData = await testeResponse.json();
-        console.log('✅ TESTE INICIAL FUNCIONOU!', testeData);
-        
-        if (testeData.results && testeData.results.length > 0) {
-          console.log(`🎉 ${testeData.results.length} tickers encontrados no teste!`);
-          testeData.results.forEach((quote: any) => {
-            console.log(`   • ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
-          });
-        }
-      } else {
-        const testeError = await testeResponse.text();
-        console.error('❌ TESTE INICIAL FALHOU:', testeError);
-        setError(`Teste inicial falhou: ${testeResponse.status} - ${testeError}`);
-        return;
-      }
-
-      // 🔄 AGORA BUSCAR TODOS OS TICKERS INDIVIDUALMENTE
+      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN (MESMO PADRÃO DOS FIIs)
+      const LOTE_SIZE = 5;
       const cotacoesMap = new Map();
       let sucessosTotal = 0;
       let falhasTotal = 0;
-      const tickersProblematicos = [];
 
-      console.log('\n🔍 === BUSCANDO CADA TICKER INDIVIDUALMENTE ===');
-
-      for (let i = 0; i < tickers.length; i++) {
-        const ticker = tickers[i];
-        const apiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
+        const lote = tickers.slice(i, i + LOTE_SIZE);
+        const tickersString = lote.join(',');
         
-        console.log(`\n🔍 [${i+1}/${tickers.length}] Testando: ${ticker}`);
+        // 🔑 URL COM TOKEN DE AUTENTICAÇÃO VALIDADO (IGUAL AOS FIIs)
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
+        
+        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+        console.log(`🌐 URL: ${apiUrl.replace(BRAPI_TOKEN, 'TOKEN_FUNCIONANDO')}`);
 
         try {
           const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Portfolio-Individual-Test',
-              'Cache-Control': 'no-cache'
+              'User-Agent': 'Acoes-Portfolio-App'
             }
           });
 
-          console.log(`📊 Status: ${response.status}`);
-
           if (response.ok) {
             const apiData = await response.json();
-            
-            if (apiData.results && Array.isArray(apiData.results) && apiData.results.length > 0) {
-              const quote = apiData.results[0];
-              console.log(`✅ ${ticker}: R$ ${quote.regularMarketPrice} (${quote.shortName})`);
-              
-              if (quote.regularMarketPrice != null && !isNaN(quote.regularMarketPrice) && quote.regularMarketPrice > 0) {
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName,
-                  dadosCompletos: quote
-                });
-                sucessosTotal++;
-              } else {
-                console.warn(`⚠️ ${ticker}: Preço inválido`);
-                falhasTotal++;
-                tickersProblematicos.push(`${ticker} (preço inválido)`);
-              }
-            } else {
-              console.warn(`⚠️ ${ticker}: Sem resultados válidos`);
-              falhasTotal++;
-              tickersProblematicos.push(`${ticker} (sem resultados)`);
+            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+
+            if (apiData.results && Array.isArray(apiData.results)) {
+              apiData.results.forEach((quote: any) => {
+                console.log(`🔍 Processando: ${quote.symbol}`);
+                console.log(`💰 Preço: ${quote.regularMarketPrice}`);
+                console.log(`📈 Variação: ${quote.regularMarketChangePercent}%`);
+                
+                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
+                  cotacoesMap.set(quote.symbol, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName,
+                    dadosCompletos: quote
+                  });
+                  sucessosTotal++;
+                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
+                } else {
+                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
+                  falhasTotal++;
+                }
+              });
             }
           } else {
-            console.error(`❌ ${ticker}: HTTP ${response.status}`);
-            const errorText = await response.text();
-            console.error(`   Erro: ${errorText}`);
-            falhasTotal++;
+            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
             
-            if (errorText.includes('não encontramos')) {
-              tickersProblematicos.push(`${ticker} (não encontrado)`);
-            } else if (errorText.includes('limite')) {
-              tickersProblematicos.push(`${ticker} (rate limit)`);
-            } else {
-              tickersProblematicos.push(`${ticker} (HTTP ${response.status})`);
-            }
+            // LOG DA RESPOSTA DE ERRO
+            const errorText = await response.text();
+            console.error('📄 Resposta de erro:', errorText);
+            
+            falhasTotal += lote.length;
           }
-        } catch (tickerError) {
-          console.error(`❌ ${ticker}: Erro de rede:`, tickerError);
-          falhasTotal++;
-          tickersProblematicos.push(`${ticker} (erro de rede)`);
+        } catch (loteError) {
+          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
+          falhasTotal += lote.length;
         }
 
-        // DELAY entre requisições
-        if (i < tickers.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo
-        }
+        // DELAY entre requisições para evitar rate limiting (IGUAL AOS FIIs)
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
-      // 📊 RESULTADOS FINAIS
-      console.log('\n📊 === RESULTADOS FINAIS ===');
-      console.log(`✅ Sucessos: ${sucessosTotal}/${tickers.length}`);
-      console.log(`❌ Falhas: ${falhasTotal}/${tickers.length}`);
-      
-      if (tickersProblematicos.length > 0) {
-        console.log('\n🚨 TICKERS PROBLEMÁTICOS:');
-        tickersProblematicos.forEach(problema => console.log(`   • ${problema}`));
-      }
+      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+      console.log('🗺️ Mapa de cotações:', Array.from(cotacoesMap.entries()));
 
-      // 🔥 COMBINAR DADOS BASE COM COTAÇÕES REAIS
+      // 🔥 COMBINAR DADOS BASE COM COTAÇÕES REAIS (MESMO PADRÃO DOS FIIs)
       const ativosComCotacoes = ativosBase.map((ativo) => {
         const cotacao = cotacoesMap.get(ativo.tickerBrapi);
         const precoEntradaNum = parseFloat(ativo.precoEntrada.replace('R$ ', '').replace(',', '.'));
         
-        if (cotacao && cotacao.precoAtual != null && !isNaN(cotacao.precoAtual) && cotacao.precoAtual > 0) {
+        console.log(`\n🔄 Processando ${ativo.ticker}:`);
+        console.log(`💵 Preço entrada: R$ ${precoEntradaNum}`);
+        
+        if (cotacao && cotacao.precoAtual > 0) {
+          // 📊 PREÇO E PERFORMANCE REAIS
           const precoAtualNum = cotacao.precoAtual;
-          const precoAtualFormatado = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
           const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
           
-          console.log(`\n✅ ${ativo.ticker} ATUALIZADO:`);
-          console.log(`   💰 Preço: ${precoAtualFormatado}`);
-          console.log(`   📈 Performance: ${performance.toFixed(2)}%`);
+          console.log(`💰 Preço atual: R$ ${precoAtualNum}`);
+          console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          
+          // VALIDAR SE O PREÇO FAZ SENTIDO (IGUAL AOS FIIs)
+          const diferencaPercent = Math.abs(performance);
+          if (diferencaPercent > 500) {
+            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+            return {
+              ...ativo,
+              precoAtual: ativo.precoEntrada,
+              performance: 0,
+              variacao: 0,
+              variacaoPercent: 0,
+              volume: 0,
+              vies: calcularViesAutomatico(ativo.precoTeto, ativo.precoEntrada),
+              dy: ativo.dy,
+              statusApi: 'suspicious_price',
+              nomeCompleto: cotacao.nome
+            };
+          }
+          
+          const precoAtualFormatado = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
           
           return {
             ...ativo,
@@ -336,7 +304,8 @@ function useBrapiCotacoesValidadas() {
             nomeCompleto: cotacao.nome
           };
         } else {
-          console.log(`\n⚠️ ${ativo.ticker} SEM COTAÇÃO - usando fallback`);
+          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO (IGUAL AOS FIIs)
+          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
           
           return {
             ...ativo,
@@ -353,31 +322,39 @@ function useBrapiCotacoesValidadas() {
         }
       });
 
-      setDebugInfo({
-        timestamp: new Date().toISOString(),
-        sucessos: sucessosTotal,
-        falhas: falhasTotal,
-        tickersProblematicos,
-        cotacoesEncontradas: Array.from(cotacoesMap.keys())
-      });
+      // 📊 ESTATÍSTICAS FINAIS (IGUAL AOS FIIs)
+      const sucessos = ativosComCotacoes.filter(a => a.statusApi === 'success').length;
+      const suspeitos = ativosComCotacoes.filter(a => a.statusApi === 'suspicious_price').length;
+      const naoEncontrados = ativosComCotacoes.filter(a => a.statusApi === 'not_found').length;
+      
+      console.log('\n📊 ESTATÍSTICAS FINAIS:');
+      console.log(`✅ Sucessos: ${sucessos}/${ativosComCotacoes.length}`);
+      console.log(`🚨 Preços suspeitos: ${suspeitos}/${ativosComCotacoes.length}`);
+      console.log(`❌ Não encontrados: ${naoEncontrados}/${ativosComCotacoes.length}`);
+      
+      if (sucessos > 0) {
+        const performanceMedia = ativosComCotacoes
+          .filter(a => a.statusApi === 'success')
+          .reduce((sum, a) => sum + a.performance, 0) / sucessos;
+        console.log(`📈 Performance média: ${performanceMedia.toFixed(2)}%`);
+      }
 
       setAtivosAtualizados(ativosComCotacoes);
-      setLastUpdate(new Date().toLocaleString('pt-BR'));
 
-      if (sucessosTotal === 0) {
-        setError('Nenhuma cotação foi obtida da Brapi');
-      } else if (sucessosTotal < ativosComCotacoes.length / 3) { // Mudado de /2 para /3
-        setError(`Apenas ${sucessosTotal} de ${ativosComCotacoes.length} ações atualizadas`);
-      } else {
-        setError(null); // Limpar erro se teve sucesso suficiente
+      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS (IGUAL AOS FIIs)
+      if (sucessos < ativosComCotacoes.length / 2) {
+        setError(`Apenas ${sucessos} de ${ativosComCotacoes.length} ações com cotação válida`);
+      } else if (suspeitos > 0) {
+        setError(`${suspeitos} ações com preços suspeitos foram ignorados`);
       }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ ERRO GERAL:', err);
+      console.error('❌ Erro geral ao buscar cotações:', err);
       
-      // FALLBACK COMPLETO
+      // 🔄 FALLBACK: USAR DADOS ESTÁTICOS (IGUAL AOS FIIs)
+      console.log('🔄 Usando fallback completo com preços de entrada...');
       const ativosFallback = ativosBase.map(ativo => ({
         ...ativo,
         precoAtual: ativo.precoEntrada,
@@ -398,18 +375,26 @@ function useBrapiCotacoesValidadas() {
 
   React.useEffect(() => {
     buscarCotacoes();
-    const interval = setInterval(buscarCotacoes, 5 * 60 * 1000);
+
+    // ATUALIZAR A CADA 10 MINUTOS (IGUAL AOS FIIs)
+    const interval = setInterval(buscarCotacoes, 10 * 60 * 1000);
+    
     return () => clearInterval(interval);
   }, [buscarCotacoes]);
 
-  return { ativosAtualizados, loading, error, refetch: buscarCotacoes, lastUpdate, debugInfo };
+  return {
+    ativosAtualizados,
+    loading,
+    error,
+    refetch: buscarCotacoes,
+  };
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🔥 PÁGINA OVERVIEW (AÇÕES) - VERSÃO COM TICKERS VALIDADOS");
+  console.log("🔥 PÁGINA OVERVIEW (AÇÕES) - VERSÃO CORRIGIDA COM PADRÃO DOS FIIs");
 
   const { marketData, loading: marketLoading, error: marketError, refetch: marketRefetch } = useFinancialData();
-  const { ativosAtualizados, loading: cotacoesLoading, error: cotacoesError, refetch: cotacoesRefetch, lastUpdate, debugInfo } = useBrapiCotacoesValidadas();
+  const { ativosAtualizados, loading: cotacoesLoading, error: cotacoesError, refetch: cotacoesRefetch } = useBrapiCotacoesValidadas();
 
   const dadosCardsPadrao = {
     ibovespa: { value: "137k", trend: "up" as const, diff: 0.2 },
@@ -420,21 +405,78 @@ export default function Page(): React.JSX.Element {
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
-  const dadosCards = marketData || dadosCardsPadrao;
+  // CALCULAR DIVIDEND YIELD MÉDIO DAS AÇÕES
+  const calcularDYAcoes = () => {
+    if (ativosAtualizados.length === 0) return dadosCardsPadrao.dividendYield;
+    
+    const dyValues = ativosAtualizados
+      .map(acao => parseFloat(acao.dy.replace('%', '').replace(',', '.')))
+      .filter(dy => !isNaN(dy) && dy > 0);
+    
+    if (dyValues.length === 0) return dadosCardsPadrao.dividendYield;
+    
+    const dyMedio = dyValues.reduce((sum, dy) => sum + dy, 0) / dyValues.length;
+    
+    return {
+      value: `${dyMedio.toFixed(1)}%`,
+      trend: "up" as const,
+      diff: dyMedio,
+    };
+  };
+
+  // CALCULAR PERFORMANCE MÉDIA DA CARTEIRA AÇÕES
+  const calcularPerformanceAcoes = () => {
+    console.log('🔍 DEBUG calcularPerformanceAcoes:');
+    console.log('- ativosAtualizados.length:', ativosAtualizados.length);
+    
+    if (ativosAtualizados.length === 0) {
+      console.log('❌ Portfolio vazio, usando padrão');
+      return dadosCardsPadrao.carteiraHoje;
+    }
+    
+    const performances = ativosAtualizados
+      .filter(acao => {
+        const hasPerformance = acao.performance !== undefined && !isNaN(acao.performance);
+        console.log(`🔍 ACAO ${acao.ticker}: performance = ${acao.performance}, válida = ${hasPerformance}`);
+        return hasPerformance;
+      })
+      .map(acao => acao.performance);
+    
+    console.log('🔍 Performances válidas:', performances);
+    
+    if (performances.length === 0) {
+      console.log('❌ Nenhuma performance válida, usando padrão');
+      return dadosCardsPadrao.carteiraHoje;
+    }
+    
+    const performancMedia = performances.reduce((sum, perf) => sum + perf, 0) / performances.length;
+    console.log('✅ Performance média calculada:', performancMedia);
+    
+    return {
+      value: `${performancMedia.toFixed(1)}%`,
+      trend: performancMedia >= 0 ? "up" as const : "down" as const,
+      diff: performancMedia,
+    };
+  };
+
+  // USAR DADOS DA API SE DISPONÍVEIS COM CÁLCULOS PERSONALIZADOS
+  const dadosCards = {
+    ...dadosCardsPadrao,
+    ...(marketData || {}),
+    dividendYield: calcularDYAcoes(),
+    carteiraHoje: calcularPerformanceAcoes(),
+  };
 
   React.useEffect(() => {
     if (ativosAtualizados.length > 0) {
       console.log('\n🎯 RESULTADO FINAL PARA INTERFACE:');
       ativosAtualizados.forEach(ativo => {
-        console.log(`📊 ${ativo.ticker}: ${ativo.precoAtual} (${ativo.statusApi})`);
+        console.log(`📊 ${ativo.ticker}: ${ativo.precoAtual} (${ativo.statusApi}) - Performance: ${ativo.performance?.toFixed(2)}%`);
       });
-      
-      if (debugInfo.timestamp) {
-        console.log('\n📈 Debug Info:', debugInfo);
-      }
     }
-  }, [ativosAtualizados, debugInfo]);
+  }, [ativosAtualizados]);
 
+  // LOADING STATE
   if (cotacoesLoading || marketLoading) {
     return (
       <Grid container spacing={3}>
@@ -442,7 +484,7 @@ export default function Page(): React.JSX.Element {
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <CircularProgress size={40} />
             <Box ml={2} sx={{ fontSize: '1.1rem' }}>
-              🔄 Testando tickers validados na Brapi...
+              📈 Carregando carteira de ações com cotações reais...
             </Box>
           </Box>
         </Grid>
@@ -450,45 +492,39 @@ export default function Page(): React.JSX.Element {
     );
   }
 
+  // ERROR HANDLING
+  const hasError = marketError || cotacoesError;
+  
+  const refetchAll = async () => {
+    await Promise.all([marketRefetch(), cotacoesRefetch()]);
+  };
+
   return (
     <Grid container spacing={3}>
-      {cotacoesError && (
+      {/* Alertas de status */}
+      {hasError && (
         <Grid xs={12}>
           <Alert 
             severity="warning"
             action={
-              <Button color="inherit" size="small" onClick={cotacoesRefetch}>
+              <Button color="inherit" size="small" onClick={refetchAll}>
                 🔄 Tentar Novamente
               </Button>
             }
             sx={{ mb: 1 }}
           >
-            ⚠️ {cotacoesError}
+            {marketError && `⚠️ Mercado: ${marketError}`}
+            {cotacoesError && `⚠️ Ações: ${cotacoesError}`}
+            {hasError && ' - Usando dados offline temporariamente'}
           </Alert>
         </Grid>
       )}
 
-      {marketError && (
-        <Grid xs={12}>
-          <Alert 
-            severity="warning"
-            action={
-              <Button color="inherit" size="small" onClick={marketRefetch}>
-                🔄 Recarregar Mercado
-              </Button>
-            }
-            sx={{ mb: 1 }}
-          >
-            ⚠️ API de mercado offline - usando dados locais
-          </Alert>
-        </Grid>
-      )}
-
+      {/* Indicador de sucesso */}
       {!cotacoesError && ativosAtualizados.length > 0 && (
         <Grid xs={12}>
           <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Cotações Brapi: {ativosAtualizados.filter(a => a.statusApi === 'success').length}/{ativosAtualizados.length} ações atualizadas
-            {lastUpdate && ` • Última atualização: ${lastUpdate}`}
+            ✅ Carteira de ações atualizada com sucesso - Cotações reais: {ativosAtualizados.filter(a => a.statusApi === 'success').length}/{ativosAtualizados.length} ações via BRAPI
           </Alert>
         </Grid>
       )}
@@ -496,7 +532,7 @@ export default function Page(): React.JSX.Element {
       {!marketError && marketData && (
         <Grid xs={12}>
           <Alert severity="info" sx={{ mb: 1 }}>
-            📈 Dados de mercado em tempo real (Ibovespa: 137k pts)
+            📈 Dados de mercado em tempo real (Ibovespa: {marketData.ibovespa?.value || '137k'} pts)
           </Alert>
         </Grid>
       )}
