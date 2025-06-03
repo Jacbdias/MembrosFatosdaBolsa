@@ -81,125 +81,151 @@ function useMarketDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-interface StatCardProps {
+// 🎨 INDICADOR DE MERCADO ESTILO MODERNO (SEM CARD)
+interface MarketIndicatorProps {
   title: string;
   value: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
   isLoading?: boolean;
+  description?: string;
 }
 
-// 🎨 CARD ESTATÍSTICO COM DADOS DINÂMICOS DA API
-function StatCard({ title, value, icon, trend, diff, isLoading }: StatCardProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
-  const topBorderColor = trend === 'up' ? '#10b981' : '#ef4444';
+  const bgGradient = trend === 'up' 
+    ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' 
+    : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
   
   return (
-    <Card 
+    <Box 
       sx={{ 
         position: 'relative',
-        backgroundColor: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 2,
-        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        background: bgGradient,
+        borderRadius: 4,
+        p: 4,
+        border: '1px solid',
+        borderColor: trend === 'up' ? '#bbf7d0' : '#fecaca',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         overflow: 'hidden',
         opacity: isLoading ? 0.7 : 1,
-        transition: 'opacity 0.3s ease',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 8px 25px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        },
         '&::before': {
           content: '""',
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: '3px',
-          backgroundColor: topBorderColor,
+          height: '4px',
+          background: trendColor,
         }
       }}
     >
-      <CardContent sx={{ p: 3 }}>
-        <Stack spacing={2}>
-          {/* Header */}
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+      <Stack spacing={3}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+          <Box>
             <Typography 
-              variant="caption" 
+              variant="overline" 
               sx={{ 
-                color: '#64748b',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                fontSize: '0.75rem'
+                color: '#475569',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                letterSpacing: '0.1em',
+                lineHeight: 1
               }}
             >
               {title}
             </Typography>
+            {description && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#64748b',
+                  display: 'block',
+                  mt: 0.5,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+          </Box>
+          <Box sx={{
+            width: 48,
+            height: 48,
+            borderRadius: 2,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: trendColor,
+            boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)'
+          }}>
+            {React.cloneElement(icon as React.ReactElement, { size: 24 })}
+          </Box>
+        </Stack>
+        
+        {/* Valor principal */}
+        <Typography 
+          variant="h2" 
+          sx={{ 
+            fontWeight: 800,
+            color: '#1e293b',
+            fontSize: { xs: '2.5rem', sm: '3rem' },
+            lineHeight: 1,
+            letterSpacing: '-0.02em'
+          }}
+        >
+          {isLoading ? '...' : value}
+        </Typography>
+        
+        {/* Indicador de tendência */}
+        {!isLoading && diff !== undefined && trend && (
+          <Stack direction="row" alignItems="center" spacing={1.5}>
             <Box sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1.5,
-              backgroundColor: '#f1f5f9',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748b'
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              color: trendColor,
+              boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
             }}>
-              {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+              <TrendIcon size={14} weight="bold" />
             </Box>
+            <Typography 
+              variant="h6"
+              sx={{ 
+                color: trendColor,
+                fontWeight: 700,
+                fontSize: '1.125rem'
+              }}
+            >
+              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: '#64748b',
+                fontWeight: 500,
+                fontSize: '0.9rem'
+              }}
+            >
+              hoje
+            </Typography>
           </Stack>
-          
-          {/* Valor principal */}
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 700,
-              color: '#1e293b',
-              fontSize: '1.75rem',
-              lineHeight: 1
-            }}
-          >
-            {isLoading ? '...' : value}
-          </Typography>
-          
-          {/* Indicador de tendência */}
-          {!isLoading && diff !== undefined && trend && (
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
-                color: trendColor
-              }}>
-                <TrendIcon size={12} weight="bold" />
-              </Box>
-              <Typography 
-                variant="body2"
-                sx={{ 
-                  color: trendColor,
-                  fontWeight: 600,
-                  fontSize: '0.875rem'
-                }}
-              >
-                {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
-              </Typography>
-              <Typography 
-                variant="body2"
-                sx={{ 
-                  color: '#64748b',
-                  fontSize: '0.875rem'
-                }}
-              >
-                hoje
-              </Typography>
-            </Stack>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
+        )}
+      </Stack>
+    </Box>
   );
 }
 
@@ -224,10 +250,6 @@ interface OverviewTableProps {
   cardsData?: {
     ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
     indiceSmall?: { value: string; trend?: 'up' | 'down'; diff?: number };
-    carteiraHoje?: { value: string; trend?: 'up' | 'down'; diff?: number };
-    dividendYield?: { value: string; trend?: 'up' | 'down'; diff?: number };
-    ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
-    carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
 }
 
@@ -244,46 +266,38 @@ export function OverviewTable({
   const { data: apiData, loading, error, refresh } = useMarketDataAPI();
 
   // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
-  const defaultCards = {
+  const defaultIndicators = {
     ibovespa: { value: "136.431", trend: "down" as const, diff: -0.26 },
     indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 },
-    carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
-    dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
-    ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
-    carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
   // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
-  const cards = React.useMemo(() => {
+  const indicators = React.useMemo(() => {
     // Se temos dados da API, usar eles
     if (apiData) {
       console.log('✅ Usando dados da API:', apiData);
       return {
-        ibovespa: apiData.ibovespa || defaultCards.ibovespa,
-        indiceSmall: apiData.indiceSmall || defaultCards.indiceSmall,
-        carteiraHoje: apiData.carteiraHoje || defaultCards.carteiraHoje,
-        dividendYield: apiData.dividendYield || defaultCards.dividendYield,
-        ibovespaPeriodo: apiData.ibovespaPeriodo || defaultCards.ibovespaPeriodo,
-        carteiraPeriodo: apiData.carteiraPeriodo || defaultCards.carteiraPeriodo,
+        ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
+        indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
       };
     }
     
     // Senão, usar cardsData se disponível
     if (Object.keys(cardsData).length > 0) {
       console.log('⚠️ Usando cardsData prop:', cardsData);
-      return { ...defaultCards, ...cardsData };
+      return { ...defaultIndicators, ...cardsData };
     }
     
     // Por último, usar fallback
     console.log('⚠️ Usando dados de fallback');
-    return defaultCards;
+    return defaultIndicators;
   }, [apiData, cardsData]);
 
   return (
     <Box>
       {/* Header com status da API */}
       {error && (
-        <Box sx={{ mb: 2, p: 2, backgroundColor: '#fef2f2', borderRadius: 2, border: '1px solid #fecaca' }}>
+        <Box sx={{ mb: 3, p: 3, backgroundColor: '#fef2f2', borderRadius: 2, border: '1px solid #fecaca' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" sx={{ color: '#dc2626' }}>
               ⚠️ Erro ao carregar dados da API: {error}
@@ -300,81 +314,46 @@ export function OverviewTable({
       )}
 
       {loading && (
-        <Box sx={{ mb: 2 }}>
-          <LinearProgress sx={{ borderRadius: 1 }} />
-          <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', mt: 1 }}>
+        <Box sx={{ mb: 3 }}>
+          <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
+          <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', mt: 2 }}>
             Carregando dados em tempo real...
           </Typography>
         </Box>
       )}
 
-      {/* Grid de cards */}
+      {/* Indicadores de Mercado - Layout Otimizado */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(6, 1fr)',
-          },
-          gap: 2,
-          mb: 4,
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+          gap: 4,
+          mb: 5,
         }}
       >
-        <StatCard 
+        <MarketIndicator 
           title="IBOVESPA" 
-          value={cards.ibovespa.value} 
+          description="Índice da Bolsa Brasileira"
+          value={indicators.ibovespa.value} 
           icon={<CurrencyDollarIcon />} 
-          trend={cards.ibovespa.trend} 
-          diff={cards.ibovespa.diff}
+          trend={indicators.ibovespa.trend} 
+          diff={indicators.ibovespa.diff}
           isLoading={loading}
         />
-        <StatCard 
-          title="ÍNDICE SMALL" 
-          value={cards.indiceSmall.value} 
+        <MarketIndicator 
+          title="ÍNDICE SMALL CAP" 
+          description="Small Caps da B3"
+          value={indicators.indiceSmall.value} 
           icon={<UsersThreeIcon />} 
-          trend={cards.indiceSmall.trend} 
-          diff={cards.indiceSmall.diff}
-          isLoading={loading}
-        />
-        <StatCard 
-          title="CARTEIRA HOJE" 
-          value={cards.carteiraHoje.value} 
-          icon={<ListBulletsIcon />}
-          trend={cards.carteiraHoje.trend}
-          diff={cards.carteiraHoje.diff}
-          isLoading={loading}
-        />
-        <StatCard 
-          title="DIVIDEND YIELD" 
-          value={cards.dividendYield.value} 
-          icon={<ChartBarIcon />}
-          trend={cards.dividendYield.trend}
-          diff={cards.dividendYield.diff}
-          isLoading={loading}
-        />
-        <StatCard 
-          title="IBOVESPA PERÍODO" 
-          value={cards.ibovespaPeriodo.value} 
-          icon={<CurrencyDollarIcon />} 
-          trend={cards.ibovespaPeriodo.trend} 
-          diff={cards.ibovespaPeriodo.diff}
-          isLoading={loading}
-        />
-        <StatCard 
-          title="CARTEIRA PERÍODO" 
-          value={cards.carteiraPeriodo.value} 
-          icon={<ChartBarIcon />} 
-          trend={cards.carteiraPeriodo.trend} 
-          diff={cards.carteiraPeriodo.diff}
+          trend={indicators.indiceSmall.trend} 
+          diff={indicators.indiceSmall.diff}
           isLoading={loading}
         />
       </Box>
       
-      {/* Tabela */}
+      {/* Tabela de Ações */}
       <Card sx={{ 
-        borderRadius: 3,
+        borderRadius: 4,
         border: '1px solid',
         borderColor: 'rgba(148, 163, 184, 0.2)',
         boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
@@ -382,23 +361,39 @@ export function OverviewTable({
       }}>
         <Box sx={{ 
           background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          p: 3,
+          p: 4,
           borderBottom: '1px solid',
           borderColor: 'rgba(148, 163, 184, 0.2)'
         }}>
-          <Typography variant="h6" sx={{ 
-            fontWeight: 700, 
-            color: '#1e293b',
-            fontSize: '1.1rem'
-          }}>
-            📊 Carteira de Ações
-          </Typography>
-          <Typography variant="body2" sx={{ 
-            color: '#64748b',
-            mt: 0.5
-          }}>
-            {rows.length} ativos • Viés calculado automaticamente
-          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                📊 Carteira de Ações
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {rows.length} ativos em acompanhamento • Viés calculado automaticamente
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              {rows.length} ativos
+            </Box>
+          </Stack>
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
@@ -410,7 +405,7 @@ export function OverviewTable({
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
-                  width: '80px',
+                  width: '60px',
                   color: '#475569',
                   fontSize: '0.8rem',
                   textTransform: 'uppercase',
@@ -519,7 +514,7 @@ export function OverviewTable({
                       '&:hover': {
                         backgroundColor: 'rgba(99, 102, 241, 0.04)',
                         cursor: 'pointer',
-                        transform: 'scale(1.01)',
+                        transform: 'scale(1.005)',
                         transition: 'all 0.2s ease'
                       },
                       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
@@ -539,8 +534,8 @@ export function OverviewTable({
                           src={row.avatar} 
                           alt={row.ticker}
                           sx={{ 
-                            width: 40, 
-                            height: 40,
+                            width: 44, 
+                            height: 44,
                             border: '2px solid',
                             borderColor: 'rgba(99, 102, 241, 0.2)'
                           }}
@@ -549,13 +544,14 @@ export function OverviewTable({
                           <Typography variant="subtitle1" sx={{ 
                             fontWeight: 700,
                             color: '#1e293b',
-                            fontSize: '0.95rem'
+                            fontSize: '1rem'
                           }}>
                             {row.ticker}
                           </Typography>
                           <Typography variant="caption" sx={{ 
-                            color: '#64748b',
-                            fontSize: '0.75rem'
+                            color: performance >= 0 ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
                           }}>
                             {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
                           </Typography>
@@ -565,12 +561,12 @@ export function OverviewTable({
                     <TableCell sx={{ textAlign: 'center' }}>
                       <Chip 
                         label={row.setor}
-                        size="small"
+                        size="medium"
                         sx={{
                           backgroundColor: 'rgba(99, 102, 241, 0.1)',
                           color: '#6366f1',
                           fontWeight: 600,
-                          fontSize: '0.75rem',
+                          fontSize: '0.8rem',
                           border: '1px solid rgba(99, 102, 241, 0.2)'
                         }}
                       />
@@ -578,7 +574,7 @@ export function OverviewTable({
                     <TableCell sx={{ 
                       textAlign: 'center',
                       color: '#64748b',
-                      fontSize: '0.85rem',
+                      fontSize: '0.875rem',
                       whiteSpace: 'nowrap'
                     }}>
                       {row.dataEntrada}
@@ -587,7 +583,8 @@ export function OverviewTable({
                       textAlign: 'center',
                       fontWeight: 600,
                       color: '#475569',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
                     }}>
                       {row.precoEntrada}
                     </TableCell>
@@ -595,7 +592,8 @@ export function OverviewTable({
                       textAlign: 'center',
                       fontWeight: 700,
                       color: performance >= 0 ? '#10b981' : '#ef4444',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
                     }}>
                       {row.precoAtual}
                     </TableCell>
@@ -618,12 +616,12 @@ export function OverviewTable({
                     <TableCell sx={{ textAlign: 'center' }}>
                       <Chip
                         label={viesCalculado}
-                        size="small"
+                        size="medium"
                         sx={{
                           backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
                           color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
                           fontWeight: 700,
-                          fontSize: '0.75rem',
+                          fontSize: '0.8rem',
                           border: '1px solid',
                           borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
                           textTransform: 'uppercase',
@@ -652,6 +650,7 @@ export function OverviewTable({
           }
           sx={{
             background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
             '& .MuiTablePagination-toolbar': {
               color: '#475569'
             }
