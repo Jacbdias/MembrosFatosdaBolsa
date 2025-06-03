@@ -81,7 +81,7 @@ function useMarketDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-// 🎨 INDICADOR DE MERCADO ESTILO MODERNO (SEM CARD)
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -95,50 +95,35 @@ interface MarketIndicatorProps {
 function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
-  const bgGradient = trend === 'up' 
-    ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' 
-    : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
   
   return (
     <Box 
       sx={{ 
-        position: 'relative',
-        background: bgGradient,
-        borderRadius: 4,
-        p: 4,
-        border: '1px solid',
-        borderColor: trend === 'up' ? '#bbf7d0' : '#fecaca',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        overflow: 'hidden',
+        backgroundColor: '#ffffff',
+        borderRadius: 2,
+        p: 2.5,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
         opacity: isLoading ? 0.7 : 1,
-        transition: 'all 0.3s ease',
+        transition: 'all 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 8px 25px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-        },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: trendColor,
+          borderColor: '#c7d2fe',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         }
       }}
     >
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         {/* Header */}
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Box>
             <Typography 
-              variant="overline" 
+              variant="caption" 
               sx={{ 
-                color: '#475569',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                letterSpacing: '0.1em',
-                lineHeight: 1
+                color: '#64748b',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
               }}
             >
               {title}
@@ -147,9 +132,9 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  color: '#64748b',
+                  color: '#94a3b8',
                   display: 'block',
-                  mt: 0.5,
+                  mt: 0.25,
                   fontSize: '0.7rem'
                 }}
               >
@@ -158,29 +143,27 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
             )}
           </Box>
           <Box sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
+            backgroundColor: '#f1f5f9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: trendColor,
-            boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)'
+            color: '#64748b'
           }}>
-            {React.cloneElement(icon as React.ReactElement, { size: 24 })}
+            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
           </Box>
         </Stack>
         
         {/* Valor principal */}
         <Typography 
-          variant="h2" 
+          variant="h4" 
           sx={{ 
-            fontWeight: 800,
+            fontWeight: 700,
             color: '#1e293b',
-            fontSize: { xs: '2.5rem', sm: '3rem' },
-            lineHeight: 1,
-            letterSpacing: '-0.02em'
+            fontSize: '1.75rem',
+            lineHeight: 1
           }}
         >
           {isLoading ? '...' : value}
@@ -188,26 +171,25 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
         
         {/* Indicador de tendência */}
         {!isLoading && diff !== undefined && trend && (
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Stack direction="row" alignItems="center" spacing={1}>
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 28,
-              height: 28,
+              width: 20,
+              height: 20,
               borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              color: trendColor,
-              boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
+              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+              color: trendColor
             }}>
-              <TrendIcon size={14} weight="bold" />
+              <TrendIcon size={12} weight="bold" />
             </Box>
             <Typography 
-              variant="h6"
+              variant="body2"
               sx={{ 
                 color: trendColor,
-                fontWeight: 700,
-                fontSize: '1.125rem'
+                fontWeight: 600,
+                fontSize: '0.875rem'
               }}
             >
               {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
@@ -216,8 +198,7 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
               variant="body2"
               sx={{ 
                 color: '#64748b',
-                fontWeight: 500,
-                fontSize: '0.9rem'
+                fontSize: '0.875rem'
               }}
             >
               hoje
@@ -322,13 +303,13 @@ export function OverviewTable({
         </Box>
       )}
 
-      {/* Indicadores de Mercado - Layout Otimizado */}
+      {/* Indicadores de Mercado - Layout Discreto */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-          gap: 4,
-          mb: 5,
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
         }}
       >
         <MarketIndicator 
