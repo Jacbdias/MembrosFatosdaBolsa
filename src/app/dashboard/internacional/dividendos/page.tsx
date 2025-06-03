@@ -436,7 +436,7 @@ export default function Page(): React.JSX.Element {
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '100%' }}>
+          <Table sx={{ minWidth: '1000px' }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -444,7 +444,7 @@ export default function Page(): React.JSX.Element {
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
-                  width: '50px',
+                  width: '60px',
                   color: '#475569',
                   fontSize: '0.8rem',
                   textTransform: 'uppercase',
@@ -457,8 +457,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '35%',
-                  minWidth: '200px'
+                  width: '200px'
                 }}>
                   Ativo
                 </TableCell>
@@ -467,18 +466,43 @@ export default function Page(): React.JSX.Element {
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '15%'
+                  textTransform: 'uppercase'
                 }}>
-                  Preços
+                  Setor
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '10%'
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
                 }}>
                   DY
                 </TableCell>
@@ -487,8 +511,7 @@ export default function Page(): React.JSX.Element {
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '15%'
+                  textTransform: 'uppercase'
                 }}>
                   Teto
                 </TableCell>
@@ -497,8 +520,7 @@ export default function Page(): React.JSX.Element {
                   textAlign: 'center', 
                   color: '#475569', 
                   fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '10%'
+                  textTransform: 'uppercase'
                 }}>
                   Viés
                 </TableCell>
@@ -533,13 +555,13 @@ export default function Page(): React.JSX.Element {
                     }}>
                       {index + 1}
                     </TableCell>
-                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                    <TableCell sx={{ width: '200px' }}>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar}
                           sx={{ 
-                            width: 40, 
-                            height: 40, 
+                            width: 44, 
+                            height: 44, 
                             backgroundColor: '#f8fafc',
                             color: '#374151',
                             fontWeight: 600,
@@ -550,65 +572,62 @@ export default function Page(): React.JSX.Element {
                         >
                           {row.ticker.charAt(0)}
                         </Avatar>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box>
                           <Typography variant="subtitle1" sx={{ 
                             fontWeight: 700,
                             color: '#1e293b',
-                            fontSize: '0.95rem'
+                            fontSize: '1rem'
                           }}>
                             {row.ticker}
                           </Typography>
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                            <Chip 
-                              label={row.setor}
-                              size="small"
-                              sx={{
-                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                                color: '#000000',
-                                fontWeight: 600,
-                                fontSize: '0.7rem',
-                                height: '20px',
-                                border: '1px solid rgba(0, 0, 0, 0.15)'
-                              }}
-                            />
-                            <Typography variant="caption" sx={{ 
-                              color: isPositive ? '#059669' : '#dc2626',
-                              fontSize: '0.75rem',
-                              fontWeight: 600
-                            }}>
-                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
-                            </Typography>
-                          </Stack>
                           <Typography variant="caption" sx={{ 
-                            color: '#64748b',
-                            fontSize: '0.7rem',
-                            display: 'block',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            color: isPositive ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
                           }}>
-                            Entrada: {row.dataEntrada}
+                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
                           </Typography>
                         </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
-                      <Stack spacing={0.5} alignItems="center">
-                        <Typography variant="body2" sx={{ 
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
                           fontWeight: 600,
-                          color: '#475569',
-                          fontSize: '0.8rem'
-                        }}>
-                          {row.precoQueIniciou}
-                        </Typography>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 700,
-                          color: isPositive ? '#10b981' : '#ef4444',
-                          fontSize: '0.85rem'
-                        }}>
-                          {row.precoAtual}
-                        </Typography>
-                      </Stack>
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoQueIniciou}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: isPositive ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
                     </TableCell>
                     <TableCell sx={{ textAlign: 'center' }}>
                       <Typography 
