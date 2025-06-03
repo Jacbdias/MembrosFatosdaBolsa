@@ -725,7 +725,7 @@ export default function Page(): React.JSX.Element {
                       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
                     }}
                   >
-                    <TableCell sx={{ width: '30%', minWidth: '200px' }}>
+                    <TableCell sx={{ width: '220px', padding: '16px 12px' }}>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar}
@@ -742,15 +742,16 @@ export default function Page(): React.JSX.Element {
                         >
                           {row.ticker.charAt(0)}
                         </Avatar>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box>
                           <Typography variant="subtitle1" sx={{ 
                             fontWeight: 700,
                             color: '#1e293b',
-                            fontSize: '0.95rem'
+                            fontSize: '1rem',
+                            mb: 0.5
                           }}>
                             {row.ticker}
                           </Typography>
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
                             <Chip 
                               label={row.setor}
                               size="small"
@@ -759,8 +760,7 @@ export default function Page(): React.JSX.Element {
                                 color: '#000000',
                                 fontWeight: 600,
                                 fontSize: '0.7rem',
-                                height: '20px',
-                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                                height: '20px'
                               }}
                             />
                             <Typography variant="caption" sx={{ 
@@ -777,52 +777,51 @@ export default function Page(): React.JSX.Element {
                     <TableCell sx={{ 
                       textAlign: 'center',
                       color: '#64748b',
-                      fontSize: '0.8rem',
+                      fontSize: '0.85rem',
                       whiteSpace: 'nowrap',
-                      width: '12%'
+                      width: '120px',
+                      padding: '16px 8px'
                     }}>
                       {row.dataEntrada}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center', width: '18%' }}>
-                      <Stack spacing={0.5} alignItems="center">
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 600,
-                          color: '#475569',
-                          fontSize: '0.8rem'
-                        }}>
-                          {row.precoQueIniciou}
-                        </Typography>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 700,
-                          color: isPositive ? '#10b981' : '#ef4444',
-                          fontSize: '0.85rem'
-                        }}>
-                          {row.precoAtual}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: '#000000',
-                          fontWeight: 600,
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        {row.dy}
-                      </Typography>
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 600,
                       color: '#475569',
                       whiteSpace: 'nowrap',
-                      width: '13%'
+                      fontSize: '0.85rem',
+                      width: '120px',
+                      padding: '16px 8px'
+                    }}>
+                      {row.precoQueIniciou}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: isPositive ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.85rem',
+                      width: '120px',
+                      padding: '16px 8px'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      width: '120px',
+                      fontSize: '0.85rem',
+                      padding: '16px 8px'
                     }}>
                       {row.precoTeto}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      width: '100px',
+                      padding: '16px 8px'
+                    }}>
                       <Chip
                         label={row.viesAtual}
                         size="medium"
