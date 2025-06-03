@@ -12,7 +12,6 @@ import {
   Stack,
   IconButton
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import { IntegrationsFilters } from '@/components/dashboard/integrations/integrations-filters';
 import { SettingsTable } from '@/components/dashboard/settings/settings-table';
 
@@ -296,22 +295,24 @@ export default function Page(): React.JSX.Element {
                 {fiisPortfolio.length} Fundos Imobiliários • Última atualização: {formatLastUpdate(lastUpdate)}
               </Typography>
             </Box>
-            <IconButton
+            <Button
+              variant="outlined"
               onClick={refetchAll}
               disabled={marketLoading || portfolioLoading}
               sx={{
-                borderRadius: 2,
-                padding: 1.5,
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                borderColor: '#64748b',
+                color: '#64748b',
+                minWidth: 120,
+                height: 40,
                 '&:hover': {
-                  backgroundColor: '#f1f5f9',
-                  borderColor: '#cbd5e1'
+                  borderColor: '#1e293b',
+                  color: '#1e293b',
+                  backgroundColor: 'rgba(30, 41, 59, 0.04)'
                 }
               }}
             >
-              <RefreshIcon />
-            </IconButton>
+              🔄 Atualizar
+            </Button>
           </Stack>
         </Box>
       </Grid>
@@ -326,9 +327,8 @@ export default function Page(): React.JSX.Element {
                 color="inherit" 
                 size="small" 
                 onClick={refetchAll}
-                startIcon={<RefreshIcon />}
               >
-                Tentar Novamente
+                🔄 Tentar Novamente
               </Button>
             }
             sx={{ 
