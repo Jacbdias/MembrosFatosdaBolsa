@@ -43,22 +43,7 @@ function useMarketDataAPI() {
       const response = await fetch(`/api/financial/international-data?_t=${timestamp}`, {
         method: 'GET',
         headers: {
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-          sx={{
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            p: 2,
-            '& .MuiTablePagination-toolbar': {
-              color: '#475569'
-            }
-          }}
-        />
-      </Card>
-    </Box>
-  );
-}'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0'
         },
@@ -223,118 +208,130 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO DINÂMICA");
+  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO LIMPA");
 
   // 🔥 BUSCAR DADOS REAIS DA API
   const { data: apiData, loading } = useMarketDataAPI();
 
-  const stocksInternacionais = [
+  const exteriorStocks = [
     {
       id: '1',
       rank: '1º',
+      ticker: 'AMD',
+      name: 'Advanced Micro Devices Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '29/05/2025',
+      precoQueIniciou: 'US$112,86',
+      precoAtual: 'US$118,50',
+      precoTeto: 'US$135,20',
+      avatar: 'https://logo.clearbit.com/amd.com',
+    },
+    {
+      id: '2',
+      rank: '2º',
       ticker: 'XP',
       name: 'XP Inc.',
       setor: 'Financial Services',
       dataEntrada: '26/05/2023',
       precoQueIniciou: 'US$18,41',
-      precoAtual: 'US$18,64',
+      precoAtual: 'US$19,25',
       precoTeto: 'US$24,34',
-      avatar: 'https://logo.clearbit.com/xpinc.com',
+      avatar: 'https://logo.clearbit.com/xpi.com.br',
     },
     {
-      id: '2',
-      rank: '2º',
+      id: '3',
+      rank: '3º',
       ticker: 'HD',
       name: 'Home Depot Inc.',
       setor: 'Varejo',
       dataEntrada: '24/02/2023',
       precoQueIniciou: 'US$299,31',
-      precoAtual: 'US$362,71',
+      precoAtual: 'US$315,80',
       precoTeto: 'US$366,78',
       avatar: 'https://logo.clearbit.com/homedepot.com',
     },
     {
-      id: '3',
-      rank: '3º',
+      id: '4',
+      rank: '4º',
       ticker: 'AAPL',
       name: 'Apple Inc.',
       setor: 'Tecnologia',
       dataEntrada: '05/05/2022',
       precoQueIniciou: 'US$156,77',
-      precoAtual: 'US$195,27',
+      precoAtual: 'US$162,50',
       precoTeto: 'US$170,00',
       avatar: 'https://logo.clearbit.com/apple.com',
     },
     {
-      id: '4',
-      rank: '4º',
+      id: '5',
+      rank: '5º',
       ticker: 'FIVE',
       name: 'Five Below Inc.',
       setor: 'Varejo',
       dataEntrada: '17/03/2022',
       precoQueIniciou: 'US$163,41',
-      precoAtual: 'US$107,27',
+      precoAtual: 'US$158,90',
       precoTeto: 'US$179,00',
       avatar: 'https://logo.clearbit.com/fivebelow.com',
     },
     {
-      id: '5',
-      rank: '5º',
+      id: '6',
+      rank: '6º',
       ticker: 'AMAT',
       name: 'Applied Materials Inc.',
       setor: 'Semicondutores',
       dataEntrada: '07/04/2022',
       precoQueIniciou: 'US$122,40',
-      precoAtual: 'US$157,51',
+      precoAtual: 'US$128,75',
       precoTeto: 'US$151,30',
       avatar: 'https://logo.clearbit.com/appliedmaterials.com',
     },
     {
-      id: '6',
-      rank: '6º',
+      id: '7',
+      rank: '7º',
       ticker: 'COST',
-      name: 'Costco Wholesale Corp.',
+      name: 'Costco Wholesale Corporation',
       setor: 'Consumer Discretionary',
       dataEntrada: '23/06/2022',
       precoQueIniciou: 'US$459,00',
-      precoAtual: 'US$1.008,50',
+      precoAtual: 'US$485,20',
       precoTeto: 'US$571,00',
       avatar: 'https://logo.clearbit.com/costco.com',
     },
     {
-      id: '7',
-      rank: '7º',
+      id: '8',
+      rank: '8º',
       ticker: 'GOOGL',
       name: 'Alphabet Inc.',
       setor: 'Tecnologia',
-      dataEntrada: '03/03/2022',
+      dataEntrada: '06/03/2022',
       precoQueIniciou: 'US$131,83',
-      precoAtual: 'US$168,47',
-      precoTeto: 'US$133,29',
+      precoAtual: 'US$142,10',
+      precoTeto: 'US$153,29',
       avatar: 'https://logo.clearbit.com/google.com',
     },
     {
-      id: '8',
-      rank: '8º',
+      id: '9',
+      rank: '9º',
       ticker: 'META',
       name: 'Meta Platforms Inc.',
       setor: 'Tecnologia',
       dataEntrada: '17/02/2022',
       precoQueIniciou: 'US$213,92',
-      precoAtual: 'US$627,06',
+      precoAtual: 'US$285,40',
       precoTeto: 'US$322,00',
       avatar: 'https://logo.clearbit.com/meta.com',
     },
     {
-      id: '9',
-      rank: '9º',
-      ticker: 'BRKB',
+      id: '10',
+      rank: '10º',
+      ticker: 'BRK.B',
       name: 'Berkshire Hathaway Inc.',
       setor: 'Holding',
       dataEntrada: '11/05/2021',
       precoQueIniciou: 'US$286,35',
-      precoAtual: 'US$503,46',
-      precoTeto: 'US$300,00',
+      precoAtual: 'US$295,80',
+      precoTeto: 'US$330,00',
       avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
     }
   ];
@@ -406,7 +403,7 @@ export default function Page(): React.JSX.Element {
         </Stack>
       </Stack>
 
-      {/* Indicadores de Mercado - Layout com 4 cards idêntico aos Dividendos */}
+      {/* Indicadores de Mercado - Layout com 4 cards */}
       <Box
         sx={{
           display: 'grid',
@@ -453,7 +450,7 @@ export default function Page(): React.JSX.Element {
         />
       </Box>
       
-      {/* Tabela de Exterior Stocks - Estilo idêntico aos Dividendos */}
+      {/* Tabela de Exterior Stocks */}
       <Card sx={{ 
         borderRadius: 4,
         border: '1px solid',
@@ -481,7 +478,7 @@ export default function Page(): React.JSX.Element {
                 color: '#64748b',
                 fontSize: '1rem'
               }}>
-                {stocksInternacionais.length} ativos • Empresas de tecnologia e crescimento
+                {exteriorStocks.length} ativos • Empresas de tecnologia e crescimento
               </Typography>
             </Box>
             <Box sx={{
@@ -493,7 +490,7 @@ export default function Page(): React.JSX.Element {
               fontWeight: 600,
               fontSize: '0.875rem'
             }}>
-              🌍 {stocksInternacionais.length} ativos
+              🌍 {exteriorStocks.length} ativos
             </Box>
           </Stack>
         </Box>
@@ -578,449 +575,13 @@ export default function Page(): React.JSX.Element {
                 }}>
                   Viés
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  Viés
-                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {stocksInternacionais.map((row, index) => {
-                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US
-                
-                return (
-                  <TableRow 
-                    hover 
-                    key={row.id}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        cursor: 'pointer',
-                        transform: 'scale(1.005)',
-                        transition: 'all 0.2s ease'
-                      },
-                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-                    }}
-                  >
-                    <TableCell sx={{ 
-                      textAlign: 'center', 
-                      fontWeight: 800, 
-                      fontSize: '1rem',
-                      color: '#000000'
-                    }}>
-                      {index + 1}º
-                    </TableCell>
-                    <TableCell sx={{ width: '200px' }}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar 
-                          src={row.avatar}
-                          sx={{ 
-                            width: 44, 
-                            height: 44, 
-                            backgroundColor: '#f8fafc',
-                            color: '#374151',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            border: '2px solid',
-                            borderColor: 'rgba(0, 0, 0, 0.2)'
-                          }}
-                        >
-                          {row.ticker.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ 
-                            fontWeight: 700,
-                            color: '#1e293b',
-                            fontSize: '1rem'
-                          }}>
-                            {row.ticker}
-                          </Typography>
-                          <Typography variant="caption" sx={{ 
-                            color: isPositive ? '#059669' : '#dc2626',
-                            fontSize: '0.8rem',
-                            fontWeight: 600
-                          }}>
-                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip 
-                        label={row.setor}
-                        size="medium"
-                        sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                          color: '#000000',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          border: '1px solid rgba(0, 0, 0, 0.2)'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      color: '#64748b',
-                      fontSize: '0.875rem',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.dataEntrada}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem'
-                    }}>
-                      {row.precoQueIniciou}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 700,
-                      color: isPositive ? '#10b981' : '#ef4444',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem'
-                    }}>
-                      {row.precoAtual}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={viesAutomatico}
-                        size="medium"
-                        sx={{
-                          backgroundColor: viesAutomatico === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: viesAutomatico === 'COMPRA' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          border: '1px solid',
-                          borderColor: viesAutomatico === 'COMPRA' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={viesAutomatico}
-                        size="medium"
-                        sx={{
-                          backgroundColor: viesAutomatico === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: viesAutomatico === 'COMPRA' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          border: '1px solid',
-                          borderColor: viesAutomatico === 'COMPRA' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={stocksInternacionais.length}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={0}
-          rowsPerPage={stocksInternacionais.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          , ''));
-                const precoAtual = parseFloat(row.precoAtual.replace('US
-                
-                return (
-                  <TableRow 
-                    hover 
-                    key={row.id}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        cursor: 'pointer',
-                        transform: 'scale(1.005)',
-                        transition: 'all 0.2s ease'
-                      },
-                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-                    }}
-                  >
-                    <TableCell sx={{ 
-                      textAlign: 'center', 
-                      fontWeight: 800, 
-                      fontSize: '1rem',
-                      color: '#000000'
-                    }}>
-                      {index + 1}º
-                    </TableCell>
-                    <TableCell sx={{ width: '200px' }}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar 
-                          src={row.avatar}
-                          sx={{ 
-                            width: 44, 
-                            height: 44, 
-                            backgroundColor: '#f8fafc',
-                            color: '#374151',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            border: '2px solid',
-                            borderColor: 'rgba(0, 0, 0, 0.2)'
-                          }}
-                        >
-                          {row.ticker.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ 
-                            fontWeight: 700,
-                            color: '#1e293b',
-                            fontSize: '1rem'
-                          }}>
-                            {row.ticker}
-                          </Typography>
-                          <Typography variant="caption" sx={{ 
-                            color: isPositive ? '#059669' : '#dc2626',
-                            fontSize: '0.8rem',
-                            fontWeight: 600
-                          }}>
-                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip 
-                        label={row.setor}
-                        size="medium"
-                        sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                          color: '#000000',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          border: '1px solid rgba(0, 0, 0, 0.2)'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      color: '#64748b',
-                      fontSize: '0.875rem',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.dataEntrada}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem'
-                    }}>
-                      {row.precoQueIniciou}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 700,
-                      color: isPositive ? '#10b981' : '#ef4444',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem'
-                    }}>
-                      {row.precoAtual}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={viesAutomatico}
-                        size="medium"
-                        sx={{
-                          backgroundColor: viesAutomatico === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: viesAutomatico === 'COMPRA' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          border: '1px solid',
-                          borderColor: viesAutomatico === 'COMPRA' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={stocksInternacionais.length}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={0}
-          rowsPerPage={stocksInternacionais.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          , ''));
-                const precoTeto = parseFloat(row.precoTeto.replace('US
-                
-                return (
-                  <TableRow 
-                    hover 
-                    key={row.id}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        cursor: 'pointer',
-                        transform: 'scale(1.005)',
-                        transition: 'all 0.2s ease'
-                      },
-                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-                    }}
-                  >
-                    <TableCell sx={{ 
-                      textAlign: 'center', 
-                      fontWeight: 800, 
-                      fontSize: '1rem',
-                      color: '#000000'
-                    }}>
-                      {index + 1}º
-                    </TableCell>
-                    <TableCell sx={{ width: '200px' }}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar 
-                          src={row.avatar}
-                          sx={{ 
-                            width: 44, 
-                            height: 44, 
-                            backgroundColor: '#f8fafc',
-                            color: '#374151',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            border: '2px solid',
-                            borderColor: 'rgba(0, 0, 0, 0.2)'
-                          }}
-                        >
-                          {row.ticker.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ 
-                            fontWeight: 700,
-                            color: '#1e293b',
-                            fontSize: '1rem'
-                          }}>
-                            {row.ticker}
-                          </Typography>
-                          <Typography variant="caption" sx={{ 
-                            color: isPositive ? '#059669' : '#dc2626',
-                            fontSize: '0.8rem',
-                            fontWeight: 600
-                          }}>
-                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip 
-                        label={row.setor}
-                        size="medium"
-                        sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                          color: '#000000',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          border: '1px solid rgba(0, 0, 0, 0.2)'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      color: '#64748b',
-                      fontSize: '0.875rem',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.dataEntrada}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem'
-                    }}>
-                      {row.precoQueIniciou}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 700,
-                      color: isPositive ? '#10b981' : '#ef4444',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem'
-                    }}>
-                      {row.precoAtual}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={viesAutomatico}
-                        size="medium"
-                        sx={{
-                          backgroundColor: viesAutomatico === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: viesAutomatico === 'COMPRA' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          border: '1px solid',
-                          borderColor: viesAutomatico === 'COMPRA' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={stocksInternacionais.length}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={0}
-          rowsPerPage={stocksInternacionais.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          , ''));
+              {exteriorStocks.map((row, index) => {
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
+                const precoTeto = parseFloat(row.precoTeto.replace('US$', ''));
                 const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
                 const isPositive = variacao >= 0;
                 
@@ -1159,9 +720,25 @@ export default function Page(): React.JSX.Element {
         <Divider />
         <TablePagination
           component="div"
-          count={stocksInternacionais.length}
+          count={exteriorStocks.length}
           onPageChange={noop}
           onRowsPerPage={noop}
           page={0}
-          rowsPerPage={stocksInternacionais.length}
+          rowsPerPage={exteriorStocks.length}
           rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}
