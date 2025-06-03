@@ -208,141 +208,63 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO LIMPA");
+  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO DINÂMICA");
 
   // 🔥 BUSCAR DADOS REAIS DA API
   const { data: apiData, loading } = useMarketDataAPI();
 
-  const exteriorStocks = [
+  const stocksInternacionais = [
     {
       id: '1',
       rank: '1º',
-      ticker: 'AMD',
-      name: 'Advanced Micro Devices Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '29/05/2025',
-      precoQueIniciou: 'US$112,86',
-      precoAtual: 'US$118,50',
-      precoTeto: 'US$135,20',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/amd.com',
-    },
-    {
-      id: '2',
-      rank: '2º',
       ticker: 'XP',
       name: 'XP Inc.',
       setor: 'Financial Services',
       dataEntrada: '26/05/2023',
       precoQueIniciou: 'US$18,41',
-      precoAtual: 'US$19,25',
+      precoAtual: 'US$18,64',
       precoTeto: 'US$24,34',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/xpi.com.br',
+      avatar: 'https://logo.clearbit.com/xpinc.com',
     },
     {
-      id: '3',
-      rank: '3º',
+      id: '2',
+      rank: '2º',
       ticker: 'HD',
       name: 'Home Depot Inc.',
       setor: 'Varejo',
       dataEntrada: '24/02/2023',
       precoQueIniciou: 'US$299,31',
-      precoAtual: 'US$315,80',
+      precoAtual: 'US$362,71',
       precoTeto: 'US$366,78',
       viesAtual: 'COMPRA',
       avatar: 'https://logo.clearbit.com/homedepot.com',
     },
     {
-      id: '4',
-      rank: '4º',
+      id: '3',
+      rank: '3º',
       ticker: 'AAPL',
       name: 'Apple Inc.',
       setor: 'Tecnologia',
       dataEntrada: '05/05/2022',
       precoQueIniciou: 'US$156,77',
-      precoAtual: 'US$162,50',
+      precoAtual: 'US$195,27',
       precoTeto: 'US$170,00',
-      viesAtual: 'COMPRA',
+      viesAtual: 'AGUARDAR',
       avatar: 'https://logo.clearbit.com/apple.com',
     },
     {
-      id: '5',
-      rank: '5º',
+      id: '4',
+      rank: '4º',
       ticker: 'FIVE',
       name: 'Five Below Inc.',
       setor: 'Varejo',
       dataEntrada: '17/03/2022',
       precoQueIniciou: 'US$163,41',
-      precoAtual: 'US$158,90',
+      precoAtual: 'US$107,27',
       precoTeto: 'US$179,00',
       viesAtual: 'COMPRA',
       avatar: 'https://logo.clearbit.com/fivebelow.com',
-    },
-    {
-      id: '6',
-      rank: '6º',
-      ticker: 'AMAT',
-      name: 'Applied Materials Inc.',
-      setor: 'Semicondutores',
-      dataEntrada: '07/04/2022',
-      precoQueIniciou: 'US$122,40',
-      precoAtual: 'US$128,75',
-      precoTeto: 'US$151,30',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
-    },
-    {
-      id: '7',
-      rank: '7º',
-      ticker: 'COST',
-      name: 'Costco Wholesale Corporation',
-      setor: 'Consumer Discretionary',
-      dataEntrada: '23/06/2022',
-      precoQueIniciou: 'US$459,00',
-      precoAtual: 'US$485,20',
-      precoTeto: 'US$571,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/costco.com',
-    },
-    {
-      id: '8',
-      rank: '8º',
-      ticker: 'GOOGL',
-      name: 'Alphabet Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '06/03/2022',
-      precoQueIniciou: 'US$131,83',
-      precoAtual: 'US$142,10',
-      precoTeto: 'US$153,29',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/google.com',
-    },
-    {
-      id: '9',
-      rank: '9º',
-      ticker: 'META',
-      name: 'Meta Platforms Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '17/02/2022',
-      precoQueIniciou: 'US$213,92',
-      precoAtual: 'US$285,40',
-      precoTeto: 'US$322,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/meta.com',
-    },
-    {
-      id: '10',
-      rank: '10º',
-      ticker: 'BRK.B',
-      name: 'Berkshire Hathaway Inc.',
-      setor: 'Holding',
-      dataEntrada: '11/05/2021',
-      precoQueIniciou: 'US$286,35',
-      precoAtual: 'US$295,80',
-      precoTeto: 'US$330,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
     }
   ];
 
@@ -413,7 +335,7 @@ export default function Page(): React.JSX.Element {
         </Stack>
       </Stack>
 
-      {/* Indicadores de Mercado - Layout com 4 cards */}
+      {/* Indicadores de Mercado - Layout com 4 cards idêntico aos Dividendos */}
       <Box
         sx={{
           display: 'grid',
@@ -460,7 +382,7 @@ export default function Page(): React.JSX.Element {
         />
       </Box>
       
-      {/* Tabela de Exterior Stocks */}
+      {/* Tabela de Exterior Stocks - Estilo idêntico aos Dividendos */}
       <Card sx={{ 
         borderRadius: 4,
         border: '1px solid',
@@ -488,7 +410,7 @@ export default function Page(): React.JSX.Element {
                 color: '#64748b',
                 fontSize: '1rem'
               }}>
-                {exteriorStocks.length} ativos • Empresas de tecnologia e crescimento
+                {stocksInternacionais.length} ativos • Empresas de tecnologia e crescimento
               </Typography>
             </Box>
             <Box sx={{
@@ -500,7 +422,7 @@ export default function Page(): React.JSX.Element {
               fontWeight: 600,
               fontSize: '0.875rem'
             }}>
-              🌍 {exteriorStocks.length} ativos
+              🌍 {stocksInternacionais.length} ativos
             </Box>
           </Stack>
         </Box>
@@ -576,10 +498,19 @@ export default function Page(): React.JSX.Element {
                 }}>
                   Alvo
                 </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Viés
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {exteriorStocks.map((row, index) => {
+              {stocksInternacionais.map((row, index) => {
                 const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
                 const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
                 const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
@@ -689,6 +620,22 @@ export default function Page(): React.JSX.Element {
                     }}>
                       {row.precoTeto}
                     </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -698,11 +645,11 @@ export default function Page(): React.JSX.Element {
         <Divider />
         <TablePagination
           component="div"
-          count={exteriorStocks.length}
+          count={stocksInternacionais.length}
           onPageChange={noop}
           onRowsPerPage={noop}
           page={0}
-          rowsPerPage={exteriorStocks.length}
+          rowsPerPage={stocksInternacionais.length}
           rowsPerPageOptions={[5, 10, 25]}
           labelRowsPerPage="Itens por página:"
           labelDisplayedRows={({ from, to, count: totalCount }) => 
