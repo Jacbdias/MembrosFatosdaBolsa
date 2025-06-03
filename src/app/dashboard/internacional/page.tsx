@@ -35,22 +35,26 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
         borderRadius: 3,
         overflow: 'hidden',
         cursor: 'pointer',
-        background: 'linear-gradient(135deg, #000000 0%, #1f1f1f 50%, #2d2d2d 100%)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-6px)',
-          boxShadow: '0 20px 40px -8px rgba(0, 0, 0, 0.4)',
+          boxShadow: '0 20px 40px -8px rgba(0, 0, 0, 0.3)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
           '& .arrow-icon': {
             transform: 'translateX(6px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
           },
           '& .icon-container': {
             transform: 'scale(1.1) rotate(5deg)',
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
           }
         },
       }}
     >
-      {/* Subtle pattern overlay */}
+      {/* Subtle glow effect */}
       <Box
         sx={{
           position: 'absolute',
@@ -58,9 +62,21 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
           right: 0,
           width: '120px',
           height: '120px',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
           borderRadius: '50%',
           transform: 'translate(30%, -30%)'
+        }}
+      />
+      
+      {/* Accent line */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '2px',
+          background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%)'
         }}
       />
       
@@ -84,7 +100,8 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
               width: 48,
               height: 48,
               borderRadius: 2,
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -127,7 +144,8 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
               width: 36,
               height: 36,
               borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
