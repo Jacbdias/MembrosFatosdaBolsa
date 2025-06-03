@@ -192,13 +192,14 @@ export default function Page(): React.JSX.Element {
       }}
     >
       {/* Header */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 6 }}>
+      <Stack spacing={3} sx={{ mb: 6 }}>
         <Button
           startIcon={<ArrowLeftIcon />}
           onClick={() => window.location.href = '/dashboard'}
           sx={{ 
             color: '#64748b',
             fontWeight: 600,
+            alignSelf: 'flex-start',
             '&:hover': {
               backgroundColor: '#f1f5f9'
             }
@@ -206,7 +207,6 @@ export default function Page(): React.JSX.Element {
         >
           Dashboard
         </Button>
-        <Box sx={{ width: 1, height: 24, backgroundColor: '#cbd5e0', mx: 2 }} />
         <Stack spacing={0.5}>
           <Typography 
             variant="h3" 
