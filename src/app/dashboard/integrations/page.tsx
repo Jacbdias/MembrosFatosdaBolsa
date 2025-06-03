@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Box, CircularProgress, Alert, Button } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { IntegrationsFilters } from '@/components/dashboard/integrations/integrations-filters';
 import { IntegrationsTable } from '@/components/dashboard/integrations/integrations-table';
 
@@ -278,6 +278,8 @@ function useDividendPortfolio() {
 }
 
 export default function Page(): React.JSX.Element {
+  console.log("💰 PÁGINA DIVIDENDOS - VERSÃO LIMPA");
+
   // 🔥 DADOS REAIS DO MERCADO (Ibovespa + Small Cap)
   const { marketData, loading: marketLoading, error: marketError, refetch: refetchMarket } = useFinancialData();
   
@@ -356,45 +358,8 @@ export default function Page(): React.JSX.Element {
     );
   }
 
-  // ERROR HANDLING
-  const hasError = marketError || portfolioError;
-  
-  const refetchAll = async () => {
-    await Promise.all([refetchMarket(), refetchPortfolio()]);
-  };
-
   return (
     <Grid container spacing={3}>
-      {/* Alertas de status */}
-      {hasError && (
-        <Grid xs={12}>
-          <Alert 
-            severity="warning"
-            action={
-              <Button color="inherit" size="small" onClick={refetchAll}>
-                🔄 Tentar Novamente
-              </Button>
-            }
-            sx={{ mb: 1 }}
-          >
-            {marketError && `⚠️ Mercado: ${marketError}`}
-            {portfolioError && `⚠️ Dividendos: ${portfolioError}`}
-            {hasError && ' - Usando dados offline temporariamente'}
-          </Alert>
-        </Grid>
-      )}
-
-      {/* Indicador de sucesso */}
-      {!hasError && marketData && dividendPortfolio.length > 0 && (
-        <Grid xs={12}>
-          <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Carteira de Dividendos atualizada - {dividendPortfolio.length} ações com preços reais | 
-            DY médio: {calcularDividendYieldMedio().value} | 
-            Performance: {calcularPerformanceCarteira().value}
-          </Alert>
-        </Grid>
-      )}
-
       {/* Filtros */}
       <Grid xs={12}>
         <IntegrationsFilters />
