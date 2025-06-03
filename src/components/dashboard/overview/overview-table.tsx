@@ -193,7 +193,7 @@ function StatCard({ title, value, icon, trend, diff, isLoading }: StatCardProps)
                   fontSize: '0.875rem'
                 }}
               >
-                período
+                hoje
               </Typography>
             </Stack>
           )}
@@ -245,8 +245,8 @@ export function OverviewTable({
 
   // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
   const defaultCards = {
-    ibovespa: { value: "136431", trend: "down" as const, diff: -0.26 },
-    indiceSmall: { value: "2203", trend: "down" as const, diff: -0.16 },
+    ibovespa: { value: "136.431", trend: "down" as const, diff: -0.26 },
+    indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 },
     carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
     dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
