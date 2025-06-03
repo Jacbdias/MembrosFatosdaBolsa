@@ -511,10 +511,473 @@ export default function Page(): React.JSX.Element {
             </TableHead>
             <TableBody>
               {stocksInternacionais.map((row, index) => {
-                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
-                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}º
+                    </TableCell>
+                    <TableCell sx={{ width: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 44, 
+                            height: 44, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: isPositive ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}>
+                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoQueIniciou}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: isPositive ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={viesAutomatico}
+                        size="medium"
+                        sx={{
+                          backgroundColor: viesAutomatico === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: viesAutomatico === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: viesAutomatico === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={stocksInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={stocksInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}º
+                    </TableCell>
+                    <TableCell sx={{ width: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 44, 
+                            height: 44, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: isPositive ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}>
+                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoQueIniciou}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: isPositive ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={stocksInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={stocksInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+                const precoTeto = parseFloat(row.precoTeto.replace('US
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}º
+                    </TableCell>
+                    <TableCell sx={{ width: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 44, 
+                            height: 44, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: isPositive ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}>
+                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoQueIniciou}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: isPositive ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={stocksInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={stocksInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
                 const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
                 const isPositive = variacao >= 0;
+                
+                // 🎯 CÁLCULO AUTOMÁTICO DO VIÉS
+                // Se preço atual está próximo ou acima do teto (95% ou mais), AGUARDAR
+                // Se preço atual está abaixo de 95% do teto, COMPRA
+                const percentualDoTeto = (precoAtual / precoTeto) * 100;
+                const viesAutomatico = percentualDoTeto >= 95 ? 'AGUARDAR' : 'COMPRA';
                 
                 return (
                   <TableRow 
