@@ -440,7 +440,7 @@ export function SettingsTable({
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        backgroundColor: row.performance && row.performance >= 0 ? '#dcfce7' : '#fee2e2',
+                        backgroundColor: '#f1f5f9',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -449,7 +449,7 @@ export function SettingsTable({
                       }}>
                         <Typography variant="caption" sx={{ 
                           fontWeight: 700,
-                          color: '#1e293b',
+                          color: '#64748b',
                           fontSize: '12px'
                         }}>
                           {row.ticker.substring(0, 4)}
