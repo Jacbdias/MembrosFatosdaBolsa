@@ -109,16 +109,22 @@ function useMarketDataAPI() {
         result.results.forEach((item: any) => {
           if (item.symbol === '^GSPC') {
             processedData.sp500 = {
-              value: (item.regularMarketPrice / 1000).toFixed(1) + 'k',
+              value: item.regularMarketPrice.toLocaleString('en-US', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+              }),
               trend: item.regularMarketChangePercent >= 0 ? 'up' as const : 'down' as const,
-              diff: item.regularMarketChangePercent
+              diff: parseFloat(item.regularMarketChangePercent.toFixed(2))
             };
           }
           if (item.symbol === '^IXIC') {
             processedData.nasdaq = {
-              value: (item.regularMarketPrice / 1000).toFixed(1) + 'k',
+              value: item.regularMarketPrice.toLocaleString('en-US', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+              }),
               trend: item.regularMarketChangePercent >= 0 ? 'up' as const : 'down' as const,
-              diff: item.regularMarketChangePercent
+              diff: parseFloat(item.regularMarketChangePercent.toFixed(2))
             };
           }
         });
@@ -477,8 +483,8 @@ export default function Page(): React.JSX.Element {
 
   // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
   const defaultIndicators = {
-    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
-    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
+    sp500: { value: "5,970.80", trend: "up" as const, diff: 0.59 },
+    nasdaq: { value: "19,400.00", trend: "up" as const, diff: 0.81 },
   };
 
   // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
