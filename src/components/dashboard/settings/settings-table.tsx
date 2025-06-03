@@ -332,29 +332,92 @@ export function SettingsTable({
           <Table sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                <TableCell sx={{ fontWeight: 700, color: '#475569' }}>
-                  FII
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  py: 2
+                }}>
+                  ATIVO
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569' }}>
-                  Setor
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
+                  SETOR
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                  Entrada
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
+                  ENTRADA
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                  Preço Atual
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
+                  PREÇO INICIAL
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                  Performance
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
+                  PREÇO ATUAL
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', textAlign: 'center' }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
                   DY
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                  Teto
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
+                  TETO
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#475569', textAlign: 'center' }}>
-                  Viés
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  py: 2
+                }}>
+                  VIÉS
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -366,130 +429,172 @@ export function SettingsTable({
                     '&:hover': {
                       backgroundColor: '#f8fafc',
                     },
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #f1f5f9'
                   }}
                 >
-                  <TableCell>
+                  {/* COLUNA ATIVO */}
+                  <TableCell sx={{ py: 2 }}>
                     <Stack direction="row" alignItems="center" spacing={2}>
-                      <Avatar sx={{ width: 32, height: 32, backgroundColor: '#e2e8f0', color: '#64748b', fontSize: '14px' }}>
-                        {getSetorIcon(row.setor)}
-                      </Avatar>
+                      <Box sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        backgroundColor: row.performance && row.performance >= 0 ? '#dcfce7' : '#fee2e2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        position: 'relative'
+                      }}>
+                        <Typography variant="caption" sx={{ 
+                          fontWeight: 700,
+                          color: '#1e293b',
+                          fontSize: '12px'
+                        }}>
+                          {row.ticker.substring(0, 4)}
+                        </Typography>
+                        {row.performance !== undefined && row.performance !== 0 && (
+                          <Box sx={{
+                            position: 'absolute',
+                            bottom: -2,
+                            right: -2,
+                            backgroundColor: row.performance >= 0 ? '#10b981' : '#ef4444',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: 16,
+                            height: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '8px',
+                            fontWeight: 700
+                          }}>
+                            {row.performance >= 0 ? '↗' : '↘'}
+                          </Box>
+                        )}
+                      </Box>
                       <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1e293b' }}>
+                        <Typography variant="subtitle2" sx={{ 
+                          fontWeight: 700, 
+                          color: '#1e293b',
+                          fontSize: '14px'
+                        }}>
                           {row.ticker}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#64748b' }}>
-                          {row.dataEntrada}
-                        </Typography>
+                        {row.performance !== undefined && row.performance !== 0 && (
+                          <Typography variant="caption" sx={{ 
+                            color: row.performance >= 0 ? '#10b981' : '#ef4444',
+                            fontSize: '11px',
+                            fontWeight: 600
+                          }}>
+                            {row.performance > 0 ? '+' : ''}{row.performance.toFixed(1)}%
+                          </Typography>
+                        )}
                       </Box>
                     </Stack>
                   </TableCell>
-                  <TableCell>
+
+                  {/* COLUNA SETOR */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
                     <Chip
                       label={row.setor}
                       size="small"
-                      variant="outlined"
                       sx={{
-                        borderColor: '#e2e8f0',
+                        backgroundColor: '#f1f5f9',
                         color: '#64748b',
-                        fontSize: '0.75rem'
+                        border: 'none',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        height: 24,
+                        '& .MuiChip-label': {
+                          px: 1.5
+                        }
                       }}
                     />
                   </TableCell>
-                  <TableCell sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>
+
+                  {/* COLUNA ENTRADA (DATA) */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ 
+                      color: '#64748b',
+                      fontSize: '13px',
+                      fontWeight: 500
+                    }}>
+                      {row.dataEntrada}
+                    </Typography>
+                  </TableCell>
+
+                  {/* COLUNA PREÇO INICIAL */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600, 
+                      color: '#1e293b',
+                      fontSize: '14px'
+                    }}>
                       {row.precoEntrada}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ textAlign: 'center' }}>
+
+                  {/* COLUNA PREÇO ATUAL */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
                     <Typography 
                       variant="body2" 
                       sx={{ 
-                        fontWeight: 600, 
-                        color: row.precoAtual !== row.precoEntrada ? '#059669' : '#64748b'
+                        fontWeight: 700, 
+                        color: row.precoAtual !== row.precoEntrada ? (
+                          row.performance && row.performance >= 0 ? '#10b981' : '#ef4444'
+                        ) : '#64748b',
+                        fontSize: '14px'
                       }}
                     >
                       {row.precoAtual || row.precoEntrada}
                     </Typography>
-                    {row.variacaoPercent !== undefined && row.variacaoPercent !== 0 && (
-                      <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            color: row.variacaoPercent >= 0 ? '#10b981' : '#ef4444',
-                            fontSize: '12px'
-                          }}
-                        >
-                          {row.variacaoPercent >= 0 ? '↗' : '↘'}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            color: row.variacaoPercent >= 0 ? '#10b981' : '#ef4444',
-                            fontSize: '0.7rem'
-                          }}
-                        >
-                          {row.variacaoPercent > 0 ? '+' : ''}{row.variacaoPercent.toFixed(2)}%
-                        </Typography>
-                      </Stack>
-                    )}
                   </TableCell>
-                  <TableCell sx={{ textAlign: 'center' }}>
-                    {row.performance !== undefined && row.performance !== 0 ? (
-                      <Stack alignItems="center" spacing={0.5}>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            fontWeight: 600,
-                            color: row.performance >= 0 ? '#10b981' : '#ef4444'
-                          }}
-                        >
-                          {row.performance > 0 ? '+' : ''}{row.performance.toFixed(2)}%
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={Math.min(Math.abs(row.performance), 100)}
-                          sx={{
-                            width: 60,
-                            height: 4,
-                            borderRadius: 2,
-                            backgroundColor: '#f1f5f9',
-                            '& .MuiLinearProgress-bar': {
-                              backgroundColor: row.performance >= 0 ? '#10b981' : '#ef4444',
-                              borderRadius: 2,
-                            }
-                          }}
-                        />
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                        --
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ textAlign: 'center' }}>
+
+                  {/* COLUNA DY */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
                     <Typography 
                       variant="body2" 
                       sx={{ 
-                        fontWeight: 600, 
+                        fontWeight: 700, 
                         color: '#059669',
-                        backgroundColor: '#dcfce7',
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: 1,
-                        fontSize: '0.8rem'
+                        fontSize: '14px'
                       }}
                     >
                       {row.dy}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#64748b' }}>
+
+                  {/* COLUNA TETO */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600, 
+                      color: '#64748b',
+                      fontSize: '13px'
+                    }}>
                       {row.precoTeto}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ textAlign: 'center' }}>
-                    {getViesChip(row.vies, row.performance)}
+
+                  {/* COLUNA VIÉS */}
+                  <TableCell sx={{ textAlign: 'center', py: 2 }}>
+                    <Chip
+                      label={row.vies.toUpperCase()}
+                      size="small"
+                      sx={{
+                        backgroundColor: row.vies.toLowerCase() === 'compra' ? '#dcfce7' : '#fee2e2',
+                        color: row.vies.toLowerCase() === 'compra' ? '#059669' : '#dc2626',
+                        border: 'none',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        height: 24,
+                        minWidth: 70,
+                        '& .MuiChip-label': {
+                          px: 1.5
+                        }
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
