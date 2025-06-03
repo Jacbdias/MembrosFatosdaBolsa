@@ -19,14 +19,6 @@ import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
 import Grid from '@mui/material/Unstable_Grid2';
 
-// Ícones do Material-UI
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import BusinessIcon from '@mui/icons-material/Business';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -38,8 +30,8 @@ interface MarketIndicatorProps {
 }
 
 function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
-  const TrendIcon = trend === 'up' ? TrendingUpIcon : TrendingDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
+  const trendSymbol = trend === 'up' ? '↗' : '↘';
   
   return (
     <Box 
@@ -94,9 +86,10 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#64748b'
+            color: '#64748b',
+            fontSize: '16px'
           }}>
-            {icon}
+            {typeof icon === 'string' ? icon : '📊'}
           </Box>
         </Stack>
         
@@ -122,9 +115,10 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
               height: 20,
               borderRadius: '50%',
               backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
-              color: trendColor
+              color: trendColor,
+              fontSize: '12px'
             }}>
-              <TrendIcon sx={{ fontSize: 12 }} />
+              {trendSymbol}
             </Box>
             <Typography 
               variant="body2"
@@ -187,16 +181,28 @@ export interface SettingsTableProps {
   cardsData?: CardsData;
 }
 
-function getSetorIcon(setor: string): React.ReactNode {
+function getSetorIcon(setor: string): string {
   switch (setor.toLowerCase()) {
     case 'shopping':
-      return <BusinessIcon sx={{ fontSize: 16 }} />;
+      return '🏬';
     case 'papel':
-      return <BarChartIcon sx={{ fontSize: 16 }} />;
+      return '📄';
     case 'logística':
-      return <ShowChartIcon sx={{ fontSize: 16 }} />;
+      return '🚛';
+    case 'hedge fund':
+      return '🏦';
+    case 'fiagro':
+      return '🌾';
+    case 'fof':
+      return '📊';
+    case 'tijolo':
+      return '🏢';
+    case 'renda urbana':
+      return '🏙️';
+    case 'híbrido':
+      return '🔀';
     default:
-      return <AttachMoneyIcon sx={{ fontSize: 16 }} />;
+      return '💼';
   }
 }
 
@@ -262,7 +268,7 @@ export function SettingsTable({
           <MarketIndicator
             title="IBOVESPA"
             value={cardsData.ibovespa?.value || "150k"}
-            icon={<BarChartIcon sx={{ fontSize: 16 }} />}
+            icon="📈"
             trend={cardsData.ibovespa?.trend || "up"}
             diff={cardsData.ibovespa?.diff || 0}
             description="Hoje"
@@ -272,7 +278,7 @@ export function SettingsTable({
           <MarketIndicator
             title="IFIX"
             value={cardsData.indiceSmall?.value || "2.1k"}
-            icon={<BusinessIcon sx={{ fontSize: 16 }} />}
+            icon="🏢"
             trend={cardsData.indiceSmall?.trend || "up"}
             diff={cardsData.indiceSmall?.diff || 0}
             description="Índice FIIs"
@@ -282,7 +288,7 @@ export function SettingsTable({
           <MarketIndicator
             title="CARTEIRA"
             value={cardsData.carteiraHoje?.value || "R$ 0"}
-            icon={<AttachMoneyIcon sx={{ fontSize: 16 }} />}
+            icon="💰"
             trend={cardsData.carteiraHoje?.trend || "up"}
             diff={cardsData.carteiraHoje?.diff || 0}
             description="Hoje"
@@ -292,7 +298,7 @@ export function SettingsTable({
           <MarketIndicator
             title="DY MÉDIO"
             value={cardsData.dividendYield?.value || "0%"}
-            icon={<TrendingUpIcon sx={{ fontSize: 16 }} />}
+            icon="💎"
             trend={cardsData.dividendYield?.trend || "up"}
             diff={cardsData.dividendYield?.diff || 0}
             description="Dividend Yield"
@@ -302,7 +308,7 @@ export function SettingsTable({
           <MarketIndicator
             title="IFIX PERÍODO"
             value={cardsData.ibovespaPeriodo?.value || "0%"}
-            icon={<ShowChartIcon sx={{ fontSize: 16 }} />}
+            icon="📊"
             trend={cardsData.ibovespaPeriodo?.trend || "up"}
             diff={cardsData.ibovespaPeriodo?.diff || 0}
             description="30 dias"
@@ -312,7 +318,7 @@ export function SettingsTable({
           <MarketIndicator
             title="CARTEIRA PERÍODO"
             value={cardsData.carteiraPeriodo?.value || "0%"}
-            icon={<TrendingUpIcon sx={{ fontSize: 16 }} />}
+            icon="⬆️"
             trend={cardsData.carteiraPeriodo?.trend || "up"}
             diff={cardsData.carteiraPeriodo?.diff || 0}
             description="30 dias"
@@ -365,7 +371,7 @@ export function SettingsTable({
                 >
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={2}>
-                      <Avatar sx={{ width: 32, height: 32, backgroundColor: '#e2e8f0', color: '#64748b' }}>
+                      <Avatar sx={{ width: 32, height: 32, backgroundColor: '#e2e8f0', color: '#64748b', fontSize: '14px' }}>
                         {getSetorIcon(row.setor)}
                       </Avatar>
                       <Box>
@@ -407,11 +413,15 @@ export function SettingsTable({
                     </Typography>
                     {row.variacaoPercent !== undefined && row.variacaoPercent !== 0 && (
                       <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
-                        {row.variacaoPercent >= 0 ? (
-                          <TrendingUpIcon sx={{ fontSize: 12, color: '#10b981' }} />
-                        ) : (
-                          <TrendingDownIcon sx={{ fontSize: 12, color: '#ef4444' }} />
-                        )}
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: row.variacaoPercent >= 0 ? '#10b981' : '#ef4444',
+                            fontSize: '12px'
+                          }}
+                        >
+                          {row.variacaoPercent >= 0 ? '↗' : '↘'}
+                        </Typography>
                         <Typography 
                           variant="caption" 
                           sx={{ 
