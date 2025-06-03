@@ -629,8 +629,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '30%',
-                  minWidth: '200px'
+                  width: '25%',
+                  minWidth: '180px'
                 }}>
                   Ativo
                 </TableCell>
@@ -650,9 +650,9 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '18%'
+                  width: '13%'
                 }}>
-                  Preços
+                  Preço Entrada
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -660,7 +660,17 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '10%'
+                  width: '13%'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '9%'
                 }}>
                   DY
                 </TableCell>
@@ -670,7 +680,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '15%'
+                  width: '13%'
                 }}>
                   Teto
                 </TableCell>
@@ -802,7 +812,7 @@ export default function Page(): React.JSX.Element {
                       fontWeight: 600,
                       color: '#475569',
                       whiteSpace: 'nowrap',
-                      width: '15%'
+                      width: '13%'
                     }}>
                       {row.precoTeto}
                     </TableCell>
