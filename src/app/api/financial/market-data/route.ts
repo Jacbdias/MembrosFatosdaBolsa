@@ -1,5 +1,4 @@
-} catch (error) {
-      const errorMessage = error instanceof// src/app/api/financial/market-data/route.ts
+// src/app/api/financial/market-data/route.ts
 import { NextResponse } from 'next/server';
 
 // 🔧 FUNÇÕES AUXILIARES INLINE (sem dependências externas)
