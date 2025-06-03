@@ -6,7 +6,6 @@ import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
@@ -17,16 +16,11 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import LinearProgress from '@mui/material/LinearProgress';
 import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
-import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
-import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
 import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
-
-import { useSelection } from '@/hooks/use-selection';
 
 function noop(): void {
   // Função vazia para props obrigatórias
@@ -81,7 +75,7 @@ function useMarketDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AO OVERVIEW)
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -245,10 +239,8 @@ export function AtivosTable({
   rowsPerPage = 0,
   cardsData = {},
 }: AtivosTableProps): React.JSX.Element {
-  const rowIds = React.useMemo(() => rows.map((ativo) => ativo.id), [rows]);
-
   // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading, error, refresh } = useMarketDataAPI();
+  const { data: apiData, loading } = useMarketDataAPI();
 
   // 🔥 VALORES PADRÃO PARA MICRO CAPS (APENAS FALLBACK QUANDO API FALHA)
   const defaultIndicators = {
@@ -347,4 +339,274 @@ export function AtivosTable({
               py: 1.5,
               borderRadius: 2,
               fontWeight: 600,
-              fontSize: '0.
+              fontSize: '0.875rem'
+            }}>
+              {rows.length} ações
+            </Box>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '800px' }}>
+            <TableHead>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '60px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Viés
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                const calcularVies = (precoTeto: string, precoAtual: string) => {
+                  const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
+                  const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+                  
+                  if (isNaN(precoTetoNum) || isNaN(precoAtualNum)) {
+                    return 'Aguardar';
+                  }
+                  
+                  return precoAtualNum < precoTetoNum ? 'Compra' : 'Aguardar';
+                };
+                
+                const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
+                
+                const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
+                const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
+                const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar} 
+                          alt={row.ticker}
+                          sx={{ 
+                            width: 44, 
+                            height: 44,
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        />
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: performance >= 0 ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}>
+                            {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: performance >= 0 ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#000000',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dy}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={viesCalculado}
+                        size="medium"
+                        sx={{
+                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={count}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}
