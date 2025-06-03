@@ -32,7 +32,7 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-// 🔧 HOOK PARA BUSCAR DADOS REAIS DA API (INTEGRADO NO COMPONENTE)
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
 function useMarketDataAPI() {
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -81,105 +81,20 @@ function useMarketDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-// 🔧 FUNÇÃO DINÂMICA PARA EXPANDIR VALORES - SEM HARDCODE
-function expandirValorAbreviadoDinamico(value: string, ibovespaReal?: any): string {
-  // Se o valor já é uma porcentagem, retorna como está
-  if (value.includes('%')) {
-    return value;
-  }
-  
-  const valueStr = value.toString().toLowerCase();
-  
-  // 💰 SE CONTÉM 'K' - USAR DADOS REAIS DO IBOVESPA QUANDO APLICÁVEL
-  if (valueStr.includes('k')) {
-    const numero = parseFloat(valueStr.replace('k', '').replace(',', '.'));
-    if (!isNaN(numero)) {
-      const valorCompleto = numero * 1000;
-      
-      // 🎯 SE É UM VALOR PRÓXIMO AO IBOVESPA E TEMOS DADOS REAIS
-      if (numero >= 130 && numero <= 150 && ibovespaReal && ibovespaReal.valorFormatado) {
-        console.log(`🔄 Convertendo ${value} para Ibovespa real: ${ibovespaReal.valorFormatado}`);
-        return ibovespaReal.valorFormatado;
-      }
-      
-      // Para outros valores, conversão normal
-      return valorCompleto.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0 
-      });
-    }
-  }
-  
-  // Se contém 'm', multiplica por 1.000.000
-  if (valueStr.includes('m')) {
-    const numero = parseFloat(valueStr.replace('m', '').replace(',', '.'));
-    if (!isNaN(numero)) {
-      const valorCompleto = numero * 1000000;
-      return valorCompleto.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0 
-      });
-    }
-  }
-  
-  // Se contém 'b', multiplica por 1.000.000.000
-  if (valueStr.includes('b')) {
-    const numero = parseFloat(valueStr.replace('b', '').replace(',', '.'));
-    if (!isNaN(numero)) {
-      const valorCompleto = numero * 1000000000;
-      return valorCompleto.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0 
-      });
-    }
-  }
-  
-  // Se é um número simples grande, formatar
-  const numeroSimples = parseFloat(value.replace(/\./g, '').replace(',', '.'));
-  if (!isNaN(numeroSimples) && numeroSimples >= 1000) {
-    return numeroSimples.toLocaleString('pt-BR', { 
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0 
-    });
-  }
-  
-  return value;
-}
-
 interface StatCardProps {
   title: string;
   value: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
-  ibovespaReal?: any;
   isLoading?: boolean;
 }
 
 // 🎨 CARD ESTATÍSTICO COM DADOS DINÂMICOS DA API
-function StatCard({ title, value, icon, trend, diff, ibovespaReal, isLoading }: StatCardProps): React.JSX.Element {
+function StatCard({ title, value, icon, trend, diff, isLoading }: StatCardProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   const topBorderColor = trend === 'up' ? '#10b981' : '#ef4444';
-  
-  // 🔥 USAR DADOS REAIS DO IBOVESPA SE DISPONÍVEL
-  let valorFinal = value;
-  let trendFinal = trend;
-  let diffFinal = diff;
-  
-  if (title === 'IBOVESPA' && ibovespaReal) {
-    valorFinal = ibovespaReal.valorFormatado;
-    trendFinal = ibovespaReal.trend;
-    diffFinal = ibovespaReal.variacaoPercent;
-    console.log(`🎯 IBOVESPA ATUALIZADO: ${valorFinal} (${trendFinal}) ${diffFinal}%`);
-  } else {
-    // Para outros cards, usar expansão dinâmica
-    valorFinal = expandirValorAbreviadoDinamico(value, ibovespaReal);
-  }
-  
-  const TrendIconFinal = trendFinal === 'up' ? ArrowUpIcon : ArrowDownIcon;
-  const trendColorFinal = trendFinal === 'up' ? '#10b981' : '#ef4444';
-  const topBorderColorFinal = trendFinal === 'up' ? '#10b981' : '#ef4444';
   
   return (
     <Card 
@@ -199,7 +114,7 @@ function StatCard({ title, value, icon, trend, diff, ibovespaReal, isLoading }: 
           left: 0,
           right: 0,
           height: '3px',
-          backgroundColor: topBorderColorFinal,
+          backgroundColor: topBorderColor,
         }
       }}
     >
@@ -233,7 +148,7 @@ function StatCard({ title, value, icon, trend, diff, ibovespaReal, isLoading }: 
             </Box>
           </Stack>
           
-          {/* Valor principal - AGORA DINÂMICO */}
+          {/* Valor principal */}
           <Typography 
             variant="h4" 
             sx={{ 
@@ -243,11 +158,11 @@ function StatCard({ title, value, icon, trend, diff, ibovespaReal, isLoading }: 
               lineHeight: 1
             }}
           >
-            {isLoading ? '...' : valorFinal}
+            {isLoading ? '...' : value}
           </Typography>
           
-          {/* Indicador de tendência - AGORA DINÂMICO */}
-          {!isLoading && diffFinal !== undefined && trendFinal && (
+          {/* Indicador de tendência */}
+          {!isLoading && diff !== undefined && trend && (
             <Stack direction="row" alignItems="center" spacing={1}>
               <Box sx={{
                 display: 'flex',
@@ -256,20 +171,20 @@ function StatCard({ title, value, icon, trend, diff, ibovespaReal, isLoading }: 
                 width: 20,
                 height: 20,
                 borderRadius: '50%',
-                backgroundColor: trendFinal === 'up' ? '#dcfce7' : '#fee2e2',
-                color: trendColorFinal
+                backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+                color: trendColor
               }}>
-                <TrendIconFinal size={12} weight="bold" />
+                <TrendIcon size={12} weight="bold" />
               </Box>
               <Typography 
                 variant="body2"
                 sx={{ 
-                  color: trendColorFinal,
+                  color: trendColor,
                   fontWeight: 600,
                   fontSize: '0.875rem'
                 }}
               >
-                {diffFinal > 0 ? '+' : ''}{typeof diffFinal === 'number' ? diffFinal.toFixed(2) : diffFinal}%
+                {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
               </Typography>
               <Typography 
                 variant="body2"
@@ -314,7 +229,6 @@ interface OverviewTableProps {
     ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
-  ibovespaReal?: any;
 }
 
 export function OverviewTable({
@@ -322,8 +236,7 @@ export function OverviewTable({
   rows = [],
   page = 0,
   rowsPerPage = 0,
-  cardsData = {},
-  ibovespaReal
+  cardsData = {}
 }: OverviewTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
@@ -333,7 +246,7 @@ export function OverviewTable({
   // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
   const defaultCards = {
     ibovespa: { value: "136431", trend: "down" as const, diff: -0.26 },
-    indiceSmall: { value: "2203", trend: "down" as const, diff: -0.16 }, // ⬅️ VALOR ATUALIZADO DO FALLBACK
+    indiceSmall: { value: "2203", trend: "down" as const, diff: -0.16 },
     carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
     dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
@@ -364,7 +277,7 @@ export function OverviewTable({
     // Por último, usar fallback
     console.log('⚠️ Usando dados de fallback');
     return defaultCards;
-  }, [apiData, cardsData, defaultCards]);
+  }, [apiData, cardsData]);
 
   return (
     <Box>
@@ -395,7 +308,7 @@ export function OverviewTable({
         </Box>
       )}
 
-      {/* Grid de cards redesenhado */}
+      {/* Grid de cards */}
       <Box
         sx={{
           display: 'grid',
@@ -415,7 +328,6 @@ export function OverviewTable({
           icon={<CurrencyDollarIcon />} 
           trend={cards.ibovespa.trend} 
           diff={cards.ibovespa.diff}
-          ibovespaReal={ibovespaReal}
           isLoading={loading}
         />
         <StatCard 
@@ -424,7 +336,6 @@ export function OverviewTable({
           icon={<UsersThreeIcon />} 
           trend={cards.indiceSmall.trend} 
           diff={cards.indiceSmall.diff}
-          ibovespaReal={ibovespaReal}
           isLoading={loading}
         />
         <StatCard 
@@ -433,7 +344,6 @@ export function OverviewTable({
           icon={<ListBulletsIcon />}
           trend={cards.carteiraHoje.trend}
           diff={cards.carteiraHoje.diff}
-          ibovespaReal={ibovespaReal}
           isLoading={loading}
         />
         <StatCard 
@@ -442,7 +352,6 @@ export function OverviewTable({
           icon={<ChartBarIcon />}
           trend={cards.dividendYield.trend}
           diff={cards.dividendYield.diff}
-          ibovespaReal={ibovespaReal}
           isLoading={loading}
         />
         <StatCard 
@@ -451,7 +360,6 @@ export function OverviewTable({
           icon={<CurrencyDollarIcon />} 
           trend={cards.ibovespaPeriodo.trend} 
           diff={cards.ibovespaPeriodo.diff}
-          ibovespaReal={ibovespaReal}
           isLoading={loading}
         />
         <StatCard 
@@ -460,29 +368,11 @@ export function OverviewTable({
           icon={<ChartBarIcon />} 
           trend={cards.carteiraPeriodo.trend} 
           diff={cards.carteiraPeriodo.diff}
-          ibovespaReal={ibovespaReal}
           isLoading={loading}
         />
       </Box>
       
-      {/* Debug info (apenas em desenvolvimento) */}
-      {process.env.NODE_ENV === 'development' && (
-        <Box sx={{ mb: 2, p: 2, backgroundColor: '#f8fafc', borderRadius: 2, fontSize: '0.75rem' }}>
-          <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>🐛 Debug Info</summary>
-            <pre style={{ marginTop: 8, overflow: 'auto' }}>
-              {JSON.stringify({ 
-                apiData: apiData ? 'Dados da API carregados' : 'Sem dados da API',
-                loading, 
-                error,
-                cardsUsed: cards 
-              }, null, 2)}
-            </pre>
-          </details>
-        </Box>
-      )}
-      
-      {/* Tabela redesenhada */}
+      {/* Tabela */}
       <Card sx={{ 
         borderRadius: 3,
         border: '1px solid',
@@ -603,7 +493,6 @@ export function OverviewTable({
             </TableHead>
             <TableBody>
               {rows.map((row, index) => {
-                // 🎯 LÓGICA CORRETA DO VIÉS: Preço Atual < Preço Teto = COMPRA
                 const calcularVies = (precoTeto: string, precoAtual: string) => {
                   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
                   const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
@@ -612,13 +501,11 @@ export function OverviewTable({
                     return 'Aguardar';
                   }
                   
-                  // 🎯 LÓGICA CORRETA: Preço Atual < Preço Teto = COMPRA (ação está barata)
                   return precoAtualNum < precoTetoNum ? 'Compra' : 'Aguardar';
                 };
                 
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
                 
-                // Calcular performance
                 const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
                 const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
                 const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
@@ -639,67 +526,7 @@ export function OverviewTable({
                     }}
                   >
                     <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#6366f1',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.dy}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={viesCalculado}
-                        size="small"
-                        sx={{
-                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
-                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          border: '1px solid',
-                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={count}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-          sx={{
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            '& .MuiTablePagination-toolbar': {
-              color: '#475569'
-            }
-          }}
-        />
-      </Card>
-    </Box>
-  );
-} 
+                      textAlign: 'center', 
                       fontWeight: 800, 
                       fontSize: '1rem',
                       color: '#6366f1'
@@ -774,3 +601,63 @@ export function OverviewTable({
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#6366f1',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dy}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={viesCalculado}
+                        size="small"
+                        sx={{
+                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          border: '1px solid',
+                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={count}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}
