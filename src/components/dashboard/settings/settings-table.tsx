@@ -262,6 +262,75 @@ export function SettingsTable({
   const [currentPage, setCurrentPage] = React.useState(0);
   const [currentRowsPerPage, setCurrentRowsPerPage] = React.useState(rowsPerPage);
 
+  // 🔥 DADOS ESTÁTICOS COMO FALLBACK (igual ao modelo que funciona)
+  const dadosEstaticos: Row[] = [
+    {
+      id: "1",
+      avatar: "",
+      ticker: "MALL11",
+      setor: "Shopping",
+      dataEntrada: "26/01/2022",
+      precoEntrada: "R$ 118,37",
+      dy: "8.40%",
+      precoTeto: "R$ 103,68",
+      vies: "Compra"
+    },
+    {
+      id: "2",
+      avatar: "",
+      ticker: "KNSC11",
+      setor: "Papel",
+      dataEntrada: "24/05/2022",
+      precoEntrada: "R$ 9,31",
+      dy: "10.98%",
+      precoTeto: "R$ 9,16",
+      vies: "Compra"
+    },
+    {
+      id: "3",
+      avatar: "",
+      ticker: "KNHF11",
+      setor: "Hedge Fund",
+      dataEntrada: "20/12/2024",
+      precoEntrada: "R$ 76,31",
+      dy: "15.00%",
+      precoTeto: "R$ 90,50",
+      vies: "Compra"
+    },
+    {
+      id: "4",
+      avatar: "",
+      ticker: "HGBS11",
+      setor: "Shopping",
+      dataEntrada: "02/01/2025",
+      precoEntrada: "R$ 186,08",
+      dy: "10.50%",
+      precoTeto: "R$ 192,00",
+      vies: "Compra"
+    },
+    {
+      id: "5",
+      avatar: "",
+      ticker: "RURA11",
+      setor: "Fiagro",
+      dataEntrada: "14/02/2023",
+      precoEntrada: "R$ 10,25",
+      dy: "13.21%",
+      precoTeto: "R$ 8,70",
+      vies: "Compra"
+    }
+  ];
+
+  // 🔥 PRIORIZAR DADOS DA API SOBRE DADOS ESTÁTICOS (como no modelo)
+  const dadosParaUsar = rows.length > 0 ? rows : dadosEstaticos;
+
+  console.log("✅ SettingsTable iniciado!");
+  console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
+  console.log("📊 Dados estáticos (fallback):", dadosEstaticos.length, "itens");
+  console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
+  console.log("🔍 Primeiro ativo da API:", rows[0]?.ticker, "- Preço atual:", rows[0]?.precoAtual);
+  console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
+
   const handlePageChange = (event: unknown, newPage: number): void => {
     setCurrentPage(newPage);
   };
@@ -271,7 +340,7 @@ export function SettingsTable({
     setCurrentPage(0);
   };
 
-  const paginatedRows = rows.slice(
+  const paginatedRows = dadosParaUsar.slice(
     currentPage * currentRowsPerPage,
     currentPage * currentRowsPerPage + currentRowsPerPage
   );
@@ -632,7 +701,7 @@ export function SettingsTable({
         
         <TablePagination
           component="div"
-          count={count}
+          count={count || dadosParaUsar.length}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           page={currentPage}
