@@ -15,116 +15,197 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
 import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
 import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
 import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
+import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
+
+import { useSelection } from '@/hooks/use-selection';
 
 function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-interface StatCardProps {
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
+function useMarketDataAPI() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      console.log('🔄 Buscando dados da API...');
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/financial/market-data?_t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Dados da API recebidos:', result);
+      
+      setData(result.marketData);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar dados da API:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    
+    // Refresh a cada 5 minutos
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AO OVERVIEW)
+interface MarketIndicatorProps {
   title: string;
   value: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
+  isLoading?: boolean;
+  description?: string;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
-  const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
+  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
   return (
-    <Card 
+    <Box 
       sx={{ 
-        minHeight: 120,
-        flex: '1 1 200px',
-        maxWidth: { xs: '100%', sm: '300px' },
-        transition: 'all 0.2s ease-in-out',
+        backgroundColor: '#ffffff',
+        borderRadius: 2,
+        p: 2.5,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        opacity: isLoading ? 0.7 : 1,
+        transition: 'all 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: 3,
+          borderColor: '#c7d2fe',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         }
       }}
     >
-      <CardContent sx={{ p: 3, height: '100%' }}>
-        <Stack spacing={2} sx={{ height: '100%' }}>
-          {/* Header com título e ícone */}
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+      <Stack spacing={2}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
             <Typography 
-              color="text.secondary" 
               variant="caption" 
               sx={{ 
+                color: '#64748b',
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                fontSize: '0.7rem'
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
               }}
             >
               {title}
             </Typography>
-            <Avatar 
-              sx={{ 
-                backgroundColor: '#374151',
-                height: 32, 
-                width: 32,
-                '& svg': { 
-                  fontSize: 16,
-                  color: 'white'
-                }
-              }}
-            >
-              {icon}
-            </Avatar>
-          </Stack>
-          
-          {/* Valor principal */}
-          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                fontWeight: 700,
-                color: trend && diff !== undefined ? 
-                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
-                  : 'text.primary',
-                fontSize: { xs: '1.5rem', sm: '2rem' }
-              }}
-            >
-              {value}
-            </Typography>
-          </Box>
-          
-          {/* Trend indicator */}
-          {diff !== undefined && trend && (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <TrendIcon 
-                size={16} 
-                style={{ color: trendColor }} 
-              />
+            {description && (
               <Typography 
+                variant="caption" 
                 sx={{ 
-                  color: trendColor,
-                  fontWeight: 600,
-                  fontSize: '0.8rem'
+                  color: '#94a3b8',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.7rem'
                 }}
               >
-                {diff > 0 ? '+' : ''}{diff}%
+                {description}
               </Typography>
-              <Typography 
-                color="text.secondary" 
-                sx={{ fontSize: '0.75rem' }}
-              >
-                no período
-              </Typography>
-            </Stack>
-          )}
+            )}
+          </Box>
+          <Box sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
+            backgroundColor: '#f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748b'
+          }}>
+            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+          </Box>
         </Stack>
-      </CardContent>
-    </Card>
+        
+        {/* Valor principal */}
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 700,
+            color: '#1e293b',
+            fontSize: '1.75rem',
+            lineHeight: 1
+          }}
+        >
+          {isLoading ? '...' : value}
+        </Typography>
+        
+        {/* Indicador de tendência */}
+        {!isLoading && diff !== undefined && trend && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+              color: trendColor
+            }}>
+              <TrendIcon size={12} weight="bold" />
+            </Box>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: trendColor,
+                fontWeight: 600,
+                fontSize: '0.875rem'
+              }}
+            >
+              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: '#64748b',
+                fontSize: '0.875rem'
+              }}
+            >
+              hoje
+            </Typography>
+          </Stack>
+        )}
+      </Stack>
+    </Box>
   );
 }
 
@@ -165,22 +246,48 @@ export function IntegrationsTable({
 }: IntegrationsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // Valores específicos para DIVIDENDOS (diferentes dos outros)
-  const defaultCards = {
+  // 🔥 BUSCAR DADOS REAIS DA API
+  const { data: apiData, loading, error, refresh } = useMarketDataAPI();
+
+  // 🔥 VALORES PADRÃO PARA DIVIDENDOS (APENAS FALLBACK QUANDO API FALHA)
+  const defaultIndicators = {
     ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
-    carteiraHoje: { value: "92.1%", trend: "up" as const, diff: 92.1 },
-    dividendYield: { value: "8.8%", trend: "up" as const, diff: 8.8 },
+    carteiraHoje: { value: "92.1%", trend: "up" as const },
+    dividendYield: { value: "8.8%", trend: "up" as const },
     ibovespaPeriodo: { value: "7.1%", trend: "up" as const, diff: 7.1 },
     carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
   };
 
-  // Mescla os dados padrão com os dados passados via props
-  const cards = { ...defaultCards, ...cardsData };
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
+        indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
+        carteiraHoje: cardsData.carteiraHoje || defaultIndicators.carteiraHoje,
+        dividendYield: cardsData.dividendYield || defaultIndicators.dividendYield,
+        ibovespaPeriodo: cardsData.ibovespaPeriodo || defaultIndicators.ibovespaPeriodo,
+        carteiraPeriodo: cardsData.carteiraPeriodo || defaultIndicators.carteiraPeriodo,
+      };
+    }
+    
+    // Senão, usar cardsData se disponível
+    if (Object.keys(cardsData).length > 0) {
+      console.log('⚠️ Usando cardsData prop:', cardsData);
+      return { ...defaultIndicators, ...cardsData };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultIndicators;
+  }, [apiData, cardsData]);
 
   return (
     <Box>
-      {/* Cards de estatísticas com grid responsivo */}
+      {/* Indicadores de Mercado - Layout com 6 cards para Dividendos */}
       <Box
         sx={{
           display: 'grid',
@@ -191,75 +298,219 @@ export function IntegrationsTable({
             lg: 'repeat(6, 1fr)',
           },
           gap: 2,
-          mb: 3,
+          mb: 4,
         }}
       >
-        <StatCard 
+        <MarketIndicator 
           title="IBOVESPA" 
-          value={cards.ibovespa.value} 
+          description="Índice da Bolsa Brasileira"
+          value={indicators.ibovespa.value} 
           icon={<CurrencyDollarIcon />} 
-          trend={cards.ibovespa.trend} 
-          diff={cards.ibovespa.diff} 
+          trend={indicators.ibovespa.trend} 
+          diff={indicators.ibovespa.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="ÍNDICE SMALL" 
-          value={cards.indiceSmall.value} 
+          description="Small Caps da B3"
+          value={indicators.indiceSmall.value} 
           icon={<UsersThreeIcon />} 
-          trend={cards.indiceSmall.trend} 
-          diff={cards.indiceSmall.diff} 
+          trend={indicators.indiceSmall.trend} 
+          diff={indicators.indiceSmall.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="CARTEIRA HOJE" 
-          value={cards.carteiraHoje.value} 
+          description="Performance atual"
+          value={indicators.carteiraHoje.value} 
           icon={<ListBulletsIcon />}
-          trend={cards.carteiraHoje.trend}
-          diff={cards.carteiraHoje.diff}
+          trend={indicators.carteiraHoje.trend}
+          diff={indicators.carteiraHoje.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="DIVIDEND YIELD" 
-          value={cards.dividendYield.value} 
+          description="Rendimento médio"
+          value={indicators.dividendYield.value} 
           icon={<ChartBarIcon />}
-          trend={cards.dividendYield.trend}
-          diff={cards.dividendYield.diff}
+          trend={indicators.dividendYield.trend}
+          diff={indicators.dividendYield.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="IBOVESPA PERÍODO" 
-          value={cards.ibovespaPeriodo.value} 
+          description="Performance no período"
+          value={indicators.ibovespaPeriodo.value} 
           icon={<CurrencyDollarIcon />} 
-          trend={cards.ibovespaPeriodo.trend} 
-          diff={cards.ibovespaPeriodo.diff} 
+          trend={indicators.ibovespaPeriodo.trend} 
+          diff={indicators.ibovespaPeriodo.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="CARTEIRA PERÍODO" 
-          value={cards.carteiraPeriodo.value} 
+          description="Performance acumulada"
+          value={indicators.carteiraPeriodo.value} 
           icon={<ChartBarIcon />} 
-          trend={cards.carteiraPeriodo.trend} 
-          diff={cards.carteiraPeriodo.diff} 
+          trend={indicators.carteiraPeriodo.trend} 
+          diff={indicators.carteiraPeriodo.diff}
+          isLoading={loading}
         />
       </Box>
       
-      {/* Tabela */}
-      <Card sx={{ boxShadow: 2 }}>
+      {/* Tabela de Dividendos */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira de Dividendos
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {rows.length} ações em acompanhamento • Foco em dividendos consistentes
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              {rows.length} ações
+            </Box>
+          </Stack>
+        </Box>
+        
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
-                  Posição
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '60px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
                 </TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>DY</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Teto</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Viés
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((row, index) => {
-                row.vies = 'Compra';
+                const calcularVies = (precoTeto: string, precoAtual: string) => {
+                  const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
+                  const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+                  
+                  if (isNaN(precoTetoNum) || isNaN(precoAtualNum)) {
+                    return 'Aguardar';
+                  }
+                  
+                  return precoAtualNum < precoTetoNum ? 'Compra' : 'Aguardar';
+                };
+                
+                const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
+                
+                const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
+                const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
+                const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
+                
                 return (
                   <TableRow 
                     hover 
@@ -267,61 +518,122 @@ export function IntegrationsTable({
                     onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
                     sx={{
                       '&:hover': {
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
                     }}
                   >
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
-                      {index + 1}º
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar} 
                           alt={row.ticker}
-                          sx={{ width: 32, height: 32 }}
+                          sx={{ 
+                            width: 44, 
+                            height: 44,
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
                         />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {row.ticker}
-                        </Typography>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: performance >= 0 ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}>
+                            {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                          </Typography>
+                        </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell 
-                      sx={{ 
-                        whiteSpace: 'normal', 
-                        textAlign: 'center', 
-                        lineHeight: 1.2,
-                        fontSize: '0.875rem'
-                      }}
-                    >
-                      {row.setor}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
-                    <TableCell>
-                      <Box
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
                         sx={{
-                          backgroundColor: row.vies === 'Compra' ? '#e8f5e8' : 'transparent',
-                          color: row.vies === 'Compra' ? '#2e7d32' : 'inherit',
-                          border: row.vies === 'Compra' ? '1px solid #4caf50' : '1px solid transparent',
-                          px: 2,
-                          py: 0.75,
-                          borderRadius: '20px',
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
                           fontWeight: 600,
-                          fontSize: '0.75rem',
-                          display: 'inline-block',
-                          textAlign: 'center',
-                          minWidth: '70px',
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
                         }}
-                      >
-                        {row.vies}
-                      </Box>
+                      />
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: performance >= 0 ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#000000',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dy}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={viesCalculado}
+                        size="medium"
+                        sx={{
+                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
                     </TableCell>
                   </TableRow>
                 );
@@ -334,14 +646,21 @@ export function IntegrationsTable({
           component="div"
           count={count}
           onPageChange={noop}
-          onRowsPerPageChange={noop}
+          onRowsPerPage={noop}
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Linhas por página:"
+          labelRowsPerPage="Itens por página:"
           labelDisplayedRows={({ from, to, count: totalCount }) => 
             `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
           }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
         />
       </Card>
     </Box>
