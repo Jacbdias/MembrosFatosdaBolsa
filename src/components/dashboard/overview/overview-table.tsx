@@ -364,7 +364,7 @@ export function OverviewTable({
               </Typography>
             </Box>
             <Box sx={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
               color: 'white',
               px: 3,
               py: 1.5,
@@ -493,7 +493,7 @@ export function OverviewTable({
                     onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
                     sx={{
                       '&:hover': {
-                        backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
                         cursor: 'pointer',
                         transform: 'scale(1.005)',
                         transition: 'all 0.2s ease'
@@ -505,7 +505,7 @@ export function OverviewTable({
                       textAlign: 'center', 
                       fontWeight: 800, 
                       fontSize: '1rem',
-                      color: '#6366f1'
+                      color: '#000000'
                     }}>
                       {index + 1}
                     </TableCell>
@@ -518,7 +518,7 @@ export function OverviewTable({
                             width: 44, 
                             height: 44,
                             border: '2px solid',
-                            borderColor: 'rgba(99, 102, 241, 0.2)'
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
                           }}
                         />
                         <Box>
@@ -544,11 +544,11 @@ export function OverviewTable({
                         label={row.setor}
                         size="medium"
                         sx={{
-                          backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                          color: '#6366f1',
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
                           fontWeight: 600,
                           fontSize: '0.8rem',
-                          border: '1px solid rgba(99, 102, 241, 0.2)'
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
                         }}
                       />
                     </TableCell>
@@ -581,7 +581,7 @@ export function OverviewTable({
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 600,
-                      color: '#6366f1',
+                      color: '#000000',
                       whiteSpace: 'nowrap'
                     }}>
                       {row.dy}
