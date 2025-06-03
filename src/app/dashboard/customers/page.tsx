@@ -2,7 +2,8 @@
 'use client';
 
 import * as React from 'react';
-import { Box, CircularProgress, Alert, Button } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2';
+import { Box, CircularProgress } from '@mui/material';
 import { AtivosTable } from '@/components/dashboard/customer/customers-table';
 
 // IMPORTAR HOOK PARA DADOS REAIS
@@ -265,6 +266,8 @@ function useSmallCapPortfolio() {
 }
 
 export default function Page(): React.JSX.Element {
+  console.log("📈 PÁGINA MICRO CAPS - VERSÃO LIMPA");
+
   // 🔥 DADOS REAIS DO MERCADO
   const { marketData, loading: marketLoading, error: marketError, refetch: refetchMarket } = useFinancialData();
   
@@ -330,59 +333,30 @@ export default function Page(): React.JSX.Element {
   // LOADING STATE
   if (marketLoading || portfolioLoading) {
     return (
-      <div style={{ padding: '20px' }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-          <CircularProgress size={40} />
-          <Box ml={2} sx={{ fontSize: '1.1rem' }}>
-            📈 Carregando small caps e nanocaps...
+      <Grid container spacing={3}>
+        <Grid xs={12}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress size={40} />
+            <Box ml={2} sx={{ fontSize: '1.1rem' }}>
+              📈 Carregando small caps e nanocaps...
+            </Box>
           </Box>
-        </Box>
-      </div>
+        </Grid>
+      </Grid>
     );
   }
 
-  // ERROR HANDLING
-  const hasError = marketError || portfolioError;
-  
-  const refetchAll = async () => {
-    await Promise.all([refetchMarket(), refetchPortfolio()]);
-  };
-
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Alertas de status */}
-      {hasError && (
-        <Alert 
-          severity="warning"
-          action={
-            <Button color="inherit" size="small" onClick={refetchAll}>
-              🔄 Tentar Novamente
-            </Button>
-          }
-          sx={{ mb: 2 }}
-        >
-          {marketError && `⚠️ Mercado: ${marketError}`}
-          {portfolioError && `⚠️ Small Caps: ${portfolioError}`}
-          {hasError && ' - Usando dados offline temporariamente'}
-        </Alert>
-      )}
-
-      {/* Indicador de sucesso */}
-      {!hasError && marketData && smallCapPortfolio.length > 0 && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          ✅ Small/Nano Caps atualizadas - {smallCapPortfolio.length} ações com preços reais | 
-          Performance média: {calcularPerformanceSmallCaps().value} | 
-          DY médio: {calcularDYSmallCaps().value}
-        </Alert>
-      )}
-
-      <AtivosTable 
-        count={smallCapPortfolio.length} 
-        rows={smallCapPortfolio} // 🔥 DADOS REAIS DAS SMALL CAPS!
-        page={0} 
-        rowsPerPage={5}
-        cardsData={dadosCards} // 🔥 CARDS COM DADOS REAIS!
-      />
-    </div>
+    <Grid container spacing={3}>
+      <Grid xs={12}>
+        <AtivosTable 
+          count={smallCapPortfolio.length} 
+          rows={smallCapPortfolio} // 🔥 DADOS REAIS DAS SMALL CAPS!
+          page={0} 
+          rowsPerPage={5}
+          cardsData={dadosCards} // 🔥 CARDS COM DADOS REAIS!
+        />
+      </Grid>
+    </Grid>
   );
 }
