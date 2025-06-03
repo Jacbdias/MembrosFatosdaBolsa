@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
-import { Box, CircularProgress, Alert, Button } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { OverviewFilters } from '@/components/dashboard/overview/overview-filters';
 import { OverviewTable } from '@/components/dashboard/overview/overview-table';
 
@@ -691,68 +691,8 @@ export default function Page(): React.JSX.Element {
     );
   }
 
-  // ERROR HANDLING
-  const hasError = marketError || cotacoesError || ibovError;
-  
-  const refetchAll = async () => {
-    await Promise.all([marketRefetch(), cotacoesRefetch(), ibovRefetch()]);
-  };
-
   return (
     <Grid container spacing={3}>
-      {/* Alertas de status */}
-      {hasError && (
-        <Grid xs={12}>
-          <Alert 
-            severity="warning"
-            action={
-              <Button color="inherit" size="small" onClick={refetchAll}>
-                🔄 Tentar Novamente
-              </Button>
-            }
-            sx={{ mb: 1 }}
-          >
-            {marketError && `⚠️ Mercado: ${marketError} `}
-            {cotacoesError && `⚠️ Ações: ${cotacoesError} `}
-            {ibovError && `⚠️ Ibovespa: ${ibovError} `}
-            {hasError && '- Usando dados offline temporariamente'}
-          </Alert>
-        </Grid>
-      )}
-
-      {/* Indicador de sucesso para ações */}
-      {!cotacoesError && ativosAtualizados.length > 0 && (
-        <Grid xs={12}>
-          <Alert severity="success" sx={{ mb: 1 }}>
-            ✅ Carteira de ações atualizada com sucesso - Cotações reais: {ativosAtualizados.filter(a => a.statusApi === 'success').length}/{ativosAtualizados.length} ações via BRAPI
-          </Alert>
-        </Grid>
-      )}
-
-      {/* Indicador de sucesso para Ibovespa */}
-      {!ibovError && ibovespaData && (
-        <Grid xs={12}>
-          <Alert severity="info" sx={{ mb: 1 }}>
-            📊 Ibovespa em tempo real: {ibovespaData.valorFormatado} pts ({ibovespaData.variacaoPercent > 0 ? '+' : ''}{ibovespaData.variacaoPercent.toFixed(2)}%) • Fonte: {ibovespaData.fonte}
-          </Alert>
-        </Grid>
-      )}
-
-      {/* Dados de mercado gerais */}
-      {!marketError && marketData && (
-        <Grid xs={12}>
-          <Alert severity="info" sx={{ mb: 1 }}>
-            📈 Dados de mercado atualizados via API
-          </Alert>
-        </Grid>
-      )}
-
-      <Grid xs={12}>
-        <Alert severity="info" sx={{ mb: 1 }}>
-          🎯 Viés automático: Preço Atual &lt; Preço Teto = COMPRA | Preço Atual ≥ Preço Teto = AGUARDAR
-        </Alert>
-      </Grid>
-
       <Grid xs={12}>
         <OverviewFilters />
       </Grid>
