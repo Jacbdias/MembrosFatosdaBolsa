@@ -629,8 +629,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '40%',
-                  minWidth: '250px'
+                  width: '30%',
+                  minWidth: '200px'
                 }}>
                   Ativo
                 </TableCell>
@@ -640,19 +640,9 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '20%'
-                }}>
-                  Preços
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
                   width: '12%'
                 }}>
-                  DY
+                  Data Entrada
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -662,7 +652,7 @@ export default function Page(): React.JSX.Element {
                   textTransform: 'uppercase',
                   width: '18%'
                 }}>
-                  Teto
+                  Preços
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -671,6 +661,26 @@ export default function Page(): React.JSX.Element {
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
                   width: '10%'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
                 }}>
                   Viés
                 </TableCell>
@@ -699,7 +709,7 @@ export default function Page(): React.JSX.Element {
                       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
                     }}
                   >
-                    <TableCell sx={{ width: '40%', minWidth: '250px' }}>
+                    <TableCell sx={{ width: '30%', minWidth: '200px' }}>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar}
@@ -745,20 +755,19 @@ export default function Page(): React.JSX.Element {
                               {isPositive ? '+' : ''}{variacao.toFixed(1)}%
                             </Typography>
                           </Stack>
-                          <Typography variant="caption" sx={{ 
-                            color: '#64748b',
-                            fontSize: '0.7rem',
-                            display: 'block',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            Entrada: {row.dataEntrada}
-                          </Typography>
                         </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.8rem',
+                      whiteSpace: 'nowrap',
+                      width: '12%'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '18%' }}>
                       <Stack spacing={0.5} alignItems="center">
                         <Typography variant="body2" sx={{ 
                           fontWeight: 600,
@@ -776,7 +785,7 @@ export default function Page(): React.JSX.Element {
                         </Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
                       <Typography 
                         variant="body2" 
                         sx={{ 
