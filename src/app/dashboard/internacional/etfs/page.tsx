@@ -619,7 +619,7 @@ export default function Page(): React.JSX.Element {
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '100%' }}>
+          <Table sx={{ minWidth: '900px' }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -629,8 +629,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '25%',
-                  minWidth: '180px'
+                  width: '220px',
+                  padding: '16px 12px'
                 }}>
                   Ativo
                 </TableCell>
@@ -640,7 +640,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '12%'
+                  width: '120px',
+                  padding: '16px 8px'
                 }}>
                   Data Entrada
                 </TableCell>
@@ -650,7 +651,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '13%'
+                  width: '120px',
+                  padding: '16px 8px'
                 }}>
                   Preço Entrada
                 </TableCell>
@@ -660,7 +662,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '13%'
+                  width: '120px',
+                  padding: '16px 8px'
                 }}>
                   Preço Atual
                 </TableCell>
@@ -670,7 +673,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '9%'
+                  width: '80px',
+                  padding: '16px 8px'
                 }}>
                   DY
                 </TableCell>
@@ -680,7 +684,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '13%'
+                  width: '120px',
+                  padding: '16px 8px'
                 }}>
                   Teto
                 </TableCell>
@@ -690,7 +695,8 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '15%'
+                  width: '100px',
+                  padding: '16px 8px'
                 }}>
                   Viés
                 </TableCell>
