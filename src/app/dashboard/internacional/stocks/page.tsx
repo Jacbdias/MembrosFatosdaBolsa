@@ -28,15 +28,65 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
+function useMarketDataAPI() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      console.log('🔄 Buscando dados da API internacional...');
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/financial/international-data?_t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Dados da API internacional recebidos:', result);
+      
+      setData(result.internationalData);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar dados da API internacional:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    
+    // Refresh a cada 5 minutos
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
 interface StatCardProps {
   title: string;
   value: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
+  isLoading?: boolean;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
+function StatCard({ title, value, icon, trend, diff, isLoading }: StatCardProps): React.JSX.Element {
   const TrendIconComponent = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
   
@@ -47,6 +97,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
         flex: '1 1 200px',
         maxWidth: { xs: '100%', sm: '300px' },
         transition: 'all 0.2s ease-in-out',
+        opacity: isLoading ? 0.7 : 1,
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: 3,
@@ -94,11 +145,11 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
                 fontSize: { xs: '1.5rem', sm: '2rem' }
               }}
             >
-              {value}
+              {isLoading ? '...' : value}
             </Typography>
           </Box>
           
-          {diff !== undefined && trend && (
+          {!isLoading && diff !== undefined && trend && (
             <Stack direction="row" spacing={0.5} alignItems="center">
               <TrendIconComponent 
                 size={16} 
@@ -111,7 +162,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
                   fontSize: '0.8rem'
                 }}
               >
-                {diff > 0 ? '+' : ''}{diff}%
+                {diff > 0 ? '+' : ''}{diff.toFixed(2)}%
               </Typography>
               <Typography 
                 color="text.secondary" 
@@ -128,6 +179,11 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
 }
 
 export default function Page(): React.JSX.Element {
+  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO DINÂMICA");
+
+  // 🔥 BUSCAR DADOS REAIS DA API
+  const { data: apiData, loading } = useMarketDataAPI();
+
   const stocksInternacionais = [
     {
       id: '1',
@@ -266,10 +322,31 @@ export default function Page(): React.JSX.Element {
     }
   ];
 
-  // Calcular estatísticas baseadas nos novos dados
-  const totalAtivos = stocksInternacionais.length;
-  const compras = stocksInternacionais.filter(stock => stock.viesAtual === 'COMPRA').length;
-  const aguardar = stocksInternacionais.filter(stock => stock.viesAtual === 'AGUARDAR').length;
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (4 INDICADORES)
+  const defaultIndicators = {
+    carteira: { value: "+62,66%", trend: "up" as const, diff: 62.66 },
+    sp500Periodo: { value: "+36,93%", trend: "up" as const, diff: 36.93 },
+    sp500Hoje: { value: "-0,67%", trend: "down" as const, diff: -0.67 },
+    nasdaqHoje: { value: "-1,00%", trend: "down" as const, diff: -1.00 },
+  };
+
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        carteira: apiData.carteira || defaultIndicators.carteira,
+        sp500Periodo: apiData.sp500Periodo || defaultIndicators.sp500Periodo,
+        sp500Hoje: apiData.sp500Hoje || defaultIndicators.sp500Hoje,
+        nasdaqHoje: apiData.nasdaqHoje || defaultIndicators.nasdaqHoje,
+      };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultIndicators;
+  }, [apiData]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -306,7 +383,7 @@ export default function Page(): React.JSX.Element {
         </Stack>
       </Stack>
 
-      {/* Cards de estatísticas */}
+      {/* Cards de estatísticas com dados dinâmicos da API */}
       <Box
         sx={{
           display: 'grid',
@@ -321,31 +398,35 @@ export default function Page(): React.JSX.Element {
       >
         <StatCard 
           title="CARTEIRA NO PERÍODO" 
-          value="62,66%" 
+          value={indicators.carteira.value} 
           icon={<TrendUpIcon />}
-          trend="up"
-          diff={62.66}
+          trend={indicators.carteira.trend}
+          diff={indicators.carteira.diff}
+          isLoading={loading}
         />
         <StatCard 
           title="S&P 500 NO PERÍODO" 
-          value="36,93%" 
+          value={indicators.sp500Periodo.value} 
           icon={<ChartLineIcon />}
-          trend="up"
-          diff={36.93}
+          trend={indicators.sp500Periodo.trend}
+          diff={indicators.sp500Periodo.diff}
+          isLoading={loading}
         />
         <StatCard 
           title="S&P 500 HOJE" 
-          value="-0,67%" 
-          icon={<ArrowDownIcon />}
-          trend="down"
-          diff={-0.67}
+          value={indicators.sp500Hoje.value} 
+          icon={<CurrencyDollarIcon />}
+          trend={indicators.sp500Hoje.trend}
+          diff={indicators.sp500Hoje.diff}
+          isLoading={loading}
         />
         <StatCard 
           title="NASDAQ HOJE" 
-          value="-1,00%" 
-          icon={<ArrowDownIcon />}
-          trend="down"
-          diff={-1.00}
+          value={indicators.nasdaqHoje.value} 
+          icon={<GlobeIcon />}
+          trend={indicators.nasdaqHoje.trend}
+          diff={indicators.nasdaqHoje.diff}
+          isLoading={loading}
         />
       </Box>
       
