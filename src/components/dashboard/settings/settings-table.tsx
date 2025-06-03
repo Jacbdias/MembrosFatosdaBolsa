@@ -181,28 +181,44 @@ export interface SettingsTableProps {
   cardsData?: CardsData;
 }
 
-function getSetorIcon(setor: string): string {
-  switch (setor.toLowerCase()) {
-    case 'shopping':
-      return '🏬';
-    case 'papel':
-      return '📄';
-    case 'logística':
-      return '🚛';
-    case 'hedge fund':
-      return '🏦';
-    case 'fiagro':
-      return '🌾';
-    case 'fof':
-      return '📊';
-    case 'tijolo':
-      return '🏢';
-    case 'renda urbana':
-      return '🏙️';
-    case 'híbrido':
-      return '🔀';
-    default:
-      return '💼';
+function calcularVies(precoAtual: string, precoTeto: string, viesOriginal: string): { vies: string; cor: string; background: string } {
+  try {
+    // Converter strings de preço para números
+    const atual = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+    const teto = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
+    
+    if (isNaN(atual) || isNaN(teto)) {
+      // Se não conseguir converter, usar AGUARDAR
+      return {
+        vies: 'AGUARDAR',
+        cor: '#d97706',
+        background: '#fef3c7'
+      };
+    }
+    
+    // Calcular viés baseado na comparação
+    if (atual <= teto) {
+      // Preço atual menor ou igual ao teto = COMPRA
+      return {
+        vies: 'COMPRA',
+        cor: '#059669',
+        background: '#dcfce7'
+      };
+    } else {
+      // Preço atual maior que o teto = AGUARDAR
+      return {
+        vies: 'AGUARDAR', 
+        cor: '#d97706',
+        background: '#fef3c7'
+      };
+    }
+  } catch (error) {
+    // Em caso de erro, usar AGUARDAR
+    return {
+      vies: 'AGUARDAR',
+      cor: '#d97706',
+      background: '#fef3c7'
+    };
   }
 }
 
@@ -579,22 +595,32 @@ export function SettingsTable({
 
                   {/* COLUNA VIÉS */}
                   <TableCell sx={{ textAlign: 'center', py: 2 }}>
-                    <Chip
-                      label={row.vies.toUpperCase()}
-                      size="small"
-                      sx={{
-                        backgroundColor: row.vies.toLowerCase() === 'compra' ? '#dcfce7' : '#fee2e2',
-                        color: row.vies.toLowerCase() === 'compra' ? '#059669' : '#dc2626',
-                        border: 'none',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        height: 24,
-                        minWidth: 70,
-                        '& .MuiChip-label': {
-                          px: 1.5
-                        }
-                      }}
-                    />
+                    {(() => {
+                      const viesCalculado = calcularVies(
+                        row.precoAtual || row.precoEntrada, 
+                        row.precoTeto, 
+                        row.vies
+                      );
+                      
+                      return (
+                        <Chip
+                          label={viesCalculado.vies}
+                          size="small"
+                          sx={{
+                            backgroundColor: viesCalculado.background,
+                            color: viesCalculado.cor,
+                            border: 'none',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            height: 24,
+                            minWidth: 70,
+                            '& .MuiChip-label': {
+                              px: 1.5
+                            }
+                          }}
+                        />
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               ))}
