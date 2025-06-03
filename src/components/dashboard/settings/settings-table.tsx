@@ -6,7 +6,6 @@ import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
@@ -82,7 +81,7 @@ function useFIIsDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE PARA FIIs
+// 🎨 INDICADOR DE MERCADO ELEGANTE PARA FIIs
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -114,7 +113,6 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
       }}
     >
       <Stack spacing={2}>
-        {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Box>
             <Typography 
@@ -157,7 +155,6 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
           </Box>
         </Stack>
         
-        {/* Valor principal */}
         <Typography 
           variant="h4" 
           sx={{ 
@@ -170,7 +167,6 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
           {isLoading ? '...' : value}
         </Typography>
         
-        {/* Indicador de tendência */}
         {!isLoading && diff !== undefined && trend && (
           <Stack direction="row" alignItems="center" spacing={1}>
             <Box sx={{
@@ -183,7 +179,7 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
               backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
               color: trendColor
             }}>
-              <TrendIcon size={12} weight="bold" />
+              <TrendIcon size={12} />
             </Box>
             <Typography 
               variant="body2"
@@ -232,6 +228,7 @@ function getSetorIcon(setor: string): React.ReactNode {
     case 'fof':
     case 'fiagro':
     case 'renda urbana':
+    case 'tijolo':
       return <Buildings style={iconStyle} />;
     case 'renda fixa':
       return <TrendUp style={iconStyle} />;
@@ -251,6 +248,8 @@ export interface SettingsData {
   dy: string;
   precoTeto: string;
   vies: string;
+  performance?: number;
+  statusApi?: string;
 }
 
 interface SettingsTableProps {
@@ -276,7 +275,7 @@ export function SettingsTable({
   cardsData = {},
 }: SettingsTableProps): React.JSX.Element {
   
-  // Dados reais dos FIIs baseados na tabela fornecida
+  // Dados reais dos FIIs
   const dadosReais: SettingsData[] = [
     {
       id: "1",
@@ -337,184 +336,12 @@ export function SettingsTable({
       dy: "13.21%",
       precoTeto: "R$ 8,70",
       vies: "Compra"
-    },
-    {
-      id: "6",
-      avatar: "",
-      ticker: "BCIA11",
-      setor: "FoF",
-      dataEntrada: "12/04/2023",
-      precoEntrada: "R$ 82,28",
-      precoAtual: "R$ 85,75",
-      dy: "9.77%",
-      precoTeto: "R$ 86,00",
-      vies: "Compra"
-    },
-    {
-      id: "7",
-      avatar: "",
-      ticker: "BPFF11",
-      setor: "FoF",
-      dataEntrada: "08/01/2024",
-      precoEntrada: "R$ 72,12",
-      precoAtual: "R$ 60,40",
-      dy: "11.00%",
-      precoTeto: "R$ 66,34",
-      vies: "Compra"
-    },
-    {
-      id: "8",
-      avatar: "",
-      ticker: "HGFF11",
-      setor: "FoF",
-      dataEntrada: "03/04/2023",
-      precoEntrada: "R$ 69,15",
-      precoAtual: "R$ 71,40",
-      dy: "9.25%",
-      precoTeto: "R$ 73,59",
-      vies: "Compra"
-    },
-    {
-      id: "9",
-      avatar: "",
-      ticker: "BRCO11",
-      setor: "Logística",
-      dataEntrada: "09/05/2022",
-      precoEntrada: "R$ 99,25",
-      precoAtual: "R$ 108,66",
-      dy: "8.44%",
-      precoTeto: "R$ 109,89",
-      vies: "Compra"
-    },
-    {
-      id: "10",
-      avatar: "",
-      ticker: "XPML11",
-      setor: "Shopping",
-      dataEntrada: "16/02/2022",
-      precoEntrada: "R$ 93,32",
-      precoAtual: "R$ 104,80",
-      dy: "8.44%",
-      precoTeto: "R$ 136,00",
-      vies: "Compra"
-    },
-    {
-      id: "11",
-      avatar: "",
-      ticker: "HGLG11",
-      setor: "Logística",
-      dataEntrada: "20/06/2022",
-      precoEntrada: "R$ 161,80",
-      precoAtual: "R$ 159,72",
-      dy: "8.44%",
-      precoTeto: "R$ 148,67",
-      vies: "Compra"
-    },
-    {
-      id: "12",
-      avatar: "",
-      ticker: "HSML11",
-      setor: "Shopping",
-      dataEntrada: "14/06/2022",
-      precoEntrada: "R$ 78,00",
-      precoAtual: "R$ 84,47",
-      dy: "8.91%",
-      precoTeto: "R$ 93,40",
-      vies: "Compra"
-    },
-    {
-      id: "13",
-      avatar: "",
-      ticker: "VGIP11",
-      setor: "Papel",
-      dataEntrada: "02/12/2021",
-      precoEntrada: "R$ 96,99",
-      precoAtual: "R$ 81,61",
-      dy: "13.67%",
-      precoTeto: "R$ 93,30",
-      vies: "Compra"
-    },
-    {
-      id: "14",
-      avatar: "",
-      ticker: "AFHI11",
-      setor: "Papel",
-      dataEntrada: "05/07/2022",
-      precoEntrada: "R$ 99,91",
-      precoAtual: "R$ 92,79",
-      dy: "13.08%",
-      precoTeto: "R$ 93,30",
-      vies: "Compra"
-    },
-    {
-      id: "15",
-      avatar: "",
-      ticker: "BTLG11",
-      setor: "Logística",
-      dataEntrada: "05/01/2022",
-      precoEntrada: "R$ 103,14",
-      precoAtual: "R$ 100,20",
-      dy: "8.42%",
-      precoTeto: "R$ 104,09",
-      vies: "Compra"
-    },
-    {
-      id: "16",
-      avatar: "",
-      ticker: "VRTA11",
-      setor: "Papel",
-      dataEntrada: "27/12/2022",
-      precoEntrada: "R$ 88,30",
-      precoAtual: "R$ 81,86",
-      dy: "9.66%",
-      precoTeto: "R$ 54,23",
-      vies: "Compra"
-    },
-    {
-      id: "17",
-      avatar: "",
-      ticker: "LVBI11",
-      setor: "Logística",
-      dataEntrada: "18/10/2022",
-      precoEntrada: "R$ 113,85",
-      precoAtual: "R$ 102,67",
-      dy: "7.90%",
-      precoTeto: "R$ 120,25",
-      vies: "Compra"
-    },
-    {
-      id: "18",
-      avatar: "",
-      ticker: "HGRU11",
-      setor: "Renda Urbana",
-      dataEntrada: "17/05/2022",
-      precoEntrada: "R$ 115,00",
-      precoAtual: "R$ 124,94",
-      dy: "8.44%",
-      precoTeto: "R$ 138,57",
-      vies: "Compra"
-    },
-    {
-      id: "19",
-      avatar: "",
-      ticker: "ALZR11",
-      setor: "Híbrido",
-      dataEntrada: "02/02/2022",
-      precoEntrada: "R$ 115,89",
-      precoAtual: "R$ 100,70",
-      dy: "8.44%",
-      precoTeto: "R$ 110,16",
-      vies: "Compra"
     }
   ];
 
-  // 🔥 PRIORIZAR DADOS DA API (rows) SOBRE DADOS ESTÁTICOS
   const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
-
-  // 🔥 BUSCAR DADOS REAIS DA API
   const { data: apiData, loading, error, refresh } = useFIIsDataAPI();
 
-  // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
   const defaultIndicators = {
     ibovespa: { value: "158.268", trend: "up" as const, diff: 10.09 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
@@ -524,11 +351,8 @@ export function SettingsTable({
     carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
   };
 
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
   const indicators = React.useMemo(() => {
-    // Se temos dados da API, usar eles
     if (apiData) {
-      console.log('✅ Usando dados da API de FIIs:', apiData);
       return {
         ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
         indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
@@ -539,25 +363,15 @@ export function SettingsTable({
       };
     }
     
-    // Senão, usar cardsData se disponível
     if (Object.keys(cardsData).length > 0) {
-      console.log('⚠️ Usando cardsData prop:', cardsData);
       return { ...defaultIndicators, ...cardsData };
     }
     
-    // Por último, usar fallback
-    console.log('⚠️ Usando dados de fallback para FIIs');
     return defaultIndicators;
   }, [apiData, cardsData]);
 
-  console.log("✅ SettingsTable FIIs iniciado!");
-  console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
-  console.log("📊 Dados estáticos (fallback):", dadosReais.length, "itens");
-  console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
-
   return (
     <Box>
-      {/* Header com status da API */}
       {error && (
         <Box sx={{ mb: 3, p: 3, backgroundColor: '#fef2f2', borderRadius: 2, border: '1px solid #fecaca' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -584,7 +398,6 @@ export function SettingsTable({
         </Box>
       )}
 
-      {/* Indicadores de Mercado - Layout em Grid */}
       <Box
         sx={{
           display: 'grid',
@@ -654,7 +467,6 @@ export function SettingsTable({
         />
       </Box>
       
-      {/* Tabela de FIIs */}
       <Card sx={{ 
         borderRadius: 4,
         border: '1px solid',
@@ -731,6 +543,42 @@ export function SettingsTable({
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase'
                 }}>
+                  Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
                   DY
                 </TableCell>
                 <TableCell sx={{ 
@@ -755,7 +603,6 @@ export function SettingsTable({
             </TableHead>
             <TableBody>
               {dadosParaUsar.map((row, index) => {
-                // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
                 const calcularVies = (precoTeto: string, precoAtual: string) => {
                   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
                   const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
@@ -769,7 +616,6 @@ export function SettingsTable({
                 
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
                 
-                // Calcular performance
                 const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
                 const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
                 const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
@@ -926,39 +772,4 @@ export function SettingsTable({
       </Card>
     </Box>
   );
-}Setor
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  Entrada
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  Preço Inicial
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  Preço Atual
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
+}
