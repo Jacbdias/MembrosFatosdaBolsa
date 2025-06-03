@@ -22,6 +22,8 @@ import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/Arrow
 import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
+import { ChartLine as ChartLineIcon } from '@phosphor-icons/react/dist/ssr/ChartLine';
+import { Buildings as BuildingsIcon } from '@phosphor-icons/react/dist/ssr/Buildings';
 
 function noop(): void {
   // Função vazia para props obrigatórias
@@ -156,7 +158,7 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
           variant="h4" 
           sx={{ 
             fontWeight: 700,
-            color: '#1e293b',
+            color: trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#1e293b',
             fontSize: '1.75rem',
             lineHeight: 1
           }}
@@ -206,102 +208,150 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🌎 PÁGINA DIVIDENDOS INTERNACIONAIS - VERSÃO LIMPA");
+  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO LIMPA");
 
   // 🔥 BUSCAR DADOS REAIS DA API
   const { data: apiData, loading } = useMarketDataAPI();
 
-  const dividendosInternacionais = [
+  const exteriorStocks = [
     {
       id: '1',
       rank: '1º',
-      ticker: 'OXY',
-      name: 'Occidental Petroleum Corporation',
-      setor: 'STOCK - Petroleum',
-      dataEntrada: '14/04/2023',
-      precoQueIniciou: 'US$37,92',
-      precoAtual: 'US$41,29',
-      dy: '2,34%',
-      precoTeto: 'US$60,10',
+      ticker: 'AMD',
+      name: 'Advanced Micro Devices Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '29/05/2025',
+      precoQueIniciou: 'US$112,86',
+      precoAtual: 'US$118,50',
+      precoTeto: 'US$135,20',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/oxy.com',
+      avatar: 'https://logo.clearbit.com/amd.com',
     },
     {
       id: '2',
       rank: '2º',
-      ticker: 'ADC',
-      name: 'Agree Realty Corporation',
-      setor: 'REIT - Retail',
-      dataEntrada: '19/01/2023',
-      precoQueIniciou: 'US$73,74',
-      precoAtual: 'US$75,04',
-      dy: '5,34%',
-      precoTeto: 'US$99,01',
+      ticker: 'XP',
+      name: 'XP Inc.',
+      setor: 'Financial Services',
+      dataEntrada: '26/05/2023',
+      precoQueIniciou: 'US$18,41',
+      precoAtual: 'US$19,25',
+      precoTeto: 'US$24,34',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/agreerealty.com',
+      avatar: 'https://logo.clearbit.com/xpi.com.br',
     },
     {
       id: '3',
       rank: '3º',
-      ticker: 'VZ',
-      name: 'Verizon Communications Inc.',
-      setor: 'Stock - Telecom',
-      dataEntrada: '28/03/2022',
-      precoQueIniciou: 'US$51,17',
-      precoAtual: 'US$43,32',
-      dy: '6,57%',
-      precoTeto: 'US$51,12',
+      ticker: 'HD',
+      name: 'Home Depot Inc.',
+      setor: 'Varejo',
+      dataEntrada: '24/02/2023',
+      precoQueIniciou: 'US$299,31',
+      precoAtual: 'US$315,80',
+      precoTeto: 'US$366,78',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/verizon.com',
+      avatar: 'https://logo.clearbit.com/homedepot.com',
     },
     {
       id: '4',
       rank: '4º',
-      ticker: 'O',
-      name: 'Realty Income Corporation',
-      setor: 'REIT - Net Lease',
-      dataEntrada: '01/02/2024',
-      precoQueIniciou: 'US$54,39',
-      precoAtual: 'US$55,53',
-      dy: '6,13%',
-      precoTeto: 'US$58,91',
+      ticker: 'AAPL',
+      name: 'Apple Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '05/05/2022',
+      precoQueIniciou: 'US$156,77',
+      precoAtual: 'US$162,50',
+      precoTeto: 'US$170,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/realtyincome.com',
+      avatar: 'https://logo.clearbit.com/apple.com',
     },
     {
       id: '5',
       rank: '5º',
-      ticker: 'AVB',
-      name: 'AvalonBay Communities Inc.',
-      setor: 'REIT - Apartamentos',
-      dataEntrada: '10/02/2022',
-      precoQueIniciou: 'US$242,00',
-      precoAtual: 'US$198,03',
-      dy: '3,96%',
-      precoTeto: 'US$340,00',
+      ticker: 'FIVE',
+      name: 'Five Below Inc.',
+      setor: 'Varejo',
+      dataEntrada: '17/03/2022',
+      precoQueIniciou: 'US$163,41',
+      precoAtual: 'US$158,90',
+      precoTeto: 'US$179,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/avalonbay.com',
+      avatar: 'https://logo.clearbit.com/fivebelow.com',
     },
     {
       id: '6',
       rank: '6º',
-      ticker: 'STAG',
-      name: 'Stag Industrial Inc.',
-      setor: 'REIT - Industrial',
-      dataEntrada: '24/03/2022',
-      precoQueIniciou: 'US$40,51',
-      precoAtual: 'US$34,07',
-      dy: '4,55%',
-      precoTeto: 'US$42,87',
+      ticker: 'AMAT',
+      name: 'Applied Materials Inc.',
+      setor: 'Semicondutores',
+      dataEntrada: '07/04/2022',
+      precoQueIniciou: 'US$122,40',
+      precoAtual: 'US$128,75',
+      precoTeto: 'US$151,30',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/stagindustrial.com',
+      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
+    },
+    {
+      id: '7',
+      rank: '7º',
+      ticker: 'COST',
+      name: 'Costco Wholesale Corporation',
+      setor: 'Consumer Discretionary',
+      dataEntrada: '23/06/2022',
+      precoQueIniciou: 'US$459,00',
+      precoAtual: 'US$485,20',
+      precoTeto: 'US$571,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/costco.com',
+    },
+    {
+      id: '8',
+      rank: '8º',
+      ticker: 'GOOGL',
+      name: 'Alphabet Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '06/03/2022',
+      precoQueIniciou: 'US$131,83',
+      precoAtual: 'US$142,10',
+      precoTeto: 'US$153,29',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/google.com',
+    },
+    {
+      id: '9',
+      rank: '9º',
+      ticker: 'META',
+      name: 'Meta Platforms Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '17/02/2022',
+      precoQueIniciou: 'US$213,92',
+      precoAtual: 'US$285,40',
+      precoTeto: 'US$322,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/meta.com',
+    },
+    {
+      id: '10',
+      rank: '10º',
+      ticker: 'BRK.B',
+      name: 'Berkshire Hathaway Inc.',
+      setor: 'Holding',
+      dataEntrada: '11/05/2021',
+      precoQueIniciou: 'US$286,35',
+      precoAtual: 'US$295,80',
+      precoTeto: 'US$330,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
     }
   ];
 
-  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (4 INDICADORES)
   const defaultIndicators = {
-    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
-    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
+    carteira: { value: "+62,66%", trend: "up" as const, diff: 62.66 },
+    sp500Periodo: { value: "+36,93%", trend: "up" as const, diff: 36.93 },
+    sp500Hoje: { value: "-0,67%", trend: "down" as const, diff: -0.67 },
+    nasdaqHoje: { value: "-1,00%", trend: "down" as const, diff: -1.00 },
   };
 
   // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
@@ -310,8 +360,10 @@ export default function Page(): React.JSX.Element {
     if (apiData) {
       console.log('✅ Usando dados da API:', apiData);
       return {
-        sp500: apiData.sp500 || defaultIndicators.sp500,
-        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
+        carteira: apiData.carteira || defaultIndicators.carteira,
+        sp500Periodo: apiData.sp500Periodo || defaultIndicators.sp500Periodo,
+        sp500Hoje: apiData.sp500Hoje || defaultIndicators.sp500Hoje,
+        nasdaqHoje: apiData.nasdaqHoje || defaultIndicators.nasdaqHoje,
       };
     }
     
@@ -347,7 +399,7 @@ export default function Page(): React.JSX.Element {
               fontSize: { xs: '1.75rem', sm: '2.125rem' }
             }}
           >
-            Dividendos Internacionais
+            Exterior Stocks
           </Typography>
           <Typography 
             variant="body1" 
@@ -356,41 +408,59 @@ export default function Page(): React.JSX.Element {
               fontSize: '1rem'
             }}
           >
-            {dividendosInternacionais.length} ativos • Ações e REITs pagadores de dividendos nos EUA
+            Ações internacionais de empresas de tecnologia, crescimento e valor
           </Typography>
         </Stack>
       </Stack>
 
-      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
+      {/* Indicadores de Mercado - Layout com 4 cards */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' },
           gap: 2,
           mb: 4,
         }}
       >
         <MarketIndicator 
-          title="S&P 500" 
-          description="Índice das 500 maiores empresas dos EUA"
-          value={indicators.sp500.value} 
-          icon={<CurrencyDollarIcon />} 
-          trend={indicators.sp500.trend} 
-          diff={indicators.sp500.diff}
+          title="CARTEIRA NO PERÍODO" 
+          description="Performance total da carteira"
+          value={indicators.carteira.value} 
+          icon={<BuildingsIcon />} 
+          trend={indicators.carteira.trend} 
+          diff={indicators.carteira.diff}
           isLoading={loading}
         />
         <MarketIndicator 
-          title="NASDAQ 100" 
-          description="Índice de tecnologia americana"
-          value={indicators.nasdaq.value} 
+          title="S&P 500 NO PERÍODO" 
+          description="Performance do S&P 500"
+          value={indicators.sp500Periodo.value} 
+          icon={<ChartLineIcon />} 
+          trend={indicators.sp500Periodo.trend} 
+          diff={indicators.sp500Periodo.diff}
+          isLoading={loading}
+        />
+        <MarketIndicator 
+          title="S&P 500 HOJE" 
+          description="Variação diária do S&P 500"
+          value={indicators.sp500Hoje.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={indicators.sp500Hoje.trend} 
+          diff={indicators.sp500Hoje.diff}
+          isLoading={loading}
+        />
+        <MarketIndicator 
+          title="NASDAQ HOJE" 
+          description="Variação diária do NASDAQ"
+          value={indicators.nasdaqHoje.value} 
           icon={<GlobeIcon />} 
-          trend={indicators.nasdaq.trend} 
-          diff={indicators.nasdaq.diff}
+          trend={indicators.nasdaqHoje.trend} 
+          diff={indicators.nasdaqHoje.diff}
           isLoading={loading}
         />
       </Box>
       
-      {/* Tabela de Dividendos Internacionais */}
+      {/* Tabela de Exterior Stocks */}
       <Card sx={{ 
         borderRadius: 4,
         border: '1px solid',
@@ -412,13 +482,13 @@ export default function Page(): React.JSX.Element {
                 fontSize: '1.5rem',
                 mb: 0.5
               }}>
-                Carteira Internacional
+                Carteira Exterior Stocks
               </Typography>
               <Typography variant="body1" sx={{ 
                 color: '#64748b',
                 fontSize: '1rem'
               }}>
-                {dividendosInternacionais.length} ativos • Foco em dividendos consistentes e REITs
+                {exteriorStocks.length} ativos • Empresas de tecnologia e crescimento
               </Typography>
             </Box>
             <Box sx={{
@@ -430,7 +500,7 @@ export default function Page(): React.JSX.Element {
               fontWeight: 600,
               fontSize: '0.875rem'
             }}>
-              🇺🇸 {dividendosInternacionais.length} ativos
+              🌍 {exteriorStocks.length} ativos
             </Box>
           </Stack>
         </Box>
@@ -450,7 +520,7 @@ export default function Page(): React.JSX.Element {
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em'
                 }}>
-                  #
+                  Rank
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -477,6 +547,15 @@ export default function Page(): React.JSX.Element {
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase'
                 }}>
+                  Data
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
                   Entrada
                 </TableCell>
                 <TableCell sx={{ 
@@ -486,7 +565,7 @@ export default function Page(): React.JSX.Element {
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase'
                 }}>
-                  Preço Inicial
+                  Atual
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -495,39 +574,12 @@ export default function Page(): React.JSX.Element {
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase'
                 }}>
-                  Preço Atual
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  DY
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  Teto
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase'
-                }}>
-                  Viés
+                  Alvo
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {dividendosInternacionais.map((row, index) => {
+              {exteriorStocks.map((row, index) => {
                 const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
                 const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
                 const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
@@ -553,7 +605,7 @@ export default function Page(): React.JSX.Element {
                       fontSize: '1rem',
                       color: '#000000'
                     }}>
-                      {index + 1}
+                      {index + 1}º
                     </TableCell>
                     <TableCell sx={{ width: '200px' }}>
                       <Stack direction="row" spacing={2} alignItems="center">
@@ -629,24 +681,6 @@ export default function Page(): React.JSX.Element {
                     }}>
                       {row.precoAtual}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: '#059669',
-                          fontWeight: 700,
-                          backgroundColor: '#dcfce7',
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: 1.5,
-                          display: 'inline-block',
-                          fontSize: '0.8rem',
-                          border: '1px solid #bbf7d0'
-                        }}
-                      >
-                        {row.dy}
-                      </Typography>
-                    </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 600,
@@ -654,22 +688,6 @@ export default function Page(): React.JSX.Element {
                       whiteSpace: 'nowrap'
                     }}>
                       {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={row.viesAtual}
-                        size="medium"
-                        sx={{
-                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          border: '1px solid',
-                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
                     </TableCell>
                   </TableRow>
                 );
@@ -680,11 +698,11 @@ export default function Page(): React.JSX.Element {
         <Divider />
         <TablePagination
           component="div"
-          count={dividendosInternacionais.length}
+          count={exteriorStocks.length}
           onPageChange={noop}
           onRowsPerPage={noop}
           page={0}
-          rowsPerPage={dividendosInternacionais.length}
+          rowsPerPage={exteriorStocks.length}
           rowsPerPageOptions={[5, 10, 25]}
           labelRowsPerPage="Itens por página:"
           labelDisplayedRows={({ from, to, count: totalCount }) => 
