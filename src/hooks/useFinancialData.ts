@@ -63,7 +63,7 @@ export function useFinancialData(): UseFinancialDataReturn {
       console.log('📊 Usando fallback local devido ao erro na API');
       setMarketData({
         ibovespa: { value: "136.787", trend: "down", diff: -0.18 },
-        indiceSmall: { value: "3.200", trend: "up", diff: 0.24 },
+        indiceSmall: { value: "2.155", trend: "up", diff: 0.47 }, // SMLL Yahoo Finance
         carteiraHoje: { value: "88.7%", trend: "up", diff: 88.7 },
         dividendYield: { value: "7.4%", trend: "up", diff: 7.4 },
         ibovespaPeriodo: { value: "6.1%", trend: "up", diff: 6.1 },
