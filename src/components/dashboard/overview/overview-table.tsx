@@ -354,7 +354,7 @@ export function OverviewTable({
                 fontSize: '1.5rem',
                 mb: 0.5
               }}>
-                📊 Carteira de Ações
+                Carteira de Small Caps
               </Typography>
               <Typography variant="body1" sx={{ 
                 color: '#64748b',
