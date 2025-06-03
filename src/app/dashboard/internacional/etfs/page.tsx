@@ -619,7 +619,7 @@ export default function Page(): React.JSX.Element {
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '900px' }}>
+          <Table sx={{ minWidth: '1000px' }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -629,10 +629,18 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '220px',
-                  padding: '16px 12px'
+                  width: '180px'
                 }}>
                   Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '120px'
+                }}>
+                  Setor
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -640,8 +648,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '120px',
-                  padding: '16px 8px'
+                  width: '120px'
                 }}>
                   Data Entrada
                 </TableCell>
@@ -651,10 +658,9 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '120px',
-                  padding: '16px 8px'
+                  width: '130px'
                 }}>
-                  Preço Entrada
+                  Preço que Iniciou
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
@@ -662,8 +668,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '120px',
-                  padding: '16px 8px'
+                  width: '130px'
                 }}>
                   Preço Atual
                 </TableCell>
@@ -673,8 +678,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '80px',
-                  padding: '16px 8px'
+                  width: '80px'
                 }}>
                   DY
                 </TableCell>
@@ -684,8 +688,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '120px',
-                  padding: '16px 8px'
+                  width: '120px'
                 }}>
                   Teto
                 </TableCell>
@@ -695,8 +698,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '100px',
-                  padding: '16px 8px'
+                  width: '100px'
                 }}>
                   Viés
                 </TableCell>
@@ -725,7 +727,7 @@ export default function Page(): React.JSX.Element {
                       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
                     }}
                   >
-                    <TableCell sx={{ width: '220px', padding: '16px 12px' }}>
+                    <TableCell sx={{ width: '180px' }}>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar}
@@ -742,36 +744,35 @@ export default function Page(): React.JSX.Element {
                         >
                           {row.ticker.charAt(0)}
                         </Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ 
-                            fontWeight: 700,
-                            color: '#1e293b',
-                            fontSize: '1rem',
-                            mb: 0.5
-                          }}>
-                            {row.ticker}
-                          </Typography>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip 
-                              label={row.setor}
-                              size="small"
-                              sx={{
-                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                                color: '#000000',
-                                fontWeight: 600,
-                                fontSize: '0.7rem',
-                                height: '20px'
-                              }}
-                            />
-                            <Typography variant="caption" sx={{ 
-                              color: isPositive ? '#059669' : '#dc2626',
-                              fontSize: '0.75rem',
-                              fontWeight: 600
-                            }}>
-                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
-                            </Typography>
-                          </Stack>
-                        </Box>
+                        <Typography variant="subtitle1" sx={{ 
+                          fontWeight: 700,
+                          color: '#1e293b',
+                          fontSize: '1rem'
+                        }}>
+                          {row.ticker}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ width: '120px' }}>
+                      <Stack spacing={0.5}>
+                        <Chip 
+                          label={row.setor}
+                          size="small"
+                          sx={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                            color: '#000000',
+                            fontWeight: 600,
+                            fontSize: '0.7rem',
+                            height: '22px'
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ 
+                          color: isPositive ? '#059669' : '#dc2626',
+                          fontSize: '0.75rem',
+                          fontWeight: 600
+                        }}>
+                          {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                        </Typography>
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ 
@@ -779,8 +780,7 @@ export default function Page(): React.JSX.Element {
                       color: '#64748b',
                       fontSize: '0.85rem',
                       whiteSpace: 'nowrap',
-                      width: '120px',
-                      padding: '16px 8px'
+                      width: '120px'
                     }}>
                       {row.dataEntrada}
                     </TableCell>
@@ -790,8 +790,7 @@ export default function Page(): React.JSX.Element {
                       color: '#475569',
                       whiteSpace: 'nowrap',
                       fontSize: '0.85rem',
-                      width: '120px',
-                      padding: '16px 8px'
+                      width: '130px'
                     }}>
                       {row.precoQueIniciou}
                     </TableCell>
@@ -801,10 +800,24 @@ export default function Page(): React.JSX.Element {
                       color: isPositive ? '#10b981' : '#ef4444',
                       whiteSpace: 'nowrap',
                       fontSize: '0.85rem',
-                      width: '120px',
-                      padding: '16px 8px'
+                      width: '130px'
                     }}>
                       {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      width: '80px'
+                    }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
@@ -812,15 +825,13 @@ export default function Page(): React.JSX.Element {
                       color: '#475569',
                       whiteSpace: 'nowrap',
                       width: '120px',
-                      fontSize: '0.85rem',
-                      padding: '16px 8px'
+                      fontSize: '0.85rem'
                     }}>
                       {row.precoTeto}
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center', 
-                      width: '100px',
-                      padding: '16px 8px'
+                      width: '100px'
                     }}>
                       <Chip
                         label={row.viesAtual}
@@ -829,11 +840,12 @@ export default function Page(): React.JSX.Element {
                           backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
                           color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
                           fontWeight: 700,
-                          fontSize: '0.8rem',
+                          fontSize: '0.75rem',
                           border: '1px solid',
                           borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
+                          letterSpacing: '0.05em',
+                          minWidth: '80px'
                         }}
                       />
                     </TableCell>
