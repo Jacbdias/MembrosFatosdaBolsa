@@ -2,292 +2,678 @@
 'use client';
 
 import * as React from 'react';
+import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
-import { ChartLineUp as ChartLineUpIcon } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
+import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
+import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
-import { ArrowUpRight as ArrowUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUpRight';
+import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
 
-interface CarteiraCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  href: string;
-  gradient: string;
+function noop(): void {
+  // Função vazia para props obrigatórias
 }
 
-function CarteiraCard({ 
-  title, 
-  description, 
-  icon, 
-  href,
-  gradient 
-}: CarteiraCardProps): React.JSX.Element {
-  const handleClick = () => {
-    window.location.href = href;
-  };
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
+function useMarketDataAPI() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
+  const fetchData = React.useCallback(async () => {
+    try {
+      console.log('🔄 Buscando dados da API internacional...');
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/financial/international-data?_t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Dados da API internacional recebidos:', result);
+      
+      setData(result.internationalData);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar dados da API internacional:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    
+    // Refresh a cada 5 minutos
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (INTERNACIONAL)
+interface MarketIndicatorProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  trend?: 'up' | 'down';
+  diff?: number;
+  isLoading?: boolean;
+  description?: string;
+}
+
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
+  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
+  
   return (
-    <Card
-      onClick={handleClick}
-      sx={{
-        cursor: 'pointer',
-        height: '200px',
-        background: gradient,
-        color: 'white',
-        transition: 'all 0.3s ease-in-out',
-        position: 'relative',
-        overflow: 'hidden',
+    <Box 
+      sx={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: 2,
+        p: 2.5,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        opacity: isLoading ? 0.7 : 1,
+        transition: 'all 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-8px)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-        },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          opacity: 0,
-          transition: 'opacity 0.3s ease',
-        },
-        '&:hover::before': {
-          opacity: 1,
+          borderColor: '#c7d2fe',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         }
       }}
     >
-      {/* Background Dollar Bills */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.08,
-          overflow: 'hidden',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      >
-        {/* Dollar bill representations using rectangles with $ symbols */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            width: '80px',
-            height: '35px',
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            borderRadius: '4px',
-            border: '1px solid rgba(255,255,255,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: 'rotate(15deg)',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            color: 'rgba(255,255,255,0.4)'
-          }}
-        >
-          $100
-        </Box>
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: '30px',
-            left: '15px',
-            width: '70px',
-            height: '30px',
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderRadius: '4px',
-            border: '1px solid rgba(255,255,255,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: 'rotate(-10deg)',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: 'rgba(255,255,255,0.3)'
-          }}
-        >
-          $50
-        </Box>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '80px',
-            left: '65%',
-            width: '60px',
-            height: '25px',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            borderRadius: '3px',
-            border: '1px solid rgba(255,255,255,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: 'rotate(25deg)',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            color: 'rgba(255,255,255,0.25)'
-          }}
-        >
-          $20
-        </Box>
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: '70px',
-            right: '30%',
-            width: '75px',
-            height: '32px',
-            backgroundColor: 'rgba(255,255,255,0.12)',
-            borderRadius: '4px',
-            border: '1px solid rgba(255,255,255,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: 'rotate(-20deg)',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            color: 'rgba(255,255,255,0.35)'
-          }}
-        >
-          $10
-        </Box>
-      </Box>
-      <CardContent sx={{ p: 4, height: '100%', position: 'relative', zIndex: 2 }}>
-        <Stack spacing={3} sx={{ height: '100%' }}>
-          {/* Header com título ao lado do ícone */}
-          <Stack direction="row" spacing={3} alignItems="center">
-            <Avatar 
-              sx={{ 
-                width: 56, 
-                height: 56,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)',
-                '& svg': { fontSize: 28, color: 'white' }
-              }}
-            >
-              {icon}
-            </Avatar>
+      <Stack spacing={2}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
             <Typography 
-              variant="h5" 
+              variant="caption" 
               sx={{ 
-                fontWeight: 700,
-                fontSize: '1.5rem',
-                lineHeight: 1.2,
-                flex: 1
+                color: '#64748b',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
               }}
             >
               {title}
             </Typography>
-            <ArrowUpRightIcon size={24} style={{ opacity: 0.7 }} />
-          </Stack>
-
-          {/* Description */}
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              opacity: 0.9,
-              fontSize: '0.95rem',
-              lineHeight: 1.4,
-              textAlign: 'left',
-              flex: 1
-            }}
-          >
-            {description}
-          </Typography>
+            {description && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#94a3b8',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+          </Box>
+          <Box sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
+            backgroundColor: '#f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748b'
+          }}>
+            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+          </Box>
         </Stack>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function Page(): React.JSX.Element {
-  const carteiras = [
-    {
-      title: 'Exterior Stocks',
-      description: 'Ações internacionais de empresas de tecnologia, crescimento e valor',
-      icon: <TrendUpIcon />,
-      href: '/dashboard/internacional/stocks',
-      gradient: 'linear-gradient(135deg, #374151 0%, #1f2937 100%)'
-    },
-    {
-      title: 'Exterior ETFs',
-      description: 'Fundos de índice diversificados para exposição global de mercados',
-      icon: <ChartLineUpIcon />,
-      href: '/dashboard/internacional/etfs',
-      gradient: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)'
-    },
-    {
-      title: 'Exterior Dividendos',
-      description: 'Ações pagadoras de dividendos consistentes e REITs internacionais',
-      icon: <CurrencyDollarIcon />,
-      href: '/dashboard/internacional/dividendos',
-      gradient: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
-    }
-  ];
-
-  return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Stack spacing={1} sx={{ mb: 4 }}>
+        
+        {/* Valor principal */}
         <Typography 
           variant="h4" 
           sx={{ 
             fontWeight: 700,
-            color: 'text.primary',
-            fontSize: { xs: '1.75rem', sm: '2.125rem' }
+            color: '#1e293b',
+            fontSize: '1.75rem',
+            lineHeight: 1
           }}
         >
-          Investimentos Internacionais
+          {isLoading ? '...' : value}
         </Typography>
-        <Typography 
-          variant="body1" 
+        
+        {/* Indicador de tendência */}
+        {!isLoading && diff !== undefined && trend && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+              color: trendColor
+            }}>
+              <TrendIcon size={12} weight="bold" />
+            </Box>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: trendColor,
+                fontWeight: 600,
+                fontSize: '0.875rem'
+              }}
+            >
+              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: '#64748b',
+                fontSize: '0.875rem'
+              }}
+            >
+              no período
+            </Typography>
+          </Stack>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+export default function Page(): React.JSX.Element {
+  console.log("🌎 PÁGINA DIVIDENDOS INTERNACIONAIS - VERSÃO LIMPA");
+
+  // 🔥 BUSCAR DADOS REAIS DA API
+  const { data: apiData, loading } = useMarketDataAPI();
+
+  const dividendosInternacionais = [
+    {
+      id: '1',
+      rank: '1º',
+      ticker: 'OXY',
+      name: 'Occidental Petroleum Corporation',
+      setor: 'STOCK - Petroleum',
+      dataEntrada: '14/04/2023',
+      precoQueIniciou: 'US$37,92',
+      precoAtual: 'US$41,29',
+      dy: '2,34%',
+      precoTeto: 'US$60,10',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/oxy.com',
+    },
+    {
+      id: '2',
+      rank: '2º',
+      ticker: 'ADC',
+      name: 'Agree Realty Corporation',
+      setor: 'REIT - Retail',
+      dataEntrada: '19/01/2023',
+      precoQueIniciou: 'US$73,74',
+      precoAtual: 'US$75,04',
+      dy: '5,34%',
+      precoTeto: 'US$99,01',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/agreerealty.com',
+    },
+    {
+      id: '3',
+      rank: '3º',
+      ticker: 'VZ',
+      name: 'Verizon Communications Inc.',
+      setor: 'Stock - Telecom',
+      dataEntrada: '28/03/2022',
+      precoQueIniciou: 'US$51,17',
+      precoAtual: 'US$43,32',
+      dy: '6,57%',
+      precoTeto: 'US$51,12',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/verizon.com',
+    },
+    {
+      id: '4',
+      rank: '4º',
+      ticker: 'O',
+      name: 'Realty Income Corporation',
+      setor: 'REIT - Net Lease',
+      dataEntrada: '01/02/2024',
+      precoQueIniciou: 'US$54,39',
+      precoAtual: 'US$55,53',
+      dy: '6,13%',
+      precoTeto: 'US$58,91',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/realtyincome.com',
+    },
+    {
+      id: '5',
+      rank: '5º',
+      ticker: 'AVB',
+      name: 'AvalonBay Communities Inc.',
+      setor: 'REIT - Apartamentos',
+      dataEntrada: '10/02/2022',
+      precoQueIniciou: 'US$242,00',
+      precoAtual: 'US$198,03',
+      dy: '3,96%',
+      precoTeto: 'US$340,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/avalonbay.com',
+    },
+    {
+      id: '6',
+      rank: '6º',
+      ticker: 'STAG',
+      name: 'Stag Industrial Inc.',
+      setor: 'REIT - Industrial',
+      dataEntrada: '24/03/2022',
+      precoQueIniciou: 'US$40,51',
+      precoAtual: 'US$34,07',
+      dy: '4,55%',
+      precoTeto: 'US$42,87',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/stagindustrial.com',
+    }
+  ];
+
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
+  const defaultIndicators = {
+    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
+    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
+  };
+
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        sp500: apiData.sp500 || defaultIndicators.sp500,
+        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
+      };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultIndicators;
+  }, [apiData]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header com botão voltar */}
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+        <Button
+          startIcon={<ArrowLeftIcon />}
+          onClick={() => window.location.href = '/dashboard/internacional'}
           sx={{ 
-            color: 'text.secondary',
-            fontSize: '1.1rem',
-            maxWidth: '600px'
+            color: '#64748b',
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: '#f1f5f9'
+            }
           }}
         >
-          Gerencie suas carteiras de investimentos no exterior. Escolha uma carteira para visualizar detalhes e performance.
-        </Typography>
+          Voltar
+        </Button>
+        <Divider orientation="vertical" flexItem />
+        <Stack spacing={1}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800,
+              color: '#1e293b',
+              fontSize: { xs: '1.75rem', sm: '2.125rem' }
+            }}
+          >
+            Dividendos Internacionais
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: '#64748b',
+              fontSize: '1rem'
+            }}
+          >
+            {dividendosInternacionais.length} ativos • Ações e REITs pagadores de dividendos nos EUA
+          </Typography>
+        </Stack>
       </Stack>
 
-      {/* Carteiras Grid */}
+      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            md: 'repeat(2, 1fr)',
-            lg: 'repeat(3, 1fr)',
-          },
-          gap: 3,
-          maxWidth: '1200px'
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
         }}
       >
-        {carteiras.map((carteira, index) => (
-          <CarteiraCard
-            key={index}
-            title={carteira.title}
-            description={carteira.description}
-            icon={carteira.icon}
-            href={carteira.href}
-            gradient={carteira.gradient}
-          />
-        ))}
+        <MarketIndicator 
+          title="S&P 500" 
+          description="Índice das 500 maiores empresas dos EUA"
+          value={indicators.sp500.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={indicators.sp500.trend} 
+          diff={indicators.sp500.diff}
+          isLoading={loading}
+        />
+        <MarketIndicator 
+          title="NASDAQ 100" 
+          description="Índice de tecnologia americana"
+          value={indicators.nasdaq.value} 
+          icon={<GlobeIcon />} 
+          trend={indicators.nasdaq.trend} 
+          diff={indicators.nasdaq.diff}
+          isLoading={loading}
+        />
       </Box>
+      
+      {/* Tabela de Dividendos Internacionais */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira Internacional
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {dividendosInternacionais.length} ativos • Foco em dividendos consistentes e REITs
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              🇺🇸 {dividendosInternacionais.length} ativos
+            </Box>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '100%' }}>
+            <TableHead>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '50px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '35%',
+                  minWidth: '200px'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Preços
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  Viés
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {dividendosInternacionais.map((row, index) => {
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
+                const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
+                const isPositive = variacao >= 0;
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.95rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={row.setor}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                color: '#000000',
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ 
+                              color: isPositive ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ 
+                            color: '#64748b',
+                            fontSize: '0.7rem',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Entrada: {row.dataEntrada}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                      <Stack spacing={0.5} alignItems="center">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600,
+                          color: '#475569',
+                          fontSize: '0.8rem'
+                        }}>
+                          {row.precoQueIniciou}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700,
+                          color: isPositive ? '#10b981' : '#ef4444',
+                          fontSize: '0.85rem'
+                        }}>
+                          {row.precoAtual}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={dividendosInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={dividendosInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
     </Box>
   );
 }
