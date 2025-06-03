@@ -32,6 +32,55 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
+// 🔧 HOOK PARA BUSCAR DADOS REAIS DA API (INTEGRADO NO COMPONENTE)
+function useMarketDataAPI() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      console.log('🔄 Buscando dados da API...');
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/financial/market-data?_t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Dados da API recebidos:', result);
+      
+      setData(result.marketData);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar dados da API:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    
+    // Refresh a cada 5 minutos
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
 // 🔧 FUNÇÃO DINÂMICA PARA EXPANDIR VALORES - SEM HARDCODE
 function expandirValorAbreviadoDinamico(value: string, ibovespaReal?: any): string {
   // Se o valor já é uma porcentagem, retorna como está
@@ -104,10 +153,11 @@ interface StatCardProps {
   trend?: 'up' | 'down';
   diff?: number;
   ibovespaReal?: any;
+  isLoading?: boolean;
 }
 
-// 🎨 CARD ESTATÍSTICO COM DADOS DINÂMICOS DO IBOVESPA
-function StatCard({ title, value, icon, trend, diff, ibovespaReal }: StatCardProps): React.JSX.Element {
+// 🎨 CARD ESTATÍSTICO COM DADOS DINÂMICOS DA API
+function StatCard({ title, value, icon, trend, diff, ibovespaReal, isLoading }: StatCardProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   const topBorderColor = trend === 'up' ? '#10b981' : '#ef4444';
@@ -140,6 +190,8 @@ function StatCard({ title, value, icon, trend, diff, ibovespaReal }: StatCardPro
         borderRadius: 2,
         boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
         overflow: 'hidden',
+        opacity: isLoading ? 0.7 : 1,
+        transition: 'opacity 0.3s ease',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -191,11 +243,11 @@ function StatCard({ title, value, icon, trend, diff, ibovespaReal }: StatCardPro
               lineHeight: 1
             }}
           >
-            {valorFinal}
+            {isLoading ? '...' : valorFinal}
           </Typography>
           
           {/* Indicador de tendência - AGORA DINÂMICO */}
-          {diffFinal !== undefined && trendFinal && (
+          {!isLoading && diffFinal !== undefined && trendFinal && (
             <Stack direction="row" alignItems="center" spacing={1}>
               <Box sx={{
                 display: 'flex',
@@ -275,21 +327,74 @@ export function OverviewTable({
 }: OverviewTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // 🔥 VALORES PADRÃO ATUALIZADOS (FALLBACK)
+  // 🔥 BUSCAR DADOS REAIS DA API
+  const { data: apiData, loading, error, refresh } = useMarketDataAPI();
+
+  // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
   const defaultCards = {
-    ibovespa: { value: "136985", trend: "down" as const, diff: -0.02 },
-    indiceSmall: { value: "3200", trend: "up" as const, diff: 0.24 },
+    ibovespa: { value: "136431", trend: "down" as const, diff: -0.26 },
+    indiceSmall: { value: "2203", trend: "down" as const, diff: -0.16 }, // ⬅️ VALOR ATUALIZADO DO FALLBACK
     carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
     dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
     ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
     carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
   };
 
-  // 🔧 COMBINAR DADOS
-  const cards = { ...defaultCards, ...cardsData };
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
+  const cards = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        ibovespa: apiData.ibovespa || defaultCards.ibovespa,
+        indiceSmall: apiData.indiceSmall || defaultCards.indiceSmall,
+        carteiraHoje: apiData.carteiraHoje || defaultCards.carteiraHoje,
+        dividendYield: apiData.dividendYield || defaultCards.dividendYield,
+        ibovespaPeriodo: apiData.ibovespaPeriodo || defaultCards.ibovespaPeriodo,
+        carteiraPeriodo: apiData.carteiraPeriodo || defaultCards.carteiraPeriodo,
+      };
+    }
+    
+    // Senão, usar cardsData se disponível
+    if (Object.keys(cardsData).length > 0) {
+      console.log('⚠️ Usando cardsData prop:', cardsData);
+      return { ...defaultCards, ...cardsData };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultCards;
+  }, [apiData, cardsData, defaultCards]);
 
   return (
     <Box>
+      {/* Header com status da API */}
+      {error && (
+        <Box sx={{ mb: 2, p: 2, backgroundColor: '#fef2f2', borderRadius: 2, border: '1px solid #fecaca' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" sx={{ color: '#dc2626' }}>
+              ⚠️ Erro ao carregar dados da API: {error}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={refresh}
+            >
+              🔄 Tentar novamente
+            </Typography>
+          </Stack>
+        </Box>
+      )}
+
+      {loading && (
+        <Box sx={{ mb: 2 }}>
+          <LinearProgress sx={{ borderRadius: 1 }} />
+          <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', mt: 1 }}>
+            Carregando dados em tempo real...
+          </Typography>
+        </Box>
+      )}
+
       {/* Grid de cards redesenhado */}
       <Box
         sx={{
@@ -311,6 +416,7 @@ export function OverviewTable({
           trend={cards.ibovespa.trend} 
           diff={cards.ibovespa.diff}
           ibovespaReal={ibovespaReal}
+          isLoading={loading}
         />
         <StatCard 
           title="ÍNDICE SMALL" 
@@ -319,6 +425,7 @@ export function OverviewTable({
           trend={cards.indiceSmall.trend} 
           diff={cards.indiceSmall.diff}
           ibovespaReal={ibovespaReal}
+          isLoading={loading}
         />
         <StatCard 
           title="CARTEIRA HOJE" 
@@ -327,6 +434,7 @@ export function OverviewTable({
           trend={cards.carteiraHoje.trend}
           diff={cards.carteiraHoje.diff}
           ibovespaReal={ibovespaReal}
+          isLoading={loading}
         />
         <StatCard 
           title="DIVIDEND YIELD" 
@@ -335,6 +443,7 @@ export function OverviewTable({
           trend={cards.dividendYield.trend}
           diff={cards.dividendYield.diff}
           ibovespaReal={ibovespaReal}
+          isLoading={loading}
         />
         <StatCard 
           title="IBOVESPA PERÍODO" 
@@ -343,6 +452,7 @@ export function OverviewTable({
           trend={cards.ibovespaPeriodo.trend} 
           diff={cards.ibovespaPeriodo.diff}
           ibovespaReal={ibovespaReal}
+          isLoading={loading}
         />
         <StatCard 
           title="CARTEIRA PERÍODO" 
@@ -351,8 +461,26 @@ export function OverviewTable({
           trend={cards.carteiraPeriodo.trend} 
           diff={cards.carteiraPeriodo.diff}
           ibovespaReal={ibovespaReal}
+          isLoading={loading}
         />
       </Box>
+      
+      {/* Debug info (apenas em desenvolvimento) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ mb: 2, p: 2, backgroundColor: '#f8fafc', borderRadius: 2, fontSize: '0.75rem' }}>
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>🐛 Debug Info</summary>
+            <pre style={{ marginTop: 8, overflow: 'auto' }}>
+              {JSON.stringify({ 
+                apiData: apiData ? 'Dados da API carregados' : 'Sem dados da API',
+                loading, 
+                error,
+                cardsUsed: cards 
+              }, null, 2)}
+            </pre>
+          </details>
+        </Box>
+      )}
       
       {/* Tabela redesenhada */}
       <Card sx={{ 
@@ -511,7 +639,67 @@ export function OverviewTable({
                     }}
                   >
                     <TableCell sx={{ 
-                      textAlign: 'center', 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#6366f1',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dy}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={viesCalculado}
+                        size="small"
+                        sx={{
+                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          border: '1px solid',
+                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={count}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+} 
                       fontWeight: 800, 
                       fontSize: '1rem',
                       color: '#6366f1'
@@ -586,63 +774,3 @@ export function OverviewTable({
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#6366f1',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.dy}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Chip
-                        label={viesCalculado}
-                        size="small"
-                        sx={{
-                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
-                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          border: '1px solid',
-                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={count}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-          sx={{
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            '& .MuiTablePagination-toolbar': {
-              color: '#475569'
-            }
-          }}
-        />
-      </Card>
-    </Box>
-  );
-}
