@@ -27,6 +27,54 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API BRAPI
+function useETFDataAPI() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      console.log('🔄 Buscando cotações dos ETFs via BRAPI...');
+      
+      // Lista dos tickers dos ETFs
+      const etfTickers = ['VOO', 'IJS', 'QUAL', 'QQQ', 'VNQ', 'SCHP', 'IAU', 'HERO', 'SOXX', 'MCHI', 'TFLO'];
+      
+      const response = await fetch(`https://brapi.dev/api/quote/${etfTickers.join(',')}?token=jJrMYVy9MATGEicx3GxBp8`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Cotações ETFs recebidas:', result);
+      
+      setData(result.results);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar dados dos ETFs:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    
+    // Refresh a cada 5 minutos
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
 // 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
 function useMarketDataAPI() {
   const [data, setData] = React.useState<any>(null);
@@ -35,17 +83,13 @@ function useMarketDataAPI() {
 
   const fetchData = React.useCallback(async () => {
     try {
-      console.log('🔄 Buscando dados da API internacional...');
+      console.log('🔄 Buscando índices via BRAPI...');
       
-      const timestamp = Date.now();
-      const response = await fetch(`/api/financial/international-data?_t=${timestamp}`, {
+      const response = await fetch(`https://brapi.dev/api/quote/^GSPC,^IXIC?token=jJrMYVy9MATGEicx3GxBp8`, {
         method: 'GET',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        cache: 'no-store'
+          'Accept': 'application/json',
+        }
       });
 
       if (!response.ok) {
@@ -53,12 +97,37 @@ function useMarketDataAPI() {
       }
 
       const result = await response.json();
-      console.log('✅ Dados da API internacional recebidos:', result);
+      console.log('✅ Índices recebidos:', result);
       
-      setData(result.internationalData);
+      // Processar dados dos índices
+      const processedData = {
+        sp500: null,
+        nasdaq: null
+      };
+
+      if (result.results) {
+        result.results.forEach((item: any) => {
+          if (item.symbol === '^GSPC') {
+            processedData.sp500 = {
+              value: (item.regularMarketPrice / 1000).toFixed(1) + 'k',
+              trend: item.regularMarketChangePercent >= 0 ? 'up' as const : 'down' as const,
+              diff: item.regularMarketChangePercent
+            };
+          }
+          if (item.symbol === '^IXIC') {
+            processedData.nasdaq = {
+              value: (item.regularMarketPrice / 1000).toFixed(1) + 'k',
+              trend: item.regularMarketChangePercent >= 0 ? 'up' as const : 'down' as const,
+              diff: item.regularMarketChangePercent
+            };
+          }
+        });
+      }
+      
+      setData(processedData);
       setError(null);
     } catch (err) {
-      console.error('❌ Erro ao buscar dados da API internacional:', err);
+      console.error('❌ Erro ao buscar dados dos índices:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
@@ -209,92 +278,697 @@ export default function Page(): React.JSX.Element {
   console.log("🌎 PÁGINA DIVIDENDOS INTERNACIONAIS - VERSÃO LIMPA");
 
   // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading } = useMarketDataAPI();
+  const { data: apiData, loading: marketLoading } = useMarketDataAPI();
+  const { data: etfData, loading: etfLoading } = useETFDataAPI();
 
-  const dividendosInternacionais = [
+  // 🔧 COMBINAR DADOS DOS ETFs COM COTAÇÕES REAIS
+  const etfsComCotacoes = React.useMemo(() => {
+    return dividendosInternacionais.map(etf => {
+      // Buscar cotação real do ETF
+      const cotacao = etfData?.find((item: any) => item.symbol === etf.ticker);
+      
+      let precoAtualCalculado = etf.precoAtual;
+      let performance = 0;
+      
+      if (cotacao) {
+        precoAtualCalculado = `US${cotacao.regularMarketPrice.toFixed(2)}`;
+        const precoInicial = parseFloat(etf.precoQueIniciou.replace('US
     {
       id: '1',
-      rank: '1º',
-      ticker: 'OXY',
-      name: 'Occidental Petroleum Corporation',
-      setor: 'STOCK - Petroleum',
-      dataEntrada: '14/04/2023',
-      precoQueIniciou: 'US$37,92',
-      precoAtual: 'US$41,29',
-      dy: '2,34%',
-      precoTeto: 'US$60,10',
+      ticker: 'VOO',
+      name: 'Vanguard S&P 500 ETF',
+      setor: 'Large Cap',
+      dataEntrada: '03/06/2021',
+      precoQueIniciou: 'US$383,95',
+      precoAtual: 'US$485,20',
+      dy: '1,32%',
+      precoTeto: 'US$520,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/oxy.com',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
     },
     {
       id: '2',
-      rank: '2º',
-      ticker: 'ADC',
-      name: 'Agree Realty Corporation',
-      setor: 'REIT - Retail',
-      dataEntrada: '19/01/2023',
-      precoQueIniciou: 'US$73,74',
-      precoAtual: 'US$75,04',
-      dy: '5,34%',
-      precoTeto: 'US$99,01',
+      ticker: 'IJS',
+      name: 'iShares Core S&P Small-Cap ETF',
+      setor: 'Small Caps',
+      dataEntrada: '21/07/2021',
+      precoQueIniciou: 'US$100,96',
+      precoAtual: 'US$112,45',
+      dy: '1,85%',
+      precoTeto: 'US$125,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/agreerealty.com',
+      avatar: 'https://logo.clearbit.com/ishares.com',
     },
     {
       id: '3',
-      rank: '3º',
-      ticker: 'VZ',
-      name: 'Verizon Communications Inc.',
-      setor: 'Stock - Telecom',
-      dataEntrada: '28/03/2022',
-      precoQueIniciou: 'US$51,17',
-      precoAtual: 'US$43,32',
-      dy: '6,57%',
-      precoTeto: 'US$51,12',
+      ticker: 'QUAL',
+      name: 'iShares MSCI USA Quality Factor ETF',
+      setor: 'Total Market',
+      dataEntrada: '11/06/2021',
+      precoQueIniciou: 'US$130,13',
+      precoAtual: 'US$158,75',
+      dy: '1,45%',
+      precoTeto: 'US$170,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/verizon.com',
+      avatar: 'https://logo.clearbit.com/ishares.com',
     },
     {
       id: '4',
-      rank: '4º',
-      ticker: 'O',
-      name: 'Realty Income Corporation',
-      setor: 'REIT - Net Lease',
-      dataEntrada: '01/02/2024',
-      precoQueIniciou: 'US$54,39',
-      precoAtual: 'US$55,53',
-      dy: '6,13%',
-      precoTeto: 'US$58,91',
+      ticker: 'QQQ',
+      name: 'Invesco QQQ Trust ETF',
+      setor: 'Large Cap',
+      dataEntrada: '09/06/2021',
+      precoQueIniciou: 'US$337,18',
+      precoAtual: 'US$465,30',
+      dy: '0,68%',
+      precoTeto: 'US$495,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/realtyincome.com',
+      avatar: 'https://logo.clearbit.com/invesco.com',
     },
     {
       id: '5',
-      rank: '5º',
-      ticker: 'AVB',
-      name: 'AvalonBay Communities Inc.',
-      setor: 'REIT - Apartamentos',
-      dataEntrada: '10/02/2022',
-      precoQueIniciou: 'US$242,00',
-      precoAtual: 'US$198,03',
-      dy: '3,96%',
-      precoTeto: 'US$340,00',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      setor: 'Real Estate (USA)',
+      dataEntrada: '12/07/2021',
+      precoQueIniciou: 'US$105,96',
+      precoAtual: 'US$95,20',
+      dy: '3,85%',
+      precoTeto: 'US$115,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/avalonbay.com',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
     },
     {
       id: '6',
-      rank: '6º',
-      ticker: 'STAG',
-      name: 'Stag Industrial Inc.',
-      setor: 'REIT - Industrial',
-      dataEntrada: '24/03/2022',
-      precoQueIniciou: 'US$40,51',
-      precoAtual: 'US$34,07',
-      dy: '4,55%',
-      precoTeto: 'US$42,87',
+      ticker: 'SCHP',
+      name: 'Schwab U.S. TIPS ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '22/11/2021',
+      precoQueIniciou: 'US$63,14',
+      precoAtual: 'US$58,90',
+      dy: '3,25%',
+      precoTeto: 'US$67,00',
       viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/stagindustrial.com',
+      avatar: 'https://logo.clearbit.com/schwab.com',
+    },
+    {
+      id: '7',
+      ticker: 'IAU',
+      name: 'iShares Gold Trust ETF',
+      setor: 'Ouro',
+      dataEntrada: '07/06/2021',
+      precoQueIniciou: 'US$36,04',
+      precoAtual: 'US$42,15',
+      dy: '0,00%',
+      precoTeto: 'US$45,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '8',
+      ticker: 'HERO',
+      name: 'Global X Video Games & Esports ETF',
+      setor: 'Games',
+      dataEntrada: '15/07/2021',
+      precoQueIniciou: 'US$31,28',
+      precoAtual: 'US$28,50',
+      dy: '0,00%',
+      precoTeto: 'US$35,00',
+      viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/globalxetfs.com',
+    },
+    {
+      id: '9',
+      ticker: 'SOXX',
+      name: 'iShares Semiconductor ETF',
+      setor: 'Semicondutores',
+      dataEntrada: '04/08/2021',
+      precoQueIniciou: 'US$156,03',
+      precoAtual: 'US$235,80',
+      dy: '1,12%',
+      precoTeto: 'US$250,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '10',
+      ticker: 'MCHI',
+      name: 'iShares MSCI China ETF',
+      setor: 'Empresas Chinesas',
+      dataEntrada: '01/02/2023',
+      precoQueIniciou: 'US$53,58',
+      precoAtual: 'US$48,25',
+      dy: '2,45%',
+      precoTeto: 'US$60,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '11',
+      ticker: 'TFLO',
+      name: 'iShares Treasury Floating Rate Bond ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '21/03/2023',
+      precoQueIniciou: 'US$50,50',
+      precoAtual: 'US$50,85',
+      dy: '4,75%',
+      precoTeto: 'US$52,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    }
+  const dividendosInternacionaisBase = [
+
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
+  const defaultIndicators = {
+    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
+    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
+  };
+
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        sp500: apiData.sp500 || defaultIndicators.sp500,
+        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
+      };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultIndicators;
+  }, [apiData]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header com botão voltar */}
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+        <Button
+          startIcon={<ArrowLeftIcon />}
+          onClick={() => window.location.href = '/dashboard/internacional'}
+          sx={{ 
+            color: '#64748b',
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: '#f1f5f9'
+            }
+          }}
+        >
+          Voltar
+        </Button>
+        <Divider orientation="vertical" flexItem />
+        <Stack spacing={1}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800,
+              color: '#1e293b',
+              fontSize: { xs: '1.75rem', sm: '2.125rem' }
+            }}
+          >
+            Exterior ETFs
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: '#64748b',
+              fontSize: '1rem'
+            }}
+          >
+            {etfsComCotacoes.length} ETFs em acompanhamento • Exposição diversificada aos mercados globais
+          </Typography>
+        </Stack>
+      </Stack>
+
+      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        <MarketIndicator 
+          title="S&P 500" 
+          description="Índice das 500 maiores empresas dos EUA"
+          value={indicators.sp500.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={indicators.sp500.trend} 
+          diff={indicators.sp500.diff}
+          isLoading={marketLoading}
+        />
+        <MarketIndicator 
+          title="NASDAQ 100" 
+          description="Índice de tecnologia americana"
+          value={indicators.nasdaq.value} 
+          icon={<GlobeIcon />} 
+          trend={indicators.nasdaq.trend} 
+          diff={indicators.nasdaq.diff}
+          isLoading={marketLoading}
+        />
+      </Box>
+      
+      {/* Tabela de Dividendos Internacionais */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira de ETFs Internacionais
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {etfsComCotacoes.length} ETFs • Diversificação global com baixo custo
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              🌎 {etfsComCotacoes.length} ETFs
+            </Box>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '100%' }}>
+            <TableHead>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '50px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '35%',
+                  minWidth: '200px'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Preços
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  Viés
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {etfsComCotacoes.map((row, index) => {
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.95rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={row.setor}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                color: '#000000',
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ 
+                              color: isPositive ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ 
+                            color: '#64748b',
+                            fontSize: '0.7rem',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Entrada: {row.dataEntrada}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                      <Stack spacing={0.5} alignItems="center">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600,
+                          color: '#475569',
+                          fontSize: '0.8rem'
+                        }}>
+                          {row.precoQueIniciou}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700,
+                          color: isPositive ? '#10b981' : '#ef4444',
+                          fontSize: '0.85rem'
+                        }}>
+                          {row.precoAtual}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={etfsComCotacoes.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={etfsComCotacoes.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+        performance = ((cotacao.regularMarketPrice - precoInicial) / precoInicial) * 100;
+        
+        console.log(`📊 ${etf.ticker}: ${precoAtualCalculado} (${performance.toFixed(1)}%)`);
+      }
+      
+      return {
+        ...etf,
+        precoAtual: precoAtualCalculado,
+        performance,
+        cotacaoReal: cotacao
+      };
+    });
+  }, [etfData]);
+    {
+      id: '1',
+      ticker: 'VOO',
+      name: 'Vanguard S&P 500 ETF',
+      setor: 'Large Cap',
+      dataEntrada: '03/06/2021',
+      precoQueIniciou: 'US$383,95',
+      precoAtual: 'US$485,20',
+      dy: '1,32%',
+      precoTeto: 'US$520,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
+    },
+    {
+      id: '2',
+      ticker: 'IJS',
+      name: 'iShares Core S&P Small-Cap ETF',
+      setor: 'Small Caps',
+      dataEntrada: '21/07/2021',
+      precoQueIniciou: 'US$100,96',
+      precoAtual: 'US$112,45',
+      dy: '1,85%',
+      precoTeto: 'US$125,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '3',
+      ticker: 'QUAL',
+      name: 'iShares MSCI USA Quality Factor ETF',
+      setor: 'Total Market',
+      dataEntrada: '11/06/2021',
+      precoQueIniciou: 'US$130,13',
+      precoAtual: 'US$158,75',
+      dy: '1,45%',
+      precoTeto: 'US$170,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '4',
+      ticker: 'QQQ',
+      name: 'Invesco QQQ Trust ETF',
+      setor: 'Large Cap',
+      dataEntrada: '09/06/2021',
+      precoQueIniciou: 'US$337,18',
+      precoAtual: 'US$465,30',
+      dy: '0,68%',
+      precoTeto: 'US$495,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/invesco.com',
+    },
+    {
+      id: '5',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      setor: 'Real Estate (USA)',
+      dataEntrada: '12/07/2021',
+      precoQueIniciou: 'US$105,96',
+      precoAtual: 'US$95,20',
+      dy: '3,85%',
+      precoTeto: 'US$115,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
+    },
+    {
+      id: '6',
+      ticker: 'SCHP',
+      name: 'Schwab U.S. TIPS ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '22/11/2021',
+      precoQueIniciou: 'US$63,14',
+      precoAtual: 'US$58,90',
+      dy: '3,25%',
+      precoTeto: 'US$67,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/schwab.com',
+    },
+    {
+      id: '7',
+      ticker: 'IAU',
+      name: 'iShares Gold Trust ETF',
+      setor: 'Ouro',
+      dataEntrada: '07/06/2021',
+      precoQueIniciou: 'US$36,04',
+      precoAtual: 'US$42,15',
+      dy: '0,00%',
+      precoTeto: 'US$45,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '8',
+      ticker: 'HERO',
+      name: 'Global X Video Games & Esports ETF',
+      setor: 'Games',
+      dataEntrada: '15/07/2021',
+      precoQueIniciou: 'US$31,28',
+      precoAtual: 'US$28,50',
+      dy: '0,00%',
+      precoTeto: 'US$35,00',
+      viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/globalxetfs.com',
+    },
+    {
+      id: '9',
+      ticker: 'SOXX',
+      name: 'iShares Semiconductor ETF',
+      setor: 'Semicondutores',
+      dataEntrada: '04/08/2021',
+      precoQueIniciou: 'US$156,03',
+      precoAtual: 'US$235,80',
+      dy: '1,12%',
+      precoTeto: 'US$250,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '10',
+      ticker: 'MCHI',
+      name: 'iShares MSCI China ETF',
+      setor: 'Empresas Chinesas',
+      dataEntrada: '01/02/2023',
+      precoQueIniciou: 'US$53,58',
+      precoAtual: 'US$48,25',
+      dy: '2,45%',
+      precoTeto: 'US$60,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '11',
+      ticker: 'TFLO',
+      name: 'iShares Treasury Floating Rate Bond ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '21/03/2023',
+      precoQueIniciou: 'US$50,50',
+      precoAtual: 'US$50,85',
+      dy: '4,75%',
+      precoTeto: 'US$52,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
     }
   ];
 
@@ -347,7 +1021,7 @@ export default function Page(): React.JSX.Element {
               fontSize: { xs: '1.75rem', sm: '2.125rem' }
             }}
           >
-            Dividendos Internacionais
+            Exterior ETFs
           </Typography>
           <Typography 
             variant="body1" 
@@ -356,7 +1030,7 @@ export default function Page(): React.JSX.Element {
               fontSize: '1rem'
             }}
           >
-            {dividendosInternacionais.length} ativos • Ações e REITs pagadores de dividendos nos EUA
+            {dividendosInternacionais.length} ETFs em acompanhamento • Exposição diversificada aos mercados globais
           </Typography>
         </Stack>
       </Stack>
@@ -412,13 +1086,13 @@ export default function Page(): React.JSX.Element {
                 fontSize: '1.5rem',
                 mb: 0.5
               }}>
-                Carteira Internacional
+                Carteira de ETFs Internacionais
               </Typography>
               <Typography variant="body1" sx={{ 
                 color: '#64748b',
                 fontSize: '1rem'
               }}>
-                {dividendosInternacionais.length} ativos • Foco em dividendos consistentes e REITs
+                {dividendosInternacionais.length} ETFs • Diversificação global com baixo custo
               </Typography>
             </Box>
             <Box sx={{
@@ -430,7 +1104,1420 @@ export default function Page(): React.JSX.Element {
               fontWeight: 600,
               fontSize: '0.875rem'
             }}>
-              🇺🇸 {dividendosInternacionais.length} ativos
+              🌎 {dividendosInternacionais.length} ETFs
+            </Box>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '100%' }}>
+            <TableHead>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '50px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '35%',
+                  minWidth: '200px'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Preços
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  Viés
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {dividendosInternacionais.map((row, index) => {
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
+                const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
+                const isPositive = variacao >= 0;
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.95rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={row.setor}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                color: '#000000',
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ 
+                              color: isPositive ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ 
+                            color: '#64748b',
+                            fontSize: '0.7rem',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Entrada: {row.dataEntrada}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                      <Stack spacing={0.5} alignItems="center">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600,
+                          color: '#475569',
+                          fontSize: '0.8rem'
+                        }}>
+                          {row.precoQueIniciou}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700,
+                          color: isPositive ? '#10b981' : '#ef4444',
+                          fontSize: '0.85rem'
+                        }}>
+                          {row.precoAtual}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={dividendosInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={dividendosInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.95rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={row.setor}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                color: '#000000',
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ 
+                              color: isPositive ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ 
+                            color: '#64748b',
+                            fontSize: '0.7rem',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Entrada: {row.dataEntrada}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                      <Stack spacing={0.5} alignItems="center">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600,
+                          color: '#475569',
+                          fontSize: '0.8rem'
+                        }}>
+                          {row.precoQueIniciou}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700,
+                          color: isPositive ? '#10b981' : '#ef4444',
+                          fontSize: '0.85rem'
+                        }}>
+                          {row.precoAtual}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={dividendosInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={dividendosInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+        performance = ((cotacao.regularMarketPrice - precoInicial) / precoInicial) * 100;
+        
+        console.log(`📊 ${etf.ticker}: ${precoAtualCalculado} (${performance.toFixed(1)}%)`);
+      }
+      
+      return {
+        ...etf,
+        precoAtual: precoAtualCalculado,
+        performance,
+        cotacaoReal: cotacao
+      };
+    });
+  }, [etfData]);
+    {
+      id: '1',
+      ticker: 'VOO',
+      name: 'Vanguard S&P 500 ETF',
+      setor: 'Large Cap',
+      dataEntrada: '03/06/2021',
+      precoQueIniciou: 'US$383,95',
+      precoAtual: 'US$485,20',
+      dy: '1,32%',
+      precoTeto: 'US$520,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
+    },
+    {
+      id: '2',
+      ticker: 'IJS',
+      name: 'iShares Core S&P Small-Cap ETF',
+      setor: 'Small Caps',
+      dataEntrada: '21/07/2021',
+      precoQueIniciou: 'US$100,96',
+      precoAtual: 'US$112,45',
+      dy: '1,85%',
+      precoTeto: 'US$125,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '3',
+      ticker: 'QUAL',
+      name: 'iShares MSCI USA Quality Factor ETF',
+      setor: 'Total Market',
+      dataEntrada: '11/06/2021',
+      precoQueIniciou: 'US$130,13',
+      precoAtual: 'US$158,75',
+      dy: '1,45%',
+      precoTeto: 'US$170,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '4',
+      ticker: 'QQQ',
+      name: 'Invesco QQQ Trust ETF',
+      setor: 'Large Cap',
+      dataEntrada: '09/06/2021',
+      precoQueIniciou: 'US$337,18',
+      precoAtual: 'US$465,30',
+      dy: '0,68%',
+      precoTeto: 'US$495,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/invesco.com',
+    },
+    {
+      id: '5',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      setor: 'Real Estate (USA)',
+      dataEntrada: '12/07/2021',
+      precoQueIniciou: 'US$105,96',
+      precoAtual: 'US$95,20',
+      dy: '3,85%',
+      precoTeto: 'US$115,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
+    },
+    {
+      id: '6',
+      ticker: 'SCHP',
+      name: 'Schwab U.S. TIPS ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '22/11/2021',
+      precoQueIniciou: 'US$63,14',
+      precoAtual: 'US$58,90',
+      dy: '3,25%',
+      precoTeto: 'US$67,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/schwab.com',
+    },
+    {
+      id: '7',
+      ticker: 'IAU',
+      name: 'iShares Gold Trust ETF',
+      setor: 'Ouro',
+      dataEntrada: '07/06/2021',
+      precoQueIniciou: 'US$36,04',
+      precoAtual: 'US$42,15',
+      dy: '0,00%',
+      precoTeto: 'US$45,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '8',
+      ticker: 'HERO',
+      name: 'Global X Video Games & Esports ETF',
+      setor: 'Games',
+      dataEntrada: '15/07/2021',
+      precoQueIniciou: 'US$31,28',
+      precoAtual: 'US$28,50',
+      dy: '0,00%',
+      precoTeto: 'US$35,00',
+      viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/globalxetfs.com',
+    },
+    {
+      id: '9',
+      ticker: 'SOXX',
+      name: 'iShares Semiconductor ETF',
+      setor: 'Semicondutores',
+      dataEntrada: '04/08/2021',
+      precoQueIniciou: 'US$156,03',
+      precoAtual: 'US$235,80',
+      dy: '1,12%',
+      precoTeto: 'US$250,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '10',
+      ticker: 'MCHI',
+      name: 'iShares MSCI China ETF',
+      setor: 'Empresas Chinesas',
+      dataEntrada: '01/02/2023',
+      precoQueIniciou: 'US$53,58',
+      precoAtual: 'US$48,25',
+      dy: '2,45%',
+      precoTeto: 'US$60,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '11',
+      ticker: 'TFLO',
+      name: 'iShares Treasury Floating Rate Bond ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '21/03/2023',
+      precoQueIniciou: 'US$50,50',
+      precoAtual: 'US$50,85',
+      dy: '4,75%',
+      precoTeto: 'US$52,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    }
+  ];
+
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
+  const defaultIndicators = {
+    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
+    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
+  };
+
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        sp500: apiData.sp500 || defaultIndicators.sp500,
+        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
+      };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultIndicators;
+  }, [apiData]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header com botão voltar */}
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+        <Button
+          startIcon={<ArrowLeftIcon />}
+          onClick={() => window.location.href = '/dashboard/internacional'}
+          sx={{ 
+            color: '#64748b',
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: '#f1f5f9'
+            }
+          }}
+        >
+          Voltar
+        </Button>
+        <Divider orientation="vertical" flexItem />
+        <Stack spacing={1}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800,
+              color: '#1e293b',
+              fontSize: { xs: '1.75rem', sm: '2.125rem' }
+            }}
+          >
+            Exterior ETFs
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: '#64748b',
+              fontSize: '1rem'
+            }}
+          >
+            {dividendosInternacionais.length} ETFs em acompanhamento • Exposição diversificada aos mercados globais
+          </Typography>
+        </Stack>
+      </Stack>
+
+      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        <MarketIndicator 
+          title="S&P 500" 
+          description="Índice das 500 maiores empresas dos EUA"
+          value={indicators.sp500.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={indicators.sp500.trend} 
+          diff={indicators.sp500.diff}
+          isLoading={loading}
+        />
+        <MarketIndicator 
+          title="NASDAQ 100" 
+          description="Índice de tecnologia americana"
+          value={indicators.nasdaq.value} 
+          icon={<GlobeIcon />} 
+          trend={indicators.nasdaq.trend} 
+          diff={indicators.nasdaq.diff}
+          isLoading={loading}
+        />
+      </Box>
+      
+      {/* Tabela de Dividendos Internacionais */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira de ETFs Internacionais
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {dividendosInternacionais.length} ETFs • Diversificação global com baixo custo
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              🌎 {dividendosInternacionais.length} ETFs
+            </Box>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '100%' }}>
+            <TableHead>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '50px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '35%',
+                  minWidth: '200px'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Preços
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '15%'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase',
+                  width: '10%'
+                }}>
+                  Viés
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {dividendosInternacionais.map((row, index) => {
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
+                const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
+                const isPositive = variacao >= 0;
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.95rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={row.setor}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                color: '#000000',
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ 
+                              color: isPositive ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ 
+                            color: '#64748b',
+                            fontSize: '0.7rem',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Entrada: {row.dataEntrada}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                      <Stack spacing={0.5} alignItems="center">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600,
+                          color: '#475569',
+                          fontSize: '0.8rem'
+                        }}>
+                          {row.precoQueIniciou}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700,
+                          color: isPositive ? '#10b981' : '#ef4444',
+                          fontSize: '0.85rem'
+                        }}>
+                          {row.precoAtual}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={dividendosInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={dividendosInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+                
+                // Usar performance calculada se disponível, senão calcular manualmente
+                const variacao = row.performance || ((precoAtual - precoIniciou) / precoIniciou) * 100;
+                const isPositive = variacao >= 0;
+                
+                return (
+                  <TableRow 
+                    hover 
+                    key={row.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    }}
+                  >
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
+                    </TableCell>
+                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar 
+                          src={row.avatar}
+                          sx={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#f8fafc',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            border: '2px solid',
+                            borderColor: 'rgba(0, 0, 0, 0.2)'
+                          }}
+                        >
+                          {row.ticker.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.95rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={row.setor}
+                              size="small"
+                              sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                                color: '#000000',
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                                border: '1px solid rgba(0, 0, 0, 0.15)'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ 
+                              color: isPositive ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ 
+                            color: '#64748b',
+                            fontSize: '0.7rem',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Entrada: {row.dataEntrada}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '15%' }}>
+                      <Stack spacing={0.5} alignItems="center">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600,
+                          color: '#475569',
+                          fontSize: '0.8rem'
+                        }}>
+                          {row.precoQueIniciou}
+                        </Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 700,
+                          color: isPositive ? '#10b981' : '#ef4444',
+                          fontSize: '0.85rem'
+                        }}>
+                          {row.precoAtual}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', width: '10%' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {row.dy}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={row.viesAtual}
+                        size="medium"
+                        sx={{
+                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+        <Divider />
+        <TablePagination
+          component="div"
+          count={dividendosInternacionais.length}
+          onPageChange={noop}
+          onRowsPerPage={noop}
+          page={0}
+          rowsPerPage={dividendosInternacionais.length}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count: totalCount }) => 
+            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
+          }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
+        />
+      </Card>
+    </Box>
+  );
+}, ''));
+        performance = ((cotacao.regularMarketPrice - precoInicial) / precoInicial) * 100;
+        
+        console.log(`📊 ${etf.ticker}: ${precoAtualCalculado} (${performance.toFixed(1)}%)`);
+      }
+      
+      return {
+        ...etf,
+        precoAtual: precoAtualCalculado,
+        performance,
+        cotacaoReal: cotacao
+      };
+    });
+  }, [etfData]);
+    {
+      id: '1',
+      ticker: 'VOO',
+      name: 'Vanguard S&P 500 ETF',
+      setor: 'Large Cap',
+      dataEntrada: '03/06/2021',
+      precoQueIniciou: 'US$383,95',
+      precoAtual: 'US$485,20',
+      dy: '1,32%',
+      precoTeto: 'US$520,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
+    },
+    {
+      id: '2',
+      ticker: 'IJS',
+      name: 'iShares Core S&P Small-Cap ETF',
+      setor: 'Small Caps',
+      dataEntrada: '21/07/2021',
+      precoQueIniciou: 'US$100,96',
+      precoAtual: 'US$112,45',
+      dy: '1,85%',
+      precoTeto: 'US$125,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '3',
+      ticker: 'QUAL',
+      name: 'iShares MSCI USA Quality Factor ETF',
+      setor: 'Total Market',
+      dataEntrada: '11/06/2021',
+      precoQueIniciou: 'US$130,13',
+      precoAtual: 'US$158,75',
+      dy: '1,45%',
+      precoTeto: 'US$170,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '4',
+      ticker: 'QQQ',
+      name: 'Invesco QQQ Trust ETF',
+      setor: 'Large Cap',
+      dataEntrada: '09/06/2021',
+      precoQueIniciou: 'US$337,18',
+      precoAtual: 'US$465,30',
+      dy: '0,68%',
+      precoTeto: 'US$495,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/invesco.com',
+    },
+    {
+      id: '5',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      setor: 'Real Estate (USA)',
+      dataEntrada: '12/07/2021',
+      precoQueIniciou: 'US$105,96',
+      precoAtual: 'US$95,20',
+      dy: '3,85%',
+      precoTeto: 'US$115,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/vanguard.com',
+    },
+    {
+      id: '6',
+      ticker: 'SCHP',
+      name: 'Schwab U.S. TIPS ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '22/11/2021',
+      precoQueIniciou: 'US$63,14',
+      precoAtual: 'US$58,90',
+      dy: '3,25%',
+      precoTeto: 'US$67,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/schwab.com',
+    },
+    {
+      id: '7',
+      ticker: 'IAU',
+      name: 'iShares Gold Trust ETF',
+      setor: 'Ouro',
+      dataEntrada: '07/06/2021',
+      precoQueIniciou: 'US$36,04',
+      precoAtual: 'US$42,15',
+      dy: '0,00%',
+      precoTeto: 'US$45,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '8',
+      ticker: 'HERO',
+      name: 'Global X Video Games & Esports ETF',
+      setor: 'Games',
+      dataEntrada: '15/07/2021',
+      precoQueIniciou: 'US$31,28',
+      precoAtual: 'US$28,50',
+      dy: '0,00%',
+      precoTeto: 'US$35,00',
+      viesAtual: 'AGUARDAR',
+      avatar: 'https://logo.clearbit.com/globalxetfs.com',
+    },
+    {
+      id: '9',
+      ticker: 'SOXX',
+      name: 'iShares Semiconductor ETF',
+      setor: 'Semicondutores',
+      dataEntrada: '04/08/2021',
+      precoQueIniciou: 'US$156,03',
+      precoAtual: 'US$235,80',
+      dy: '1,12%',
+      precoTeto: 'US$250,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '10',
+      ticker: 'MCHI',
+      name: 'iShares MSCI China ETF',
+      setor: 'Empresas Chinesas',
+      dataEntrada: '01/02/2023',
+      precoQueIniciou: 'US$53,58',
+      precoAtual: 'US$48,25',
+      dy: '2,45%',
+      precoTeto: 'US$60,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    },
+    {
+      id: '11',
+      ticker: 'TFLO',
+      name: 'iShares Treasury Floating Rate Bond ETF',
+      setor: 'Renda Fixa',
+      dataEntrada: '21/03/2023',
+      precoQueIniciou: 'US$50,50',
+      precoAtual: 'US$50,85',
+      dy: '4,75%',
+      precoTeto: 'US$52,00',
+      viesAtual: 'COMPRA',
+      avatar: 'https://logo.clearbit.com/ishares.com',
+    }
+  ];
+
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
+  const defaultIndicators = {
+    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
+    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
+  };
+
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API:', apiData);
+      return {
+        sp500: apiData.sp500 || defaultIndicators.sp500,
+        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
+      };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback');
+    return defaultIndicators;
+  }, [apiData]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header com botão voltar */}
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+        <Button
+          startIcon={<ArrowLeftIcon />}
+          onClick={() => window.location.href = '/dashboard/internacional'}
+          sx={{ 
+            color: '#64748b',
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: '#f1f5f9'
+            }
+          }}
+        >
+          Voltar
+        </Button>
+        <Divider orientation="vertical" flexItem />
+        <Stack spacing={1}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800,
+              color: '#1e293b',
+              fontSize: { xs: '1.75rem', sm: '2.125rem' }
+            }}
+          >
+            Exterior ETFs
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: '#64748b',
+              fontSize: '1rem'
+            }}
+          >
+            {dividendosInternacionais.length} ETFs em acompanhamento • Exposição diversificada aos mercados globais
+          </Typography>
+        </Stack>
+      </Stack>
+
+      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        <MarketIndicator 
+          title="S&P 500" 
+          description="Índice das 500 maiores empresas dos EUA"
+          value={indicators.sp500.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={indicators.sp500.trend} 
+          diff={indicators.sp500.diff}
+          isLoading={loading}
+        />
+        <MarketIndicator 
+          title="NASDAQ 100" 
+          description="Índice de tecnologia americana"
+          value={indicators.nasdaq.value} 
+          icon={<GlobeIcon />} 
+          trend={indicators.nasdaq.trend} 
+          diff={indicators.nasdaq.diff}
+          isLoading={loading}
+        />
+      </Box>
+      
+      {/* Tabela de Dividendos Internacionais */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira de ETFs Internacionais
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {dividendosInternacionais.length} ETFs • Diversificação global com baixo custo
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              🌎 {dividendosInternacionais.length} ETFs
             </Box>
           </Stack>
         </Box>
