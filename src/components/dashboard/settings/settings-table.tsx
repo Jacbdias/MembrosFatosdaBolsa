@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-shadow */
 'use client';
 
 import * as React from 'react';
@@ -15,10 +16,11 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
 import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
-import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
 import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
 import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
 import { Storefront } from '@phosphor-icons/react/dist/ssr/Storefront';
@@ -31,87 +33,181 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-interface StatCardProps {
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API DE FIIs
+function useFIIsDataAPI() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      console.log('🔄 Buscando dados da API de FIIs...');
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/financial/fiis-data?_t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Dados da API de FIIs recebidos:', result);
+      
+      setData(result.fiisData);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Erro ao buscar dados da API de FIIs:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    
+    // Refresh a cada 5 minutos
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE PARA FIIs
+interface MarketIndicatorProps {
   title: string;
   value: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
+  isLoading?: boolean;
+  description?: string;
 }
 
-function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
-  const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
+  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
   return (
-    <Card sx={{
-      minHeight: 120,
-      flex: '1 1 200px',
-      maxWidth: { xs: '100%', sm: '300px' },
-      transition: 'all 0.2s ease-in-out',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: 3
-      }
-    }}>
-      <CardContent sx={{ p: 3, height: '100%' }}>
-        <Stack spacing={2} sx={{ height: '100%' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+    <Box 
+      sx={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: 2,
+        p: 2.5,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        opacity: isLoading ? 0.7 : 1,
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          borderColor: '#c7d2fe',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        }
+      }}
+    >
+      <Stack spacing={2}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
             <Typography 
-              color="text.secondary" 
               variant="caption" 
               sx={{ 
+                color: '#64748b',
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                fontSize: '0.7rem'
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
               }}
             >
               {title}
             </Typography>
-            <Avatar sx={{ 
-              backgroundColor: '#374151',
-              height: 32, 
-              width: 32,
-              '& svg': { 
-                fontSize: 16,
-                color: 'white'
-              }
-            }}>
-              {icon}
-            </Avatar>
-          </Stack>
-          
-          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                fontWeight: 700,
-                color: trend && diff !== undefined ? 
-                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
-                  : 'text.primary',
-                fontSize: { xs: '1.5rem', sm: '2rem' }
-              }}
-            >
-              {value}
-            </Typography>
+            {description && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#94a3b8',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {description}
+              </Typography>
+            )}
           </Box>
-          
-          {diff !== undefined && trend && (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <TrendIcon size={16} style={{ color: trendColor }} />
-              <Typography sx={{ 
+          <Box sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
+            backgroundColor: '#f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748b'
+          }}>
+            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+          </Box>
+        </Stack>
+        
+        {/* Valor principal */}
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 700,
+            color: '#1e293b',
+            fontSize: '1.75rem',
+            lineHeight: 1
+          }}
+        >
+          {isLoading ? '...' : value}
+        </Typography>
+        
+        {/* Indicador de tendência */}
+        {!isLoading && diff !== undefined && trend && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+              color: trendColor
+            }}>
+              <TrendIcon size={12} weight="bold" />
+            </Box>
+            <Typography 
+              variant="body2"
+              sx={{ 
                 color: trendColor,
                 fontWeight: 600,
-                fontSize: '0.8rem'
-              }}>
-                {diff > 0 ? '+' : ''}{diff}%
-              </Typography>
-            </Stack>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
+                fontSize: '0.875rem'
+              }}
+            >
+              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: '#64748b',
+                fontSize: '0.875rem'
+              }}
+            >
+              hoje
+            </Typography>
+          </Stack>
+        )}
+      </Stack>
+    </Box>
   );
 }
 
@@ -132,13 +228,15 @@ function getSetorIcon(setor: string): React.ReactNode {
     case 'fiis':
     case 'híbrido':
     case 'hibrido':
+    case 'hedge fund':
+    case 'fof':
+    case 'fiagro':
+    case 'renda urbana':
       return <Buildings style={iconStyle} />;
-    case 'pdf':
-      return <FileText style={iconStyle} />;
     case 'renda fixa':
       return <TrendUp style={iconStyle} />;
     default:
-      return <CurrencyDollarIcon style={iconStyle} />;
+      return <Buildings style={iconStyle} />;
   }
 }
 
@@ -169,6 +267,7 @@ interface SettingsTableProps {
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
 }
+
 export function SettingsTable({
   count = 0,
   rows = [],
@@ -177,7 +276,7 @@ export function SettingsTable({
   cardsData = {},
 }: SettingsTableProps): React.JSX.Element {
   
-  // Dados reais dos ativos baseados na tabela fornecida
+  // Dados reais dos FIIs baseados na tabela fornecida
   const dadosReais: SettingsData[] = [
     {
       id: "1",
@@ -409,21 +508,14 @@ export function SettingsTable({
     }
   ];
 
-  // 🔥 CORREÇÃO: PRIORIZAR DADOS DA API (rows) SOBRE DADOS ESTÁTICOS
-const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
+  // 🔥 PRIORIZAR DADOS DA API (rows) SOBRE DADOS ESTÁTICOS
+  const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
 
-console.log("✅ SettingsTable iniciado!");
-console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
-console.log("📊 Dados estáticos (fallback):", dadosReais.length, "itens");
-console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
-console.log("🔍 Primeiro ativo da API:", rows[0]?.ticker, "- Preço atual:", rows[0]?.precoAtual);
-console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
+  // 🔥 BUSCAR DADOS REAIS DA API
+  const { data: apiData, loading, error, refresh } = useFIIsDataAPI();
 
-  // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
-  
-  const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
-
-  const defaultCards = {
+  // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
+  const defaultIndicators = {
     ibovespa: { value: "158.268", trend: "up" as const, diff: 10.09 },
     indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
     carteiraHoje: { value: "R$ 118,27", trend: "up" as const, diff: 10.09 },
@@ -432,123 +524,255 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
     carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
   };
 
-  const cards = { ...defaultCards, ...cardsData };
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
+  const indicators = React.useMemo(() => {
+    // Se temos dados da API, usar eles
+    if (apiData) {
+      console.log('✅ Usando dados da API de FIIs:', apiData);
+      return {
+        ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
+        indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
+        carteiraHoje: apiData.carteiraHoje || defaultIndicators.carteiraHoje,
+        dividendYield: apiData.dividendYield || defaultIndicators.dividendYield,
+        ibovespaPeriodo: apiData.ibovespaPeriodo || defaultIndicators.ibovespaPeriodo,
+        carteiraPeriodo: apiData.carteiraPeriodo || defaultIndicators.carteiraPeriodo,
+      };
+    }
+    
+    // Senão, usar cardsData se disponível
+    if (Object.keys(cardsData).length > 0) {
+      console.log('⚠️ Usando cardsData prop:', cardsData);
+      return { ...defaultIndicators, ...cardsData };
+    }
+    
+    // Por último, usar fallback
+    console.log('⚠️ Usando dados de fallback para FIIs');
+    return defaultIndicators;
+  }, [apiData, cardsData]);
+
+  console.log("✅ SettingsTable FIIs iniciado!");
+  console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
+  console.log("📊 Dados estáticos (fallback):", dadosReais.length, "itens");
+  console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
+
   return (
     <Box>
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: 'repeat(2, 1fr)',
-          md: 'repeat(3, 1fr)',
-          lg: 'repeat(6, 1fr)',
-        },
-        gap: 2,
-        mb: 3,
-      }}>
-        <StatCard 
+      {/* Header com status da API */}
+      {error && (
+        <Box sx={{ mb: 3, p: 3, backgroundColor: '#fef2f2', borderRadius: 2, border: '1px solid #fecaca' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" sx={{ color: '#dc2626' }}>
+              ⚠️ Erro ao carregar dados da API: {error}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={refresh}
+            >
+              🔄 Tentar novamente
+            </Typography>
+          </Stack>
+        </Box>
+      )}
+
+      {loading && (
+        <Box sx={{ mb: 3 }}>
+          <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
+          <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', mt: 2 }}>
+            Carregando dados de FIIs em tempo real...
+          </Typography>
+        </Box>
+      )}
+
+      {/* Indicadores de Mercado - Layout em Grid */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { 
+            xs: '1fr', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(6, 1fr)'
+          },
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        <MarketIndicator 
           title="IBOVESPA" 
-          value={cards.ibovespa.value} 
+          description="Índice da Bolsa Brasileira"
+          value={indicators.ibovespa.value} 
           icon={<CurrencyDollarIcon />} 
-          trend={cards.ibovespa.trend} 
-          diff={cards.ibovespa.diff} 
+          trend={indicators.ibovespa.trend} 
+          diff={indicators.ibovespa.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="IFIX HOJE" 
-          value={cards.indiceSmall.value} 
+          description="Índice de Fundos Imobiliários"
+          value={indicators.indiceSmall.value} 
           icon={<Buildings />} 
-          trend={cards.indiceSmall.trend} 
-          diff={cards.indiceSmall.diff} 
+          trend={indicators.indiceSmall.trend} 
+          diff={indicators.indiceSmall.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="CARTEIRA HOJE" 
-          value={cards.carteiraHoje.value} 
+          description="Valor atual da carteira"
+          value={indicators.carteiraHoje.value} 
           icon={<ListBulletsIcon />}
-          trend={cards.carteiraHoje.trend}
-          diff={cards.carteiraHoje.diff}
+          trend={indicators.carteiraHoje.trend}
+          diff={indicators.carteiraHoje.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="DIVIDEND YIELD" 
-          value={cards.dividendYield.value} 
+          description="Rendimento médio"
+          value={indicators.dividendYield.value} 
           icon={<ChartBarIcon />}
-          trend={cards.dividendYield.trend}
-          diff={cards.dividendYield.diff}
+          trend={indicators.dividendYield.trend}
+          diff={indicators.dividendYield.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="IFIX PERÍODO" 
-          value={cards.ibovespaPeriodo.value} 
+          description="Performance do período"
+          value={indicators.ibovespaPeriodo.value} 
           icon={<Buildings />} 
-          trend={cards.ibovespaPeriodo.trend} 
-          diff={cards.ibovespaPeriodo.diff} 
+          trend={indicators.ibovespaPeriodo.trend} 
+          diff={indicators.ibovespaPeriodo.diff}
+          isLoading={loading}
         />
-        <StatCard 
+        <MarketIndicator 
           title="CARTEIRA PERÍODO" 
-          value={cards.carteiraPeriodo.value} 
+          description="Performance da carteira"
+          value={indicators.carteiraPeriodo.value} 
           icon={<ChartBarIcon />} 
-          trend={cards.carteiraPeriodo.trend} 
-          diff={cards.carteiraPeriodo.diff} 
+          trend={indicators.carteiraPeriodo.trend} 
+          diff={indicators.carteiraPeriodo.diff}
+          isLoading={loading}
         />
       </Box>
       
-      <Card sx={{ boxShadow: 2 }}>
+      {/* Tabela de FIIs */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira de Fundos Imobiliários
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {dadosParaUsar.length} FIIs em acompanhamento • Viés calculado automaticamente
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              {dadosParaUsar.length} FIIs
+            </Box>
+          </Stack>
+        </Box>
+        
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center', width: '80px' }}>
-                  Posição
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '60px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
                 </TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Ativo</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Setor</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Data de Entrada</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço que Iniciou</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Atual</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>DY</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Preço Teto</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Viés</TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  FII
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Viés
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {dadosParaUsar.map((row, index) => {
                 // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
                 const calcularVies = (precoTeto: string, precoAtual: string) => {
-                  // Remover formatação e converter para números
                   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
                   const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
                   
-                  // Verificar se os valores são válidos
                   if (isNaN(precoTetoNum) || isNaN(precoAtualNum) || precoAtual === 'N/A') {
-                    return 'Aguardar'; // Default se não conseguir calcular
-                  }
-                  
-                  // 🎯 LÓGICA: Preço Teto > Preço Atual = COMPRA
-                  if (precoTetoNum > precoAtualNum) {
-                    return 'Compra';
-                  } else {
                     return 'Aguardar';
                   }
+                  
+                  return precoAtualNum < precoTetoNum ? 'Compra' : 'Aguardar';
                 };
                 
-                // 🎨 FUNÇÃO PARA DEFINIR CORES DO VIÉS
-                const getViesStyle = (vies: string) => {
-                  if (vies === 'Compra') {
-                    return {
-                      backgroundColor: '#e8f5e8', // Verde claro
-                      color: '#2e7d32', // Verde escuro
-                      border: '1px solid #4caf50' // Borda verde
-                    };
-                  } else { // Aguardar
-                    return {
-                      backgroundColor: '#fff3cd', // Amarelo claro
-                      color: '#856404', // Amarelo escuro
-                      border: '1px solid #ffc107' // Borda amarela
-                    };
-                  }
-                };
-                
-                // Calcular o viés baseado na lógica
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
-                const estiloVies = getViesStyle(viesCalculado);
+                
+                // Calcular performance
+                const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
+                const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
+                const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
                 
                 return (
                   <TableRow 
@@ -557,65 +781,126 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                     onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
                     sx={{
                       '&:hover': {
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        cursor: 'pointer',
+                        transform: 'scale(1.005)',
+                        transition: 'all 0.2s ease'
+                      },
+                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
                     }}
                   >
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '1rem' }}>
-                      {index + 1}º
+                    <TableCell sx={{ 
+                      textAlign: 'center', 
+                      fontWeight: 800, 
+                      fontSize: '1rem',
+                      color: '#000000'
+                    }}>
+                      {index + 1}
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar sx={{ 
-                          width: 32, 
-                          height: 32,
+                          width: 44, 
+                          height: 44,
                           backgroundColor: '#f8fafc',
-                          border: '1px solid #e2e8f0'
+                          border: '2px solid rgba(0, 0, 0, 0.1)'
                         }}>
                           {getSetorIcon(row.setor)}
                         </Avatar>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {row.ticker}
-                        </Typography>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {row.ticker}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: performance >= 0 ? '#059669' : '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600
+                          }}>
+                            {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                          </Typography>
+                        </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ 
-                      whiteSpace: 'normal', 
-                      textAlign: 'center', 
-                      lineHeight: 1.2,
-                      fontSize: '0.875rem'
-                    }}>
-                      {row.setor}
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={row.setor}
+                        size="medium"
+                        sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          color: '#000000',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
-                    <TableCell>
-                      {/* 🔥 VIÉS CALCULADO AUTOMATICAMENTE COM CORES VERDE/AMARELO */}
-                      <Box sx={{
-                        ...estiloVies, // Aplica as cores baseadas no cálculo
-                        px: 2,
-                        py: 0.75,
-                        borderRadius: '20px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        display: 'inline-block',
-                        textAlign: 'center',
-                        minWidth: '70px',
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                      }}>
-                        {viesCalculado}
-                      </Box>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dataEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoEntrada}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      color: performance >= 0 ? '#10b981' : '#ef4444',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.9rem'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#000000',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.dy}
+                    </TableCell>
+                    <TableCell sx={{ 
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      color: '#475569',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {row.precoTeto}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip
+                        label={viesCalculado}
+                        size="medium"
+                        sx={{
+                          backgroundColor: viesCalculado === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: viesCalculado === 'Compra' ? '#059669' : '#d97706',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          border: '1px solid',
+                          borderColor: viesCalculado === 'Compra' ? '#bbf7d0' : '#fde68a',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
-            </Table>
+          </Table>
         </Box>
         <Divider />
         <TablePagination
@@ -626,12 +911,54 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
           page={page}
           rowsPerPage={rowsPerPage || dadosParaUsar.length}
           rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Linhas por página:"
+          labelRowsPerPage="Itens por página:"
           labelDisplayedRows={({ from, to, count: totalCount }) => 
             `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
           }
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            p: 2,
+            '& .MuiTablePagination-toolbar': {
+              color: '#475569'
+            }
+          }}
         />
       </Card>
     </Box>
   );
-}
+}Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
