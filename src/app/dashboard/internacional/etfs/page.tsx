@@ -626,22 +626,11 @@ export default function Page(): React.JSX.Element {
               }}>
                 <TableCell sx={{ 
                   fontWeight: 700, 
-                  textAlign: 'center', 
-                  width: '50px',
-                  color: '#475569',
-                  fontSize: '0.8rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  #
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '35%',
-                  minWidth: '200px'
+                  width: '40%',
+                  minWidth: '250px'
                 }}>
                   Ativo
                 </TableCell>
@@ -651,7 +640,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '15%'
+                  width: '20%'
                 }}>
                   Preços
                 </TableCell>
@@ -661,7 +650,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '10%'
+                  width: '12%'
                 }}>
                   DY
                 </TableCell>
@@ -671,7 +660,7 @@ export default function Page(): React.JSX.Element {
                   color: '#475569', 
                   fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '15%'
+                  width: '18%'
                 }}>
                   Teto
                 </TableCell>
@@ -710,15 +699,7 @@ export default function Page(): React.JSX.Element {
                       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
                     }}
                   >
-                    <TableCell sx={{ 
-                      textAlign: 'center', 
-                      fontWeight: 800, 
-                      fontSize: '1rem',
-                      color: '#000000'
-                    }}>
-                      {index + 1}
-                    </TableCell>
-                    <TableCell sx={{ width: '35%', minWidth: '200px' }}>
+                    <TableCell sx={{ width: '40%', minWidth: '250px' }}>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar}
