@@ -18,14 +18,14 @@ import { SettingsTable } from '@/components/dashboard/settings/settings-table';
 // IMPORTAR HOOK PARA DADOS REAIS
 import { useFinancialData } from '@/hooks/useFinancialData';
 
-// Hook específico para carteira de FIIs - VERSÃO SEM LUCIDE-REACT
+// Hook específico para carteira de FIIs - USANDO API REAL DA BRAPI
 function useFiisPortfolio() {
   const [portfolio, setPortfolio] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = React.useState<Date | null>(null);
 
-  // 🔥 DADOS CORRETOS - FIIs PARA TESTE
+  // 🔥 DADOS BASE DOS FIIs (DADOS ESTÁTICOS + COTAÇÕES DA API)
   const fiisPortfolioBase = [
     {
       id: '1',
@@ -89,37 +89,93 @@ function useFiisPortfolio() {
       setLoading(true);
       setError(null);
 
-      console.log('🚀 SIMULANDO BUSCA DE COTAÇÕES DOS FIIs');
+      console.log('🚀 BUSCANDO COTAÇÕES REAIS DOS FIIs NA BRAPI');
 
-      // Simular dados para evitar problemas de API durante o build
-      const portfolioAtualizado = fiisPortfolioBase.map((fii, index) => {
-        const precoEntradaNum = parseFloat(fii.precoEntrada.replace('R$ ', '').replace(',', '.'));
-        
-        // Simular variação aleatória entre -5% e +5%
-        const variacao = (Math.random() - 0.5) * 10;
-        const precoAtualNum = precoEntradaNum * (1 + variacao / 100);
-        const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
-        
+      // 🔥 BUSCAR COTAÇÕES REAIS NA BRAPI
+      const tickers = fiisPortfolioBase.map(fii => fii.ticker).join(',');
+      const brapiUrl = `https://brapi.dev/api/quote/${tickers}?token=jJrMYYv9MATGBcx3Gx6p8`;
+      
+      console.log('📡 URL da BRAPI:', brapiUrl);
+
+      const response = await fetch(brapiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'InvestApp/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro da BRAPI: ${response.status} - ${response.statusText}`);
+      }
+
+      const brapiData = await response.json();
+      console.log('✅ Dados recebidos da BRAPI:', brapiData);
+
+      if (!brapiData.results || brapiData.results.length === 0) {
+        throw new Error('BRAPI retornou dados vazios');
+      }
+
+      // 🔥 MAPEAR DADOS DA BRAPI COM DADOS ESTÁTICOS
+      const portfolioAtualizado = fiisPortfolioBase.map((fiiBase) => {
+        // Encontrar dados do ticker na resposta da BRAPI
+        const brapiQuote = brapiData.results.find((quote: any) => 
+          quote.symbol === fiiBase.ticker
+        );
+
+        let precoAtual: string;
+        let performance: number;
+        let statusApi = 'success';
+
+        if (brapiQuote && brapiQuote.regularMarketPrice) {
+          // 🔥 USAR PREÇO REAL DA BRAPI
+          const precoAtualNum = brapiQuote.regularMarketPrice;
+          precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
+          
+          // Calcular performance real
+          const precoEntradaNum = parseFloat(fiiBase.precoEntrada.replace('R$ ', '').replace(',', '.'));
+          performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
+
+          console.log(`💰 ${fiiBase.ticker}: Entrada R$ ${precoEntradaNum} → Atual R$ ${precoAtualNum} (${performance.toFixed(2)}%)`);
+        } else {
+          // Fallback se o ticker não foi encontrado na BRAPI
+          console.warn(`⚠️ ${fiiBase.ticker}: Não encontrado na BRAPI, usando preço de entrada`);
+          precoAtual = fiiBase.precoEntrada;
+          performance = 0;
+          statusApi = 'fallback';
+        }
+
         return {
-          ...fii,
-          precoAtual: `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`,
-          performance: performance,
-          variacao: variacao,
-          variacaoPercent: variacao,
-          volume: Math.floor(Math.random() * 1000000),
-          statusApi: 'success'
+          ...fiiBase,
+          precoAtual,
+          performance,
+          variacao: performance,
+          variacaoPercent: performance,
+          volume: brapiQuote?.regularMarketVolume || 0,
+          statusApi,
+          // Dados extras da BRAPI
+          marketCap: brapiQuote?.marketCap || null,
+          regularMarketDayHigh: brapiQuote?.regularMarketDayHigh || null,
+          regularMarketDayLow: brapiQuote?.regularMarketDayLow || null,
         };
       });
 
       setPortfolio(portfolioAtualizado);
       setLastUpdate(new Date());
 
+      console.log('✅ Portfolio atualizado com sucesso!');
+      console.log('📊 Resumo das cotações:');
+      portfolioAtualizado.forEach(fii => {
+        console.log(`   ${fii.ticker}: ${fii.precoAtual} (${fii.performance.toFixed(2)}%)`);
+      });
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro ao buscar cotações:', err);
+      console.error('❌ Erro ao buscar cotações da BRAPI:', err);
       
-      // FALLBACK: USAR DADOS ESTÁTICOS
+      // 🔥 FALLBACK: USAR DADOS ESTÁTICOS
+      console.log('🔄 Usando dados estáticos como fallback...');
       const portfolioFallback = fiisPortfolioBase.map(fii => ({
         ...fii,
         precoAtual: fii.precoEntrada,
@@ -138,8 +194,8 @@ function useFiisPortfolio() {
   React.useEffect(() => {
     fetchFiisPortfolioData();
 
-    // ATUALIZAR A CADA 5 MINUTOS
-    const interval = setInterval(fetchFiisPortfolioData, 5 * 60 * 1000);
+    // ATUALIZAR A CADA 2 MINUTOS (BRAPI tem rate limit)
+    const interval = setInterval(fetchFiisPortfolioData, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, [fetchFiisPortfolioData]);
@@ -154,7 +210,7 @@ function useFiisPortfolio() {
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🔥 PÁGINA SETTINGS (FIIs) CARREGADA - SEM LUCIDE-REACT!");
+  console.log("🔥 PÁGINA SETTINGS (FIIs) CARREGADA - USANDO BRAPI REAL!");
 
   // 🔥 DADOS REAIS DO MERCADO
   const { marketData, loading: marketLoading, error: marketError, refetch: refetchMarket } = useFinancialData();
@@ -247,7 +303,7 @@ export default function Page(): React.JSX.Element {
             textAlign: 'center',
             maxWidth: 400
           }}>
-            Preparando dados da carteira • {fiisPortfolio.length || 5} FIIs
+            Buscando cotações reais na BRAPI • {fiisPortfolio.length || 5} FIIs
           </Typography>
         </Stack>
       </Box>
@@ -348,7 +404,7 @@ export default function Page(): React.JSX.Element {
                 </Typography>
               )}
               <Typography variant="body2" sx={{ color: '#64748b' }}>
-                Usando dados simulados temporariamente.
+                Usando dados de fallback temporariamente.
               </Typography>
             </Stack>
           </Alert>
@@ -377,7 +433,7 @@ export default function Page(): React.JSX.Element {
                 borderRadius: 1,
                 fontWeight: 600
               }}>
-                SISTEMA ✓
+                BRAPI ✓
               </Typography>
             </Stack>
           </Alert>
@@ -424,7 +480,7 @@ export default function Page(): React.JSX.Element {
                 {fiisPortfolio.filter(f => f.statusApi === 'success').length} Online
               </Typography>
               <Typography variant="caption" sx={{ color: '#64748b' }}>
-                Atualização: 5min
+                Atualização: 2min
               </Typography>
             </Stack>
           </Stack>
