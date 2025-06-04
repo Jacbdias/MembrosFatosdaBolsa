@@ -15,17 +15,6 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
-import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
-import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
-import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
-import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
-import { Storefront } from '@phosphor-icons/react/dist/ssr/Storefront';
-import { FileText } from '@phosphor-icons/react/dist/ssr/FileText';
-import { Truck } from '@phosphor-icons/react/dist/ssr/Truck';
-import { Buildings } from '@phosphor-icons/react/dist/ssr/Buildings';
-import { TrendUp } from '@phosphor-icons/react/dist/ssr/TrendUp';
 
 function noop(): void {
   // Função vazia para props obrigatórias
@@ -34,14 +23,14 @@ function noop(): void {
 interface StatCardProps {
   title: string;
   value: string;
-  icon: React.ReactNode;
+  icon: string; // Mudando para string (emoji)
   trend?: 'up' | 'down';
   diff?: number;
 }
 
 function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX.Element {
-  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
-  const trendColor = trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)';
+  const trendSymbol = trend === 'up' ? '↗' : '↘';
+  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
   return (
     <Card sx={{
@@ -73,10 +62,8 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
               backgroundColor: '#374151',
               height: 32, 
               width: 32,
-              '& svg': { 
-                fontSize: 16,
-                color: 'white'
-              }
+              fontSize: '16px',
+              color: 'white'
             }}>
               {icon}
             </Avatar>
@@ -88,7 +75,7 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
               sx={{ 
                 fontWeight: 700,
                 color: trend && diff !== undefined ? 
-                  (trend === 'up' ? 'var(--mui-palette-success-main)' : 'var(--mui-palette-error-main)') 
+                  (trend === 'up' ? '#10b981' : '#ef4444') 
                   : 'text.primary',
                 fontSize: { xs: '1.5rem', sm: '2rem' }
               }}
@@ -99,13 +86,12 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
           
           {diff !== undefined && trend && (
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <TrendIcon size={16} style={{ color: trendColor }} />
               <Typography sx={{ 
                 color: trendColor,
                 fontWeight: 600,
                 fontSize: '0.8rem'
               }}>
-                {diff > 0 ? '+' : ''}{diff}%
+                {trendSymbol} {diff > 0 ? '+' : ''}{diff}%
               </Typography>
             </Stack>
           )}
@@ -115,30 +101,30 @@ function StatCard({ title, value, icon, trend, diff }: StatCardProps): React.JSX
   );
 }
 
-function getSetorIcon(setor: string): React.ReactNode {
-  const iconStyle = { fontSize: 20, color: '#6b7280' };
-  
+function getSetorIcon(setor: string): string {
   switch (setor.toLowerCase()) {
     case 'shopping':
     case 'shoppings':
-      return <Storefront style={iconStyle} />;
+      return '🏬';
     case 'papel':
     case 'papel e celulose':
-      return <FileText style={iconStyle} />;
+      return '📄';
     case 'logística':
     case 'logistico':
-      return <Truck style={iconStyle} />;
+      return '🚛';
     case 'fii':
     case 'fiis':
     case 'híbrido':
     case 'hibrido':
-      return <Buildings style={iconStyle} />;
-    case 'pdf':
-      return <FileText style={iconStyle} />;
+    case 'hedge fund':
+    case 'fof':
+    case 'fiagro':
+    case 'renda urbana':
+      return '🏢';
     case 'renda fixa':
-      return <TrendUp style={iconStyle} />;
+      return '📈';
     default:
-      return <CurrencyDollarIcon style={iconStyle} />;
+      return '💼';
   }
 }
 
@@ -153,6 +139,11 @@ export interface SettingsData {
   dy: string;
   precoTeto: string;
   vies: string;
+  performance?: number;
+  variacao?: number;
+  variacaoPercent?: number;
+  volume?: number;
+  statusApi?: string;
 }
 
 interface SettingsTableProps {
@@ -169,6 +160,7 @@ interface SettingsTableProps {
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
 }
+
 export function SettingsTable({
   count = 0,
   rows = [],
@@ -238,190 +230,18 @@ export function SettingsTable({
       dy: "13.21%",
       precoTeto: "R$ 8,70",
       vies: "Compra"
-    },
-    {
-      id: "6",
-      avatar: "",
-      ticker: "BCIA11",
-      setor: "FoF",
-      dataEntrada: "12/04/2023",
-      precoEntrada: "R$ 82,28",
-      precoAtual: "R$ 85,75",
-      dy: "9.77%",
-      precoTeto: "R$ 86,00",
-      vies: "Compra"
-    },
-    {
-      id: "7",
-      avatar: "",
-      ticker: "BPFF11",
-      setor: "FoF",
-      dataEntrada: "08/01/2024",
-      precoEntrada: "R$ 72,12",
-      precoAtual: "R$ 60,40",
-      dy: "11.00%",
-      precoTeto: "R$ 66,34",
-      vies: "Compra"
-    },
-    {
-      id: "8",
-      avatar: "",
-      ticker: "HGFF11",
-      setor: "FoF",
-      dataEntrada: "03/04/2023",
-      precoEntrada: "R$ 69,15",
-      precoAtual: "R$ 71,40",
-      dy: "9.25%",
-      precoTeto: "R$ 73,59",
-      vies: "Compra"
-    },
-    {
-      id: "9",
-      avatar: "",
-      ticker: "BRCO11",
-      setor: "Logística",
-      dataEntrada: "09/05/2022",
-      precoEntrada: "R$ 99,25",
-      precoAtual: "R$ 108,66",
-      dy: "8.44%",
-      precoTeto: "R$ 109,89",
-      vies: "Compra"
-    },
-    {
-      id: "10",
-      avatar: "",
-      ticker: "XPML11",
-      setor: "Shopping",
-      dataEntrada: "16/02/2022",
-      precoEntrada: "R$ 93,32",
-      precoAtual: "R$ 104,80",
-      dy: "8.44%",
-      precoTeto: "R$ 136,00",
-      vies: "Compra"
-    },
-    {
-      id: "11",
-      avatar: "",
-      ticker: "HGLG11",
-      setor: "Logística",
-      dataEntrada: "20/06/2022",
-      precoEntrada: "R$ 161,80",
-      precoAtual: "R$ 159,72",
-      dy: "8.44%",
-      precoTeto: "R$ 148,67",
-      vies: "Compra"
-    },
-    {
-      id: "12",
-      avatar: "",
-      ticker: "HSML11",
-      setor: "Shopping",
-      dataEntrada: "14/06/2022",
-      precoEntrada: "R$ 78,00",
-      precoAtual: "R$ 84,47",
-      dy: "8.91%",
-      precoTeto: "R$ 93,40",
-      vies: "Compra"
-    },
-    {
-      id: "13",
-      avatar: "",
-      ticker: "VGIP11",
-      setor: "Papel",
-      dataEntrada: "02/12/2021",
-      precoEntrada: "R$ 96,99",
-      precoAtual: "R$ 81,61",
-      dy: "13.67%",
-      precoTeto: "R$ 93,30",
-      vies: "Compra"
-    },
-    {
-      id: "14",
-      avatar: "",
-      ticker: "AFHI11",
-      setor: "Papel",
-      dataEntrada: "05/07/2022",
-      precoEntrada: "R$ 99,91",
-      precoAtual: "R$ 92,79",
-      dy: "13.08%",
-      precoTeto: "R$ 93,30",
-      vies: "Compra"
-    },
-    {
-      id: "15",
-      avatar: "",
-      ticker: "BTLG11",
-      setor: "Logística",
-      dataEntrada: "05/01/2022",
-      precoEntrada: "R$ 103,14",
-      precoAtual: "R$ 100,20",
-      dy: "8.42%",
-      precoTeto: "R$ 104,09",
-      vies: "Compra"
-    },
-    {
-      id: "16",
-      avatar: "",
-      ticker: "VRTA11",
-      setor: "Papel",
-      dataEntrada: "27/12/2022",
-      precoEntrada: "R$ 88,30",
-      precoAtual: "R$ 81,86",
-      dy: "9.66%",
-      precoTeto: "R$ 54,23",
-      vies: "Compra"
-    },
-    {
-      id: "17",
-      avatar: "",
-      ticker: "LVBI11",
-      setor: "Logística",
-      dataEntrada: "18/10/2022",
-      precoEntrada: "R$ 113,85",
-      precoAtual: "R$ 102,67",
-      dy: "7.90%",
-      precoTeto: "R$ 120,25",
-      vies: "Compra"
-    },
-    {
-      id: "18",
-      avatar: "",
-      ticker: "HGRU11",
-      setor: "Renda Urbana",
-      dataEntrada: "17/05/2022",
-      precoEntrada: "R$ 115,00",
-      precoAtual: "R$ 124,94",
-      dy: "8.44%",
-      precoTeto: "R$ 138,57",
-      vies: "Compra"
-    },
-    {
-      id: "19",
-      avatar: "",
-      ticker: "ALZR11",
-      setor: "Híbrido",
-      dataEntrada: "02/02/2022",
-      precoEntrada: "R$ 115,89",
-      precoAtual: "R$ 100,70",
-      dy: "8.44%",
-      precoTeto: "R$ 110,16",
-      vies: "Compra"
     }
   ];
 
   // 🔥 CORREÇÃO: PRIORIZAR DADOS DA API (rows) SOBRE DADOS ESTÁTICOS
-const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
+  const dadosParaUsar = rows.length > 0 ? rows : dadosReais;
 
-console.log("✅ SettingsTable iniciado!");
-console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
-console.log("📊 Dados estáticos (fallback):", dadosReais.length, "itens");
-console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
-console.log("🔍 Primeiro ativo da API:", rows[0]?.ticker, "- Preço atual:", rows[0]?.precoAtual);
-console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
-
-  // ✅ SEMPRE usar dados internos dos FIIs - CORREÇÃO PRINCIPAL
-  
-  const rowIds = React.useMemo(() => dadosParaUsar.map((item) => item.id), [dadosParaUsar]);
+  console.log("✅ SettingsTable iniciado!");
+  console.log("📊 Dados recebidos via props (API):", rows.length, "itens");
+  console.log("📊 Dados estáticos (fallback):", dadosReais.length, "itens");
+  console.log("🎯 Usando dados:", rows.length > 0 ? "DA API (REAL)" : "ESTÁTICOS (FALLBACK)");
+  console.log("🔍 Primeiro ativo da API:", rows[0]?.ticker, "- Preço atual:", rows[0]?.precoAtual);
+  console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
 
   const defaultCards = {
     ibovespa: { value: "158.268", trend: "up" as const, diff: 10.09 },
@@ -433,6 +253,7 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
   };
 
   const cards = { ...defaultCards, ...cardsData };
+
   return (
     <Box>
       <Box sx={{
@@ -449,42 +270,42 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
         <StatCard 
           title="IBOVESPA" 
           value={cards.ibovespa.value} 
-          icon={<CurrencyDollarIcon />} 
+          icon="📈"
           trend={cards.ibovespa.trend} 
           diff={cards.ibovespa.diff} 
         />
         <StatCard 
           title="IFIX HOJE" 
           value={cards.indiceSmall.value} 
-          icon={<Buildings />} 
+          icon="🏢"
           trend={cards.indiceSmall.trend} 
           diff={cards.indiceSmall.diff} 
         />
         <StatCard 
           title="CARTEIRA HOJE" 
           value={cards.carteiraHoje.value} 
-          icon={<ListBulletsIcon />}
+          icon="💼"
           trend={cards.carteiraHoje.trend}
           diff={cards.carteiraHoje.diff}
         />
         <StatCard 
           title="DIVIDEND YIELD" 
           value={cards.dividendYield.value} 
-          icon={<ChartBarIcon />}
+          icon="💎"
           trend={cards.dividendYield.trend}
           diff={cards.dividendYield.diff}
         />
         <StatCard 
           title="IFIX PERÍODO" 
           value={cards.ibovespaPeriodo.value} 
-          icon={<Buildings />} 
+          icon="📊"
           trend={cards.ibovespaPeriodo.trend} 
           diff={cards.ibovespaPeriodo.diff} 
         />
         <StatCard 
           title="CARTEIRA PERÍODO" 
           value={cards.carteiraPeriodo.value} 
-          icon={<ChartBarIcon />} 
+          icon="⬆️"
           trend={cards.carteiraPeriodo.trend} 
           diff={cards.carteiraPeriodo.diff} 
         />
@@ -521,8 +342,8 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                     return 'Aguardar'; // Default se não conseguir calcular
                   }
                   
-                  // 🎯 LÓGICA: Preço Teto > Preço Atual = COMPRA
-                  if (precoTetoNum > precoAtualNum) {
+                  // 🎯 LÓGICA: Preço Atual <= Preço Teto = COMPRA
+                  if (precoAtualNum <= precoTetoNum) {
                     return 'Compra';
                   } else {
                     return 'Aguardar';
@@ -533,15 +354,15 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                 const getViesStyle = (vies: string) => {
                   if (vies === 'Compra') {
                     return {
-                      backgroundColor: '#e8f5e8', // Verde claro
-                      color: '#2e7d32', // Verde escuro
-                      border: '1px solid #4caf50' // Borda verde
+                      backgroundColor: '#dcfce7', // Verde claro
+                      color: '#059669', // Verde escuro
+                      border: '1px solid #bbf7d0' // Borda verde
                     };
                   } else { // Aguardar
                     return {
-                      backgroundColor: '#fff3cd', // Amarelo claro
-                      color: '#856404', // Amarelo escuro
-                      border: '1px solid #ffc107' // Borda amarela
+                      backgroundColor: '#fef3c7', // Amarelo claro
+                      color: '#d97706', // Amarelo escuro
+                      border: '1px solid #fde68a' // Borda amarela
                     };
                   }
                 };
@@ -549,6 +370,14 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                 // Calcular o viés baseado na lógica
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
                 const estiloVies = getViesStyle(viesCalculado);
+                
+                // Calcular performance se não estiver disponível
+                let performance = row.performance;
+                if (performance === undefined) {
+                  const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
+                  const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
+                  performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
+                }
                 
                 return (
                   <TableRow 
@@ -571,13 +400,25 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                           width: 32, 
                           height: 32,
                           backgroundColor: '#f8fafc',
-                          border: '1px solid #e2e8f0'
+                          border: '1px solid #e2e8f0',
+                          fontSize: '14px'
                         }}>
                           {getSetorIcon(row.setor)}
                         </Avatar>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {row.ticker}
-                        </Typography>
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            {row.ticker}
+                          </Typography>
+                          {performance !== 0 && (
+                            <Typography variant="caption" sx={{ 
+                              color: performance >= 0 ? '#059669' : '#dc2626',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                            </Typography>
+                          )}
+                        </Box>
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ 
@@ -588,23 +429,30 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                     }}>
                       {row.setor}
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.dataEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoEntrada}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoAtual}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.dy}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500 }}>{row.precoTeto}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', textAlign: 'center' }}>{row.dataEntrada}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500, textAlign: 'center' }}>{row.precoEntrada}</TableCell>
+                    <TableCell sx={{ 
+                      whiteSpace: 'nowrap', 
+                      fontWeight: 700, 
+                      textAlign: 'center',
+                      color: performance >= 0 ? '#059669' : '#dc2626'
+                    }}>
+                      {row.precoAtual}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500, textAlign: 'center' }}>{row.dy}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 500, textAlign: 'center' }}>{row.precoTeto}</TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
                       {/* 🔥 VIÉS CALCULADO AUTOMATICAMENTE COM CORES VERDE/AMARELO */}
                       <Box sx={{
                         ...estiloVies, // Aplica as cores baseadas no cálculo
                         px: 2,
                         py: 0.75,
                         borderRadius: '20px',
-                        fontWeight: 600,
+                        fontWeight: 700,
                         fontSize: '0.75rem',
                         display: 'inline-block',
                         textAlign: 'center',
-                        minWidth: '70px',
+                        minWidth: '80px',
                         textTransform: 'uppercase',
                         letterSpacing: 0.5,
                       }}>
@@ -615,7 +463,7 @@ console.log("🔍 Performance do primeiro ativo:", rows[0]?.performance);
                 );
               })}
             </TableBody>
-            </Table>
+          </Table>
         </Box>
         <Divider />
         <TablePagination
