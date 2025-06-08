@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import { Box, CircularProgress } from '@mui/material';
-import { FIIOverviewTable } from '@/components/dashboard/overview/fii-overview-table';
+import { SettingsTable } from '@/components/dashboard/overview/settings-table';
 
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DO IFIX VIA API
 function useIFIXRealTime() {
@@ -608,12 +608,11 @@ export default function SettingsPage(): React.JSX.Element {
   return (
     <Grid container spacing={3}>
       <Grid xs={12}>
-        <FIIOverviewTable 
+        <SettingsTable 
           count={fiisAtualizados.length} 
           rows={fiisAtualizados}
           page={0} 
           rowsPerPage={10}
-          cardsData={dadosCards}
         />
       </Grid>
     </Grid>
