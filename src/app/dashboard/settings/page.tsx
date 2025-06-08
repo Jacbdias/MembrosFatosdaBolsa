@@ -1,342 +1,323 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/no-shadow */
 'use client';
 
 import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
-import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
-import Chip from '@mui/material/Chip';
-import Button from '@mui/material/Button';
-import Switch from '@mui/material/Switch';
-import Alert from '@mui/material/Alert';
-import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
-import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
-import { Palette as PaletteIcon } from '@phosphor-icons/react/dist/ssr/Palette';
-import { Database as DatabaseIcon } from '@phosphor-icons/react/dist/ssr/Database';
+import Grid from '@mui/material/Unstable_Grid2';
+import { FIIOverviewTable } from '@/components/dashboard/overview/fii-overview-table';
+
+// 🏢 DADOS DOS FIIs BASEADOS NA SUA TABELA
+const fiisData = [
+  {
+    id: '1',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/MALL.png',
+    ticker: 'MALL11',
+    setor: 'Shopping',
+    dataEntrada: '26/01/2022',
+    precoEntrada: 'R$ 118,37',
+    precoAtual: 'R$ 109,23',
+    dy: '10,09%',
+    precoTeto: 'R$ 103,68',
+    vies: 'Aguardar',
+    rank: '1º'
+  },
+  {
+    id: '2',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/NSLU.png',
+    ticker: 'NSLU11',
+    setor: 'Papel',
+    dataEntrada: '23/05/2022',
+    precoEntrada: 'R$ 9,31',
+    precoAtual: 'R$ 8,85',
+    dy: '11,52%',
+    precoTeto: 'R$ 9,16',
+    vies: 'Compra',
+    rank: '2º'
+  },
+  {
+    id: '3',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KNHF.png',
+    ticker: 'KNHF11',
+    setor: 'Hedge Fund',
+    dataEntrada: '20/12/2024',
+    precoEntrada: 'R$ 76,31',
+    precoAtual: 'R$ 78,45',
+    dy: '12,17%',
+    precoTeto: 'R$ 90,50',
+    vies: 'Compra',
+    rank: '3º'
+  },
+  {
+    id: '4',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/HGBS.png',
+    ticker: 'HGBS11',
+    setor: 'Shopping',
+    dataEntrada: '02/01/2025',
+    precoEntrada: 'R$ 186,08',
+    precoAtual: 'R$ 178,92',
+    dy: '10,77%',
+    precoTeto: 'R$ 19,20',
+    vies: 'Aguardar',
+    rank: '4º'
+  },
+  {
+    id: '5',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RURA.png',
+    ticker: 'RURA11',
+    setor: 'Fiagro',
+    dataEntrada: '14/02/2023',
+    precoEntrada: 'R$ 10,25',
+    precoAtual: 'R$ 9,87',
+    dy: '13,75%',
+    precoTeto: 'R$ 8,70',
+    vies: 'Aguardar',
+    rank: '5º'
+  },
+  {
+    id: '6',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BDIA.png',
+    ticker: 'BDIA11',
+    setor: 'FoF',
+    dataEntrada: '12/04/2023',
+    precoEntrada: 'R$ 82,28',
+    precoAtual: 'R$ 85,43',
+    dy: '11,80%',
+    precoTeto: 'R$ 87,81',
+    vies: 'Compra',
+    rank: '6º'
+  },
+  {
+    id: '7',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BPFF.png',
+    ticker: 'BPFF11',
+    setor: 'FoF',
+    dataEntrada: '08/01/2024',
+    precoEntrada: 'R$ 72,12',
+    precoAtual: 'R$ 71,85',
+    dy: '12,26%',
+    precoTeto: 'R$ 66,26',
+    vies: 'Aguardar',
+    rank: '7º'
+  },
+  {
+    id: '8',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/HGFF.png',
+    ticker: 'HGFF11',
+    setor: 'FoF',
+    dataEntrada: '03/04/2023',
+    precoEntrada: 'R$ 69,15',
+    precoAtual: 'R$ 68,92',
+    dy: '11,12%',
+    precoTeto: 'R$ 73,59',
+    vies: 'Compra',
+    rank: '8º'
+  },
+  {
+    id: '9',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RBCO.png',
+    ticker: 'RBCO11',
+    setor: 'Logística',
+    dataEntrada: '09/05/2022',
+    precoEntrada: 'R$ 99,25',
+    precoAtual: 'R$ 102,15',
+    dy: '10,18%',
+    precoTeto: 'R$ 109,89',
+    vies: 'Compra',
+    rank: '9º'
+  },
+  {
+    id: '10',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/XPML.png',
+    ticker: 'XPML11',
+    setor: 'Shopping',
+    dataEntrada: '16/02/2022',
+    precoEntrada: 'R$ 93,32',
+    precoAtual: 'R$ 95,78',
+    dy: '10,58%',
+    precoTeto: 'R$ 110,40',
+    vies: 'Compra',
+    rank: '10º'
+  },
+  {
+    id: '11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/HGLG.png',
+    ticker: 'HGLG11',
+    setor: 'Logística',
+    dataEntrada: '20/06/2022',
+    precoEntrada: 'R$ 161,80',
+    precoAtual: 'R$ 158,34',
+    dy: '8,62%',
+    precoTeto: 'R$ 146,67',
+    vies: 'Aguardar',
+    rank: '11º'
+  },
+  {
+    id: '12',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/HSML.png',
+    ticker: 'HSML11',
+    setor: 'Shopping',
+    dataEntrada: '14/06/2022',
+    precoEntrada: 'R$ 78,00',
+    precoAtual: 'R$ 76,45',
+    dy: '10,86%',
+    precoTeto: 'R$ 93,60',
+    vies: 'Compra',
+    rank: '12º'
+  },
+  {
+    id: '13',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/VGIP.png',
+    ticker: 'VGIP11',
+    setor: 'Papel',
+    dataEntrada: '02/12/2021',
+    precoEntrada: 'R$ 96,99',
+    precoAtual: 'R$ 98,23',
+    dy: '12,51%',
+    precoTeto: 'R$ 88,00',
+    vies: 'Aguardar',
+    rank: '13º'
+  },
+  {
+    id: '14',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/AFHI.png',
+    ticker: 'AFHI11',
+    setor: 'Papel',
+    dataEntrada: '05/07/2022',
+    precoEntrada: 'R$ 99,91',
+    precoAtual: 'R$ 97,56',
+    dy: '12,25%',
+    precoTeto: 'R$ 93,20',
+    vies: 'Aguardar',
+    rank: '14º'
+  },
+  {
+    id: '15',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BTLG.png',
+    ticker: 'BTLG11',
+    setor: 'Logística',
+    dataEntrada: '05/01/2022',
+    precoEntrada: 'R$ 103,14',
+    precoAtual: 'R$ 105,67',
+    dy: '9,56%',
+    precoTeto: 'R$ 104,00',
+    vies: 'Aguardar',
+    rank: '15º'
+  },
+  {
+    id: '16',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/VTAL.png',
+    ticker: 'VTAL11',
+    setor: 'Papel',
+    dataEntrada: '27/12/2022',
+    precoEntrada: 'R$ 88,30',
+    precoAtual: 'R$ 89,45',
+    dy: '12,30%',
+    precoTeto: 'R$ 94,33',
+    vies: 'Compra',
+    rank: '16º'
+  },
+  {
+    id: '17',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/LVBI.png',
+    ticker: 'LVBI11',
+    setor: 'Logística',
+    dataEntrada: '18/10/2022',
+    precoEntrada: 'R$ 113,85',
+    precoAtual: 'R$ 116,23',
+    dy: '10,82%',
+    precoTeto: 'R$ 122,51',
+    vies: 'Compra',
+    rank: '17º'
+  },
+  {
+    id: '18',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/HGRU.png',
+    ticker: 'HGRU11',
+    setor: 'Renda Urbana',
+    dataEntrada: '17/05/2022',
+    precoEntrada: 'R$ 115,00',
+    precoAtual: 'R$ 112,87',
+    dy: '10,35%',
+    precoTeto: 'R$ 138,57',
+    vies: 'Compra',
+    rank: '18º'
+  },
+  {
+    id: '19',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALZR.png',
+    ticker: 'ALZR11',
+    setor: 'Híbrido',
+    dataEntrada: '02/02/2022',
+    precoEntrada: 'R$ 115,89',
+    precoAtual: 'R$ 118,45',
+    dy: '9,14%',
+    precoTeto: 'R$ 10,16',
+    vies: 'Aguardar',
+    rank: '19º'
+  },
+  {
+    id: '20',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RBRI.png',
+    ticker: 'RBRI11',
+    setor: 'Papel',
+    dataEntrada: '25/11/2021',
+    precoEntrada: 'R$ 104,53',
+    precoAtual: 'R$ 106,78',
+    dy: '14,71%',
+    precoTeto: 'R$ 87,81',
+    vies: 'Aguardar',
+    rank: '20º'
+  },
+  {
+    id: '21',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KNRI.png',
+    ticker: 'KNRI11',
+    setor: 'Híbrido',
+    dataEntrada: '27/06/2022',
+    precoEntrada: 'R$ 131,12',
+    precoAtual: 'R$ 134,56',
+    dy: '8,82%',
+    precoTeto: 'R$ 146,67',
+    vies: 'Compra',
+    rank: '21º'
+  },
+  {
+    id: '22',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/IRDM.png',
+    ticker: 'IRDM11',
+    setor: 'Papel',
+    dataEntrada: '05/01/2022',
+    precoEntrada: 'R$ 107,04',
+    precoAtual: 'R$ 109,23',
+    dy: '13,21%',
+    precoTeto: 'R$ 73,20',
+    vies: 'Aguardar',
+    rank: '22º'
+  },
+  {
+    id: '23',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/MXRF.png',
+    ticker: 'MXRF11',
+    setor: 'Papel',
+    dataEntrada: '12/07/2022',
+    precoEntrada: 'R$ 9,69',
+    precoAtual: 'R$ 9,85',
+    dy: '12,91%',
+    precoTeto: 'R$ 9,40',
+    vies: 'Aguardar',
+    rank: '23º'
+  }
+];
 
 export default function SettingsPage() {
-  const [notifications, setNotifications] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('notifications') === 'true';
-    }
-    return true;
-  });
-  
-  const [darkMode, setDarkMode] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('darkMode') === 'true';
-    }
-    return false;
-  });
-  
-  const [autoRefresh, setAutoRefresh] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('autoRefresh') !== 'false';
-    }
-    return true;
-  });
-
-  const handleNotificationsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.checked;
-    setNotifications(value);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('notifications', value.toString());
-    }
-  };
-
-  const handleDarkModeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.checked;
-    setDarkMode(value);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('darkMode', value.toString());
-    }
-  };
-
-  const handleAutoRefreshChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.checked;
-    setAutoRefresh(value);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('autoRefresh', value.toString());
-    }
-  };
-
-  const handleClearCache = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
-
-  const handleOpenAdmin = () => {
-    if (typeof window !== 'undefined') {
-      window.open('/admin', '_blank');
-    }
-  };
-
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 900, mx: 'auto' }}>
-      {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-        <Box sx={{
-          width: 48,
-          height: 48,
-          borderRadius: 2,
-          backgroundColor: '#f1f5f9',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#64748b'
-        }}>
-          <SettingsIcon size={24} weight="duotone" />
-        </Box>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1e293b' }}>
-            ⚙️ Configurações
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
-            Gerencie suas preferências e configurações do sistema
-          </Typography>
-        </Box>
-      </Stack>
-
-      {/* Cards de Configurações */}
-      <Stack spacing={4}>
-        {/* Notificações */}
-        <Card sx={{ 
-          borderRadius: 3,
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-        }}>
-          <CardContent sx={{ p: 4 }}>
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-              <BellIcon size={24} style={{ color: '#3b82f6' }} weight="duotone" />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                Notificações
-              </Typography>
-            </Stack>
-            
-            <Stack spacing={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#f8fafc',
-                borderRadius: 2,
-                border: '1px solid #e2e8f0'
-              }}>
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                    Notificações push
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Receba alertas sobre mudanças importantes na sua carteira
-                  </Typography>
-                </Box>
-                <Switch
-                  checked={notifications}
-                  onChange={handleNotificationsChange}
-                  color="primary"
-                />
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* Aparência */}
-        <Card sx={{ 
-          borderRadius: 3,
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-        }}>
-          <CardContent sx={{ p: 4 }}>
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-              <PaletteIcon size={24} style={{ color: '#8b5cf6' }} weight="duotone" />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                Aparência
-              </Typography>
-            </Stack>
-            
-            <Stack spacing={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#f8fafc',
-                borderRadius: 2,
-                border: '1px solid #e2e8f0'
-              }}>
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                    Modo escuro
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Alterna entre tema claro e escuro (em desenvolvimento)
-                  </Typography>
-                </Box>
-                <Switch
-                  checked={darkMode}
-                  onChange={handleDarkModeChange}
-                  color="secondary"
-                />
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* Sistema */}
-        <Card sx={{ 
-          borderRadius: 3,
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-        }}>
-          <CardContent sx={{ p: 4 }}>
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-              <DatabaseIcon size={24} style={{ color: '#10b981' }} weight="duotone" />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                Sistema
-              </Typography>
-            </Stack>
-            
-            <Stack spacing={3}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#f8fafc',
-                borderRadius: 2,
-                border: '1px solid #e2e8f0'
-              }}>
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                    Atualização automática
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Atualizar dados da API automaticamente a cada 5 minutos
-                  </Typography>
-                </Box>
-                <Switch
-                  checked={autoRefresh}
-                  onChange={handleAutoRefreshChange}
-                  color="success"
-                />
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* Ações do Sistema */}
-        <Card sx={{ 
-          borderRadius: 3,
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-          backgroundColor: '#f8fafc'
-        }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#1e293b' }}>
-              🔧 Ações do Sistema
-            </Typography>
-            
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <Button
-                variant="outlined"
-                onClick={handleClearCache}
-                sx={{ 
-                  fontWeight: 600,
-                  borderColor: '#ef4444',
-                  color: '#ef4444',
-                  '&:hover': {
-                    borderColor: '#dc2626',
-                    backgroundColor: '#fee2e2'
-                  }
-                }}
-              >
-                🗑️ Limpar Cache Local
-              </Button>
-              
-              <Button
-                variant="outlined"
-                onClick={handleOpenAdmin}
-                sx={{ 
-                  fontWeight: 600,
-                  borderColor: '#3b82f6',
-                  color: '#3b82f6',
-                  '&:hover': {
-                    borderColor: '#2563eb',
-                    backgroundColor: '#dbeafe'
-                  }
-                }}
-              >
-                ⚙️ Abrir Painel Admin
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* Informações do Sistema */}
-        <Card sx={{ 
-          borderRadius: 3,
-          border: '1px solid #bfdbfe',
-          backgroundColor: '#eff6ff'
-        }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#1e40af' }}>
-              ℹ️ Informações do Sistema
-            </Typography>
-            
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Versão:</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>1.0.0</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">API FII:</Typography>
-                <Chip 
-                  label="Ativa" 
-                  size="small" 
-                  sx={{ 
-                    backgroundColor: '#dcfce7', 
-                    color: '#166534',
-                    fontWeight: 600
-                  }} 
-                />
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Cache:</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>5 minutos</Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* Dica */}
-        <Alert 
-          severity="info" 
-          sx={{ 
-            borderRadius: 3,
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe'
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            💡 <strong>Dica:</strong> Todas as configurações são salvas automaticamente no seu navegador local. 
-            Use o painel Admin para gerenciar dados da carteira e configurações avançadas.
-          </Typography>
-        </Alert>
-      </Stack>
-    </Box>
+    <Grid container spacing={3}>
+      <Grid xs={12}>
+        <FIIOverviewTable 
+          count={fiisData.length} 
+          rows={fiisData}
+          page={0} 
+          rowsPerPage={10}
+        />
+      </Grid>
+    </Grid>
   );
 }
