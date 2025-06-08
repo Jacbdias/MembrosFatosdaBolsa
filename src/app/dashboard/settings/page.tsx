@@ -447,18 +447,13 @@ function SettingsTable({
                     {row.precoAtual}
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{
-                      backgroundColor: '#fef3c7',
-                      color: '#d97706',
-                      px: 2,
-                      py: 0.5,
-                      borderRadius: 2,
-                      display: 'inline-block',
+                    <Typography sx={{
                       fontWeight: 700,
-                      fontSize: '0.85rem'
+                      fontSize: '0.85rem',
+                      color: '#475569'
                     }}>
                       {row.dy}
-                    </Box>
+                    </Typography>
                   </TableCell>
                   <TableCell align="center" sx={{ fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
                     {row.precoTeto}
