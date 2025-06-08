@@ -14,6 +14,8 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import { CircularProgress } from '@mui/material';
+import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
 
 function noop() {}
 
@@ -136,5 +138,31 @@ export function SettingsTable({
         labelRowsPerPage="Itens por página:"
       />
     </Card>
+  );
+}
+
+export default function SettingsPage(): React.JSX.Element {
+  const { fiis, loading } = useFiisCotacoesBrapi();
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+        <CircularProgress size={40} />
+        <Box ml={2} sx={{ fontSize: '1.1rem' }}>
+          🏢 Carregando carteira de FIIs...
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <SettingsTable 
+        count={fiis.length} 
+        rows={fiis}
+        page={0} 
+        rowsPerPage={10}
+      />
+    </Box>
   );
 }
