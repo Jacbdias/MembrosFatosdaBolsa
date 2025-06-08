@@ -18,7 +18,7 @@ import { CircularProgress } from '@mui/material';
 
 function noop() {}
 
-// 🏢 DADOS DOS FIIs BASEADOS NA SUA TABELA
+// 🏢 DADOS DOS FIIs CORRIGIDOS BASEADOS NA PLANILHA EXCEL
 const fiisData = [
   {
     id: '1',
@@ -34,10 +34,10 @@ const fiisData = [
   },
   {
     id: '2',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/NSLU.png',
-    ticker: 'NSLU11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KNSC.png',
+    ticker: 'KNSC11',
     setor: 'Papel',
-    dataEntrada: '23/05/2022',
+    dataEntrada: '24/05/2022',
     precoEntrada: 'R$ 9,31',
     precoAtual: 'R$ 8,85',
     dy: '11,52%',
@@ -82,8 +82,8 @@ const fiisData = [
   },
   {
     id: '6',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/BDIA.png',
-    ticker: 'BDIA11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BCIA.png',
+    ticker: 'BCIA11',
     setor: 'FoF',
     dataEntrada: '12/04/2023',
     precoEntrada: 'R$ 82,28',
@@ -118,8 +118,8 @@ const fiisData = [
   },
   {
     id: '9',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/RBCO.png',
-    ticker: 'RBCO11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BRCO.png',
+    ticker: 'BRCO11',
     setor: 'Logística',
     dataEntrada: '09/05/2022',
     precoEntrada: 'R$ 99,25',
@@ -202,8 +202,8 @@ const fiisData = [
   },
   {
     id: '16',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/VTAL.png',
-    ticker: 'VTAL11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/VRTA.png',
+    ticker: 'VRTA11',
     setor: 'Papel',
     dataEntrada: '27/12/2022',
     precoEntrada: 'R$ 88,30',
@@ -250,8 +250,8 @@ const fiisData = [
   },
   {
     id: '20',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/RBRI.png',
-    ticker: 'RBRI11',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BCRI.png',
+    ticker: 'BCRI11',
     setor: 'Papel',
     dataEntrada: '25/11/2021',
     precoEntrada: 'R$ 104,53',
