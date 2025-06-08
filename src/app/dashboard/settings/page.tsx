@@ -25,16 +25,50 @@ import { Buildings as BuildingsIcon } from '@phosphor-icons/react/dist/ssr/Build
 import { ChartPie as ChartPieIcon } from '@phosphor-icons/react/dist/ssr/ChartPie';
 import { Percent as PercentIcon } from '@phosphor-icons/react/dist/ssr/Percent';
 import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
+import { useRouter } from 'next/navigation'; // ✅ ADICIONADO
 
-import { useSelection } from '@/hooks/use-selection';
+// ❌ REMOVIDO: import { useSelection } from '@/hooks/use-selection';
 
 function noop(): void {
   // Função vazia para props obrigatórias
 }
 
+// 🔥 TIPOS DA API (alinhados com sua route.ts)
+interface FIIMarketData {
+  ifix: {
+    value: string;
+    trend: 'up' | 'down';
+    diff: number;
+  };
+  carteiraHoje: {
+    value: string;
+    trend: 'up' | 'down';
+    diff: number;
+  };
+  dividendYield: {
+    value: string;
+    trend: 'up' | 'down';
+    diff: number;
+  };
+  carteiraPeriodo: {
+    value: string;
+    trend: 'up' | 'down';
+    diff: number;
+  };
+}
+
+interface APIResponse {
+  success: boolean;
+  marketData: FIIMarketData;
+  timestamp: string;
+  source: string;
+  cacheAge?: number;
+  nextUpdate?: string;
+}
+
 // 🔥 HOOK PARA BUSCAR DADOS REAIS DA API FIIs
 function useFIIMarketDataAPI() {
-  const [data, setData] = React.useState<any>(null);
+  const [data, setData] = React.useState<FIIMarketData | null>(null); // ✅ TIPADO CORRETAMENTE
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -57,7 +91,7 @@ function useFIIMarketDataAPI() {
         throw new Error(`Erro HTTP: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result: APIResponse = await response.json(); // ✅ TIPADO
       console.log('✅ Dados da API FIIs recebidos:', result);
       
       setData(result.marketData);
@@ -65,6 +99,7 @@ function useFIIMarketDataAPI() {
     } catch (err) {
       console.error('❌ Erro ao buscar dados da API FIIs:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      setData(null); // ✅ Deixar null para fallback automático
     } finally {
       setLoading(false);
     }
@@ -267,18 +302,20 @@ interface FIIOverviewTableProps {
     dividendYield?: { value: string; trend?: 'up' | 'down'; diff?: number };
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
-  ifixReal?: any;
+  // ❌ REMOVIDO: ifixReal?: any;
 }
 
 export function FIIOverviewTable({
   count = 0,
   rows = [],
   page = 0,
-  rowsPerPage = 0,
-  cardsData = {},
-  ifixReal
+  rowsPerPage = 10, // ✅ CORRIGIDO: era 0, agora é 10
+  cardsData = {}
+  // ❌ REMOVIDO: ifixReal
 }: FIIOverviewTableProps): React.JSX.Element {
-  const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
+  const router = useRouter(); // ✅ ADICIONADO HOOK DO NEXT.JS
+  
+  // ❌ REMOVIDO: const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
   // 🔥 BUSCAR DADOS REAIS DA API FIIs
   const { data: apiData, loading, error, refresh } = useFIIMarketDataAPI();
@@ -607,7 +644,7 @@ export function FIIOverviewTable({
                   <TableRow 
                     hover 
                     key={row.id}
-                    onClick={() => window.location.href = `/dashboard/fii/${row.ticker}`}
+                    onClick={() => router.push(`/dashboard/fii/${row.ticker}`)} // ✅ CORRIGIDO
                     sx={{
                       '&:hover': {
                         backgroundColor: 'rgba(59, 130, 246, 0.05)',
