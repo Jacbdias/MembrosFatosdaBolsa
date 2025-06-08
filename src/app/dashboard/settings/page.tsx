@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { CircularProgress, Box } from '@mui/material';
-import SettingsTable from './SettingsTable';
+import { SettingsTable } from '@/components/dashboard/settings/settings-table';
 import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
 
 export default function SettingsPage(): React.JSX.Element {
