@@ -34,7 +34,7 @@ import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/Trend
 import { FileText as FileTextIcon } from '@phosphor-icons/react/dist/ssr/FileText';
 import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Settings as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Settings';
+import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear'; // ✅ CORRIGIDO
 import { X as CloseIcon } from '@phosphor-icons/react/dist/ssr/X';
 
 interface Provento {
@@ -727,7 +727,10 @@ export default function EmpresaDetalhes() {
                       borderRadius: 1 
                     }}>
                       <Typography variant="body2" color="text.secondary">ROE</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#22c55e' }}>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 600, 
+                        color: '#22c55e'
+                      }}>
                         {(empresa as Empresa).roe}
                       </Typography>
                     </Box>
