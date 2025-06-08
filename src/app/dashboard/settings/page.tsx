@@ -333,18 +333,18 @@ function SettingsTable({
       </Box>
 
       <Box sx={{ overflowX: 'auto' }}>
-        <Table sx={{ minWidth: '800px' }}>
+        <Table sx={{ minWidth: '800px', tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>#</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#475569' }}>Fundo Imobiliário</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Setor</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Entrada</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Preço Inicial</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Preço Atual</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Dividend Yield</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Preço Teto</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>Viés</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '5%' }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: '#475569', width: '20%' }}>Fundo Imobiliário</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '10%' }}>Setor</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '10%' }}>Entrada</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '12%' }}>Preço Inicial</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '12%' }}>Preço Atual</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '8%' }}>Dividend Yield</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '12%' }}>Preço Teto</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', width: '11%' }}>Viés</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -432,7 +432,7 @@ function SettingsTable({
                   <TableCell align="center" sx={{ color: '#64748b', fontWeight: 500 }}>
                     {row.dataEntrada}
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#475569' }}>
+                  <TableCell align="center" sx={{ fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
                     {row.precoEntrada}
                   </TableCell>
                   <TableCell
@@ -440,7 +440,8 @@ function SettingsTable({
                     sx={{ 
                       fontWeight: 800, 
                       color: performance >= 0 ? '#10b981' : '#ef4444',
-                      fontSize: '0.95rem'
+                      fontSize: '0.95rem',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     {row.precoAtual}
@@ -459,7 +460,7 @@ function SettingsTable({
                       {row.dy}
                     </Box>
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: '#475569' }}>
+                  <TableCell align="center" sx={{ fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
                     {row.precoTeto}
                   </TableCell>
                   <TableCell align="center">
