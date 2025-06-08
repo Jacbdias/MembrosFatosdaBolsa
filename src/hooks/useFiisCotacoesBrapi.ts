@@ -52,17 +52,17 @@ export function useFiisCotacoesBrapi() {
     setLoading(true);
     const token = process.env.NEXT_PUBLIC_BRAPI_TOKEN || '';
     const tickers = fiisBase.map(fii => fii.ticker);
-    const url = `https://brapi.dev/api/quote/list?search=${tickers.join(',')}&token=${token}`;
+    const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`;
 
     try {
       const response = await fetch(url);
       const data = await response.json();
 
-      if (!data.stocks) throw new Error('Sem resultados');
+      if (!data.results) throw new Error('Sem resultados');
 
       const cotacoesMap = new Map();
-      data.stocks.forEach((fii: any) => {
-        if (fii.symbol && typeof fii.close === 'number') {
+      data.results.forEach((fii: any) => {
+        if (fii.symbol && typeof fii.regularMarketPrice === 'number') {
           cotacoesMap.set(fii.symbol, fii);
         }
       });
@@ -70,7 +70,7 @@ export function useFiisCotacoesBrapi() {
       const atualizados: FII[] = fiisBase.map(fii => {
         const cotacao = cotacoesMap.get(fii.ticker);
         if (cotacao) {
-          const precoAtualNum = cotacao.close;
+          const precoAtualNum = cotacao.regularMarketPrice;
           const precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
           return {
             ...fii,
