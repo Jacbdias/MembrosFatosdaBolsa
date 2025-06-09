@@ -47,9 +47,10 @@ function calculatePerformance(precoEntrada: string, precoAtual: string): number 
   return ((atual - entrada) / entrada) * 100;
 }
 
-export function SettingsTable({ count, rows, page: initialPage, rowsPerPage: initialRowsPerPage }: SettingsTableProps): React.JSX.Element {
-  const [page, setPage] = React.useState(initialPage);
-  const [rowsPerPage, setRowsPerPage] = React.useState(initialRowsPerPage);
+export function SettingsTable({ count, rows }: { count: number; rows: FII[] }): React.JSX.Element {
+  // Sem necessidade de estados de paginação
+  // const [page, setPage] = React.useState(initialPage);
+  // const [rowsPerPage, setRowsPerPage] = React.useState(initialRowsPerPage);
 
   // Validation
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -62,18 +63,18 @@ export function SettingsTable({ count, rows, page: initialPage, rowsPerPage: ini
     );
   }
 
-  // Pagination handlers
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+  // Sem handlers de paginação necessários
+  // const handleChangePage = (event: unknown, newPage: number) => {
+  //   setPage(newPage);
+  // };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  // const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   setRowsPerPage(parseInt(event.target.value, 10));
+  //   setPage(0);
+  // };
 
-  // Paginated data
-  const paginatedFiis = rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  // Mostrar todos os FIIs sem paginação
+  const paginatedFiis = rows;
 
   return (
     <Card sx={{
@@ -137,7 +138,7 @@ export function SettingsTable({ count, rows, page: initialPage, rowsPerPage: ini
 
               try {
                 const performance = calculatePerformance(row.precoEntrada || '', row.precoAtual || '');
-                const globalIndex = page * rowsPerPage + index + 1;
+                const globalIndex = index + 1; // Índice simples sem paginação
 
                 return (
                   <TableRow hover key={row.id}>
@@ -198,7 +199,7 @@ export function SettingsTable({ count, rows, page: initialPage, rowsPerPage: ini
                       {row.dy || 'N/A'}
                     </TableCell>
                     
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>
+                    <TableCell align="center" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {row.precoTeto || 'N/A'}
                     </TableCell>
                     
