@@ -50,7 +50,7 @@ export function useFiisCotacoesBrapi() {
 
   const fetchCotacoes = useCallback(async () => {
     setLoading(true);
-    const token = process.env.NEXT_PUBLIC_BRAPI_TOKEN || '';
+    const token = 'jJrMYVy9MATGEicx3GxBp8';
     const tickers = fiisBase.map(fii => fii.ticker);
     const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`;
 
