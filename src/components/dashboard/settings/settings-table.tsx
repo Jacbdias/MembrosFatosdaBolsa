@@ -4,13 +4,11 @@ import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -31,8 +29,6 @@ interface FII {
 interface SettingsTableProps {
   count: number;
   rows: FII[];
-  page: number;
-  rowsPerPage: number;
 }
 
 function parsePrice(price: string): number {
@@ -47,7 +43,7 @@ function calculatePerformance(precoEntrada: string, precoAtual: string): number 
   return ((atual - entrada) / entrada) * 100;
 }
 
-export function SettingsTable({ count, rows }: { count: number; rows: FII[] }): React.JSX.Element {
+export function SettingsTable({ count, rows }: SettingsTableProps): React.JSX.Element {
   // Sem necessidade de estados de paginação
   // const [page, setPage] = React.useState(initialPage);
   // const [rowsPerPage, setRowsPerPage] = React.useState(initialRowsPerPage);
@@ -74,7 +70,7 @@ export function SettingsTable({ count, rows }: { count: number; rows: FII[] }): 
   // };
 
   // Mostrar todos os FIIs sem paginação
-  const paginatedFiis = rows;
+  const displayedFiis = rows;
 
   return (
     <Card sx={{
@@ -129,7 +125,7 @@ export function SettingsTable({ count, rows }: { count: number; rows: FII[] }): 
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedFiis.map((row, index) => {
+            {displayedFiis.map((row, index) => {
               // Validation for each row
               if (!row || !row.id || !row.ticker) {
                 console.warn('Invalid FII row:', row);
