@@ -23,7 +23,7 @@ function noop() {}
 export default function SettingsPage(): React.JSX.Element {
   const { fiis, loading } = useFiisCotacoesBrapi();
 
-  if (loading) {
+  if (loading || !Array.isArray(fiis)) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
         <CircularProgress size={40} />
@@ -86,49 +86,56 @@ export default function SettingsPage(): React.JSX.Element {
               </TableRow>
             </TableHead>
             <TableBody>
-              {fiis.map((row, index) => {
-                const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
-                const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
-                const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
-                const vies = precoAtualNum < parseFloat(row.precoTeto.replace('R$ ', '').replace(',', '.')) ? 'Compra' : 'Aguardar';
+              {Array.isArray(fiis) && fiis.map((row, index) => {
+                try {
+                  if (!row || !row.id || !row.ticker) return null;
 
-                return (
-                  <TableRow hover key={row.id}>
-                    <TableCell align="center" sx={{ fontWeight: 800 }}>{index + 1}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar src={row.avatar} alt={row.ticker} sx={{ width: 40, height: 40 }} />
-                        <Box>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>{row.ticker}</Typography>
-                          <Typography variant="caption" sx={{ color: performance >= 0 ? '#059669' : '#dc2626', fontWeight: 600 }}>
-                            {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip label={row.setor} size="small" sx={{ fontSize: '0.75rem', fontWeight: 600 }} />
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontSize: '0.875rem', color: '#64748b' }}>{row.dataEntrada}</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>{row.precoEntrada}</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700, color: performance >= 0 ? '#10b981' : '#ef4444' }}>{row.precoAtual}</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>{row.dy}</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>{row.precoTeto}</TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={vies}
-                        size="small"
-                        sx={{
-                          backgroundColor: vies === 'Compra' ? '#dcfce7' : '#fef3c7',
-                          color: vies === 'Compra' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          textTransform: 'uppercase'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
+                  const precoEntradaNum = parseFloat(row.precoEntrada?.replace('R$ ', '')?.replace(',', '.') || '0');
+                  const precoAtualNum = parseFloat(row.precoAtual?.replace('R$ ', '')?.replace(',', '.') || '0');
+                  const performance = precoEntradaNum > 0 ? ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100 : 0;
+                  const vies = precoAtualNum < parseFloat(row.precoTeto?.replace('R$ ', '')?.replace(',', '.') || '0') ? 'Compra' : 'Aguardar';
+
+                  return (
+                    <TableRow hover key={row.id}>
+                      <TableCell align="center" sx={{ fontWeight: 800 }}>{index + 1}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Avatar src={row.avatar} alt={row.ticker} sx={{ width: 40, height: 40 }} />
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>{row.ticker}</Typography>
+                            <Typography variant="caption" sx={{ color: performance >= 0 ? '#059669' : '#dc2626', fontWeight: 600 }}>
+                              {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label={row.setor} size="small" sx={{ fontSize: '0.75rem', fontWeight: 600 }} />
+                      </TableCell>
+                      <TableCell align="center" sx={{ fontSize: '0.875rem', color: '#64748b' }}>{row.dataEntrada}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>{row.precoEntrada}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: performance >= 0 ? '#10b981' : '#ef4444' }}>{row.precoAtual}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>{row.dy}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>{row.precoTeto}</TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={vies}
+                          size="small"
+                          sx={{
+                            backgroundColor: vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                            color: vies === 'Compra' ? '#059669' : '#d97706',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            textTransform: 'uppercase'
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                } catch (error) {
+                  console.error('Erro ao renderizar linha:', row, error);
+                  return null;
+                }
               })}
             </TableBody>
           </Table>
