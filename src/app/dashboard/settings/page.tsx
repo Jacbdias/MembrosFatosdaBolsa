@@ -55,8 +55,6 @@ export default function SettingsPage(): React.JSX.Element {
       <SettingsTable 
         count={fiis.length} 
         rows={fiis}
-        page={0} 
-        rowsPerPage={10}
       />
     </Box>
   );
