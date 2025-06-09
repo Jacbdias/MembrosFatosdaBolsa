@@ -44,10 +44,6 @@ function calculatePerformance(precoEntrada: string, precoAtual: string): number 
 }
 
 export function SettingsTable({ count, rows }: SettingsTableProps): React.JSX.Element {
-  // Sem necessidade de estados de paginação
-  // const [page, setPage] = React.useState(initialPage);
-  // const [rowsPerPage, setRowsPerPage] = React.useState(initialRowsPerPage);
-
   // Validation
   if (!Array.isArray(rows) || rows.length === 0) {
     return (
@@ -58,19 +54,6 @@ export function SettingsTable({ count, rows }: SettingsTableProps): React.JSX.El
       </Box>
     );
   }
-
-  // Sem handlers de paginação necessários
-  // const handleChangePage = (event: unknown, newPage: number) => {
-  //   setPage(newPage);
-  // };
-
-  // const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   setRowsPerPage(parseInt(event.target.value, 10));
-  //   setPage(0);
-  // };
-
-  // Mostrar todos os FIIs sem paginação
-  const displayedFiis = rows;
 
   return (
     <Card sx={{
@@ -125,7 +108,7 @@ export function SettingsTable({ count, rows }: SettingsTableProps): React.JSX.El
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayedFiis.map((row, index) => {
+            {rows.map((row, index) => {
               // Validation for each row
               if (!row || !row.id || !row.ticker) {
                 console.warn('Invalid FII row:', row);
@@ -134,7 +117,7 @@ export function SettingsTable({ count, rows }: SettingsTableProps): React.JSX.El
 
               try {
                 const performance = calculatePerformance(row.precoEntrada || '', row.precoAtual || '');
-                const globalIndex = index + 1; // Índice simples sem paginação
+                const globalIndex = index + 1; // Índice simples
 
                 return (
                   <TableRow hover key={row.id}>
@@ -225,26 +208,6 @@ export function SettingsTable({ count, rows }: SettingsTableProps): React.JSX.El
           </TableBody>
         </Table>
       </Box>
-
-      {/* Pagination */}
-      <Divider />
-      <TablePagination
-        component="div"
-        count={count}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        page={page}
-        rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        labelRowsPerPage="Itens por página:"
-        labelDisplayedRows={({ from, to, count }) => 
-          `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
-        }
-        sx={{
-          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          p: 2
-        }}
-      />
     </Card>
   );
 }
