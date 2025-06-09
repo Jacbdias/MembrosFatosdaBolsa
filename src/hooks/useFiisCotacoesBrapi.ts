@@ -60,31 +60,71 @@ const fiisBase: Omit<FII, 'precoAtual' | 'dy' | 'vies'>[] = [
 export function useFiisCotacoesBrapi() {
   const [fiis, setFiis] = useState<FII[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
   const fetchCotacoes = useCallback(async () => {
     setLoading(true);
-    const token = 'jJrMYVy9MATGEicx3GxBp8';
+    setErro(null);
+    
+    const token = process.env.NEXT_PUBLIC_BRAPI_TOKEN || '';
     const tickers = fiisBase.map(fii => fii.ticker);
+    
+    // Adiciona logs para debug
+    console.log('🔍 Buscando cotações para:', tickers);
+    console.log('🔑 Token configurado:', token ? 'Sim' : 'Não');
+    
     const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`;
+    console.log('📡 URL da API:', url.replace(token, 'TOKEN_OCULTO'));
 
     try {
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('📊 Dados recebidos da API:', data);
 
-      if (!data.results) throw new Error('Sem resultados');
+      if (!data.results || !Array.isArray(data.results)) {
+        throw new Error('Formato de resposta inválido - results não encontrado');
+      }
 
+      if (data.results.length === 0) {
+        throw new Error('Nenhuma cotação retornada pela API');
+      }
+
+      // Mapeia as cotações com validação mais rigorosa
       const cotacoesMap = new Map();
-      data.results.forEach((fii: any) => {
-        if (fii.symbol && typeof fii.regularMarketPrice === 'number') {
-          cotacoesMap.set(fii.symbol, fii);
+      data.results.forEach((cotacao: any) => {
+        console.log(`📈 Processando ${cotacao.symbol}:`, {
+          symbol: cotacao.symbol,
+          regularMarketPrice: cotacao.regularMarketPrice,
+          currency: cotacao.currency,
+          marketState: cotacao.marketState
+        });
+
+        if (cotacao.symbol && 
+            typeof cotacao.regularMarketPrice === 'number' && 
+            !isNaN(cotacao.regularMarketPrice) &&
+            cotacao.regularMarketPrice > 0) {
+          cotacoesMap.set(cotacao.symbol, cotacao);
+        } else {
+          console.warn(`⚠️ Cotação inválida para ${cotacao.symbol}:`, cotacao);
         }
       });
 
+      console.log('✅ Cotações válidas encontradas:', Array.from(cotacoesMap.keys()));
+
       const atualizados: FII[] = fiisBase.map(fii => {
         const cotacao = cotacoesMap.get(fii.ticker);
-        if (cotacao) {
+        
+        if (cotacao && cotacao.regularMarketPrice) {
           const precoAtualNum = cotacao.regularMarketPrice;
           const precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
+          
+          console.log(`💰 ${fii.ticker}: R$ ${precoAtualNum.toFixed(2)}`);
+          
           return {
             ...fii,
             precoAtual,
@@ -92,6 +132,7 @@ export function useFiisCotacoesBrapi() {
             vies: calcularVies(fii.precoTeto, precoAtual)
           };
         } else {
+          console.warn(`❌ Usando preço de entrada para ${fii.ticker} - cotação não encontrada`);
           return {
             ...fii,
             precoAtual: fii.precoEntrada,
@@ -102,14 +143,22 @@ export function useFiisCotacoesBrapi() {
       });
 
       setFiis(atualizados);
+      console.log('🎯 FIIs atualizados com sucesso:', atualizados.length);
+      
     } catch (err) {
-      console.error('Erro ao buscar FIIs:', err);
-      setFiis(fiisBase.map(fii => ({
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('❌ Erro ao buscar cotações:', errorMessage);
+      setErro(errorMessage);
+      
+      // Fallback com dados estáticos
+      const fallbackData = fiisBase.map(fii => ({
         ...fii,
         precoAtual: fii.precoEntrada,
         dy: fii.dy,
         vies: calcularVies(fii.precoTeto, fii.precoEntrada)
-      })));
+      }));
+      
+      setFiis(fallbackData);
     } finally {
       setLoading(false);
     }
@@ -117,9 +166,21 @@ export function useFiisCotacoesBrapi() {
 
   useEffect(() => {
     fetchCotacoes();
+    
+    // Atualiza a cada 5 minutos durante horário comercial
+    const interval = setInterval(() => {
+      const agora = new Date();
+      const hora = agora.getHours();
+      const diaSemana = agora.getDay();
+      
+      // Segunda a sexta, das 9h às 18h
+      if (diaSemana >= 1 && diaSemana <= 5 && hora >= 9 && hora <= 18) {
+        fetchCotacoes();
+      }
+    }, 5 * 60 * 1000); // 5 minutos
+
+    return () => clearInterval(interval);
   }, [fetchCotacoes]);
 
-  return { fiis, loading };
+  return { fiis, loading, erro, refetch: fetchCotacoes };
 }
-
-export { SettingsPage } from '@/components/dashboard/settings/settings-table';
