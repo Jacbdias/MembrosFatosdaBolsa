@@ -61,8 +61,16 @@ export function useFiisCotacoesBrapi() {
   const [fiis, setFiis] = useState<FII[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null);
 
   const fetchCotacoes = useCallback(async () => {
+    // Verifica se já fez uma requisição nos últimos 2 minutos
+    const agora = new Date();
+    if (ultimaAtualizacao && (agora.getTime() - ultimaAtualizacao.getTime()) < 2 * 60 * 1000) {
+      console.log('⏰ Aguardando intervalo mínimo entre requisições...');
+      return;
+    }
+
     setLoading(true);
     setErro(null);
     
@@ -74,14 +82,28 @@ export function useFiisCotacoesBrapi() {
     console.log('📊 Total de FIIs na carteira:', tickers.length);
     console.log('🔑 Token configurado:', token ? 'Sim' : 'Não');
     
-    // Monta URL com ou sem token
-    const baseUrl = `https://brapi.dev/api/quote/${tickers.join(',')}`;
-    const url = token ? `${baseUrl}?token=${token}` : baseUrl;
+    // Divide em lotes menores para evitar rate limit (máximo 10 por vez)
+    const loteSize = 10;
+    const lotes = [];
+    for (let i = 0; i < tickers.length; i += loteSize) {
+      lotes.push(tickers.slice(i, i + loteSize));
+    }
     
-    console.log('📡 URL da API:', url.replace(token || '', 'TOKEN_OCULTO'));
-
-    try {
-      const response = await fetch(url);
+    console.log(`📦 Dividindo em ${lotes.length} lotes de até ${loteSize} FIIs`);
+    
+    const todasCotacoes = new Map();
+    
+    // Processa cada lote com delay
+    for (let i = 0; i < lotes.length; i++) {
+      const lote = lotes[i];
+      console.log(`📡 Processando lote ${i + 1}/${lotes.length}:`, lote);
+      
+      try {
+        // Monta URL para o lote atual
+        const baseUrl = `https://brapi.dev/api/quote/${lote.join(',')}`;
+        const url = token ? `${baseUrl}?token=${token}` : baseUrl;
+        
+        const response = await fetch(url);
       
       console.log('📡 Status da resposta:', response.status);
       
@@ -93,6 +115,12 @@ export function useFiisCotacoesBrapi() {
           statusText: response.statusText,
           body: errorText
         });
+        
+        // Tratamento específico para erro 429 (Rate Limit)
+        if (response.status === 429) {
+          throw new Error('Rate limit excedido. Tente novamente em alguns minutos.');
+        }
+        
         throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
       }
       
@@ -138,32 +166,34 @@ export function useFiisCotacoesBrapi() {
       // Atualiza FIIs com dados da API
       const atualizados: FII[] = fiisBase.map(fii => {
         const cotacao = cotacoesMap.get(fii.ticker);
+      const cotacao = todasCotacoes.get(fii.ticker);
+      
+      if (cotacao && cotacao.regularMarketPrice) {
+        const precoAtualNum = cotacao.regularMarketPrice;
+        const precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
         
-        if (cotacao && cotacao.regularMarketPrice) {
-          const precoAtualNum = cotacao.regularMarketPrice;
-          const precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
-          
-          console.log(`💰 ${fii.ticker}: R$ ${precoAtualNum.toFixed(2)} (API)`);
-          
-          return {
-            ...fii,
-            precoAtual,
-            dy: calcularDY(fii.dy, fii.precoEntrada, precoAtualNum),
-            vies: calcularVies(fii.precoTeto, precoAtual)
-          };
-        } else {
-          console.warn(`❌ ${fii.ticker}: usando preço de entrada (fallback)`);
-          return {
-            ...fii,
-            precoAtual: fii.precoEntrada,
-            dy: fii.dy,
-            vies: calcularVies(fii.precoTeto, fii.precoEntrada)
-          };
-        }
-      });
+        console.log(`💰 ${fii.ticker}: R$ ${precoAtualNum.toFixed(2)} (API)`);
+        
+        return {
+          ...fii,
+          precoAtual,
+          dy: calcularDY(fii.dy, fii.precoEntrada, precoAtualNum),
+          vies: calcularVies(fii.precoTeto, precoAtual)
+        };
+      } else {
+        console.warn(`❌ ${fii.ticker}: usando preço de entrada (fallback)`);
+        return {
+          ...fii,
+          precoAtual: fii.precoEntrada,
+          dy: fii.dy,
+          vies: calcularVies(fii.precoTeto, fii.precoEntrada)
+        };
+      }
+    });
 
-      setFiis(atualizados);
-      console.log(`🎯 Carteira atualizada! ${cotacoesMap.size}/${tickers.length} cotações da API`);
+    setFiis(atualizados);
+    setUltimaAtualizacao(new Date());
+    console.log(`🎯 Carteira atualizada! ${todasCotacoes.size}/${tickers.length} cotações obtidas`);
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -188,18 +218,18 @@ export function useFiisCotacoesBrapi() {
   useEffect(() => {
     fetchCotacoes();
     
-    // Auto-update durante horário comercial
+    // Auto-update durante horário comercial (reduzido para evitar erro 429)
     const interval = setInterval(() => {
       const agora = new Date();
       const hora = agora.getHours();
       const diaSemana = agora.getDay();
       
-      // Segunda a sexta, das 9h às 18h (horário de Brasília)
-      if (diaSemana >= 1 && diaSemana <= 5 && hora >= 9 && hora <= 18) {
+      // Segunda a sexta, das 10h às 17h (horário reduzido)
+      if (diaSemana >= 1 && diaSemana <= 5 && hora >= 10 && hora <= 17) {
         console.log('🔄 Auto-atualizando carteira de FIIs...');
         fetchCotacoes();
       }
-    }, 5 * 60 * 1000); // 5 minutos
+    }, 15 * 60 * 1000); // 15 minutos (reduzido de 5 para 15 minutos)
 
     return () => clearInterval(interval);
   }, [fetchCotacoes]);
