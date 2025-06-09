@@ -35,7 +35,7 @@ const fiisBase: Omit<FII, 'precoAtual' | 'dy' | 'vies'>[] = [
   { id: '1', avatar: 'https://www.ivalor.com.br/media/emp/logos/MALL.png', ticker: 'MALL11', setor: 'Shopping', dataEntrada: '26/01/2022', precoEntrada: 'R$ 118,37', dy: '10,09%', precoTeto: 'R$ 103,68' },
   { id: '2', avatar: 'https://www.ivalor.com.br/media/emp/logos/KNSC.png', ticker: 'KNSC11', setor: 'Papel', dataEntrada: '24/05/2022', precoEntrada: 'R$ 9,31', dy: '11,52%', precoTeto: 'R$ 9,16' },
   { id: '3', avatar: 'https://www.ivalor.com.br/media/emp/logos/KNHF.png', ticker: 'KNHF11', setor: 'Hedge Fund', dataEntrada: '20/12/2024', precoEntrada: 'R$ 76,31', dy: '12,17%', precoTeto: 'R$ 90,50' },
-  { id: '4', avatar: 'https://www.ivalor.com.br/media/emp/logos/HGBS.png', ticker: 'HGBS11', setor: 'Shopping', dataEntrada: '02/01/2025', precoEntrada: 'R$ 186,08', dy: '10,77%', precoTeto: 'R$ 192,00' }, // Corrigi o preço teto que estava R$ 19,20
+  { id: '4', avatar: 'https://www.ivalor.com.br/media/emp/logos/HGBS.png', ticker: 'HGBS11', setor: 'Shopping', dataEntrada: '02/01/2025', precoEntrada: 'R$ 186,08', dy: '10,77%', precoTeto: 'R$ 192,00' },
   { id: '5', avatar: 'https://www.ivalor.com.br/media/emp/logos/RURA.png', ticker: 'RURA11', setor: 'Fiagro', dataEntrada: '14/02/2023', precoEntrada: 'R$ 10,25', dy: '13,75%', precoTeto: 'R$ 8,70' },
   { id: '6', avatar: 'https://www.ivalor.com.br/media/emp/logos/BCIA.png', ticker: 'BCIA11', setor: 'FoF', dataEntrada: '12/04/2023', precoEntrada: 'R$ 82,28', dy: '11,80%', precoTeto: 'R$ 87,81' },
   { id: '7', avatar: 'https://www.ivalor.com.br/media/emp/logos/BPFF.png', ticker: 'BPFF11', setor: 'FoF', dataEntrada: '08/01/2024', precoEntrada: 'R$ 72,12', dy: '12,26%', precoTeto: 'R$ 66,26' },
@@ -53,56 +53,90 @@ export function useFiisCotacoesBrapi() {
     setLoading(true);
     setErro(null);
     
-    const token = process.env.NEXT_PUBLIC_BRAPI_TOKEN || '';
+    const token = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
     const tickers = fiisBase.map(fii => fii.ticker);
     
-    // Adiciona logs para debug
+    // Logs para debug
     console.log('🔍 Buscando cotações para:', tickers);
     console.log('🔑 Token configurado:', token ? 'Sim' : 'Não');
+    console.log('🔑 Token value:', token || 'UNDEFINED');
     
-    const url = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${token}`;
-    console.log('📡 URL da API:', url.replace(token, 'TOKEN_OCULTO'));
+    // Monta URL com ou sem token
+    const baseUrl = `https://brapi.dev/api/quote/${tickers.join(',')}`;
+    const url = token ? `${baseUrl}?token=${token}` : baseUrl;
+    
+    console.log('📡 URL da API:', url.replace(token || '', 'TOKEN_OCULTO'));
 
     try {
       const response = await fetch(url);
       
+      console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Headers da resposta:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
+        // Detalhes específicos do erro
+        const errorText = await response.text();
+        console.error('❌ Erro HTTP detalhado:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
         throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
       }
       
       const data = await response.json();
       console.log('📊 Dados recebidos da API:', data);
 
-      if (!data.results || !Array.isArray(data.results)) {
+      // Validação mais robusta da resposta
+      if (!data) {
+        throw new Error('Resposta vazia da API');
+      }
+
+      if (!data.results) {
+        console.error('❌ Estrutura da resposta:', Object.keys(data));
         throw new Error('Formato de resposta inválido - results não encontrado');
+      }
+
+      if (!Array.isArray(data.results)) {
+        throw new Error('Formato de resposta inválido - results não é um array');
       }
 
       if (data.results.length === 0) {
         throw new Error('Nenhuma cotação retornada pela API');
       }
 
-      // Mapeia as cotações com validação mais rigorosa
+      // Processa cotações com validação rigorosa
       const cotacoesMap = new Map();
       data.results.forEach((cotacao: any) => {
         console.log(`📈 Processando ${cotacao.symbol}:`, {
           symbol: cotacao.symbol,
           regularMarketPrice: cotacao.regularMarketPrice,
           currency: cotacao.currency,
-          marketState: cotacao.marketState
+          marketState: cotacao.marketState,
+          type: typeof cotacao.regularMarketPrice
         });
 
+        // Validação mais rigorosa
         if (cotacao.symbol && 
+            cotacao.regularMarketPrice !== null &&
+            cotacao.regularMarketPrice !== undefined &&
             typeof cotacao.regularMarketPrice === 'number' && 
             !isNaN(cotacao.regularMarketPrice) &&
             cotacao.regularMarketPrice > 0) {
           cotacoesMap.set(cotacao.symbol, cotacao);
         } else {
-          console.warn(`⚠️ Cotação inválida para ${cotacao.symbol}:`, cotacao);
+          console.warn(`⚠️ Cotação inválida para ${cotacao.symbol}:`, {
+            symbol: cotacao.symbol,
+            price: cotacao.regularMarketPrice,
+            type: typeof cotacao.regularMarketPrice
+          });
         }
       });
 
       console.log('✅ Cotações válidas encontradas:', Array.from(cotacoesMap.keys()));
+      console.log('❌ Cotações não encontradas:', tickers.filter(t => !cotacoesMap.has(t)));
 
+      // Atualiza FIIs com dados da API
       const atualizados: FII[] = fiisBase.map(fii => {
         const cotacao = cotacoesMap.get(fii.ticker);
         
@@ -110,7 +144,7 @@ export function useFiisCotacoesBrapi() {
           const precoAtualNum = cotacao.regularMarketPrice;
           const precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
           
-          console.log(`💰 ${fii.ticker}: R$ ${precoAtualNum.toFixed(2)}`);
+          console.log(`💰 ${fii.ticker}: R$ ${precoAtualNum.toFixed(2)} (API)`);
           
           return {
             ...fii,
@@ -119,7 +153,7 @@ export function useFiisCotacoesBrapi() {
             vies: calcularVies(fii.precoTeto, precoAtual)
           };
         } else {
-          console.warn(`❌ Usando preço de entrada para ${fii.ticker} - cotação não encontrada`);
+          console.warn(`❌ ${fii.ticker}: usando preço de entrada (API não retornou)`);
           return {
             ...fii,
             precoAtual: fii.precoEntrada,
@@ -130,14 +164,14 @@ export function useFiisCotacoesBrapi() {
       });
 
       setFiis(atualizados);
-      console.log('🎯 FIIs atualizados com sucesso:', atualizados.length);
+      console.log('🎯 FIIs atualizados com sucesso!');
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       console.error('❌ Erro ao buscar cotações:', errorMessage);
       setErro(errorMessage);
       
-      // Fallback com dados estáticos
+      // Fallback: usa preços de entrada
       const fallbackData = fiisBase.map(fii => ({
         ...fii,
         precoAtual: fii.precoEntrada,
@@ -146,6 +180,7 @@ export function useFiisCotacoesBrapi() {
       }));
       
       setFiis(fallbackData);
+      console.log('🔄 Usando dados fallback (preços de entrada)');
     } finally {
       setLoading(false);
     }
@@ -154,14 +189,15 @@ export function useFiisCotacoesBrapi() {
   useEffect(() => {
     fetchCotacoes();
     
-    // Atualiza a cada 5 minutos durante horário comercial
+    // Auto-update durante horário comercial
     const interval = setInterval(() => {
       const agora = new Date();
       const hora = agora.getHours();
       const diaSemana = agora.getDay();
       
-      // Segunda a sexta, das 9h às 18h
+      // Segunda a sexta, das 9h às 18h (horário de Brasília)
       if (diaSemana >= 1 && diaSemana <= 5 && hora >= 9 && hora <= 18) {
+        console.log('🔄 Auto-atualizando cotações...');
         fetchCotacoes();
       }
     }, 5 * 60 * 1000); // 5 minutos
@@ -169,5 +205,10 @@ export function useFiisCotacoesBrapi() {
     return () => clearInterval(interval);
   }, [fetchCotacoes]);
 
-  return { fiis, loading, erro, refetch: fetchCotacoes };
+  return { 
+    fiis, 
+    loading, 
+    erro, 
+    refetch: fetchCotacoes 
+  };
 }
