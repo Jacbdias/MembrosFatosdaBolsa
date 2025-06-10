@@ -141,10 +141,21 @@ function EmpresaDetalhes() {
     };
   }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
 
-  // ...continua com a renderização completa da página como no original
-  // (cards, grids, tabelas, relatórios, etc), usando empresaCompleta
+  if (!empresaCompleta || dataSource === 'not_found') {
+    return <div style={{ padding: 24 }}><strong>Empresa não encontrada.</strong></div>;
+  }
 
-  return <>{/* JSX principal mantido */}</>;
+  return (
+    <div style={{ padding: 24 }}>
+      <h1>{empresaCompleta.ticker} - {empresaCompleta.nomeCompleto}</h1>
+      <p><strong>Setor:</strong> {empresaCompleta.setor}</p>
+      <p><strong>Descrição:</strong> {empresaCompleta.descricao}</p>
+      <p><strong>DY:</strong> {dadosFinanceiros?.dy?.toFixed(2)}%</p>
+      <p><strong>Preço Atual:</strong> R$ {dadosFinanceiros?.precoAtual?.toFixed(2)}</p>
+      <p><strong>Vies Atual:</strong> {empresaCompleta.viesAtual}</p>
+      <p><strong>Atualizado em:</strong> {ultimaAtualizacao}</p>
+    </div>
+  );
 }
 
 export default EmpresaDetalhes;
