@@ -38,8 +38,8 @@ import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calenda
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
 import { X as CloseIcon } from '@phosphor-icons/react/dist/ssr/X';
-import { Refresh as RefreshIcon } from '@phosphor-icons/react/dist/ssr/Refresh';
-import { Warning as WarningIcon } from '@phosphor-icons/react/dist/ssr/Warning';
+import { ArrowClockwise as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise';
+import { WarningCircle as WarningIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
 import { CheckCircle as CheckIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 
 // 🔑 TOKEN BRAPI VALIDADO
@@ -267,7 +267,6 @@ const MetricCard = ({
   color = 'primary', 
   subtitle, 
   loading = false,
-  icon,
   trend 
 }: { 
   title: string; 
@@ -275,7 +274,6 @@ const MetricCard = ({
   color?: string; 
   subtitle?: string;
   loading?: boolean;
-  icon?: React.ReactNode;
   trend?: 'up' | 'down';
 }) => (
   <Card sx={{ height: '100%', border: '1px solid #e5e7eb', position: 'relative' }}>
@@ -288,7 +286,6 @@ const MetricCard = ({
       ) : (
         <>
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ mb: 1 }}>
-            {icon}
             <Typography variant="h5" sx={{ 
               fontWeight: 700, 
               color: color === 'success' ? '#22c55e' : color === 'error' ? '#ef4444' : 'inherit' 
@@ -556,12 +553,6 @@ export default function EmpresaDetalhes() {
     let empresaAtualizada = { ...empresa };
     
     if (dadosFinanceiros) {
-      const precoEntradaNum = parseFloat(empresa.precoIniciou.replace('R$ ', '').replace(',', '.'));
-      
-      // 📊 CALCULAR PERFORMANCE
-      const performance = dadosFinanceiros.precoAtual > 0 ? 
-        ((dadosFinanceiros.precoAtual - precoEntradaNum) / precoEntradaNum) * 100 : 0;
-      
       empresaAtualizada = {
         ...empresaAtualizada,
         dadosFinanceiros,
@@ -577,18 +568,6 @@ export default function EmpresaDetalhes() {
   const handleRelatorioClick = (relatorio: Relatorio) => {
     setSelectedRelatorio(relatorio);
     setModalOpen(true);
-  };
-
-  const handleDirectDownload = (relatorio: Relatorio, event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (relatorio.downloadUrl) {
-      const link = document.createElement('a');
-      link.href = relatorio.downloadUrl;
-      link.download = `${relatorio.nome}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
   };
 
   if (!empresaCompleta || dataSource === 'not_found') {
@@ -647,7 +626,6 @@ export default function EmpresaDetalhes() {
         </Button>
         
         <Stack direction="row" spacing={2} alignItems="center">
-          {/* Status dos dados */}
           {dadosLoading ? (
             <Alert severity="info" sx={{ py: 0.5 }}>
               <CircularProgress size={16} sx={{ mr: 1 }} />
@@ -852,7 +830,7 @@ export default function EmpresaDetalhes() {
       {/* Dados da posição e fundamentalistas */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
-          <Card sx={{ height: 'fit-content' }}>
+          <Card>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
                 📊 Dados da Posição
@@ -920,7 +898,7 @@ export default function EmpresaDetalhes() {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card sx={{ height: 'fit-content' }}>
+          <Card>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
                 📈 {isFII ? 'Dados do Fundo' : 'Dados Fundamentalistas'}
@@ -1061,147 +1039,6 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* Análise de performance melhorada */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ 
-                mb: 3, 
-                fontWeight: 600, 
-                display: 'flex', 
-                alignItems: 'center' 
-              }}>
-                🎯 Análise de Performance Detalhada
-              </Typography>
-              
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={8}>
-                  {dados && (
-                    <>
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Performance vs Preço de Entrada
-                        </Typography>
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" color="text.secondary">
-                              {empresaCompleta.ticker}
-                            </Typography>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={Math.min(Math.abs(
-                                ((dados.precoAtual - parseFloat(empresaCompleta.precoIniciou.replace('R$ ', '').replace(',', '.'))) / 
-                                parseFloat(empresaCompleta.precoIniciou.replace('R$ ', '').replace(',', '.'))) * 100
-                              ), 100)} 
-                              sx={{ 
-                                height: 12, 
-                                borderRadius: 1, 
-                                backgroundColor: '#e5e7eb',
-                                '& .MuiLinearProgress-bar': {
-                                  backgroundColor: ((dados.precoAtual - parseFloat(empresaCompleta.precoIniciou.replace('R$ ', '').replace(',', '.'))) >= 0) ? '#22c55e' : '#ef4444'
-                                }
-                              }}
-                            />
-                          </Box>
-                          <Typography variant="body2" sx={{ 
-                            fontWeight: 600, 
-                            minWidth: 80,
-                            color: ((dados.precoAtual - parseFloat(empresaCompleta.precoIniciou.replace('R$ ', '').replace(',', '.'))) >= 0) ? '#22c55e' : '#ef4444'
-                          }}>
-                            {formatarValor(
-                              ((dados.precoAtual - parseFloat(empresaCompleta.precoIniciou.replace('R$ ', '').replace(',', '.'))) / 
-                              parseFloat(empresaCompleta.precoIniciou.replace('R$ ', '').replace(',', '.'))) * 100, 
-                              'percent'
-                            )}
-                          </Typography>
-                        </Stack>
-                      </Box>
-
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          Distância do Preço Teto
-                        </Typography>
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" color="text.secondary">
-                              Potencial até o teto
-                            </Typography>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={Math.min((dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) * 100, 100)} 
-                              sx={{ 
-                                height: 12, 
-                                borderRadius: 1, 
-                                backgroundColor: '#e5e7eb',
-                                '& .MuiLinearProgress-bar': {
-                                  backgroundColor: (dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) < 0.9 ? '#22c55e' : '#ef4444'
-                                }
-                              }}
-                            />
-                          </Box>
-                          <Typography variant="body2" sx={{ 
-                            fontWeight: 600, 
-                            minWidth: 80,
-                            color: (dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) < 0.9 ? '#22c55e' : '#ef4444'
-                          }}>
-                            {formatarValor((dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) * 100, 'percent')}
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    </>
-                  )}
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2, height: '100%' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                      💡 Resumo da Análise
-                    </Typography>
-                    <Stack spacing={1}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">Viés calculado:</Typography>
-                        <Chip 
-                          label={empresaCompleta.viesAtual} 
-                          size="small"
-                          color={
-                            empresaCompleta.viesAtual.includes('Compra') ? 'success' : 
-                            empresaCompleta.viesAtual === 'Venda' ? 'error' : 'default'
-                          }
-                        />
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">DY atualizado:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                          {dados?.dy ? formatarValor(dados.dy, 'percent') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">Fonte dos dados:</Typography>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 600, 
-                          color: dados ? '#22c55e' : '#f59e0b' 
-                        }}>
-                          {dados ? 'API BRAPI' : 'Estático'}
-                        </Typography>
-                      </Box>
-                      {ultimaAtualizacao && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">Atualizado:</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {ultimaAtualizacao.split(' ')[1]}
-                          </Typography>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       {/* Seção de proventos se disponível */}
       {empresaCompleta.proventos && empresaCompleta.proventos.length > 0 && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -1247,102 +1084,6 @@ export default function EmpresaDetalhes() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-
-      {/* Seção de relatórios */}
-      {empresaCompleta.relatorios && empresaCompleta.relatorios.length > 0 && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12}>
-            <Card>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h6" sx={{ 
-                  mb: 3, 
-                  fontWeight: 600, 
-                  display: 'flex', 
-                  alignItems: 'center' 
-                }}>
-                  📄 Relatórios e Documentos
-                </Typography>
-                
-                <Grid container spacing={2}>
-                  {empresaCompleta.relatorios.map((relatorio, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <Card 
-                        sx={{ 
-                          cursor: 'pointer', 
-                          transition: 'all 0.2s',
-                          '&:hover': { 
-                            transform: 'translateY(-2px)', 
-                            boxShadow: 3 
-                          },
-                          border: '1px solid #e5e7eb',
-                          position: 'relative'
-                        }}
-                        onClick={() => handleRelatorioClick(relatorio)}
-                      >
-                        <CardContent sx={{ p: 3 }}>
-                          <Stack direction="row" spacing={2} alignItems="flex-start">
-                            <FileTextIcon size={24} style={{ color: '#3b82f6', marginTop: 4 }} />
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                {relatorio.nome}
-                              </Typography>
-                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                                <CalendarIcon size={16} style={{ color: '#6b7280' }} />
-                                <Typography variant="caption" color="text.secondary">
-                                  {relatorio.data}
-                                </Typography>
-                              </Stack>
-                              <Chip 
-                                label={relatorio.tipo} 
-                                size="small" 
-                                variant="outlined"
-                                color="primary"
-                              />
-                              
-                              <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                                {relatorio.canvaUrl && (
-                                  <Chip 
-                                    label="👁️ Visualizar" 
-                                    size="small" 
-                                    sx={{ fontSize: '0.7rem' }}
-                                    color="info"
-                                  />
-                                )}
-                                {relatorio.downloadUrl && (
-                                  <Chip 
-                                    label="⬇️ Download" 
-                                    size="small" 
-                                    sx={{ fontSize: '0.7rem' }}
-                                    color="success"
-                                  />
-                                )}
-                              </Stack>
-                            </Box>
-                            
-                            {relatorio.downloadUrl && (
-                              <IconButton
-                                size="small"
-                                onClick={(e) => handleDirectDownload(relatorio, e)}
-                                sx={{ 
-                                  '&:hover': { 
-                                    backgroundColor: 'rgba(34, 197, 94, 0.1)' 
-                                  } 
-                                }}
-                              >
-                                <DownloadIcon size={20} style={{ color: '#22c55e' }} />
-                              </IconButton>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
               </CardContent>
             </Card>
           </Grid>
