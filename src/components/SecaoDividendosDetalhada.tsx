@@ -1,4 +1,4 @@
-// 🎯 src/components/SecaoDividendosDetalhada.tsx
+// 🎯 src/components/SecaoDividendosDetalhada.tsx - VERSÃO CORRIGIDA
 'use client';
 
 import * as React from 'react';
@@ -20,10 +20,12 @@ import {
   LinearProgress,
   Alert,
   CircularProgress,
-  Divider
+  Divider,
+  Button
 } from '@mui/material';
 import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
+import { ArrowClockwise as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise';
 import { useDividendosAtivo } from '@/hooks/useDividendosAtivo';
 
 interface SecaoDividendosProps {
@@ -41,7 +43,7 @@ export function SecaoDividendosDetalhada({
   precoAtual,
   isFII = false 
 }: SecaoDividendosProps) {
-  const { dividendos, performance, loading, error } = useDividendosAtivo(
+  const { dividendos, performance, loading, error, refetch } = useDividendosAtivo(
     ticker, 
     dataEntrada, 
     precoEntrada, 
@@ -73,13 +75,64 @@ export function SecaoDividendosDetalhada({
           <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
             💰 Análise de Dividendos
           </Typography>
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            Erro ao carregar dividendos: {error}
-          </Alert>
-          {performance && (
-            <Typography variant="body2" color="text.secondary">
-              Mostrando apenas performance de capital: {performance.performanceCapital.toFixed(2)}%
+          
+          <Alert 
+            severity="warning" 
+            sx={{ mb: 3 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={refetch}
+                startIcon={<RefreshIcon size={16} />}
+              >
+                Tentar Novamente
+              </Button>
+            }
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Erro ao carregar dividendos
             </Typography>
+            <Typography variant="body2">
+              {error}
+            </Typography>
+          </Alert>
+
+          {performance && (
+            <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
+                📈 Performance de Capital (sem dividendos)
+              </Typography>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Valorização do papel
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={Math.min(Math.abs(performance.performanceCapital), 100)} 
+                    sx={{ 
+                      height: 12, 
+                      borderRadius: 1, 
+                      backgroundColor: '#e5e7eb',
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: performance.performanceCapital >= 0 ? '#22c55e' : '#ef4444'
+                      }
+                    }}
+                  />
+                </Box>
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 700,
+                  color: performance.performanceCapital >= 0 ? '#22c55e' : '#ef4444',
+                  minWidth: 80
+                }}>
+                  {performance.performanceCapital > 0 ? '+' : ''}{performance.performanceCapital.toFixed(1)}%
+                </Typography>
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                {precoEntrada} → {precoAtual}
+              </Typography>
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -93,9 +146,14 @@ export function SecaoDividendosDetalhada({
           <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
             💰 Análise de Dividendos
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Dados insuficientes para análise de dividendos.
-          </Typography>
+          <Alert severity="info">
+            <Typography variant="body1">
+              Dados insuficientes para análise de dividendos.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Verifique se o ticker está correto e tente novamente.
+            </Typography>
+          </Alert>
         </CardContent>
       </Card>
     );
@@ -110,9 +168,23 @@ export function SecaoDividendosDetalhada({
       <Grid item xs={12}>
         <Card>
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              💰 Análise de Rentabilidade Completa
-            </Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                💰 Análise de Rentabilidade Completa
+              </Typography>
+              
+              {performance.status === 'partial' && (
+                <Alert severity="info" sx={{ py: 0.5 }}>
+                  Sem dividendos encontrados
+                </Alert>
+              )}
+              
+              {performance.status === 'success' && (
+                <Alert severity="success" sx={{ py: 0.5 }}>
+                  ✅ Dados reais via API
+                </Alert>
+              )}
+            </Stack>
             
             <Grid container spacing={3}>
               {/* Performance de Capital */}
@@ -195,7 +267,10 @@ export function SecaoDividendosDetalhada({
                       📊 Pagamentos
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      Média: R$ {performance.mediaAnual.toFixed(2).replace('.', ',')} /ano
+                      {performance.mediaAnual > 0 
+                        ? `Média: R$ ${performance.mediaAnual.toFixed(2).replace('.', ',')} /ano`
+                        : 'Nenhum pagamento encontrado'
+                      }
                     </Typography>
                   </CardContent>
                 </Card>
@@ -226,10 +301,8 @@ export function SecaoDividendosDetalhada({
                   </TableHead>
                   <TableBody>
                     {dividendos.map((dividendo, index) => {
-                      const precoEntradaNum = parseFloat(precoEntrada.replace('R$ ', '').replace(',', '.'));
-                      const percentualSobreEntrada = precoEntradaNum > 0 
-                        ? (dividendo.value / precoEntradaNum) * 100 
-                        : 0;
+                      const precoEntradaNum = parseFloat(precoEntrada.replace(/[^\d.,]/g, '').replace(',', '.')) || 1;
+                      const percentualSobreEntrada = (dividendo.value / precoEntradaNum) * 100;
                       
                       return (
                         <TableRow key={index} hover>
@@ -258,12 +331,22 @@ export function SecaoDividendosDetalhada({
               </TableContainer>
             ) : (
               <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                   📭 Nenhum {isFII ? 'rendimento' : 'dividendo'} encontrado desde a entrada.
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Data de entrada: {dataEntrada}
                 </Typography>
+                <Box sx={{ mt: 2 }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    onClick={refetch}
+                    startIcon={<RefreshIcon size={16} />}
+                  >
+                    Buscar Novamente
+                  </Button>
+                </Box>
               </Box>
             )}
           </CardContent>
