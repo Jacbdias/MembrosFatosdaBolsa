@@ -629,13 +629,24 @@ export default function EmpresaDetalhes() {
                     ) : (
                       <TrendDownIcon size={24} style={{ color: '#ef4444' }} />
                     )}
-                    <Typography sx={{ 
-                      color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
-                      fontWeight: 700, 
-                      fontSize: '1.2rem' 
-                    }}>
-                      {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
-                    </Typography>
+                    <Box>
+                      <Typography sx={{ 
+                        color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
+                        fontWeight: 700, 
+                        fontSize: '1.2rem',
+                        lineHeight: 1
+                      }}>
+                        {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#6b7280',
+                        fontSize: '0.75rem',
+                        display: 'block',
+                        textAlign: { xs: 'center', md: 'right' }
+                      }}>
+                        variação hoje
+                      </Typography>
+                    </Box>
                   </Stack>
                 </>
               )}
@@ -646,7 +657,7 @@ export default function EmpresaDetalhes() {
 
       {/* Cards de métricas - ESTILO MODERNO */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="COTAÇÃO" 
             value={precoAtualFormatado.replace('R$ ', 'R$ ')}
@@ -654,7 +665,17 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="VARIAÇÃO HOJE" 
+            value={dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+            loading={dadosLoading}
+            trend={dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined}
+            subtitle="variação hoje"
+            showInfo={true}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="VARIAÇÃO (12M)" 
             value={calcularPerformance()}
@@ -663,7 +684,7 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="P/L" 
             value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
@@ -671,7 +692,7 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="P/VP" 
             value={dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
@@ -679,7 +700,7 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="DY" 
             value={dyDaTabela}
