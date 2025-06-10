@@ -20,46 +20,21 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import LinearProgress from '@mui/material/LinearProgress';
-import Divider from '@mui/material/Divider';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
 import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
-import { FileText as FileTextIcon } from '@phosphor-icons/react/dist/ssr/FileText';
-import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
-import { X as CloseIcon } from '@phosphor-icons/react/dist/ssr/X';
 import { ArrowClockwise as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise';
 import { WarningCircle as WarningIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
 import { CheckCircle as CheckIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 
 // 🔑 TOKEN BRAPI VALIDADO
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-interface Provento {
-  tipo: string;
-  valor: string;
-  dataEx: string;
-  dataPagamento: string;
-  status: string;
-}
-
-interface Relatorio {
-  nome: string;
-  data: string;
-  tipo: string;
-  canvaUrl?: string;
-  downloadUrl?: string;
-}
 
 interface DadosFinanceiros {
   precoAtual: number;
@@ -71,16 +46,9 @@ interface DadosFinanceiros {
   pvp?: number;
   roe?: number;
   dy?: number;
-  ebitda?: number;
-  dividaLiquida?: number;
-  patrimonio?: number;
-  vacancia?: number;
-  rendimento12m?: number;
-  valorPatrimonial?: number;
-  ultimoRendimento?: number;
 }
 
-interface EmpresaBase {
+interface EmpresaCompleta {
   ticker: string;
   nomeCompleto: string;
   setor: string;
@@ -92,26 +60,14 @@ interface EmpresaBase {
   viesAtual: string;
   ibovespaEpoca: string;
   percentualCarteira: string;
-  proventos?: Provento[];
-  relatorios?: Relatorio[];
+  tipo?: 'FII';
+  gestora?: string;
   dadosFinanceiros?: DadosFinanceiros;
-  statusApi?: 'loading' | 'success' | 'error' | 'not_found';
+  statusApi?: string;
   ultimaAtualizacao?: string;
 }
 
-interface Empresa extends EmpresaBase {
-  tipo?: never;
-}
-
-interface FII extends EmpresaBase {
-  tipo: 'FII';
-  gestora: string;
-  imoveis?: number;
-}
-
-type EmpresaCompleta = Empresa | FII;
-
-// 🚀 HOOK MELHORADO PARA BUSCAR DADOS FINANCEIROS
+// 🚀 HOOK PARA BUSCAR DADOS FINANCEIROS
 function useDadosFinanceiros(ticker: string) {
   const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,13 +81,8 @@ function useDadosFinanceiros(ticker: string) {
       setLoading(true);
       setError(null);
 
-      console.log(`🔍 [${ticker}] Iniciando busca de dados...`);
-
-      // 📊 URL da API BRAPI simplificada (removendo módulos que causam erro 417)
       const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`;
       
-      console.log(`🌐 [${ticker}] URL da API:`, quoteUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
-
       const response = await fetch(quoteUrl, {
         method: 'GET',
         headers: {
@@ -141,93 +92,25 @@ function useDadosFinanceiros(ticker: string) {
         }
       });
 
-      console.log(`📡 [${ticker}] Status da resposta:`, response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log(`📊 [${ticker}] Dados completos recebidos:`, data);
 
         if (data.results && data.results.length > 0) {
           const quote = data.results[0];
-          console.log(`🔍 [${ticker}] Quote principal:`, quote);
           
-          // 📊 EXTRAIR DADOS DOS MÓDULOS DISPONÍVEIS
-          const summaryDetail = quote.summaryDetail || {};
-          const defaultStatistics = quote.defaultStatistics || {};
-          const summaryProfile = quote.summaryProfile || {};
-          const financialData = quote.financialData || {};
+          const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
           
-          console.log(`📈 [${ticker}] Dados disponíveis:`, {
-            quote: Object.keys(quote),
-            summaryDetail: Object.keys(summaryDetail),
-            defaultStatistics: Object.keys(defaultStatistics),
-            financialData: Object.keys(financialData)
-          });
-          
-          // 🔍 DETECTAR SE É FII
-          const isFII = ticker.includes('11') || 
-                       quote.quoteType === 'TRUST' || 
-                       quote.longName?.toLowerCase().includes('fundo') ||
-                       quote.longName?.toLowerCase().includes('fii');
-
-          console.log(`🏢 [${ticker}] É FII?`, isFII);
-
-          // 💰 PREÇO ATUAL - USAR DADOS BÁSICOS DA BRAPI
-          const precoAtual = quote.regularMarketPrice || 
-                           quote.currentPrice || 
-                           quote.price ||
-                           0;
-
-          console.log(`💰 [${ticker}] Preço atual encontrado:`, precoAtual);
-
-          // 📊 DIVIDEND YIELD - USAR DADOS BÁSICOS
           let dividendYield = 0;
-          
-          // Tentar diferentes campos da resposta da BRAPI
           if (quote.dividendYield) {
             dividendYield = quote.dividendYield;
-            console.log(`💎 [${ticker}] DY do quote.dividendYield:`, dividendYield);
           } else if (quote.dividendsData?.yield) {
             dividendYield = quote.dividendsData.yield;
-            console.log(`💎 [${ticker}] DY da dividendsData:`, dividendYield);
-          } else if (summaryDetail.dividendYield) {
-            dividendYield = summaryDetail.dividendYield * 100; // Converter para %
-            console.log(`💎 [${ticker}] DY do summaryDetail:`, dividendYield);
-          } else {
-            // Calcular DY baseado no histórico se disponível
-            if (quote.dividends && quote.dividends.length > 0) {
-              const ultimoAno = quote.dividends.filter((d: any) => {
-                const dataDividendo = new Date(d.date);
-                const agora = new Date();
-                return dataDividendo.getFullYear() === agora.getFullYear() - 1;
-              });
-              
-              if (ultimoAno.length > 0) {
-                const totalDividendos = ultimoAno.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
-                if (precoAtual > 0) {
-                  dividendYield = (totalDividendos / precoAtual) * 100;
-                  console.log(`💎 [${ticker}] DY calculado dos dividendos:`, dividendYield);
-                }
-              }
-            }
           }
 
-          // 📈 DADOS FUNDAMENTALISTAS - USAR O QUE ESTIVER DISPONÍVEL
-          const pl = quote.priceEarnings || 
-                    quote.pe || 
-                    summaryDetail.trailingPE || 
-                    summaryDetail.forwardPE;
-
-          const pvp = quote.priceToBook || 
-                     summaryDetail.priceToBook ||
-                     (precoAtual && quote.bookValue ? precoAtual / quote.bookValue : undefined);
-
-          const roe = quote.returnOnEquity ? 
-                     quote.returnOnEquity * 100 : 
-                     (defaultStatistics.returnOnEquity ? defaultStatistics.returnOnEquity * 100 : undefined);
-
-          const marketCap = quote.marketCap || 
-                           summaryDetail.marketCap;
+          const pl = quote.priceEarnings || quote.pe;
+          const pvp = quote.priceToBook;
+          const roe = quote.returnOnEquity ? quote.returnOnEquity * 100 : undefined;
+          const marketCap = quote.marketCap;
 
           const dadosProcessados: DadosFinanceiros = {
             precoAtual: precoAtual,
@@ -235,49 +118,24 @@ function useDadosFinanceiros(ticker: string) {
             variacaoPercent: quote.regularMarketChangePercent || 0,
             volume: quote.regularMarketVolume || quote.volume || 0,
             dy: dividendYield,
-            
-            // 📈 DADOS ESPECÍFICOS PARA AÇÕES
-            ...(!isFII && {
-              marketCap: marketCap,
-              pl: pl,
-              pvp: pvp,
-              roe: roe,
-              ebitda: financialData.ebitda || quote.ebitda,
-              dividaLiquida: financialData.totalDebt || quote.totalDebt
-            }),
-            
-            // 🏢 DADOS ESPECÍFICOS PARA FIIs
-            ...(isFII && {
-              patrimonio: marketCap || quote.totalAssets,
-              valorPatrimonial: quote.bookValue || quote.navPrice,
-              pvp: pvp,
-              rendimento12m: dividendYield
-            })
+            marketCap: marketCap,
+            pl: pl,
+            pvp: pvp,
+            roe: roe
           };
-
-          console.log(`✅ [${ticker}] Dados finais processados:`, dadosProcessados);
-
-          // 🔍 VALIDAÇÃO DOS DADOS
-          if (dadosProcessados.precoAtual <= 0) {
-            console.warn(`⚠️ [${ticker}] Preço atual inválido:`, dadosProcessados.precoAtual);
-          }
 
           setDadosFinanceiros(dadosProcessados);
           setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
           
         } else {
-          console.error(`❌ [${ticker}] Nenhum resultado encontrado na resposta:`, data);
-          throw new Error('Nenhum resultado encontrado na resposta da API');
+          throw new Error('Nenhum resultado encontrado');
         }
       } else {
-        const errorText = await response.text();
-        console.error(`❌ [${ticker}] Erro HTTP ${response.status}:`, errorText);
-        throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+        throw new Error(`Erro HTTP ${response.status}`);
       }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error(`❌ [${ticker}] Erro geral:`, err);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -286,17 +144,14 @@ function useDadosFinanceiros(ticker: string) {
 
   useEffect(() => {
     buscarDados();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS
     const interval = setInterval(buscarDados, 5 * 60 * 1000);
-    
     return () => clearInterval(interval);
   }, [buscarDados]);
 
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
 }
 
-// 🎯 FUNÇÃO PARA CALCULAR VIÉS BASEADO EM DADOS REAIS
+// 🎯 FUNÇÃO PARA CALCULAR VIÉS
 function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
   
@@ -305,8 +160,6 @@ function calcularViesInteligente(precoTeto: string, precoAtual: number): string 
   }
   
   const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
-  
-  console.log(`🎯 Cálculo de viés: Preço atual ${precoAtual} vs Teto ${precoTetoNum} = ${percentualDoTeto.toFixed(1)}%`);
   
   if (percentualDoTeto <= 80) {
     return 'Compra Forte';
@@ -321,7 +174,7 @@ function calcularViesInteligente(precoTeto: string, precoAtual: number): string 
   }
 }
 
-// 🔥 FUNÇÃO MELHORADA PARA FORMATAR VALORES
+// 🔥 FUNÇÃO PARA FORMATAR VALORES
 function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
   if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
   
@@ -357,7 +210,7 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
   }
 }
 
-// 📊 COMPONENTE DE MÉTRICA MELHORADO COM VISUAL MAIS LIMPO
+// 📊 COMPONENTE DE MÉTRICA
 const MetricCard = ({ 
   title, 
   value, 
@@ -397,7 +250,6 @@ const MetricCard = ({
         </>
       ) : (
         <>
-          {/* Valor principal */}
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ mb: 1.5 }}>
             <Typography variant="h4" sx={{ 
               fontWeight: 800, 
@@ -418,7 +270,6 @@ const MetricCard = ({
             )}
           </Stack>
           
-          {/* Título */}
           <Typography variant="body2" sx={{ 
             fontWeight: 600, 
             fontSize: '0.875rem',
@@ -428,7 +279,6 @@ const MetricCard = ({
             {title}
           </Typography>
           
-          {/* Subtítulo */}
           {subtitle && (
             <Typography variant="caption" sx={{ 
               color: '#6b7280',
@@ -445,7 +295,17 @@ const MetricCard = ({
   </Card>
 );
 
-// Dados de fallback corrigidos com valores exatos
+// 🔥 DADOS BASE
+const ativosBase = [
+  {
+    ticker: 'ALOS3',
+    dy: '5,95%',
+    precoTeto: 'R$ 23,76',
+    setor: 'Shoppings'
+  }
+];
+
+// Dados de fallback
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
   'ALOS3': {
     ticker: 'ALOS3',
@@ -458,37 +318,22 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     precoTeto: 'R$ 23,76',
     viesAtual: 'Aguardar',
     ibovespaEpoca: '108.500',
-    percentualCarteira: '4.2%',
-    proventos: [
-      { tipo: 'Dividendo', valor: 'R$ 0,45', dataEx: '15/04/2024', dataPagamento: '29/04/2024', status: 'Pago' },
-      { tipo: 'JCP', valor: 'R$ 0,32', dataEx: '15/01/2024', dataPagamento: '28/01/2024', status: 'Pago' }
-    ],
-    relatorios: [
-      { nome: 'Relatório Trimestral Q1 2024', data: '2024-05-15', tipo: 'Trimestral' },
-      { nome: 'Demonstrações Financeiras 2023', data: '2024-03-20', tipo: 'Anual' }
-    ]
+    percentualCarteira: '4.2%'
   }
 };
 
-];
-
 export default function EmpresaDetalhes() {
-];
   const params = useParams();
   const ticker = params?.ticker as string;
   
   const [empresa, setEmpresa] = useState<EmpresaCompleta | null>(null);
   const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
-  const [selectedRelatorio, setSelectedRelatorio] = useState<Relatorio | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   
-  // 🚀 BUSCAR DADOS FINANCEIROS REAIS
   const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
 
-  // 📊 BUSCAR DY DOS DADOS DA TABELA PRINCIPAL (CORRIGIDO)
+  // 📊 BUSCAR DY DOS DADOS DA TABELA PRINCIPAL
   const buscarDYDaTabela = (ticker: string): string => {
     try {
-      // Primeiro: verificar se há dados na tabela principal via localStorage
       const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
       
       if (dadosAdmin) {
@@ -496,30 +341,19 @@ export default function EmpresaDetalhes() {
         const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
         
         if (ativoEncontrado && ativoEncontrado.dy) {
-          console.log(`💎 DY encontrado na tabela principal para ${ticker}:`, ativoEncontrado.dy);
           return ativoEncontrado.dy;
         }
       }
 
-      // Segundo: buscar nos dados base estáticos da própria página de overview
       const ativoBase = ativosBase?.find(a => a.ticker === ticker);
       if (ativoBase && ativoBase.dy) {
-        console.log(`💎 DY encontrado nos dados base para ${ticker}:`, ativoBase.dy);
         return ativoBase.dy;
       }
 
-      // Terceiro: fallback para dados locais
-      const ativoFallback = dadosFallback[ticker];
-      if (ativoFallback) {
-        // Para ALOS3 especificamente
-        if (ticker === 'ALOS3') return '5,95%';
-        const isFII = ativoFallback.tipo === 'FII';
-        return isFII ? '8,5%' : '5,2%';
-      }
-
+      if (ticker === 'ALOS3') return '5,95%';
+      
       return 'N/A';
     } catch (err) {
-      console.error('Erro ao buscar DY da tabela:', err);
       return 'N/A';
     }
   };
@@ -527,11 +361,8 @@ export default function EmpresaDetalhes() {
   useEffect(() => {
     if (!ticker) return;
 
-    console.log(`🔍 Carregando empresa: ${ticker}`);
-
     const carregarDados = () => {
       try {
-        // Tentar carregar dados do localStorage (admin)
         const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
         
         if (dadosAdmin) {
@@ -539,26 +370,21 @@ export default function EmpresaDetalhes() {
           const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
           
           if (ativoEncontrado) {
-            console.log(`✅ Empresa encontrada no admin:`, ativoEncontrado);
             setEmpresa(ativoEncontrado);
             setDataSource('admin');
             return;
           }
         }
 
-        // Usar dados de fallback
         const ativoFallback = dadosFallback[ticker];
         if (ativoFallback) {
-          console.log(`✅ Empresa encontrada no fallback:`, ativoFallback);
           setEmpresa(ativoFallback);
           setDataSource('fallback');
           return;
         }
 
-        console.log(`❌ Empresa ${ticker} não encontrada`);
         setDataSource('not_found');
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
         setDataSource('not_found');
       }
     };
@@ -566,18 +392,13 @@ export default function EmpresaDetalhes() {
     carregarDados();
   }, [ticker]);
 
-  // 🔥 COMBINAR DADOS BASE COM DADOS FINANCEIROS REAIS
+  // 🔥 COMBINAR DADOS
   const empresaCompleta = React.useMemo(() => {
     if (!empresa) return null;
-    
-    console.log(`🔄 Combinando dados para ${empresa.ticker}`);
-    console.log(`📊 Dados financeiros disponíveis:`, dadosFinanceiros);
     
     let empresaAtualizada = { ...empresa };
     
     if (dadosFinanceiros && dadosFinanceiros.precoAtual > 0) {
-      console.log(`✅ Aplicando dados da API para ${empresa.ticker}`);
-      
       empresaAtualizada = {
         ...empresaAtualizada,
         dadosFinanceiros,
@@ -586,14 +407,13 @@ export default function EmpresaDetalhes() {
         ultimaAtualizacao
       };
     } else {
-      console.log(`⚠️ Usando dados estáticos para ${empresa.ticker}`);
       empresaAtualizada.statusApi = 'error';
     }
     
     return empresaAtualizada;
   }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
 
-  // 📊 CALCULAR PERFORMANCE CORRIGIDA
+  // 📊 CALCULAR PERFORMANCE
   const calcularPerformance = () => {
     if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
     
@@ -601,23 +421,14 @@ export default function EmpresaDetalhes() {
     const precoEntrada = parseFloat(precoEntradaStr);
     const precoAtual = empresaCompleta.dadosFinanceiros.precoAtual;
     
-    console.log(`📊 Calculando performance: Entrada ${precoEntrada} vs Atual ${precoAtual}`);
-    
     if (precoEntrada > 0 && precoAtual > 0) {
       const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
-      console.log(`📈 Performance calculada: ${performance.toFixed(2)}%`);
       return formatarValor(performance, 'percent');
     }
     
     return 'N/A';
   };
 
-  const handleRelatorioClick = (relatorio: Relatorio) => {
-    setSelectedRelatorio(relatorio);
-    setModalOpen(true);
-  };
-
-  // 💎 OBTER DY DA TABELA PRINCIPAL
   const dyDaTabela = buscarDYDaTabela(ticker);
 
   if (!empresaCompleta || dataSource === 'not_found') {
@@ -645,14 +456,6 @@ export default function EmpresaDetalhes() {
           >
             Voltar à Lista
           </Button>
-          <Button 
-            startIcon={<SettingsIcon />} 
-            onClick={() => window.open('/admin', '_blank')}
-            variant="outlined"
-            size="large"
-          >
-            Adicionar no Admin
-          </Button>
         </Stack>
       </Box>
     );
@@ -665,16 +468,6 @@ export default function EmpresaDetalhes() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      {/* DEBUG: Status dos dados */}
-      {process.env.NODE_ENV === 'development' && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          DEBUG: API Status = {empresaCompleta.statusApi} | 
-          Dados carregados = {dados ? 'Sim' : 'Não'} | 
-          Preço = {dados?.precoAtual || 'N/A'} |
-          DY = {dados?.dy || 'N/A'}
-        </Alert>
-      )}
-
       {/* Header com navegação */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button 
@@ -822,7 +615,7 @@ export default function EmpresaDetalhes() {
         </CardContent>
       </Card>
 
-      {/* Cards de métricas - VISUAL MELHORADO */}
+      {/* Cards de métricas */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={6} md={2}>
           <MetricCard 
@@ -881,7 +674,7 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* Dados da posição e fundamentalistas */}
+      {/* Dados da posição */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -955,129 +748,57 @@ export default function EmpresaDetalhes() {
                 </Stack>
               ) : (
                 <Stack spacing={2}>
-                  {isFII ? (
-                    <>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.patrimonio ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">Patrimônio</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {dados?.patrimonio ? formatarValor(dados.patrimonio, 'millions') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.pvp ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">P/VP</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.rendimento12m ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">Rendimento 12M</Typography>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 600, 
-                          color: dados?.rendimento12m ? '#22c55e' : 'inherit' 
-                        }}>
-                          {dados?.rendimento12m ? formatarValor(dados.rendimento12m, 'percent') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">Gestora</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {(empresaCompleta as FII).gestora || 'N/A'}
-                        </Typography>
-                      </Box>
-                    </>
-                  ) : (
-                    <>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.marketCap ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">Market Cap</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {dados?.marketCap ? formatarValor(dados.marketCap, 'millions') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.pl ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">P/L</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.pvp ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">P/VPA</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        backgroundColor: dados?.roe ? '#e8f5e8' : '#f8fafc', 
-                        borderRadius: 1 
-                      }}>
-                        <Typography variant="body2" color="text.secondary">ROE</Typography>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 600, 
-                          color: dados?.roe ? '#22c55e' : 'inherit'
-                        }}>
-                          {dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
-                        </Typography>
-                      </Box>
-                      {dados?.ebitda && (
-                        <Box sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          p: 2, 
-                          backgroundColor: '#e8f5e8', 
-                          borderRadius: 1 
-                        }}>
-                          <Typography variant="body2" color="text.secondary">EBITDA</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {formatarValor(dados.ebitda, 'millions')}
-                          </Typography>
-                        </Box>
-                      )}
-                    </>
-                  )}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 2, 
+                    backgroundColor: dados?.marketCap ? '#e8f5e8' : '#f8fafc', 
+                    borderRadius: 1 
+                  }}>
+                    <Typography variant="body2" color="text.secondary">Market Cap</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dados?.marketCap ? formatarValor(dados.marketCap, 'millions') : 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 2, 
+                    backgroundColor: dados?.pl ? '#e8f5e8' : '#f8fafc', 
+                    borderRadius: 1 
+                  }}>
+                    <Typography variant="body2" color="text.secondary">P/L</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 2, 
+                    backgroundColor: dados?.pvp ? '#e8f5e8' : '#f8fafc', 
+                    borderRadius: 1 
+                  }}>
+                    <Typography variant="body2" color="text.secondary">P/VPA</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 2, 
+                    backgroundColor: dados?.roe ? '#e8f5e8' : '#f8fafc', 
+                    borderRadius: 1 
+                  }}>
+                    <Typography variant="body2" color="text.secondary">ROE</Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600, 
+                      color: dados?.roe ? '#22c55e' : 'inherit'
+                    }}>
+                      {dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
+                    </Typography>
+                  </Box>
                 </Stack>
               )}
             </CardContent>
@@ -1219,57 +940,6 @@ export default function EmpresaDetalhes() {
         </Grid>
       )}
 
-      {/* Seção de proventos se disponível */}
-      {empresaCompleta.proventos && empresaCompleta.proventos.length > 0 && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12}>
-            <Card>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                  💰 Histórico de Proventos
-                </Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell>Valor</TableCell>
-                        <TableCell>Data Ex</TableCell>
-                        <TableCell>Pagamento</TableCell>
-                        <TableCell>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {empresaCompleta.proventos.map((provento, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Chip 
-                              label={provento.tipo} 
-                              size="small"
-                              color={provento.tipo === 'Dividendo' ? 'success' : 'primary'}
-                            />
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{provento.valor}</TableCell>
-                          <TableCell>{provento.dataEx}</TableCell>
-                          <TableCell>{provento.dataPagamento}</TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={provento.status} 
-                              size="small"
-                              color={provento.status === 'Pago' ? 'success' : 'warning'}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-
       {/* Ações rápidas */}
       <Grid container spacing={3}>
         <Grid item xs={12}>
@@ -1322,95 +992,6 @@ export default function EmpresaDetalhes() {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Modal de relatório */}
-      {selectedRelatorio && (
-        <Dialog 
-          open={modalOpen} 
-          onClose={() => setModalOpen(false)} 
-          maxWidth="lg" 
-          fullWidth
-          PaperProps={{
-            sx: { height: '90vh' }
-          }}
-        >
-          <DialogTitle sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            pb: 2
-          }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                {selectedRelatorio.nome}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {selectedRelatorio.data} • {selectedRelatorio.tipo}
-              </Typography>
-            </Box>
-            <IconButton onClick={() => setModalOpen(false)}>
-              <CloseIcon size={24} />
-            </IconButton>
-          </DialogTitle>
-          
-          <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
-            {selectedRelatorio.canvaUrl ? (
-              <iframe
-                src={selectedRelatorio.canvaUrl}
-                width="100%"
-                height="100%"
-                style={{ 
-                  border: 'none',
-                  minHeight: '600px'
-                }}
-                title={selectedRelatorio.nome}
-                allowFullScreen
-              />
-            ) : (
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                height: '400px',
-                flexDirection: 'column'
-              }}>
-                <FileTextIcon size={64} style={{ color: '#9ca3af', marginBottom: 16 }} />
-                <Typography variant="h6" color="text.secondary">
-                  Visualização não disponível
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Este relatório pode ser baixado diretamente
-                </Typography>
-              </Box>
-            )}
-          </DialogContent>
-          
-          <DialogActions sx={{ p: 3, borderTop: '1px solid #e5e7eb' }}>
-            <Button 
-              onClick={() => setModalOpen(false)} 
-              variant="outlined"
-            >
-              Fechar
-            </Button>
-            {selectedRelatorio.downloadUrl && (
-              <Button 
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = selectedRelatorio.downloadUrl!;
-                  link.download = `${selectedRelatorio.nome}.pdf`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-                variant="contained"
-                startIcon={<DownloadIcon size={20} />}
-              >
-                Baixar PDF
-              </Button>
-            )}
-          </DialogActions>
-        </Dialog>
-      )}
     </Box>
   );
 }
