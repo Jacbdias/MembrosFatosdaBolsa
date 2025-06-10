@@ -32,6 +32,9 @@ import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
 import { ArrowClockwise as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise';
 import { WarningCircle as WarningIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
 import { CheckCircle as CheckIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
+import { Info as InfoIcon } from '@phosphor-icons/react/dist/ssr/Info'; // Added for info status
+import { ChartLine as ChartLineIcon } from '@phosphor-icons/react/dist/ssr/ChartLine'; // Added for analysis section
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar'; // Added for financial data icon
 
 // 🔑 TOKEN BRAPI VALIDADO
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
@@ -128,14 +131,14 @@ function useDadosFinanceiros(ticker: string) {
           setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
           
         } else {
-          throw new Error('Nenhum resultado encontrado');
+          throw new Error('Nenhum resultado encontrado na API.'); // More specific error message
         }
       } else {
-        throw new Error(`Erro HTTP ${response.status}`);
+        throw new Error(`Erro HTTP ${response.status}: Falha ao buscar dados.`); // More specific error message
       }
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido ao buscar dados.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -144,7 +147,7 @@ function useDadosFinanceiros(ticker: string) {
 
   useEffect(() => {
     buscarDados();
-    const interval = setInterval(buscarDados, 5 * 60 * 1000);
+    const interval = setInterval(buscarDados, 5 * 60 * 1000); // Poll every 5 minutes
     return () => clearInterval(interval);
   }, [buscarDados]);
 
@@ -188,13 +191,14 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
       }).format(valor);
     
     case 'percent':
+      // Ensure percentage is formatted correctly for display
       return `${valor.toFixed(2).replace('.', ',')}%`;
     
     case 'millions':
-      if (valor >= 1000000000) {
-        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
-      } else if (valor >= 1000000) {
-        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
+      if (valor >= 1_000_000_000) { // Using numeric separators for readability
+        return `R$ ${(valor / 1_000_000_000).toFixed(1).replace('.', ',')} bi`;
+      } else if (valor >= 1_000_000) {
+        return `R$ ${(valor / 1_000_000).toFixed(1).replace('.', ',')} mi`;
       } else {
         return formatarValor(valor, 'currency');
       }
@@ -214,78 +218,95 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
 const MetricCard = ({ 
   title, 
   value, 
-  color = 'primary', 
+  color = 'text.primary', // Use theme colors or specific hex codes
   subtitle, 
   loading = false,
   trend,
-  highlight = false
+  highlight = false,
+  icon: IconComponent // Allow passing an icon component
 }: { 
   title: string; 
   value: string; 
-  color?: string; 
+  color?: string; // Can be a Material-UI color or hex
   subtitle?: string;
   loading?: boolean;
   trend?: 'up' | 'down';
   highlight?: boolean;
+  icon?: React.ElementType; // Type for icon component
 }) => (
-  <Card sx={{ 
-    height: '100%', 
-    border: '1px solid #e5e7eb',
-    borderRadius: 2,
-    transition: 'all 0.2s ease',
-    '&:hover': { 
-      transform: 'translateY(-2px)', 
-      boxShadow: '0 4px 20px rgba(0,0,0,0.1)' 
-    },
-    ...(highlight && {
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-      border: '1px solid #cbd5e1'
-    })
-  }}>
+  <Card 
+    sx={{ 
+      height: '100%', 
+      border: '1px solid',
+      borderColor: highlight ? 'primary.main' : 'grey.300', // Dynamic border color
+      borderRadius: 2,
+      transition: 'all 0.2s ease-in-out', // Smoother transition
+      '&:hover': { 
+        transform: 'translateY(-3px)', // More pronounced hover effect
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)', // Stronger shadow
+      },
+      ...(highlight && {
+        background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)', // Lighter, more inviting gradient
+        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+      })
+    }}
+  >
     <CardContent sx={{ textAlign: 'center', p: { xs: 2.5, md: 3 } }}>
       {loading ? (
         <>
-          <Skeleton variant="text" height={40} />
-          <Skeleton variant="text" height={20} />
+          <Skeleton variant="text" height={40} width="80%" sx={{ mx: 'auto' }} />
+          <Skeleton variant="text" height={20} width="60%" sx={{ mx: 'auto' }} />
         </>
       ) : (
         <>
           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ mb: 1.5 }}>
-            <Typography variant="h4" sx={{ 
-              fontWeight: 800, 
-              fontSize: { xs: '1.5rem', md: '2rem' },
-              color: color === 'success' ? '#16a34a' : color === 'error' ? '#dc2626' : '#1f2937',
-              lineHeight: 1
-            }}>
+            {IconComponent && (
+              <IconComponent size={24} color={color === 'success' ? '#16a34a' : color === 'error' ? '#dc2626' : '#607d8b'} /> // Icon with subtle color
+            )}
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 800, 
+                fontSize: { xs: '1.6rem', md: '2.1rem' }, // Slightly larger for impact
+                color: color === 'success' ? '#16a34a' : color === 'error' ? '#dc2626' : 'text.primary', // Use theme text color
+                lineHeight: 1
+              }}
+            >
               {value}
             </Typography>
             {trend && (
               <Box sx={{ ml: 0.5 }}>
                 {trend === 'up' ? (
-                  <TrendUpIcon size={18} style={{ color: '#16a34a' }} />
+                  <TrendUpIcon size={20} style={{ color: '#16a34a' }} />
                 ) : (
-                  <TrendDownIcon size={18} style={{ color: '#dc2626' }} />
+                  <TrendDownIcon size={20} style={{ color: '#dc2626' }} />
                 )}
               </Box>
             )}
           </Stack>
           
-          <Typography variant="body2" sx={{ 
-            fontWeight: 600, 
-            fontSize: '0.875rem',
-            color: '#374151',
-            mb: subtitle ? 0.5 : 0
-          }}>
+          <Typography 
+            variant="subtitle1" // Changed to subtitle1 for slightly larger title
+            sx={{ 
+              fontWeight: 600, 
+              fontSize: '0.95rem', // Slightly larger font size
+              color: 'text.secondary', // Use theme text secondary color
+              mb: subtitle ? 0.8 : 0
+            }}
+          >
             {title}
           </Typography>
           
           {subtitle && (
-            <Typography variant="caption" sx={{ 
-              color: '#6b7280',
-              fontSize: '0.75rem',
-              display: 'block',
-              lineHeight: 1.2
-            }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'text.disabled', // Lighter color for caption
+                fontSize: '0.78rem', // Slightly larger for readability
+                display: 'block',
+                lineHeight: 1.3
+              }}
+            >
               {subtitle}
             </Typography>
           )}
@@ -295,7 +316,7 @@ const MetricCard = ({
   </Card>
 );
 
-// 🔥 DADOS BASE
+// 🔥 DADOS BASE (Consider renaming to initialAssetsData for clarity)
 const ativosBase = [
   {
     ticker: 'ALOS3',
@@ -311,7 +332,7 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     ticker: 'ALOS3',
     nomeCompleto: 'Allos S.A.',
     setor: 'Shoppings',
-    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
+    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão e com presença consolidada nos principais mercados do país.', // Expanded description
     avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
     dataEntrada: '15/01/2021',
     precoIniciou: 'R$ 26,68',
@@ -350,10 +371,11 @@ export default function EmpresaDetalhes() {
         return ativoBase.dy;
       }
 
-      if (ticker === 'ALOS3') return '5,95%';
+      if (ticker === 'ALOS3') return '5,95%'; // Fallback for ALOS3 if not in localStorage or ativosBase
       
       return 'N/A';
     } catch (err) {
+      console.error("Erro ao buscar DY da tabela:", err); // Log the error for debugging
       return 'N/A';
     }
   };
@@ -385,6 +407,7 @@ export default function EmpresaDetalhes() {
 
         setDataSource('not_found');
       } catch (err) {
+        console.error("Erro ao carregar dados da empresa:", err);
         setDataSource('not_found');
       }
     };
@@ -398,7 +421,8 @@ export default function EmpresaDetalhes() {
     
     let empresaAtualizada = { ...empresa };
     
-    if (dadosFinanceiros && dadosFinanceiros.precoAtual > 0) {
+    // Only apply API data if fetching was successful and data is meaningful
+    if (!dadosLoading && !dadosError && dadosFinanceiros && dadosFinanceiros.precoAtual > 0) {
       empresaAtualizada = {
         ...empresaAtualizada,
         dadosFinanceiros,
@@ -406,12 +430,14 @@ export default function EmpresaDetalhes() {
         statusApi: 'success',
         ultimaAtualizacao
       };
-    } else {
-      empresaAtualizada.statusApi = 'error';
+    } else if (!dadosLoading && (dadosError || !dadosFinanceiros || dadosFinanceiros.precoAtual <= 0)) {
+        empresaAtualizada.statusApi = 'error'; // Indicate API data is not available or has errors
+    } else if (dadosLoading) {
+        empresaAtualizada.statusApi = 'loading'; // Indicate API data is loading
     }
     
     return empresaAtualizada;
-  }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
+  }, [empresa, dadosFinanceiros, ultimaAtualizacao, dadosLoading, dadosError]); // Added dadosLoading, dadosError to dependencies
 
   // 📊 CALCULAR PERFORMANCE
   const calcularPerformance = () => {
@@ -439,13 +465,16 @@ export default function EmpresaDetalhes() {
         minHeight: '60vh', 
         display: 'flex', 
         flexDirection: 'column', 
-        justifyContent: 'center' 
+        justifyContent: 'center',
+        alignItems: 'center', // Center content vertically and horizontally
+        backgroundColor: '#f8fafc' // Light background for the whole page
       }}>
-        <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
+        <WarningIcon size={64} style={{ color: '#ef4444', marginBottom: '24px' }} /> {/* Larger, more prominent icon */}
+        <Typography variant="h4" sx={{ mb: 2, fontWeight: 700, color: '#1f2937' }}>
           🔍 Empresa não encontrada
         </Typography>
-        <Typography variant="body1" sx={{ mt: 2, mb: 4, maxWidth: 400, mx: 'auto' }}>
-          O ticker "<strong>{ticker}</strong>" não foi encontrado na nossa base de dados.
+        <Typography variant="body1" sx={{ mt: 2, mb: 4, maxWidth: 500, mx: 'auto', color: '#4b5563' }}>
+          Parece que o ticker "<strong>{ticker}</strong>" não foi encontrado em nossa base de dados ou nos dados de fallback. Por favor, verifique e tente novamente.
         </Typography>
         <Stack direction="row" spacing={2} justifyContent="center">
           <Button 
@@ -453,6 +482,12 @@ export default function EmpresaDetalhes() {
             onClick={() => window.history.back()}
             variant="contained"
             size="large"
+            sx={{
+              backgroundColor: '#3b82f6',
+              '&:hover': { backgroundColor: '#2563eb' },
+              color: 'white',
+              boxShadow: '0 4px 10px rgba(59, 130, 246, 0.2)'
+            }}
           >
             Voltar à Lista
           </Button>
@@ -464,44 +499,53 @@ export default function EmpresaDetalhes() {
   const isFII = empresaCompleta.tipo === 'FII';
   const dados = empresaCompleta.dadosFinanceiros;
   const precoAtualFormatado = dados?.precoAtual ? formatarValor(dados.precoAtual) : empresaCompleta.precoIniciou;
+  const variacaoPercentFormatada = dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A';
   const tendencia = dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : 'up';
 
+  const viesColor = (vies: string) => {
+    if (vies.includes('Compra')) return 'success';
+    if (vies === 'Venda') return 'error';
+    return 'info'; // 'Neutro' or 'Aguardar'
+  };
+
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
       {/* Header com navegação */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Stack 
+        direction={{ xs: 'column', sm: 'row' }} 
+        justifyContent="space-between" 
+        alignItems={{ xs: 'flex-start', sm: 'center' }} 
+        spacing={2} 
+        sx={{ mb: 3 }}
+      >
         <Button 
           startIcon={<ArrowLeftIcon />} 
           onClick={() => window.history.back()} 
           variant="outlined"
+          sx={{ borderColor: 'grey.400', color: 'text.primary', '&:hover': { borderColor: 'grey.500', backgroundColor: 'grey.50' } }}
         >
           Voltar
         </Button>
         
-        <Stack direction="row" spacing={2} alignItems="center">
-          {dadosLoading ? (
-            <Alert severity="info" sx={{ py: 0.5 }}>
-              <CircularProgress size={16} sx={{ mr: 1 }} />
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
+          {empresaCompleta.statusApi === 'loading' && (
+            <Alert severity="info" icon={<CircularProgress size={16} color="inherit" />} sx={{ py: 0.5, pr: 1, backgroundColor: '#e0f2f7', color: '#01579b' }}>
               Carregando dados da API...
             </Alert>
-          ) : dadosError ? (
-            <Alert severity="warning" sx={{ py: 0.5 }}>
-              <WarningIcon size={16} />
-              Erro na API: {dadosError}
+          )}
+          {empresaCompleta.statusApi === 'error' && (
+            <Alert severity="warning" icon={<WarningIcon size={16} />} sx={{ py: 0.5, pr: 1, backgroundColor: '#fff3e0', color: '#ff6f00' }}>
+              Erro na API: {dadosError || "Dados estáticos"}
             </Alert>
-          ) : dados && dados.precoAtual > 0 ? (
-            <Alert severity="success" sx={{ py: 0.5 }}>
-              <CheckIcon size={16} />
+          )}
+          {empresaCompleta.statusApi === 'success' && (
+            <Alert severity="success" icon={<CheckIcon size={16} />} sx={{ py: 0.5, pr: 1, backgroundColor: '#e8f5e9', color: '#2e7d32' }}>
               Dados atualizados via API BRAPI
-            </Alert>
-          ) : (
-            <Alert severity="info" sx={{ py: 0.5 }}>
-              Usando dados estáticos
             </Alert>
           )}
           
           <Tooltip title="Atualizar dados">
-            <IconButton onClick={refetch} disabled={dadosLoading}>
+            <IconButton onClick={refetch} disabled={dadosLoading} sx={{ color: 'grey.700', '&:hover': { color: 'primary.main' } }}>
               <RefreshIcon size={20} />
             </IconButton>
           </Tooltip>
@@ -511,6 +555,7 @@ export default function EmpresaDetalhes() {
             onClick={() => window.open('/admin', '_blank')}
             variant="outlined"
             size="small"
+            sx={{ borderColor: 'grey.400', color: 'text.secondary', '&:hover': { borderColor: 'grey.500', backgroundColor: 'grey.50' } }}
           >
             Gerenciar
           </Button>
@@ -518,24 +563,30 @@ export default function EmpresaDetalhes() {
       </Stack>
 
       {/* Card principal da empresa */}
-      <Card sx={{ 
-        mb: 4, 
-        background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', 
-        color: 'black' 
-      }}>
-        <CardContent sx={{ p: 4 }}>
+      <Card 
+        sx={{ 
+          mb: 4, 
+          background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)', 
+          color: 'black',
+          borderRadius: 3, // More rounded corners
+          boxShadow: '0 10px 30px rgba(0,0,0,0.08)' // Softer, more pronounced shadow
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}> {/* Increased padding for larger screens */}
           <Stack 
             direction={{ xs: 'column', md: 'row' }} 
-            spacing={3} 
+            spacing={4} // Increased spacing
             alignItems={{ xs: 'center', md: 'flex-start' }}
           >
             <Avatar 
               src={empresaCompleta.avatar} 
               alt={empresaCompleta.ticker} 
               sx={{ 
-                width: { xs: 100, md: 120 }, 
-                height: { xs: 100, md: 120 },
-                border: '4px solid rgba(255,255,255,0.2)'
+                width: { xs: 100, md: 140 }, // Larger avatar
+                height: { xs: 100, md: 140 },
+                border: '5px solid #e0e0e0', // Thicker, slightly darker border
+                boxShadow: '0 5px 15px rgba(0,0,0,0.1)', // Subtle shadow for avatar
+                flexShrink: 0
               }} 
             />
             <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
@@ -544,49 +595,53 @@ export default function EmpresaDetalhes() {
                 spacing={2} 
                 alignItems="center" 
                 justifyContent={{ xs: 'center', md: 'flex-start' }} 
-                sx={{ mb: 1 }}
+                sx={{ mb: 1.5 }}
               >
-                <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                <Typography variant="h3" sx={{ fontWeight: 700, color: 'text.primary' }}>
                   {empresaCompleta.ticker}
                 </Typography>
                 {isFII && (
                   <Chip 
                     label="FII" 
                     sx={{ 
-                      backgroundColor: 'rgba(255,255,255,0.2)', 
-                      color: 'white',
-                      fontWeight: 600
+                      backgroundColor: '#e3f2fd', // Light blue background
+                      color: '#2196f3', // Blue text
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      px: 1, // Padding horizontal
+                      py: 0.5 // Padding vertical
                     }} 
                   />
                 )}
               </Stack>
-              <Typography variant="h6" sx={{ mb: 2, opacity: 0.9 }}>
+              <Typography variant="h5" sx={{ mb: 2, color: 'text.secondary' }}> {/* Slightly smaller, clearer heading */}
                 {empresaCompleta.nomeCompleto}
               </Typography>
               <Chip 
                 label={empresaCompleta.setor} 
                 sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.2)', 
-                  color: 'black',
+                  backgroundColor: '#e8f5e9', // Light green background for sector
+                  color: '#4caf50', // Green text
                   mb: 2,
-                  fontWeight: 600
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
                 }} 
               />
-              <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 600 }}>
+              <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 650, color: 'text.primary', lineHeight: 1.6 }}> {/* Increased line height */}
                 {empresaCompleta.descricao}
               </Typography>
               {ultimaAtualizacao && (
-                <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 1 }}>
-                  Última atualização: {ultimaAtualizacao}
+                <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 1.5, color: 'text.disabled' }}>
+                  Última atualização (API): {ultimaAtualizacao}
                 </Typography>
               )}
             </Box>
-            <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
+            <Box sx={{ textAlign: { xs: 'center', md: 'right' }, minWidth: { md: '180px' } }}> {/* Set a min-width for consistent alignment */}
               {dadosLoading ? (
-                <Skeleton variant="text" width={150} height={60} />
+                <Skeleton variant="text" width={150} height={60} sx={{ mx: 'auto', mb: 1 }} />
               ) : (
                 <>
-                  <Typography variant="h2" sx={{ fontWeight: 700, color: 'black' }}>
+                  <Typography variant="h2" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}> {/* Use primary.main for current price */}
                     {precoAtualFormatado}
                   </Typography>
                   <Stack 
@@ -596,18 +651,21 @@ export default function EmpresaDetalhes() {
                     justifyContent={{ xs: 'center', md: 'flex-end' }}
                   >
                     {tendencia === 'up' ? (
-                      <TrendUpIcon size={24} style={{ color: '#22c55e' }} />
+                      <TrendUpIcon size={28} style={{ color: '#22c55e' }} />
                     ) : (
-                      <TrendDownIcon size={24} style={{ color: '#ef4444' }} />
+                      <TrendDownIcon size={28} style={{ color: '#ef4444' }} />
                     )}
                     <Typography sx={{ 
                       color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
                       fontWeight: 700, 
-                      fontSize: '1.2rem' 
+                      fontSize: '1.3rem' 
                     }}>
-                      {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+                      {variacaoPercentFormatada}
                     </Typography>
                   </Stack>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    Variação hoje
+                  </Typography>
                 </>
               )}
             </Box>
@@ -616,60 +674,63 @@ export default function EmpresaDetalhes() {
       </Card>
 
       {/* Cards de métricas */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={2}>
+      <Grid container spacing={3} sx={{ mb: 4 }}> {/* Increased spacing */}
+        <Grid item xs={6} sm={4} md={2.4}> {/* Adjusted grid sizes for better distribution */}
           <MetricCard 
             title="Dividend Yield" 
             value={dyDaTabela}
             color="success"
             loading={dadosLoading}
             subtitle="Da carteira"
+            icon={CurrencyDollarIcon} // Added icon
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2.4}>
           <MetricCard 
             title="Viés Atual" 
             value={empresaCompleta.viesAtual}
-            color={
-              empresaCompleta.viesAtual.includes('Compra') ? 'success' : 
-              empresaCompleta.viesAtual === 'Venda' ? 'error' : 'primary'
-            }
+            color={viesColor(empresaCompleta.viesAtual)} // Dynamic color based on bias
             loading={dadosLoading}
-            subtitle="Automático"
+            subtitle="Análise automática" // More descriptive subtitle
             highlight={empresaCompleta.viesAtual.includes('Compra')}
+            icon={ChartLineIcon} // Added icon
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2.4}>
           <MetricCard 
             title="% Carteira" 
             value={empresaCompleta.percentualCarteira || 'N/A'} 
-            subtitle="Participação"
+            subtitle="Participação total" // More descriptive subtitle
+            icon={InfoIcon} // Added icon
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2.4}>
           <MetricCard 
             title={isFII ? "P/VP" : "P/L"} 
             value={dados?.pl || dados?.pvp ? formatarValor(dados.pl || dados.pvp, 'number') : 'N/A'}
             loading={dadosLoading}
-            subtitle="Múltiplo"
+            subtitle="Múltiplo de mercado" // More descriptive subtitle
+            icon={CurrencyDollarIcon} // Added icon
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2.4}>
           <MetricCard 
             title="Preço Teto" 
             value={empresaCompleta.precoTeto} 
-            subtitle="Meta"
+            subtitle="Meta de valor" // More descriptive subtitle
+            icon={ChartLineIcon} // Added icon
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} sm={4} md={2.4}>
           <MetricCard 
             title="Performance" 
             value={calcularPerformance()}
             color={calcularPerformance().includes('-') ? 'error' : 'success'}
             loading={dadosLoading}
             trend={calcularPerformance().includes('-') ? 'down' : 'up'}
-            subtitle="Total"
-            highlight={!calcularPerformance().includes('-')}
+            subtitle="Desde a entrada" // More descriptive subtitle
+            highlight={!calcularPerformance().includes('-') && calcularPerformance() !== 'N/A'} // Highlight only if positive and not N/A
+            icon={ChartLineIcon} // Added icon
           />
         </Grid>
       </Grid>
@@ -677,9 +738,9 @@ export default function EmpresaDetalhes() {
       {/* Dados da posição */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: 'text.primary' }}>
                 📊 Dados da Posição
               </Typography>
               <Stack spacing={2}>
@@ -687,33 +748,33 @@ export default function EmpresaDetalhes() {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   p: 2, 
-                  backgroundColor: '#f8fafc', 
-                  borderRadius: 1 
+                  backgroundColor: 'grey.50', // Lighter background
+                  borderRadius: 1.5 // Slightly more rounded
                 }}>
                   <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.dataEntrada}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{empresaCompleta.dataEntrada}</Typography>
                 </Box>
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   p: 2, 
-                  backgroundColor: '#f8fafc', 
-                  borderRadius: 1 
+                  backgroundColor: 'grey.50', 
+                  borderRadius: 1.5 
                 }}>
                   <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoIniciou}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{empresaCompleta.precoIniciou}</Typography>
                 </Box>
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   p: 2, 
-                  backgroundColor: dados?.precoAtual ? '#e8f5e8' : '#f8fafc', 
-                  borderRadius: 1 
+                  backgroundColor: dados?.precoAtual ? '#e8f5e9' : 'grey.50', // Highlight if API data available
+                  borderRadius: 1.5 
                 }}>
                   <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
                   <Typography variant="body2" sx={{ 
                     fontWeight: 600, 
-                    color: dados?.precoAtual ? '#22c55e' : 'inherit' 
+                    color: dados?.precoAtual ? '#22c55e' : 'text.primary' 
                   }}>
                     {precoAtualFormatado}
                   </Typography>
@@ -722,28 +783,40 @@ export default function EmpresaDetalhes() {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   p: 2, 
-                  backgroundColor: '#f8fafc', 
-                  borderRadius: 1 
+                  backgroundColor: 'grey.50', 
+                  borderRadius: 1.5 
                 }}>
                   <Typography variant="body2" color="text.secondary">Ibovespa na Época</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.ibovespaEpoca}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{empresaCompleta.ibovespaEpoca}</Typography>
                 </Box>
+                {isFII && empresaCompleta.gestora && (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    p: 2, 
+                    backgroundColor: 'grey.50', 
+                    borderRadius: 1.5 
+                  }}>
+                    <Typography variant="body2" color="text.secondary">Gestora</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{empresaCompleta.gestora}</Typography>
+                  </Box>
+                )}
               </Stack>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: 'text.primary' }}>
                 📈 {isFII ? 'Dados do Fundo' : 'Dados Fundamentalistas'}
               </Typography>
               
               {dadosLoading ? (
                 <Stack spacing={2}>
-                  {[...Array(4)].map((_, index) => (
-                    <Skeleton key={index} variant="rectangular" height={50} />
+                  {[...Array(isFII ? 3 : 4)].map((_, index) => ( // Adjust skeleton count based on FII or not
+                    <Skeleton key={index} variant="rectangular" height={50} sx={{ borderRadius: 1.5 }} />
                   ))}
                 </Stack>
               ) : (
@@ -752,51 +825,55 @@ export default function EmpresaDetalhes() {
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     p: 2, 
-                    backgroundColor: dados?.marketCap ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
+                    backgroundColor: dados?.marketCap ? '#e8f5e9' : 'grey.50', 
+                    borderRadius: 1.5 
                   }}>
                     <Typography variant="body2" color="text.secondary">Market Cap</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {dados?.marketCap ? formatarValor(dados.marketCap, 'millions') : 'N/A'}
                     </Typography>
                   </Box>
+                  {!isFII && ( // Only show P/L and ROE for non-FII
+                    <>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        p: 2, 
+                        backgroundColor: dados?.pl ? '#e8f5e9' : 'grey.50', 
+                        borderRadius: 1.5 
+                      }}>
+                        <Typography variant="body2" color="text.secondary">P/L</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        p: 2, 
+                        backgroundColor: dados?.roe ? '#e8f5e9' : 'grey.50', 
+                        borderRadius: 1.5 
+                      }}>
+                        <Typography variant="body2" color="text.secondary">ROE</Typography>
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600, 
+                          color: dados?.roe ? '#22c55e' : 'text.primary'
+                        }}>
+                          {dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
+                        </Typography>
+                      </Box>
+                    </>
+                  )}
                   <Box sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     p: 2, 
-                    backgroundColor: dados?.pl ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
+                    backgroundColor: dados?.pvp ? '#e8f5e9' : 'grey.50', 
+                    borderRadius: 1.5 
                   }}>
-                    <Typography variant="body2" color="text.secondary">P/L</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 2, 
-                    backgroundColor: dados?.pvp ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
-                  }}>
-                    <Typography variant="body2" color="text.secondary">P/VPA</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body2" color="text.secondary">{isFII ? 'P/VP' : 'P/VPA'}</Typography> {/* Label adjustment */}
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 2, 
-                    backgroundColor: dados?.roe ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
-                  }}>
-                    <Typography variant="body2" color="text.secondary">ROE</Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600, 
-                      color: dados?.roe ? '#22c55e' : 'inherit'
-                    }}>
-                      {dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
                     </Typography>
                   </Box>
                 </Stack>
@@ -810,27 +887,29 @@ export default function EmpresaDetalhes() {
       {dados && dados.precoAtual > 0 && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12}>
-            <Card>
-              <CardContent sx={{ p: 4 }}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
+              <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                 <Typography variant="h6" sx={{ 
                   mb: 3, 
-                  fontWeight: 600, 
+                  fontWeight: 700, 
+                  color: 'text.primary', 
                   display: 'flex', 
-                  alignItems: 'center' 
+                  alignItems: 'center',
+                  gap: 1
                 }}>
                   🎯 Análise de Performance com Dados Reais
                 </Typography>
                 
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={8}>
+                <Grid container spacing={4} alignItems="flex-start"> {/* Increased spacing and align items */}
+                  <Grid item xs={12} md={7}> {/* Adjusted grid size */}
                     <Box sx={{ mb: 3 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600 }}> {/* Slightly bolder subtitle */}
                         Performance vs Preço de Entrada
                       </Typography>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Box sx={{ flex: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {empresaCompleta.ticker} - {calcularPerformance()}
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            {empresaCompleta.ticker} - Desempenho Total
                           </Typography>
                           <LinearProgress 
                             variant="determinate" 
@@ -838,99 +917,78 @@ export default function EmpresaDetalhes() {
                               parseFloat(calcularPerformance().replace('%', '').replace(',', '.')) || 0
                             ), 100)} 
                             sx={{ 
-                              height: 12, 
-                              borderRadius: 1, 
+                              height: 14, // Slightly thicker progress bar
+                              borderRadius: 2, // More rounded corners
                               backgroundColor: '#e5e7eb',
                               '& .MuiLinearProgress-bar': {
-                                backgroundColor: calcularPerformance().includes('-') ? '#ef4444' : '#22c55e'
+                                backgroundColor: calcularPerformance().includes('-') ? '#ef4444' : '#22c55e',
+                                transition: 'all 0.5s ease-in-out' // Smooth transition for value changes
                               }
                             }}
                           />
                         </Box>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 600, 
-                          minWidth: 80,
-                          color: calcularPerformance().includes('-') ? '#ef4444' : '#22c55e'
-                        }}>
+                        <Typography 
+                          variant="body1" // Slightly larger for value
+                          sx={{ 
+                            fontWeight: 700, // Bolder value
+                            minWidth: 80,
+                            textAlign: 'right', // Align right for numbers
+                            color: calcularPerformance().includes('-') ? '#ef4444' : '#22c55e'
+                          }}
+                        >
                           {calcularPerformance()}
                         </Typography>
                       </Stack>
                     </Box>
 
                     <Box sx={{ mb: 3 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 600 }}>
                         Distância do Preço Teto
                       </Typography>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Box sx={{ flex: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Potencial até o teto
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Percentual atingido em relação ao Preço Teto
                           </Typography>
                           <LinearProgress 
                             variant="determinate" 
                             value={Math.min((dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) * 100, 100)} 
                             sx={{ 
-                              height: 12, 
-                              borderRadius: 1, 
+                              height: 14, 
+                              borderRadius: 2, 
                               backgroundColor: '#e5e7eb',
                               '& .MuiLinearProgress-bar': {
-                                backgroundColor: (dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) < 0.9 ? '#22c55e' : '#ef4444'
+                                backgroundColor: (dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) < 0.9 ? '#22c55e' : '#ef4444',
+                                transition: 'all 0.5s ease-in-out'
                               }
                             }}
                           />
                         </Box>
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 600, 
-                          minWidth: 80,
-                          color: (dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) < 0.9 ? '#22c55e' : '#ef4444'
-                        }}>
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            fontWeight: 700, 
+                            minWidth: 80,
+                            textAlign: 'right',
+                            color: (dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) < 0.9 ? '#22c55e' : '#ef4444'
+                          }}
+                        >
                           {formatarValor((dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) * 100, 'percent')}
                         </Typography>
                       </Stack>
                     </Box>
                   </Grid>
                   
-                  <Grid item xs={12} md={4}>
-                    <Box sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: 2, height: '100%' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                        💡 Resumo da Análise
+                  <Grid item xs={12} md={5}> {/* Adjusted grid size */}
+                    <Box sx={{ p: 3, backgroundColor: '#e0f7fa', borderRadius: 2.5, height: '100%', border: '1px solid #b2ebf2' }}> {/* Lighter blue, softer background, border */}
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: '#006064', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <InfoIcon size={20} /> Resumo da Análise
                       </Typography>
-                      <Stack spacing={1}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">Viés calculado:</Typography>
-                          <Chip 
-                            label={empresaCompleta.viesAtual} 
-                            size="small"
-                            color={
-                              empresaCompleta.viesAtual.includes('Compra') ? 'success' : 
-                              empresaCompleta.viesAtual === 'Venda' ? 'error' : 'default'
-                            }
-                          />
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">DY da tabela:</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                            {dyDaTabela}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">Fonte dos dados:</Typography>
-                          <Typography variant="body2" sx={{ 
-                            fontWeight: 600, 
-                            color: dados && dados.precoAtual > 0 ? '#22c55e' : '#f59e0b' 
-                          }}>
-                            {dados && dados.precoAtual > 0 ? 'API BRAPI' : 'Estático'}
-                          </Typography>
-                        </Box>
-                        {ultimaAtualizacao && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" color="text.secondary">Atualizado:</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {ultimaAtualizacao.split(' ')[1]}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Stack>
+                      <Typography variant="body2" sx={{ color: '#006064', lineHeight: 1.7 }}>
+                        Com base nos dados mais recentes da API, a ação **{empresaCompleta.ticker}** está atualmente em **{empresaCompleta.viesAtual}**. 
+                        Sua performance desde a entrada é de **{calcularPerformance()}**, e o preço atual está a **{formatarValor((dados.precoAtual / parseFloat(empresaCompleta.precoTeto.replace('R$ ', '').replace(',', '.'))) * 100, 'percent')}** do seu preço teto.
+                        Acompanhe de perto o *Market Cap* de **{formatarValor(dados.marketCap, 'millions')}** e o {isFII ? 'P/VP' : 'P/L'} de **{formatarValor(dados.pl || dados.pvp, 'number')}** para futuras decisões.
+                      </Typography>
                     </Box>
                   </Grid>
                 </Grid>
@@ -939,59 +997,7 @@ export default function EmpresaDetalhes() {
           </Grid>
         </Grid>
       )}
-
-      {/* Ações rápidas */}
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card sx={{ backgroundColor: '#f8fafc' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                🚀 Ações Rápidas
-              </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button 
-                  startIcon={<RefreshIcon />} 
-                  onClick={refetch}
-                  variant="contained"
-                  size="small"
-                  disabled={dadosLoading}
-                >
-                  {dadosLoading ? 'Atualizando...' : 'Atualizar Dados'}
-                </Button>
-                <Button 
-                  startIcon={<SettingsIcon />} 
-                  onClick={() => window.open('/admin', '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  Editar no Admin
-                </Button>
-                <Button 
-                  onClick={() => window.open(`https://www.google.com/search?q=${empresaCompleta.ticker}+dividendos+${new Date().getFullYear()}`, '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  🔍 Pesquisar Dividendos
-                </Button>
-                <Button 
-                  onClick={() => window.open(`https://statusinvest.com.br/${isFII ? 'fundos-imobiliarios' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  📊 Ver no Status Invest
-                </Button>
-                <Button 
-                  onClick={() => window.open(`https://www.investidor10.com.br/${isFII ? 'fiis' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  📈 Ver no Investidor10
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {/* Optional: Add a subtle footer or more charts/tables here */}
     </Box>
   );
 }
