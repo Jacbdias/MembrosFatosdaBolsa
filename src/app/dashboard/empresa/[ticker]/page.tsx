@@ -34,8 +34,9 @@ import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/Trend
 import { FileText as FileTextIcon } from '@phosphor-icons/react/dist/ssr/FileText';
 import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear'; // ✅ CORRIGIDO
+import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
 import { X as CloseIcon } from '@phosphor-icons/react/dist/ssr/X';
+import { SecaoDividendosDetalhada } from '@/components/SecaoDividendosDetalhada';
 
 interface Provento {
   tipo: string;
@@ -163,8 +164,31 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
       { nome: 'Informe Mensal - Maio 2024', data: '2024-06-01', tipo: 'Mensal' },
       { nome: 'Relatório Trimestral Q1 2024', data: '2024-04-15', tipo: 'Trimestral' }
     ]
+  },
+  'PRIO3': {
+    ticker: 'PRIO3',
+    nomeCompleto: 'PetroRio S.A.',
+    setor: 'Petróleo',
+    descricao: 'A PetroRio é uma empresa brasileira de exploração e produção de petróleo e gás natural.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/PRIO.png',
+    precoAtual: 'R$ 42,57',
+    variacao: '+82.3%',
+    tendencia: 'up',
+    dataEntrada: '04/08/2022',
+    precoIniciou: 'R$ 23,35',
+    dy: '8,50%',
+    precoTeto: 'R$ 48,70',
+    viesAtual: 'Compra',
+    variacaoHoje: '+1.8%',
+    rendProventos: '+97.5%',
+    ibovespaEpoca: '108.200',
+    ibovespaVariacao: '+26.5%',
+    percentualCarteira: '12.3%',
+    marketCap: 'R$ 8.9 bi',
+    pl: '4.2',
+    pvp: '1.1',
+    roe: '28.5%'
   }
-  // Adicione mais dados de fallback conforme necessário
 };
 
 const MetricCard = ({ title, value, color = 'primary' }: { title: string; value: string; color?: string }) => (
@@ -742,76 +766,21 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* Seção de proventos */}
-      <Grid container spacing={3}>
+      {/* 🔥 NOVA SEÇÃO - ANÁLISE COMPLETA DE DIVIDENDOS */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ 
-                mb: 3, 
-                fontWeight: 600, 
-                display: 'flex', 
-                alignItems: 'center' 
-              }}>
-                💰 Histórico de Proventos
-              </Typography>
-              
-              {empresa.proventos && empresa.proventos.length > 0 ? (
-                <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #e5e7eb' }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                        <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Valor</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Data Ex</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Pagamento</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {empresa.proventos.map((provento, index) => (
-                        <TableRow key={index} hover>
-                          <TableCell>
-                            <Chip 
-                              label={provento.tipo} 
-                              size="small" 
-                              color={provento.tipo === 'Dividendo' ? 'primary' : 'secondary'}
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
-                            {provento.valor}
-                          </TableCell>
-                          <TableCell>{provento.dataEx}</TableCell>
-                          <TableCell>{provento.dataPagamento}</TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={provento.status} 
-                              size="small"
-                              sx={{ 
-                                backgroundColor: provento.status === 'Pago' ? '#dcfce7' : '#dbeafe', 
-                                color: provento.status === 'Pago' ? '#22c55e' : '#3b82f6', 
-                                fontWeight: 600
-                              }} 
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    📭 Nenhum provento encontrado para esta empresa.
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+          <SecaoDividendosDetalhada 
+            ticker={empresa.ticker}
+            dataEntrada={empresa.dataEntrada}
+            precoEntrada={empresa.precoIniciou}
+            precoAtual={empresa.precoAtual || empresa.precoIniciou}
+            isFII={isFII}
+          />
         </Grid>
+      </Grid>
 
-        {/* Seção de relatórios */}
+      {/* Seção de relatórios */}
+      <Grid container spacing={3}>
         <Grid item xs={12}>
           <Card>
             <CardContent sx={{ p: 4 }}>
@@ -934,7 +903,7 @@ export default function EmpresaDetalhes() {
                 display: 'flex', 
                 alignItems: 'center' 
               }}>
-                🎯 Análise de Performance
+                🎯 Análise de Performance vs Mercado
               </Typography>
               
               <Grid container spacing={3}>
