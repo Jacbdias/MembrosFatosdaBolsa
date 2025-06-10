@@ -1,4 +1,4 @@
-// 🎯 src/hooks/useDividendosAtivo.ts - VERSÃO FINAL OTIMIZADA
+// 🎯 src/hooks/useDividendosAtivo.ts - VERSÃO SUPER ROBUSTA
 'use client';
 
 import * as React from 'react';
@@ -47,44 +47,116 @@ export function useDividendosAtivo(
       console.log(`🔍 Buscando dividendos para ${ticker} desde ${dataEntrada}`);
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-      const dividendosUrl = `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}&sortBy=date&sortOrder=desc`;
       
-      // 🚀 OTIMIZAÇÃO: Timeout mais curto para evitar preload warnings
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
+      // 🚀 ESTRATÉGIA MÚLTIPLA: Tentar diferentes endpoints
+      const endpoints = [
+        `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}`,
+        `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&modules=dividends`,
+        `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`
+      ];
 
-      const response = await fetch(dividendosUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Dividendos-App/1.0'
-        },
-        signal: controller.signal
-      });
+      let dividendosEncontrados: any[] = [];
+      let ultimoErro = '';
 
-      clearTimeout(timeoutId);
+      for (let i = 0; i < endpoints.length; i++) {
+        try {
+          console.log(`🌐 Tentativa ${i + 1}: ${endpoints[i].replace(BRAPI_TOKEN, 'TOKEN')}`);
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.warn(`⚠️ ${ticker}: Ticker não encontrado na API de dividendos`);
-          // Não é erro crítico, apenas não tem dividendos
-          setDividendos([]);
-          setPerformance(calcularPerformanceDetalhada(precoEntrada, precoAtual, []));
-          return;
+          const response = await fetch(endpoints[i], {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            },
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          console.log(`📡 Status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+
+          if (!response.ok) {
+            ultimoErro = `HTTP ${response.status}`;
+            continue;
+          }
+
+          // 🔍 VERIFICAR SE É REALMENTE JSON
+          const contentType = response.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) {
+            console.warn(`⚠️ Content-Type inválido: ${contentType}`);
+            ultimoErro = `Resposta não é JSON (${contentType})`;
+            continue;
+          }
+
+          const responseText = await response.text();
+          
+          // 🔍 VERIFICAR SE NÃO É HTML
+          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+            console.warn(`⚠️ Resposta é HTML, não JSON`);
+            ultimoErro = 'API retornou página HTML';
+            continue;
+          }
+
+          // 🔍 TENTAR PARSEAR JSON
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            console.warn(`⚠️ Erro ao parsear JSON:`, parseError);
+            ultimoErro = 'JSON inválido';
+            continue;
+          }
+
+          console.log(`📊 Dados recebidos:`, data);
+
+          // 🔍 EXTRAIR DIVIDENDOS DE DIFERENTES ESTRUTURAS
+          if (data.dividends && Array.isArray(data.dividends)) {
+            dividendosEncontrados = data.dividends;
+            console.log(`✅ Dividendos encontrados via endpoint ${i + 1}`);
+            break;
+          } else if (data.results && data.results[0] && data.results[0].dividends) {
+            dividendosEncontrados = data.results[0].dividends;
+            console.log(`✅ Dividendos encontrados via results[0].dividends`);
+            break;
+          } else if (data.results && Array.isArray(data.results)) {
+            // Procurar dividendos em qualquer lugar dos results
+            for (const result of data.results) {
+              if (result.dividends && Array.isArray(result.dividends)) {
+                dividendosEncontrados = result.dividends;
+                console.log(`✅ Dividendos encontrados em results`);
+                break;
+              }
+            }
+            if (dividendosEncontrados.length > 0) break;
+          }
+
+          ultimoErro = 'Estrutura de dados não reconhecida';
+
+        } catch (fetchError) {
+          console.warn(`⚠️ Erro na tentativa ${i + 1}:`, fetchError);
+          ultimoErro = fetchError instanceof Error ? fetchError.message : 'Erro de rede';
+          continue;
         }
-        throw new Error(`Erro ${response.status} ao buscar dividendos`);
       }
 
-      const data = await response.json();
-      
-      if (data.dividends && Array.isArray(data.dividends) && data.dividends.length > 0) {
+      // 🎯 PROCESSAR DIVIDENDOS ENCONTRADOS
+      if (dividendosEncontrados.length > 0) {
         const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
         
-        const dividendosProcessados = data.dividends
+        const dividendosProcessados = dividendosEncontrados
           .filter((div: any) => {
-            if (!div.date || typeof div.value !== 'number' || div.value <= 0) return false;
-            const dataDividendo = new Date(div.date);
-            return dataDividendo >= dataEntradaDate;
+            if (!div.date || typeof div.value !== 'number' || div.value <= 0) {
+              return false;
+            }
+            try {
+              const dataDividendo = new Date(div.date);
+              return dataDividendo >= dataEntradaDate;
+            } catch {
+              return false;
+            }
           })
           .map((div: any) => ({
             date: div.date,
@@ -95,26 +167,27 @@ export function useDividendosAtivo(
           }))
           .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        console.log(`✅ ${ticker}: ${dividendosProcessados.length} dividendos encontrados`);
+        console.log(`✅ ${ticker}: ${dividendosProcessados.length} dividendos processados`);
         setDividendos(dividendosProcessados);
         setPerformance(calcularPerformanceDetalhada(precoEntrada, precoAtual, dividendosProcessados));
+        
       } else {
-        console.log(`📭 ${ticker}: Nenhum dividendo encontrado`);
+        console.log(`📭 ${ticker}: Nenhum dividendo encontrado. Último erro: ${ultimoErro}`);
         setDividendos([]);
         setPerformance(calcularPerformanceDetalhada(precoEntrada, precoAtual, []));
+        
+        // 🔄 DEFINIR ERRO APENAS SE REALMENTE HOUVE PROBLEMA
+        if (ultimoErro && !ultimoErro.includes('Estrutura de dados')) {
+          setError(`Sem dividendos disponíveis (${ultimoErro})`);
+        }
       }
 
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.warn(`⏱️ Timeout na busca de dividendos para ${ticker}`);
-        setError('Timeout na busca de dividendos');
-      } else {
-        const errorMessage = err instanceof Error ? err.message : 'Erro na API de dividendos';
-        console.error(`❌ Erro ao buscar dividendos de ${ticker}:`, err);
-        setError(errorMessage);
-      }
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error(`❌ Erro geral ao buscar dividendos de ${ticker}:`, err);
+      setError(errorMessage);
       
-      // Sempre calcular performance de capital, mesmo com erro
+      // 🔄 SEMPRE CALCULAR PERFORMANCE DE CAPITAL
       setDividendos([]);
       const performanceFallback = calcularPerformanceDetalhada(precoEntrada, precoAtual, []);
       performanceFallback.status = 'error';
@@ -127,8 +200,7 @@ export function useDividendosAtivo(
 
   React.useEffect(() => {
     if (ticker && dataEntrada && precoEntrada) {
-      // 🚀 OTIMIZAÇÃO: Delay para evitar muitas requisições simultâneas
-      const timer = setTimeout(buscarDividendos, 300);
+      const timer = setTimeout(buscarDividendos, 500); // Delay maior para evitar conflitos
       return () => clearTimeout(timer);
     }
   }, [buscarDividendos]);
@@ -154,7 +226,7 @@ function calcularPerformanceDetalhada(
     ? ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100 
     : 0;
 
-  const dividendosTotal = dividendos.reduce((sum, div) => sum + div.value, 0);
+  const dividendosTotal = dividendos.reduce((sum, div) => sum + (div.value || 0), 0);
   const dividendosPercentual = precoEntradaNum > 0 ? (dividendosTotal / precoEntradaNum) * 100 : 0;
   const performanceTotal = performanceCapital + dividendosPercentual;
 
@@ -162,8 +234,12 @@ function calcularPerformanceDetalhada(
 
   const dividendosPorAno: { [ano: string]: number } = {};
   dividendos.forEach(div => {
-    const ano = new Date(div.date).getFullYear().toString();
-    dividendosPorAno[ano] = (dividendosPorAno[ano] || 0) + div.value;
+    try {
+      const ano = new Date(div.date).getFullYear().toString();
+      dividendosPorAno[ano] = (dividendosPorAno[ano] || 0) + (div.value || 0);
+    } catch {
+      // Ignorar datas inválidas
+    }
   });
 
   const anos = Object.keys(dividendosPorAno);
