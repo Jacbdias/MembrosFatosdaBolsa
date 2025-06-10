@@ -1,41 +1,45 @@
-// 🔍 src/hooks/useDividendosAtivo.ts - VERSÃO DEBUG AVANÇADO
+// 🎯 src/hooks/useProventosAtivo.ts - TODOS OS TIPOS DE PROVENTOS
 'use client';
 
 import * as React from 'react';
 
-interface DividendoDetalhado {
+interface ProventoDetalhado {
   date: string;
   value: number;
   type: string;
+  subtype?: string;
   dataFormatada: string;
   valorFormatado: string;
+  categoria: 'monetario' | 'acao' | 'outro';
+  impactoPercentual: number;
 }
 
-interface PerformanceDetalhada {
+interface PerformanceCompleta {
   performanceCapital: number;
-  dividendosTotal: number;
-  dividendosPercentual: number;
+  proventosMonetarios: number;
+  proventosPercentual: number;
   performanceTotal: number;
-  quantidadeDividendos: number;
-  ultimoDividendo: string;
-  dividendosPorAno: { [ano: string]: number };
+  quantidadeProventos: number;
+  ultimoProvento: string;
+  proventosPorAno: { [ano: string]: number };
+  proventosPorTipo: { [tipo: string]: number };
   mediaAnual: number;
   status: 'success' | 'partial' | 'error';
   debugInfo?: string;
 }
 
-export function useDividendosAtivo(
+export function useProventosAtivo(
   ticker: string, 
   dataEntrada: string, 
   precoEntrada: string, 
   precoAtual: string
 ) {
-  const [dividendos, setDividendos] = React.useState<DividendoDetalhado[]>([]);
-  const [performance, setPerformance] = React.useState<PerformanceDetalhada | null>(null);
+  const [proventos, setProventos] = React.useState<ProventoDetalhado[]>([]);
+  const [performance, setPerformance] = React.useState<PerformanceCompleta | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const buscarDividendos = React.useCallback(async () => {
+  const buscarProventos = React.useCallback(async () => {
     if (!ticker || !dataEntrada || !precoEntrada) {
       setLoading(false);
       return;
@@ -45,139 +49,136 @@ export function useDividendosAtivo(
       setLoading(true);
       setError(null);
 
-      console.log(`🔍 === DEBUG AVANÇADO PARA ${ticker} ===`);
+      console.log(`🔍 === BUSCANDO TODOS OS PROVENTOS PARA ${ticker} ===`);
       console.log(`📅 Data entrada: ${dataEntrada}`);
-      console.log(`💰 Preço entrada: ${precoEntrada}`);
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       
-      // 🔍 TESTAR MÚLTIPLAS VARIAÇÕES DO TICKER
-      const tickerVariacoes = [
-        ticker,                    // ALOS3
-        ticker.replace('3', ''),   // ALOS
-        ticker.replace('4', ''),   // Para casos como RAPT4 -> RAPT
-        ticker + '.SA'             // ALOS3.SA
+      // 🔍 MÚLTIPLAS ESTRATÉGIAS PARA CAPTURAR TODOS OS PROVENTOS
+      const estrategias = [
+        {
+          nome: 'Dividendos Específicos',
+          url: `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}`,
+          extrair: (data: any) => data.dividends || []
+        },
+        {
+          nome: 'Dados Fundamentais',
+          url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&modules=dividends,splits,earnings`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            return [
+              ...(result?.dividends || []),
+              ...(result?.splits || []),
+              ...(result?.earnings || [])
+            ];
+          }
+        },
+        {
+          nome: 'Histórico Completo',
+          url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=5y&interval=1d&fundamental=true`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            return [
+              ...(result?.dividends || []),
+              ...(result?.stockSplits || []),
+              ...(result?.capitalGains || [])
+            ];
+          }
+        }
       ];
 
-      console.log(`🎯 Testando variações: ${tickerVariacoes.join(', ')}`);
+      // 🔍 VARIAÇÕES DO TICKER
+      const tickerVariacoes = [
+        ticker,
+        ticker.replace(/[34]$/, ''),  // Remove 3 ou 4 do final
+        ticker + '.SA',
+        ticker.replace(/[34]$/, '') + '.SA'
+      ];
 
-      let melhorResultado: any = null;
+      let todosProventos: any[] = [];
       let debugInfo = '';
 
       for (const tickerTeste of tickerVariacoes) {
-        try {
-          console.log(`\n🌐 Testando: ${tickerTeste}`);
-          
-          const url = `https://brapi.dev/api/quote/${tickerTeste}/dividends?token=${BRAPI_TOKEN}`;
-          
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
-          });
-
-          console.log(`📡 ${tickerTeste} - Status: ${response.status}`);
-
-          if (!response.ok) {
-            console.log(`❌ ${tickerTeste} - Erro HTTP ${response.status}`);
-            continue;
-          }
-
-          const data = await response.json();
-          console.log(`📊 ${tickerTeste} - Dados recebidos:`, data);
-
-          if (data.dividends && Array.isArray(data.dividends)) {
-            console.log(`📋 ${tickerTeste} - Dividendos encontrados: ${data.dividends.length}`);
+        console.log(`\n🎯 Testando ticker: ${tickerTeste}`);
+        
+        for (const estrategia of estrategias) {
+          try {
+            const url = estrategia.url.replace(ticker, tickerTeste);
+            console.log(`📡 ${estrategia.nome}: ${url.replace(BRAPI_TOKEN, 'TOKEN')}`);
             
-            // 🔍 MOSTRAR TODOS OS DIVIDENDOS SEM FILTRO
-            console.log(`📜 ${tickerTeste} - TODOS os dividendos:`);
-            data.dividends.forEach((div: any, index: number) => {
-              console.log(`  ${index + 1}. ${div.date} - R$ ${div.value} (${div.type || 'N/A'})`);
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+              signal: AbortSignal.timeout(10000)
             });
 
-            // 🔍 TESTAR FILTRO DE DATA
-            const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
-            console.log(`📅 ${tickerTeste} - Data entrada convertida: ${dataEntradaDate.toISOString()}`);
-            
-            const dividendosFiltrados = data.dividends.filter((div: any) => {
-              if (!div.date || typeof div.value !== 'number') return false;
-              
-              const dataDividendo = new Date(div.date);
-              const isAfterEntry = dataDividendo >= dataEntradaDate;
-              
-              console.log(`  📊 ${div.date} (${dataDividendo.toISOString()}) - Após entrada: ${isAfterEntry}`);
-              
-              return isAfterEntry && div.value > 0;
-            });
-
-            console.log(`✅ ${tickerTeste} - Dividendos após filtro: ${dividendosFiltrados.length}`);
-
-            if (dividendosFiltrados.length > 0 || data.dividends.length > (melhorResultado?.length || 0)) {
-              melhorResultado = {
-                ticker: tickerTeste,
-                dividendos: dividendosFiltrados,
-                todosDividendos: data.dividends,
-                length: dividendosFiltrados.length
-              };
-              debugInfo = `Melhor resultado: ${tickerTeste} (${dividendosFiltrados.length} dividendos filtrados de ${data.dividends.length} totais)`;
+            if (!response.ok) {
+              console.log(`❌ ${tickerTeste} ${estrategia.nome}: HTTP ${response.status}`);
+              continue;
             }
 
-          } else {
-            console.log(`❌ ${tickerTeste} - Estrutura inválida ou sem dividendos`);
-          }
+            const data = await response.json();
+            const proventosDaEstrategia = estrategia.extrair(data);
+            
+            if (proventosDaEstrategia && proventosDaEstrategia.length > 0) {
+              console.log(`✅ ${tickerTeste} ${estrategia.nome}: ${proventosDaEstrategia.length} proventos`);
+              
+              // Log dos proventos encontrados
+              proventosDaEstrategia.forEach((p: any, i: number) => {
+                console.log(`  ${i + 1}. ${p.date} - ${p.type || 'N/A'} - ${p.value || p.amount || 'N/A'}`);
+              });
+              
+              todosProventos = [...todosProventos, ...proventosDaEstrategia];
+              debugInfo += `${estrategia.nome}(${tickerTeste}): ${proventosDaEstrategia.length} proventos. `;
+            } else {
+              console.log(`📭 ${tickerTeste} ${estrategia.nome}: Nenhum provento`);
+            }
 
-        } catch (tickerError) {
-          console.log(`❌ ${tickerTeste} - Erro:`, tickerError);
+          } catch (err) {
+            console.log(`❌ ${tickerTeste} ${estrategia.nome}: ${err}`);
+          }
         }
       }
 
-      // 🎯 PROCESSAR MELHOR RESULTADO
-      if (melhorResultado && melhorResultado.dividendos.length > 0) {
-        const dividendosProcessados = melhorResultado.dividendos
-          .map((div: any) => ({
-            date: div.date,
-            value: div.value,
-            type: div.type || 'Dividendo',
-            dataFormatada: new Date(div.date).toLocaleDateString('pt-BR'),
-            valorFormatado: `R$ ${div.value.toFixed(2).replace('.', ',')}`
-          }))
+      // 🔄 REMOVER DUPLICATAS E PROCESSAR
+      const proventosUnicos = removeDuplicatas(todosProventos);
+      console.log(`📊 Total de proventos únicos encontrados: ${proventosUnicos.length}`);
+
+      if (proventosUnicos.length > 0) {
+        const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
+        const precoEntradaNum = parseFloat(precoEntrada.replace(/[^\d.,]/g, '').replace(',', '.'));
+        
+        const proventosFiltrados = proventosUnicos
+          .filter((p: any) => {
+            if (!p.date) return false;
+            
+            try {
+              const dataProvento = new Date(p.date);
+              const isAfterEntry = dataProvento >= dataEntradaDate;
+              
+              console.log(`📊 ${p.date} (${p.type || 'N/A'}) - Após entrada: ${isAfterEntry}`);
+              return isAfterEntry;
+            } catch {
+              return false;
+            }
+          })
+          .map((p: any) => categorizarProvento(p, precoEntradaNum))
           .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        console.log(`🎉 SUCESSO! ${dividendosProcessados.length} dividendos processados para ${melhorResultado.ticker}`);
-        setDividendos(dividendosProcessados);
+        console.log(`✅ Proventos processados: ${proventosFiltrados.length}`);
         
-        const performance = calcularPerformanceDetalhada(precoEntrada, precoAtual, dividendosProcessados);
-        performance.debugInfo = debugInfo;
-        setPerformance(performance);
-
-      } else {
-        console.log(`📭 NENHUM DIVIDENDO encontrado para ${ticker} em nenhuma variação`);
+        setProventos(proventosFiltrados);
+        setPerformance(calcularPerformanceCompleta(precoEntrada, precoAtual, proventosFiltrados));
         
-        // 🔍 MOSTRAR INFORMAÇÕES DE DEBUG
-        let infoDebug = `Testadas variações: ${tickerVariacoes.join(', ')}. `;
-        
-        if (melhorResultado && melhorResultado.todosDividendos.length > 0) {
-          infoDebug += `Encontrados ${melhorResultado.todosDividendos.length} dividendos, mas todos anteriores à entrada (${dataEntrada}).`;
-          
-          // Mostrar os 3 dividendos mais recentes
-          const recentes = melhorResultado.todosDividendos
-            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .slice(0, 3);
-          
-          console.log(`📋 Últimos dividendos encontrados:`);
-          recentes.forEach((div: any) => {
-            console.log(`  • ${div.date} - R$ ${div.value}`);
-          });
-          
-          infoDebug += ` Últimos: ${recentes.map((d: any) => d.date).join(', ')}.`;
-        } else {
-          infoDebug += `Nenhum dividendo encontrado na API.`;
+        if (debugInfo) {
+          console.log(`📋 Debug: ${debugInfo}`);
         }
 
-        setDividendos([]);
-        const performance = calcularPerformanceDetalhada(precoEntrada, precoAtual, []);
-        performance.debugInfo = infoDebug;
-        setPerformance(performance);
-        setError(`Sem dividendos desde a entrada. ${infoDebug}`);
+      } else {
+        console.log(`📭 Nenhum provento encontrado para ${ticker}`);
+        setProventos([]);
+        setPerformance(calcularPerformanceCompleta(precoEntrada, precoAtual, []));
+        setError(`Nenhum provento encontrado. Testados: ${tickerVariacoes.join(', ')}`);
       }
 
     } catch (err) {
@@ -185,10 +186,9 @@ export function useDividendosAtivo(
       console.error(`❌ Erro geral:`, err);
       setError(errorMessage);
       
-      setDividendos([]);
-      const performanceFallback = calcularPerformanceDetalhada(precoEntrada, precoAtual, []);
+      setProventos([]);
+      const performanceFallback = calcularPerformanceCompleta(precoEntrada, precoAtual, []);
       performanceFallback.status = 'error';
-      performanceFallback.debugInfo = `Erro: ${errorMessage}`;
       setPerformance(performanceFallback);
       
     } finally {
@@ -198,62 +198,126 @@ export function useDividendosAtivo(
 
   React.useEffect(() => {
     if (ticker && dataEntrada && precoEntrada) {
-      const timer = setTimeout(buscarDividendos, 300);
+      const timer = setTimeout(buscarProventos, 300);
       return () => clearTimeout(timer);
     }
-  }, [buscarDividendos]);
+  }, [buscarProventos]);
 
   return {
-    dividendos,
+    proventos,
     performance,
     loading,
     error,
-    refetch: buscarDividendos
+    refetch: buscarProventos
   };
 }
 
-function calcularPerformanceDetalhada(
+// 🔄 FUNÇÃO PARA REMOVER DUPLICATAS
+function removeDuplicatas(proventos: any[]): any[] {
+  const vistos = new Set();
+  return proventos.filter(p => {
+    const chave = `${p.date}_${p.type}_${p.value || p.amount}`;
+    if (vistos.has(chave)) {
+      return false;
+    }
+    vistos.add(chave);
+    return true;
+  });
+}
+
+// 🏷️ FUNÇÃO PARA CATEGORIZAR TIPOS DE PROVENTO
+function categorizarProvento(provento: any, precoEntrada: number): ProventoDetalhado {
+  const tipo = provento.type || provento.eventType || 'Desconhecido';
+  const valor = provento.value || provento.amount || provento.rate || 0;
+  
+  // 📊 CATEGORIZAR POR TIPO
+  let categoria: 'monetario' | 'acao' | 'outro' = 'outro';
+  let valorMonetario = 0;
+  let impactoPercentual = 0;
+
+  const tipoLower = tipo.toLowerCase();
+  
+  if (tipoLower.includes('dividend') || tipoLower.includes('jcp') || 
+      tipoLower.includes('interest') || tipoLower.includes('rendimento')) {
+    categoria = 'monetario';
+    valorMonetario = valor;
+    impactoPercentual = precoEntrada > 0 ? (valor / precoEntrada) * 100 : 0;
+  } else if (tipoLower.includes('split') || tipoLower.includes('bonificação') || 
+             tipoLower.includes('bonus') || tipoLower.includes('stock')) {
+    categoria = 'acao';
+    // Para splits/bonificações, calcular impacto diferente
+    impactoPercentual = valor > 1 ? (valor - 1) * 100 : 0;
+  }
+
+  return {
+    date: provento.date,
+    value: valorMonetario,
+    type: tipo,
+    subtype: provento.subtype,
+    dataFormatada: new Date(provento.date).toLocaleDateString('pt-BR'),
+    valorFormatado: valorMonetario > 0 ? `R$ ${valorMonetario.toFixed(2).replace('.', ',')}` : `${valor}x`,
+    categoria,
+    impactoPercentual
+  };
+}
+
+// 📊 FUNÇÃO PARA CALCULAR PERFORMANCE COMPLETA
+function calcularPerformanceCompleta(
   precoEntrada: string,
   precoAtual: string,
-  dividendos: DividendoDetalhado[]
-): PerformanceDetalhada {
+  proventos: ProventoDetalhado[]
+): PerformanceCompleta {
   const precoEntradaNum = parseFloat(precoEntrada.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
   const precoAtualNum = parseFloat(precoAtual.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
 
+  // 📈 PERFORMANCE DE CAPITAL
   const performanceCapital = precoEntradaNum > 0 
     ? ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100 
     : 0;
 
-  const dividendosTotal = dividendos.reduce((sum, div) => sum + (div.value || 0), 0);
-  const dividendosPercentual = precoEntradaNum > 0 ? (dividendosTotal / precoEntradaNum) * 100 : 0;
-  const performanceTotal = performanceCapital + dividendosPercentual;
+  // 💰 APENAS PROVENTOS MONETÁRIOS PARA CÁLCULO
+  const proventosMonetarios = proventos
+    .filter(p => p.categoria === 'monetario')
+    .reduce((sum, p) => sum + p.value, 0);
+  
+  const proventosPercentual = precoEntradaNum > 0 
+    ? (proventosMonetarios / precoEntradaNum) * 100 
+    : 0;
 
-  const ultimoDividendo = dividendos.length > 0 ? dividendos[0].dataFormatada : 'Nenhum';
+  const performanceTotal = performanceCapital + proventosPercentual;
 
-  const dividendosPorAno: { [ano: string]: number } = {};
-  dividendos.forEach(div => {
-    try {
-      const ano = new Date(div.date).getFullYear().toString();
-      dividendosPorAno[ano] = (dividendosPorAno[ano] || 0) + (div.value || 0);
-    } catch {
-      // Ignorar datas inválidas
+  // 📊 ESTATÍSTICAS
+  const ultimoProvento = proventos.length > 0 ? proventos[0].dataFormatada : 'Nenhum';
+
+  const proventosPorAno: { [ano: string]: number } = {};
+  const proventosPorTipo: { [tipo: string]: number } = {};
+
+  proventos.forEach(p => {
+    // Por ano (apenas monetários)
+    if (p.categoria === 'monetario') {
+      const ano = new Date(p.date).getFullYear().toString();
+      proventosPorAno[ano] = (proventosPorAno[ano] || 0) + p.value;
     }
+    
+    // Por tipo (todos)
+    proventosPorTipo[p.type] = (proventosPorTipo[p.type] || 0) + 1;
   });
 
-  const anos = Object.keys(dividendosPorAno);
+  const anos = Object.keys(proventosPorAno);
   const mediaAnual = anos.length > 0 
-    ? Object.values(dividendosPorAno).reduce((sum, valor) => sum + valor, 0) / anos.length
+    ? Object.values(proventosPorAno).reduce((sum, valor) => sum + valor, 0) / anos.length
     : 0;
 
   return {
     performanceCapital,
-    dividendosTotal,
-    dividendosPercentual,
+    proventosMonetarios,
+    proventosPercentual,
     performanceTotal,
-    quantidadeDividendos: dividendos.length,
-    ultimoDividendo,
-    dividendosPorAno,
+    quantidadeProventos: proventos.length,
+    ultimoProvento,
+    proventosPorAno,
+    proventosPorTipo,
     mediaAnual,
-    status: dividendos.length > 0 ? 'success' : 'partial'
+    status: proventos.length > 0 ? 'success' : 'partial'
   };
 }
