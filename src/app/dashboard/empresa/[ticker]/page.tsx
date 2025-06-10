@@ -210,7 +210,7 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
   }
 }
 
-// 📊 COMPONENTE DE MÉTRICA
+// 📊 COMPONENTE DE MÉTRICA NO ESTILO MODERNO
 const MetricCard = ({ 
   title, 
   value, 
@@ -218,7 +218,8 @@ const MetricCard = ({
   subtitle, 
   loading = false,
   trend,
-  highlight = false
+  highlight = false,
+  showInfo = false
 }: { 
   title: string; 
   value: string; 
@@ -227,34 +228,70 @@ const MetricCard = ({
   loading?: boolean;
   trend?: 'up' | 'down';
   highlight?: boolean;
+  showInfo?: boolean;
 }) => (
   <Card sx={{ 
-    height: '100%', 
-    border: '1px solid #e5e7eb',
     borderRadius: 2,
+    overflow: 'hidden',
+    border: 'none',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     transition: 'all 0.2s ease',
     '&:hover': { 
       transform: 'translateY(-2px)', 
-      boxShadow: '0 4px 20px rgba(0,0,0,0.1)' 
-    },
-    ...(highlight && {
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-      border: '1px solid #cbd5e1'
-    })
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)' 
+    }
   }}>
-    <CardContent sx={{ textAlign: 'center', p: { xs: 2.5, md: 3 } }}>
+    {/* Header com título */}
+    <Box sx={{ 
+      backgroundColor: '#374151',
+      color: 'white',
+      py: 1.5,
+      px: 2,
+      position: 'relative'
+    }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="body2" sx={{ 
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          {title}
+        </Typography>
+        {showInfo && (
+          <Box sx={{ 
+            width: 16, 
+            height: 16, 
+            borderRadius: '50%', 
+            border: '1px solid rgba(255,255,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '10px',
+            color: 'rgba(255,255,255,0.7)'
+          }}>
+            ?
+          </Box>
+        )}
+      </Stack>
+    </Box>
+
+    {/* Conteúdo principal */}
+    <CardContent sx={{ 
+      backgroundColor: 'white',
+      p: 2.5,
+      textAlign: 'center',
+      '&:last-child': { pb: 2.5 }
+    }}>
       {loading ? (
-        <>
-          <Skeleton variant="text" height={40} />
-          <Skeleton variant="text" height={20} />
-        </>
+        <Skeleton variant="text" height={40} />
       ) : (
         <>
-          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ mb: 1.5 }}>
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
             <Typography variant="h4" sx={{ 
-              fontWeight: 800, 
-              fontSize: { xs: '1.5rem', md: '2rem' },
-              color: color === 'success' ? '#16a34a' : color === 'error' ? '#dc2626' : '#1f2937',
+              fontWeight: 700, 
+              fontSize: '1.75rem',
+              color: '#1f2937',
               lineHeight: 1
             }}>
               {value}
@@ -262,28 +299,20 @@ const MetricCard = ({
             {trend && (
               <Box sx={{ ml: 0.5 }}>
                 {trend === 'up' ? (
-                  <TrendUpIcon size={18} style={{ color: '#16a34a' }} />
+                  <TrendUpIcon size={16} style={{ color: '#10b981' }} />
                 ) : (
-                  <TrendDownIcon size={18} style={{ color: '#dc2626' }} />
+                  <TrendDownIcon size={16} style={{ color: '#ef4444' }} />
                 )}
               </Box>
             )}
           </Stack>
           
-          <Typography variant="body2" sx={{ 
-            fontWeight: 600, 
-            fontSize: '0.875rem',
-            color: '#374151',
-            mb: subtitle ? 0.5 : 0
-          }}>
-            {title}
-          </Typography>
-          
           {subtitle && (
             <Typography variant="caption" sx={{ 
               color: '#6b7280',
-              fontSize: '0.75rem',
+              fontSize: '0.7rem',
               display: 'block',
+              mt: 0.5,
               lineHeight: 1.2
             }}>
               {subtitle}
@@ -615,20 +644,56 @@ export default function EmpresaDetalhes() {
         </CardContent>
       </Card>
 
-      {/* Cards de métricas */}
+      {/* Cards de métricas - ESTILO MODERNO */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} md={2.4}>
           <MetricCard 
-            title="Dividend Yield" 
-            value={dyDaTabela}
-            color="success"
+            title="COTAÇÃO" 
+            value={precoAtualFormatado.replace('R$ ', 'R$ ')}
             loading={dadosLoading}
-            subtitle="Da carteira"
+            showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} md={2.4}>
           <MetricCard 
-            title="Viés Atual" 
+            title="VARIAÇÃO (12M)" 
+            value={calcularPerformance()}
+            loading={dadosLoading}
+            trend={calcularPerformance().includes('-') ? 'down' : 'up'}
+            showInfo={true}
+          />
+        </Grid>
+        <Grid item xs={6} md={2.4}>
+          <MetricCard 
+            title="P/L" 
+            value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+            loading={dadosLoading}
+            showInfo={true}
+          />
+        </Grid>
+        <Grid item xs={6} md={2.4}>
+          <MetricCard 
+            title="P/VP" 
+            value={dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
+            loading={dadosLoading}
+            showInfo={true}
+          />
+        </Grid>
+        <Grid item xs={6} md={2.4}>
+          <MetricCard 
+            title="DY" 
+            value={dyDaTabela}
+            loading={dadosLoading}
+            showInfo={true}
+          />
+        </Grid>
+      </Grid>
+
+      {/* Cards adicionais - Segunda linha */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={6} md={3}>
+          <MetricCard 
+            title="VIÉS ATUAL" 
             value={empresaCompleta.viesAtual}
             color={
               empresaCompleta.viesAtual.includes('Compra') ? 'success' : 
@@ -636,40 +701,28 @@ export default function EmpresaDetalhes() {
             }
             loading={dadosLoading}
             subtitle="Automático"
-            highlight={empresaCompleta.viesAtual.includes('Compra')}
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
-            title="% Carteira" 
+            title="% CARTEIRA" 
             value={empresaCompleta.percentualCarteira || 'N/A'} 
             subtitle="Participação"
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
-            title={isFII ? "P/VP" : "P/L"} 
-            value={dados?.pl || dados?.pvp ? formatarValor(dados.pl || dados.pvp, 'number') : 'N/A'}
-            loading={dadosLoading}
-            subtitle="Múltiplo"
-          />
-        </Grid>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="Preço Teto" 
+            title="PREÇO TETO" 
             value={empresaCompleta.precoTeto} 
-            subtitle="Meta"
+            subtitle="Meta definida"
           />
         </Grid>
-        <Grid item xs={6} md={2}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
-            title="Performance" 
-            value={calcularPerformance()}
-            color={calcularPerformance().includes('-') ? 'error' : 'success'}
+            title="ROE" 
+            value={dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
             loading={dadosLoading}
-            trend={calcularPerformance().includes('-') ? 'down' : 'up'}
-            subtitle="Total"
-            highlight={!calcularPerformance().includes('-')}
+            subtitle="Retorno patrimônio"
           />
         </Grid>
       </Grid>
