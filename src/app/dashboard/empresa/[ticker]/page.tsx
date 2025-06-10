@@ -127,8 +127,8 @@ function useDadosFinanceiros(ticker: string) {
 
       console.log(`🔍 [${ticker}] Iniciando busca de dados...`);
 
-      // 📊 URL da API BRAPI com mais parâmetros
-      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true&modules=summaryProfile,summaryDetail,defaultKeyStatistics`;
+      // 📊 URL da API BRAPI simplificada (removendo módulos que causam erro 417)
+      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`;
       
       console.log(`🌐 [${ticker}] URL da API:`, quoteUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
 
@@ -151,13 +151,18 @@ function useDadosFinanceiros(ticker: string) {
           const quote = data.results[0];
           console.log(`🔍 [${ticker}] Quote principal:`, quote);
           
-          // 📊 EXTRAIR DADOS DE DIFERENTES MÓDULOS
+          // 📊 EXTRAIR DADOS DOS MÓDULOS DISPONÍVEIS
           const summaryDetail = quote.summaryDetail || {};
           const defaultStatistics = quote.defaultStatistics || {};
           const summaryProfile = quote.summaryProfile || {};
+          const financialData = quote.financialData || {};
           
-          console.log(`📈 [${ticker}] SummaryDetail:`, summaryDetail);
-          console.log(`📊 [${ticker}] DefaultStatistics:`, defaultStatistics);
+          console.log(`📈 [${ticker}] Dados disponíveis:`, {
+            quote: Object.keys(quote),
+            summaryDetail: Object.keys(summaryDetail),
+            defaultStatistics: Object.keys(defaultStatistics),
+            financialData: Object.keys(financialData)
+          });
           
           // 🔍 DETECTAR SE É FII
           const isFII = ticker.includes('11') || 
@@ -167,52 +172,62 @@ function useDadosFinanceiros(ticker: string) {
 
           console.log(`🏢 [${ticker}] É FII?`, isFII);
 
-          // 💰 PREÇO ATUAL - MÚLTIPLAS FONTES
+          // 💰 PREÇO ATUAL - USAR DADOS BÁSICOS DA BRAPI
           const precoAtual = quote.regularMarketPrice || 
                            quote.currentPrice || 
-                           summaryDetail.regularMarketPrice ||
-                           summaryDetail.ask ||
+                           quote.price ||
                            0;
 
           console.log(`💰 [${ticker}] Preço atual encontrado:`, precoAtual);
 
-          // 📊 DIVIDEND YIELD - MÚLTIPLAS FONTES
+          // 📊 DIVIDEND YIELD - USAR DADOS BÁSICOS
           let dividendYield = 0;
           
-          if (quote.dividendsData?.yield) {
+          // Tentar diferentes campos da resposta da BRAPI
+          if (quote.dividendYield) {
+            dividendYield = quote.dividendYield;
+            console.log(`💎 [${ticker}] DY do quote.dividendYield:`, dividendYield);
+          } else if (quote.dividendsData?.yield) {
             dividendYield = quote.dividendsData.yield;
             console.log(`💎 [${ticker}] DY da dividendsData:`, dividendYield);
           } else if (summaryDetail.dividendYield) {
             dividendYield = summaryDetail.dividendYield * 100; // Converter para %
             console.log(`💎 [${ticker}] DY do summaryDetail:`, dividendYield);
-          } else if (summaryDetail.yield) {
-            dividendYield = summaryDetail.yield;
-            console.log(`💎 [${ticker}] DY do yield:`, dividendYield);
-          } else if (defaultStatistics.yield) {
-            dividendYield = defaultStatistics.yield;
-            console.log(`💎 [${ticker}] DY do defaultStatistics:`, dividendYield);
+          } else {
+            // Calcular DY baseado no histórico se disponível
+            if (quote.dividends && quote.dividends.length > 0) {
+              const ultimoAno = quote.dividends.filter((d: any) => {
+                const dataDividendo = new Date(d.date);
+                const agora = new Date();
+                return dataDividendo.getFullYear() === agora.getFullYear() - 1;
+              });
+              
+              if (ultimoAno.length > 0) {
+                const totalDividendos = ultimoAno.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+                if (precoAtual > 0) {
+                  dividendYield = (totalDividendos / precoAtual) * 100;
+                  console.log(`💎 [${ticker}] DY calculado dos dividendos:`, dividendYield);
+                }
+              }
+            }
           }
 
-          // 📈 P/L - MÚLTIPLAS FONTES
-          const pl = summaryDetail.trailingPE || 
-                    summaryDetail.forwardPE || 
-                    defaultStatistics.trailingPE ||
-                    defaultStatistics.forwardPE;
+          // 📈 DADOS FUNDAMENTALISTAS - USAR O QUE ESTIVER DISPONÍVEL
+          const pl = quote.priceEarnings || 
+                    quote.pe || 
+                    summaryDetail.trailingPE || 
+                    summaryDetail.forwardPE;
 
-          // 📊 P/VP - MÚLTIPLAS FONTES
-          const pvp = summaryDetail.priceToBook || 
-                     defaultStatistics.priceToBook ||
-                     (precoAtual && summaryDetail.bookValue ? precoAtual / summaryDetail.bookValue : undefined);
+          const pvp = quote.priceToBook || 
+                     summaryDetail.priceToBook ||
+                     (precoAtual && quote.bookValue ? precoAtual / quote.bookValue : undefined);
 
-          // 💹 ROE
-          const roe = defaultStatistics.returnOnEquity ? 
-                     defaultStatistics.returnOnEquity * 100 : 
-                     undefined;
+          const roe = quote.returnOnEquity ? 
+                     quote.returnOnEquity * 100 : 
+                     (defaultStatistics.returnOnEquity ? defaultStatistics.returnOnEquity * 100 : undefined);
 
-          // 💰 MARKET CAP
-          const marketCap = summaryDetail.marketCap || 
-                           defaultStatistics.marketCap ||
-                           quote.marketCap;
+          const marketCap = quote.marketCap || 
+                           summaryDetail.marketCap;
 
           const dadosProcessados: DadosFinanceiros = {
             precoAtual: precoAtual,
@@ -227,14 +242,14 @@ function useDadosFinanceiros(ticker: string) {
               pl: pl,
               pvp: pvp,
               roe: roe,
-              ebitda: quote.financialData?.ebitda,
-              dividaLiquida: quote.financialData?.totalDebt
+              ebitda: financialData.ebitda || quote.ebitda,
+              dividaLiquida: financialData.totalDebt || quote.totalDebt
             }),
             
             // 🏢 DADOS ESPECÍFICOS PARA FIIs
             ...(isFII && {
-              patrimonio: summaryDetail.totalAssets || marketCap,
-              valorPatrimonial: summaryDetail.bookValue || summaryDetail.navPrice,
+              patrimonio: marketCap || quote.totalAssets,
+              valorPatrimonial: quote.bookValue || quote.navPrice,
               pvp: pvp,
               rendimento12m: dividendYield
             })
