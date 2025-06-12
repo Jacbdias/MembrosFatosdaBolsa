@@ -58,7 +58,7 @@ interface SettingsTableProps {
   rows: FII[];
   cardsData?: CardsData;
   ibovespaReal?: any;
-  ifixReal?: any; // 🔥 NOVO: Dados reais do IFIX
+  ifixReal?: any;
 }
 
 function parsePrice(price: string): number {
@@ -619,9 +619,4 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
       </Card>
     </Box>
   );
-}' }}>
-              • IBOVESPA: Usando valor aproximado ({ibovespaReal.fonte})
-            </Typography>
-          )}
-          {ifixReal?.fonte?.includes('FALLBACK') && (
-            <Typography variant="caption" sx={{ color: '#92400e', display: 'block
+}
