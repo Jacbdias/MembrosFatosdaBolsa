@@ -271,17 +271,12 @@ function useIfixRealTime() {
 
   return { ifixData, loading, error, refetch: buscarIfixReal };
 }
-  console.log("🔥 PÁGINA SETTINGS (FIIs) - VERSÃO COM IBOVESPA E IFIX CORRIGIDOS");
 
-  const { fiis, loading: fiisLoading, erro: fiisError } = useFiisCotacoesBrapi();
-  const { marketData, loading: marketLoading, error: marketError } = useFinancialData();
-  
-  // 🚀 BUSCAR DADOS REAIS DO IBOVESPA
-  const { ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaRealTime();
-
+// 🔥 COMPONENTE PRINCIPAL - TODOS OS HOOKS DENTRO DO COMPONENTE
 export default function SettingsPage(): React.JSX.Element {
   console.log("🔥 PÁGINA SETTINGS (FIIs) - VERSÃO COM IBOVESPA E IFIX DINÂMICOS VIA API");
 
+  // ✅ TODOS OS HOOKS DENTRO DO COMPONENTE
   const { fiis, loading: fiisLoading, erro: fiisError } = useFiisCotacoesBrapi();
   const { marketData, loading: marketLoading, error: marketError } = useFinancialData();
   
