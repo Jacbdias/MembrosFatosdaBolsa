@@ -13,21 +13,9 @@ export function useIfixRealTime() {
       const res = await fetch('/api/ifix');
       const data = await res.json();
 
-      const ifixHG = data.results?.stocks?.IFIX;
-      if (!ifixHG || !ifixHG.points) throw new Error('IFIX não encontrado');
+      if (!data.ifix) throw new Error('IFIX não encontrado');
 
-      const dados = {
-        valor: ifixHG.points,
-        valorFormatado: Math.round(ifixHG.points).toLocaleString('pt-BR'),
-        variacao: ifixHG.variation || 0,
-        variacaoPercent: ifixHG.variation || 0,
-        trend: (ifixHG.variation || 0) >= 0 ? 'up' : 'down',
-        timestamp: new Date().toISOString(),
-        fonte: 'HG_BRASIL_PROXY',
-        nota: 'Via API interna do projeto'
-      };
-
-      setIfixData(dados);
+      setIfixData(data.ifix);
     } catch (err) {
       const agora = new Date();
       const hora = agora.getHours();
@@ -47,7 +35,7 @@ export function useIfixRealTime() {
         nota: `Fallback local ${hora}:${min.toString().padStart(2, '0')}`
       });
 
-      setError('API HG Brasil indisponível. Usando fallback.');
+      setError('API BRAPI indisponível. Usando fallback.');
     } finally {
       setLoading(false);
     }
