@@ -13,8 +13,6 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Unstable_Grid2';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
 interface FII {
   id: string;
@@ -77,15 +75,13 @@ function MarketCard({
   subtitle, 
   value, 
   trend, 
-  diff, 
-  icon 
+  diff
 }: {
   title: string;
   subtitle: string;
   value: string;
   trend: 'up' | 'down';
   diff?: number;
-  icon?: React.ReactNode;
 }) {
   const isPositive = trend === 'up';
   
@@ -123,21 +119,22 @@ function MarketCard({
             </Typography>
           </Box>
           
-          {icon && (
-            <Box sx={{
-              background: isPositive ? 
-                'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' : 
-                'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
-              color: isPositive ? '#059669' : '#dc2626',
-              p: 1.5,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {icon}
-            </Box>
-          )}
+          {/* Indicador visual do trend usando emoji */}
+          <Box sx={{
+            background: isPositive ? 
+              'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' : 
+              'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
+            color: isPositive ? '#059669' : '#dc2626',
+            p: 1.5,
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.2rem',
+            fontWeight: 'bold'
+          }}>
+            {isPositive ? '↗' : '↘'}
+          </Box>
         </Stack>
 
         {/* Valor Principal */}
@@ -155,11 +152,13 @@ function MarketCard({
           {/* Variação */}
           {diff !== undefined && (
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
-              {isPositive ? (
-                <TrendingUpIcon sx={{ fontSize: 16, color: '#059669' }} />
-              ) : (
-                <TrendingDownIcon sx={{ fontSize: 16, color: '#dc2626' }} />
-              )}
+              <Box sx={{
+                color: isPositive ? '#059669' : '#dc2626',
+                fontSize: '1rem',
+                fontWeight: 'bold'
+              }}>
+                {isPositive ? '▲' : '▼'}
+              </Box>
               <Typography variant="body2" sx={{
                 color: isPositive ? '#059669' : '#dc2626',
                 fontWeight: 700,
@@ -225,8 +224,6 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
             value={ibovespaFormatado}
             trend={cardsData?.ibovespa?.trend || 'down'}
             diff={cardsData?.ibovespa?.diff}
-            icon={cardsData?.ibovespa?.trend === 'up' ? 
-              <TrendingUpIcon sx={{ fontSize: 20 }} /> : <TrendingDownIcon sx={{ fontSize: 20 }} />}
           />
         </Grid>
 
@@ -238,8 +235,6 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
             value={cardsData?.ifix?.value || '3.200'}
             trend={cardsData?.ifix?.trend || 'up'}
             diff={cardsData?.ifix?.diff || 0.24}
-            icon={cardsData?.ifix?.trend === 'up' ? 
-              <TrendingUpIcon sx={{ fontSize: 20 }} /> : <TrendingDownIcon sx={{ fontSize: 20 }} />}
           />
         </Grid>
 
@@ -251,8 +246,6 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
             value={cardsData?.carteiraHoje?.value || '88.7%'}
             trend={cardsData?.carteiraHoje?.trend || 'up'}
             diff={cardsData?.carteiraHoje?.diff}
-            icon={cardsData?.carteiraHoje?.trend === 'up' ? 
-              <TrendingUpIcon sx={{ fontSize: 20 }} /> : <TrendingDownIcon sx={{ fontSize: 20 }} />}
           />
         </Grid>
 
@@ -264,7 +257,6 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
             value={cardsData?.dividendYield?.value || '7.4%'}
             trend={cardsData?.dividendYield?.trend || 'up'}
             diff={cardsData?.dividendYield?.diff}
-            icon={<TrendingUpIcon sx={{ fontSize: 20 }} />}
           />
         </Grid>
       </Grid>
