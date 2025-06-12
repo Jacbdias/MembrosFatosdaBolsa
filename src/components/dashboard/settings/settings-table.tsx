@@ -58,6 +58,7 @@ interface SettingsTableProps {
   rows: FII[];
   cardsData?: CardsData;
   ibovespaReal?: any;
+  ifixReal?: any; // 🔥 NOVO: Dados reais do IFIX
 }
 
 function parsePrice(price: string): number {
@@ -201,7 +202,7 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
   );
 }
 
-export function SettingsTable({ count, rows, cardsData, ibovespaReal }: SettingsTableProps): React.JSX.Element {
+export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }: SettingsTableProps): React.JSX.Element {
   // Validation
   if (!Array.isArray(rows) || rows.length === 0) {
     return (
@@ -229,28 +230,75 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
     return valor;
   };
 
-  // 🎯 DADOS DOS INDICADORES (IGUAL AO OVERVIEW)
-  const indicators = {
-    ibovespa: {
-      value: cardsData?.ibovespa?.value ? formatarIbovespa(cardsData.ibovespa.value) : '136.985',
-      trend: cardsData?.ibovespa?.trend || 'down',
-      diff: cardsData?.ibovespa?.diff || -0.02
-    },
-    ifix: {
-      value: cardsData?.ifix?.value || '3.200',
-      trend: cardsData?.ifix?.trend || 'up',
-      diff: cardsData?.ifix?.diff || 0.24
+  // 🎯 DADOS DOS INDICADORES COM PRIORIDADE PARA DADOS REAIS
+  const indicators = React.useMemo(() => {
+    // 📊 IBOVESPA: Priorizar dados reais do hook
+    let ibovespaFinal;
+    if (ibovespaReal) {
+      console.log('🔥 USANDO IBOVESPA REAL:', ibovespaReal);
+      ibovespaFinal = {
+        value: ibovespaReal.valorFormatado,
+        trend: ibovespaReal.trend,
+        diff: ibovespaReal.variacaoPercent
+      };
+    } else if (cardsData?.ibovespa) {
+      console.log('⚠️ USANDO IBOVESPA DOS CARDS:', cardsData.ibovespa);
+      ibovespaFinal = {
+        value: formatarIbovespa(cardsData.ibovespa.value),
+        trend: cardsData.ibovespa.trend,
+        diff: cardsData.ibovespa.diff
+      };
+    } else {
+      console.log('🔄 USANDO IBOVESPA FALLBACK');
+      ibovespaFinal = { value: '136.985', trend: 'down', diff: -0.02 };
     }
-  };
 
-  console.log('🔥 SETTINGS TABLE - Dados dos cards:', {
-    cardsData,
-    ibovespaReal,
-    indicators
-  });
+    // 🏢 IFIX: Priorizar dados reais do hook
+    let ifixFinal;
+    if (ifixReal) {
+      console.log('🏢 USANDO IFIX REAL:', ifixReal);
+      ifixFinal = {
+        value: ifixReal.valorFormatado,
+        trend: ifixReal.trend,
+        diff: ifixReal.variacaoPercent
+      };
+    } else if (cardsData?.ifix) {
+      console.log('⚠️ USANDO IFIX DOS CARDS:', cardsData.ifix);
+      ifixFinal = cardsData.ifix;
+    } else {
+      console.log('🔄 USANDO IFIX FALLBACK ATUALIZADO');
+      ifixFinal = { value: '3.435', trend: 'up', diff: 0.24 };
+    }
+
+    return {
+      ibovespa: ibovespaFinal,
+      ifix: ifixFinal
+    };
+  }, [ibovespaReal, ifixReal, cardsData]);
+
+  console.log('🔥 SETTINGS TABLE - Indicadores finais:', indicators);
 
   return (
     <Box>
+      {/* 🚨 ALERTAS DE STATUS DAS APIs */}
+      {(ibovespaReal?.fonte?.includes('FALLBACK') || ifixReal?.fonte?.includes('FALLBACK')) && (
+        <Box sx={{ mb: 3, p: 2, backgroundColor: '#fef3c7', borderRadius: 2, border: '1px solid #fde68a' }}>
+          <Typography variant="body2" sx={{ color: '#d97706', fontWeight: 600 }}>
+            ⚠️ Alguns dados estão em modo fallback:
+          </Typography>
+          {ibovespaReal?.fonte?.includes('FALLBACK') && (
+            <Typography variant="caption" sx={{ color: '#92400e', display: 'block' }}>
+              • IBOVESPA: Usando valor aproximado ({ibovespaReal.fonte})
+            </Typography>
+          )}
+          {ifixReal?.fonte?.includes('FALLBACK') && (
+            <Typography variant="caption" sx={{ color: '#92400e', display: 'block' }}>
+              • IFIX: Usando valor aproximado ({ifixReal.fonte})
+            </Typography>
+          )}
+        </Box>
+      )}
+
       {/* Indicadores de Mercado - Layout Discreto (IGUAL AO OVERVIEW) */}
       <Box
         sx={{
@@ -260,6 +308,7 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
           mb: 4,
         }}
       >
+        {/* IBOVESPA */}
         <MarketIndicator 
           title="IBOVESPA" 
           description="Índice da Bolsa Brasileira"
@@ -269,6 +318,8 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
           diff={indicators.ibovespa.diff}
           isLoading={false}
         />
+
+        {/* IFIX */}
         <MarketIndicator 
           title="ÍNDICE IFIX" 
           description="Fundos Imobiliários da B3"
@@ -568,4 +619,9 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
       </Card>
     </Box>
   );
-}
+}' }}>
+              • IBOVESPA: Usando valor aproximado ({ibovespaReal.fonte})
+            </Typography>
+          )}
+          {ifixReal?.fonte?.includes('FALLBACK') && (
+            <Typography variant="caption" sx={{ color: '#92400e', display: 'block
