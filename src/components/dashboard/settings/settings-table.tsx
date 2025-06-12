@@ -12,7 +12,10 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import Grid from '@mui/material/Unstable_Grid2';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
+import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
 
 interface FII {
   id: string;
@@ -69,108 +72,132 @@ function calculatePerformance(precoEntrada: string, precoAtual: string): number 
   return ((atual - entrada) / entrada) * 100;
 }
 
-// 🔥 COMPONENTE DE CARD INDIVIDUAL
-function MarketCard({ 
-  title, 
-  subtitle, 
-  value, 
-  trend, 
-  diff
-}: {
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (COPIADO EXATAMENTE DO OVERVIEW)
+interface MarketIndicatorProps {
   title: string;
-  subtitle: string;
   value: string;
-  trend: 'up' | 'down';
+  icon: React.ReactNode;
+  trend?: 'up' | 'down';
   diff?: number;
-}) {
-  const isPositive = trend === 'up';
+  isLoading?: boolean;
+  description?: string;
+}
+
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
+  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
   return (
-    <Card sx={{
-      p: 3,
-      borderRadius: 3,
-      border: '1px solid rgba(148, 163, 184, 0.2)',
-      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 10px 25px -3px rgb(0 0 0 / 0.1)',
-      }
-    }}>
+    <Box 
+      sx={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: 2,
+        p: 2.5,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        opacity: isLoading ? 0.7 : 1,
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          borderColor: '#c7d2fe',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        }
+      }}
+    >
       <Stack spacing={2}>
         {/* Header */}
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Box>
-            <Typography variant="h6" sx={{ 
-              fontWeight: 800, 
-              fontSize: '1.1rem',
-              color: '#1e293b',
-              lineHeight: 1.2
-            }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: '#64748b',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
+              }}
+            >
               {title}
             </Typography>
-            <Typography variant="body2" sx={{ 
-              color: '#64748b',
-              fontSize: '0.85rem',
-              mt: 0.5
-            }}>
-              {subtitle}
-            </Typography>
+            {description && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#94a3b8',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {description}
+              </Typography>
+            )}
           </Box>
-          
-          {/* Indicador visual do trend usando emoji */}
           <Box sx={{
-            background: isPositive ? 
-              'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)' : 
-              'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
-            color: isPositive ? '#059669' : '#dc2626',
-            p: 1.5,
-            borderRadius: 2,
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
+            backgroundColor: '#f1f5f9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.2rem',
-            fontWeight: 'bold'
+            color: '#64748b'
           }}>
-            {isPositive ? '↗' : '↘'}
+            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
           </Box>
         </Stack>
-
-        {/* Valor Principal */}
-        <Box>
-          <Typography variant="h4" sx={{ 
-            fontWeight: 900,
-            fontSize: '2rem',
+        
+        {/* Valor principal */}
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 700,
             color: '#1e293b',
-            lineHeight: 1,
-            letterSpacing: '-0.025em'
-          }}>
-            {value}
-          </Typography>
-          
-          {/* Variação */}
-          {diff !== undefined && (
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
-              <Box sx={{
-                color: isPositive ? '#059669' : '#dc2626',
-                fontSize: '1rem',
-                fontWeight: 'bold'
-              }}>
-                {isPositive ? '▲' : '▼'}
-              </Box>
-              <Typography variant="body2" sx={{
-                color: isPositive ? '#059669' : '#dc2626',
-                fontWeight: 700,
+            fontSize: '1.75rem',
+            lineHeight: 1
+          }}
+        >
+          {isLoading ? '...' : value}
+        </Typography>
+        
+        {/* Indicador de tendência */}
+        {!isLoading && diff !== undefined && trend && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+              color: trendColor
+            }}>
+              <TrendIcon size={12} weight="bold" />
+            </Box>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: trendColor,
+                fontWeight: 600,
                 fontSize: '0.875rem'
-              }}>
-                {isPositive ? '+' : ''}{diff.toFixed(2)}%
-              </Typography>
-            </Stack>
-          )}
-        </Box>
+              }}
+            >
+              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: '#64748b',
+                fontSize: '0.875rem'
+              }}
+            >
+              hoje
+            </Typography>
+          </Stack>
+        )}
       </Stack>
-    </Card>
+    </Box>
   );
 }
 
@@ -202,84 +229,85 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
     return valor;
   };
 
-  // 🎯 DADOS FINAIS DOS CARDS
-  const ibovespaFormatado = cardsData?.ibovespa?.value ? 
-    formatarIbovespa(cardsData.ibovespa.value) : '136.985';
+  // 🎯 DADOS DOS INDICADORES (IGUAL AO OVERVIEW)
+  const indicators = {
+    ibovespa: {
+      value: cardsData?.ibovespa?.value ? formatarIbovespa(cardsData.ibovespa.value) : '136.985',
+      trend: cardsData?.ibovespa?.trend || 'down',
+      diff: cardsData?.ibovespa?.diff || -0.02
+    },
+    ifix: {
+      value: cardsData?.ifix?.value || '3.200',
+      trend: cardsData?.ifix?.trend || 'up',
+      diff: cardsData?.ifix?.diff || 0.24
+    }
+  };
 
   console.log('🔥 SETTINGS TABLE - Dados dos cards:', {
     cardsData,
     ibovespaReal,
-    ibovespaFormatado
+    indicators
   });
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* 🔥 CARDS DE MERCADO - IBOVESPA E IFIX */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* IBOVESPA */}
-        <Grid xs={12} sm={6} md={3}>
-          <MarketCard
-            title="IBOVESPA"
-            subtitle="Índice da Bolsa Brasileira"
-            value={ibovespaFormatado}
-            trend={cardsData?.ibovespa?.trend || 'down'}
-            diff={cardsData?.ibovespa?.diff}
-          />
-        </Grid>
-
-        {/* IFIX */}
-        <Grid xs={12} sm={6} md={3}>
-          <MarketCard
-            title="ÍNDICE IFIX"
-            subtitle="Fundos Imobiliários da B3"
-            value={cardsData?.ifix?.value || '3.200'}
-            trend={cardsData?.ifix?.trend || 'up'}
-            diff={cardsData?.ifix?.diff || 0.24}
-          />
-        </Grid>
-
-        {/* CARTEIRA HOJE */}
-        <Grid xs={12} sm={6} md={3}>
-          <MarketCard
-            title="CARTEIRA HOJE"
-            subtitle="Performance da Carteira"
-            value={cardsData?.carteiraHoje?.value || '88.7%'}
-            trend={cardsData?.carteiraHoje?.trend || 'up'}
-            diff={cardsData?.carteiraHoje?.diff}
-          />
-        </Grid>
-
-        {/* DIVIDEND YIELD */}
-        <Grid xs={12} sm={6} md={3}>
-          <MarketCard
-            title="DIVIDEND YIELD"
-            subtitle="Rendimento Médio dos FIIs"
-            value={cardsData?.dividendYield?.value || '7.4%'}
-            trend={cardsData?.dividendYield?.trend || 'up'}
-            diff={cardsData?.dividendYield?.diff}
-          />
-        </Grid>
-      </Grid>
-
-      {/* 🔥 TABELA DE FIIs */}
-      <Card sx={{
+    <Box>
+      {/* Indicadores de Mercado - Layout Discreto (IGUAL AO OVERVIEW) */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        <MarketIndicator 
+          title="IBOVESPA" 
+          description="Índice da Bolsa Brasileira"
+          value={indicators.ibovespa.value} 
+          icon={<CurrencyDollarIcon />} 
+          trend={indicators.ibovespa.trend as 'up' | 'down'} 
+          diff={indicators.ibovespa.diff}
+          isLoading={false}
+        />
+        <MarketIndicator 
+          title="ÍNDICE IFIX" 
+          description="Fundos Imobiliários da B3"
+          value={indicators.ifix.value} 
+          icon={<UsersThreeIcon />} 
+          trend={indicators.ifix.trend as 'up' | 'down'} 
+          diff={indicators.ifix.diff}
+          isLoading={false}
+        />
+      </Box>
+      
+      {/* Tabela de FIIs */}
+      <Card sx={{ 
         borderRadius: 4,
-        border: '1px solid rgba(148, 163, 184, 0.2)',
-        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
         overflow: 'hidden'
       }}>
-        {/* Header */}
-        <Box sx={{
+        <Box sx={{ 
           background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
           p: 4,
-          borderBottom: '1px solid rgba(148, 163, 184, 0.2)'
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
         }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#1e293b', fontSize: '1.5rem', mb: 0.5 }}>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
                 Carteira de FIIs Premium
               </Typography>
-              <Typography variant="body1" sx={{ color: '#64748b', fontSize: '1rem' }}>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
                 {count} fundos imobiliários • Viés calculado automaticamente
               </Typography>
             </Box>
@@ -296,21 +324,95 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
             </Box>
           </Stack>
         </Box>
-
-        {/* Table */}
+        
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
-              <TableRow sx={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' }}>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>#</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Ativo</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Setor</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Entrada</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Preço Inicial</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Preço Atual</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>DY</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Teto</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase' }}>Viés</TableCell>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '60px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Viés
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -323,81 +425,130 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal }: Settings
 
                 try {
                   const performance = calculatePerformance(row.precoEntrada || '', row.precoAtual || '');
-                  const globalIndex = index + 1; // Índice simples
+                  const globalIndex = index + 1;
 
                   return (
-                    <TableRow hover key={row.id}>
-                      <TableCell align="center" sx={{ fontWeight: 800 }}>
+                    <TableRow 
+                      hover 
+                      key={row.id}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          cursor: 'pointer',
+                          transform: 'scale(1.005)',
+                          transition: 'all 0.2s ease'
+                        },
+                        borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                      }}
+                    >
+                      <TableCell sx={{ 
+                        textAlign: 'center', 
+                        fontWeight: 800, 
+                        fontSize: '1rem',
+                        color: '#000000'
+                      }}>
                         {globalIndex}
                       </TableCell>
-                      
                       <TableCell>
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Avatar 
-                            src={row.avatar || ''} 
-                            alt={row.ticker || ''} 
-                            sx={{ width: 40, height: 40 }}
+                            src={row.avatar} 
+                            alt={row.ticker}
+                            sx={{ 
+                              width: 44, 
+                              height: 44,
+                              border: '2px solid',
+                              borderColor: 'rgba(0, 0, 0, 0.2)'
+                            }}
                           >
                             {row.ticker ? row.ticker.substring(0, 2) : '??'}
                           </Avatar>
                           <Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                              {row.ticker || 'N/A'}
+                            <Typography variant="subtitle1" sx={{ 
+                              fontWeight: 700,
+                              color: '#1e293b',
+                              fontSize: '1rem'
+                            }}>
+                              {row.ticker}
                             </Typography>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: performance >= 0 ? '#059669' : '#dc2626', 
-                                fontWeight: 600 
-                              }}
-                            >
+                            <Typography variant="caption" sx={{ 
+                              color: performance >= 0 ? '#059669' : '#dc2626',
+                              fontSize: '0.8rem',
+                              fontWeight: 600
+                            }}>
                               {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
                             </Typography>
                           </Box>
                         </Stack>
                       </TableCell>
-                      
-                      <TableCell align="center">
+                      <TableCell sx={{ textAlign: 'center' }}>
                         <Chip 
-                          label={row.setor || 'N/A'} 
-                          size="small" 
-                          sx={{ fontSize: '0.75rem', fontWeight: 600 }} 
+                          label={row.setor}
+                          size="medium"
+                          sx={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            color: '#000000',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            border: '1px solid rgba(0, 0, 0, 0.2)'
+                          }}
                         />
                       </TableCell>
-                      
-                      <TableCell align="center" sx={{ fontSize: '0.875rem', color: '#64748b' }}>
-                        {row.dataEntrada || 'N/A'}
-                      </TableCell>
-                      
-                      <TableCell align="center" sx={{ fontWeight: 600 }}>
-                        {row.precoEntrada || 'N/A'}
-                      </TableCell>
-                      
-                      <TableCell align="center" sx={{ 
-                        fontWeight: 700, 
-                        color: performance >= 0 ? '#10b981' : '#ef4444' 
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        color: '#64748b',
+                        fontSize: '0.875rem',
+                        whiteSpace: 'nowrap'
                       }}>
-                        {row.precoAtual || 'N/A'}
+                        {row.dataEntrada}
                       </TableCell>
-                      
-                      <TableCell align="center" sx={{ fontWeight: 600 }}>
-                        {row.dy || 'N/A'}
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: '#475569',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.9rem'
+                      }}>
+                        {row.precoEntrada}
                       </TableCell>
-                      
-                      <TableCell align="center" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {row.precoTeto || 'N/A'}
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 700,
+                        color: performance >= 0 ? '#10b981' : '#ef4444',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.9rem'
+                      }}>
+                        {row.precoAtual}
                       </TableCell>
-                      
-                      <TableCell align="center">
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: '#000000',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {row.dy}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: '#475569',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {row.precoTeto}
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>
                         <Chip
                           label={row.vies || 'Aguardar'}
-                          size="small"
+                          size="medium"
                           sx={{
                             backgroundColor: (row.vies === 'Compra') ? '#dcfce7' : '#fef3c7',
                             color: (row.vies === 'Compra') ? '#059669' : '#d97706',
                             fontWeight: 700,
                             fontSize: '0.8rem',
-                            textTransform: 'uppercase'
+                            border: '1px solid',
+                            borderColor: (row.vies === 'Compra') ? '#bbf7d0' : '#fde68a',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
                           }}
                         />
                       </TableCell>
