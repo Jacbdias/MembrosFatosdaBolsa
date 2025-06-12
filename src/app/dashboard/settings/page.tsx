@@ -1,3 +1,12 @@
+'use client';
+
+import * as React from 'react';
+import Grid from '@mui/material/Unstable_Grid2';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { SettingsTable } from '@/components/dashboard/settings/settings-table';
+import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
+import { useFinancialData } from '@/hooks/useFinancialData';
+
 function useIfixRealTime() {
   const [ifixData, setIfixData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -8,10 +17,7 @@ function useIfixRealTime() {
       setLoading(true);
       setError(null);
 
-      console.log('🇧🇷 BUSCANDO IFIX VIA HG BRASIL API...');
-
       const hgUrl = 'https://api.hgbrasil.com/finance?format=json&key=free';
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -29,15 +35,11 @@ function useIfixRealTime() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Resposta completa HG Brasil:', data);
-
         let dadosIfix = null;
 
         if (data.results) {
           if (data.results.stocks && data.results.stocks.IFIX) {
             const ifixHG = data.results.stocks.IFIX;
-            console.log('✅ IFIX encontrado em stocks:', ifixHG);
-
             dadosIfix = {
               valor: ifixHG.points,
               valorFormatado: Math.round(ifixHG.points).toLocaleString('pt-BR'),
@@ -50,8 +52,6 @@ function useIfixRealTime() {
             };
           } else if (data.results.indexes && data.results.indexes.IFIX) {
             const ifixHG = data.results.indexes.IFIX;
-            console.log('✅ IFIX encontrado em indexes:', ifixHG);
-
             dadosIfix = {
               valor: ifixHG.points,
               valorFormatado: Math.round(ifixHG.points).toLocaleString('pt-BR'),
@@ -62,42 +62,26 @@ function useIfixRealTime() {
               fonte: 'HG_BRASIL_INDEXES',
               nota: 'Dados via HG Brasil API'
             };
-          } else {
-            console.log('🔍 IFIX não encontrado diretamente, explorando estrutura...');
           }
         }
 
         if (dadosIfix) {
-          console.log('✅ IFIX carregado com sucesso via HG Brasil:', dadosIfix);
           setIfixData(dadosIfix);
         } else {
           throw new Error('IFIX não encontrado na resposta da HG Brasil');
         }
-
       } else {
         const errorText = await response.text();
-        console.error('❌ Erro HTTP na HG Brasil:', response.status, errorText);
         throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
       }
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar IFIX via HG Brasil:', err);
       setError(errorMessage);
 
-      // 🔄 FALLBACK
-      console.log('🔄 Usando fallback com valor realista do IFIX...');
       const agora = new Date();
       const horaAtual = agora.getHours();
       const minutoAtual = agora.getMinutes();
-
-      let variacao = 0;
-      if (horaAtual >= 10 && horaAtual <= 17) {
-        variacao = (Math.random() - 0.5) * 2.0;
-      } else {
-        variacao = (Math.random() - 0.5) * 0.6;
-      }
-
+      let variacao = horaAtual >= 10 && horaAtual <= 17 ? (Math.random() - 0.5) * 2.0 : (Math.random() - 0.5) * 0.6;
       const valorBase = 3442;
       const novoValor = valorBase * (1 + variacao / 100);
 
@@ -113,7 +97,6 @@ function useIfixRealTime() {
       };
 
       setIfixData(fallbackData);
-      console.log('✅ IFIX fallback aplicado:', fallbackData);
     } finally {
       setLoading(false);
     }
@@ -121,26 +104,96 @@ function useIfixRealTime() {
 
   React.useEffect(() => {
     let mounted = true;
-
     const buscarDados = async () => {
-      if (mounted) {
-        await buscarIfixReal();
-      }
+      if (mounted) await buscarIfixReal();
     };
-
     buscarDados();
-
     const interval = setInterval(() => {
-      if (mounted) {
-        buscarDados();
-      }
+      if (mounted) buscarDados();
     }, 5 * 60 * 1000);
-
     return () => {
       mounted = false;
       clearInterval(interval);
     };
   }, [buscarIfixReal]);
 
-  return { ifixData, loading, error, refetch: buscarIfixReal };
+  return { ifixData, loading, error }; // ✅ Corrigido
 }
+
+function SettingsPage(): React.JSX.Element {
+  const { fiis, loading: fiisLoading, erro: fiisError } = useFiisCotacoesBrapi();
+  const { marketData, loading: marketLoading, error: marketError } = useFinancialData();
+  const { ifixData, loading: ifixLoading, error: ifixError } = useIfixRealTime();
+
+  const dadosCards = {
+    dividendYield: { value: '7.4%', trend: 'up' as const },
+    carteiraHoje: { value: '88.7%', trend: 'up' as const },
+    ibovespa: { value: '136.985', trend: 'down' as const, diff: -0.02 },
+    ifix: ifixData ? {
+      value: ifixData.valorFormatado,
+      trend: ifixData.trend,
+      diff: ifixData.variacaoPercent
+    } : { value: '3.435', trend: 'up' as const, diff: 0.24 }
+  };
+
+  if (fiisLoading || marketLoading || ifixLoading) {
+    return (
+      <Grid container spacing={3}>
+        <Grid xs={12}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress size={40} />
+            <Box ml={2} sx={{ fontSize: '1.1rem' }}>
+              🏢 Carregando dados reais do IFIX e FIIs...
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+    );
+  }
+
+  if (fiisError) {
+    return (
+      <Grid container spacing={3}>
+        <Grid xs={12}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+            <Typography variant="h6" color="error" gutterBottom>
+              ⚠️ Erro ao carregar FIIs
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {fiisError}
+            </Typography>
+          </Box>
+        </Grid>
+      </Grid>
+    );
+  }
+
+  if (!Array.isArray(fiis) || fiis.length === 0) {
+    return (
+      <Grid container spacing={3}>
+        <Grid xs={12}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+            <Typography variant="h6" color="text.secondary">
+              📊 Nenhum FII encontrado na carteira
+            </Typography>
+          </Box>
+        </Grid>
+      </Grid>
+    );
+  }
+
+  return (
+    <Grid container spacing={3}>
+      <Grid xs={12}>
+        <SettingsTable 
+          count={fiis.length} 
+          rows={fiis}
+          cardsData={dadosCards}
+          ifixReal={ifixData}
+        />
+      </Grid>
+    </Grid>
+  );
+}
+
+export default SettingsPage;
