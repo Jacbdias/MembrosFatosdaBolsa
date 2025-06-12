@@ -1,412 +1,620 @@
 'use client';
 
 import * as React from 'react';
-import Grid from '@mui/material/Unstable_Grid2';
-import { Box, CircularProgress, Typography } from '@mui/material';
-import { SettingsTable } from '@/components/dashboard/settings/settings-table';
-import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
+import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 
-// 🔥 IMPORTAR O HOOK PARA DADOS FINANCEIROS REAIS
-import { useFinancialData } from '@/hooks/useFinancialData';
-
-// 🚀 HOOK PARA BUSCAR DADOS REAIS DO IBOVESPA VIA API (MESMO DA OVERVIEW)
-function useIbovespaRealTime() {
-  const [ibovespaData, setIbovespaData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const buscarIbovespaReal = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🔍 BUSCANDO IBOVESPA REAL VIA BRAPI...');
-
-      // 🔑 TOKEN BRAPI VALIDADO (MESMO DO SEU CÓDIGO)
-      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-      // 📊 BUSCAR IBOVESPA (^BVSP) VIA BRAPI
-      const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
-      
-      console.log('🌐 Buscando Ibovespa:', ibovUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
-
-      const response = await fetch(ibovUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Ibovespa-Real-Time-App'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Resposta IBOVESPA:', data);
-
-        if (data.results && data.results.length > 0) {
-          const ibovData = data.results[0];
-          
-          const dadosIbovespa = {
-            valor: ibovData.regularMarketPrice,
-            valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
-            variacao: ibovData.regularMarketChange || 0,
-            variacaoPercent: ibovData.regularMarketChangePercent || 0,
-            trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
-            timestamp: new Date().toISOString(),
-            fonte: 'BRAPI_REAL'
-          };
-
-          console.log('✅ IBOVESPA PROCESSADO:', dadosIbovespa);
-          setIbovespaData(dadosIbovespa);
-          
-        } else {
-          throw new Error('Sem dados do Ibovespa na resposta');
-        }
-      } else {
-        throw new Error(`Erro HTTP ${response.status}`);
-      }
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar Ibovespa:', err);
-      setError(errorMessage);
-      
-      // 🔄 FALLBACK: Usar valor aproximado baseado na B3
-      console.log('🔄 Usando fallback com valor aproximado da B3...');
-      const fallbackData = {
-        valor: 136985,
-        valorFormatado: '136.985',
-        variacao: -21.25,
-        variacaoPercent: -0.02,
-        trend: 'down',
-        timestamp: new Date().toISOString(),
-        fonte: 'FALLBACK_B3'
-      };
-      setIbovespaData(fallbackData);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    buscarIbovespaReal();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS
-    const interval = setInterval(buscarIbovespaReal, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [buscarIbovespaReal]);
-
-  return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
+interface FII {
+  id: string;
+  avatar: string;
+  ticker: string;
+  setor: string;
+  dataEntrada: string;
+  precoEntrada: string;
+  precoAtual: string;
+  dy: string;
+  precoTeto: string;
+  vies: string;
 }
 
-// 🚀 NOVO HOOK PARA BUSCAR DADOS REAIS DO IFIX VIA BRAPI
-function useIfixRealTime() {
-  const [ifixData, setIfixData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const buscarIfixReal = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🏢 BUSCANDO IFIX REAL VIA BRAPI...');
-
-      // 🔑 TOKEN BRAPI VALIDADO (MESMO TOKEN)
-      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-      // 📊 TENTAR DIFERENTES TICKERS PARA IFIX (EXPANDIDO)
-      const tickers = ['XFIX11', 'IFIX.SA', '^IFIX', 'IFIX11', 'IFIX', 'IFIX.B3'];
-      let dadosIfix = null;
-
-      for (const ticker of tickers) {
-        try {
-          const ifixUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
-          console.log(`🔍 Tentando ticker: ${ticker}`);
-
-          const response = await fetch(ifixUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'IFIX-Real-Time-App'
-            }
-          });
-
-          console.log(`📡 Status da resposta para ${ticker}:`, response.status);
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`📊 Resposta completa ${ticker}:`, data);
-
-            if (data.results && data.results.length > 0) {
-              const ifixInfo = data.results[0];
-              console.log(`✅ Dados encontrados para ${ticker}:`, ifixInfo);
-              
-              dadosIfix = {
-                valor: ifixInfo.regularMarketPrice,
-                valorFormatado: ifixInfo.regularMarketPrice.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0
-                }),
-                variacao: ifixInfo.regularMarketChange || 0,
-                variacaoPercent: ifixInfo.regularMarketChangePercent || 0,
-                trend: (ifixInfo.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
-                timestamp: new Date().toISOString(),
-                fonte: `BRAPI_${ticker}`,
-                ticker: ticker
-              };
-
-              console.log(`✅ IFIX PROCESSADO (${ticker}):`, dadosIfix);
-              break; // Parar no primeiro ticker que funcionar
-            } else {
-              console.log(`⚠️ ${ticker}: Resposta sem resultados:`, data);
-            }
-          } else {
-            const errorText = await response.text();
-            console.log(`❌ ${ticker} falhou com status ${response.status}:`, errorText);
-          }
-        } catch (tickerError) {
-          console.log(`⚠️ Ticker ${ticker} falhou:`, tickerError);
-          continue; // Tentar próximo ticker
-        }
-      }
-
-      if (dadosIfix) {
-        setIfixData(dadosIfix);
-      } else {
-        throw new Error('Nenhum ticker do IFIX funcionou');
-      }
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar IFIX:', err);
-      setError(errorMessage);
-      
-      // 🔄 FALLBACK: Usar valor atualizado baseado na pesquisa (3.435 pontos)
-      console.log('🔄 Usando fallback com valor atualizado do IFIX (3.435 pontos)...');
-      const fallbackData = {
-        valor: 3435,
-        valorFormatado: '3.435',
-        variacao: 8.15,
-        variacaoPercent: 0.24,
-        trend: 'up',
-        timestamp: new Date().toISOString(),
-        fonte: 'FALLBACK_VALOR_ATUAL_3435'
-      };
-      setIfixData(fallbackData);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    buscarIfixReal();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS
-    const interval = setInterval(buscarIfixReal, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [buscarIfixReal]);
-
-  return { ifixData, loading, error, refetch: buscarIfixReal };
+interface CardsData {
+  ibovespa?: {
+    value: string;
+    trend: 'up' | 'down';
+    diff: number;
+  };
+  ifix?: {
+    value: string;
+    trend: 'up' | 'down';
+    diff: number;
+  };
+  carteiraHoje?: {
+    value: string;
+    trend: 'up' | 'down';
+    diff?: number;
+  };
+  dividendYield?: {
+    value: string;
+    trend: 'up' | 'down';
+    diff?: number;
+  };
 }
 
-export default function SettingsPage(): React.JSX.Element {
-  console.log("🔥 PÁGINA SETTINGS (FIIs) - VERSÃO COM IBOVESPA E IFIX DINÂMICOS VIA BRAPI");
+interface SettingsTableProps {
+  count: number;
+  rows: FII[];
+  cardsData?: CardsData;
+  ibovespaReal?: any;
+  ifixReal?: any;
+}
 
-  const { fiis, loading: fiisLoading, erro: fiisError } = useFiisCotacoesBrapi();
-  const { marketData, loading: marketLoading, error: marketError } = useFinancialData();
+function parsePrice(price: string): number {
+  if (!price || typeof price !== 'string') return 0;
+  return parseFloat(price.replace('R$ ', '').replace(',', '.')) || 0;
+}
+
+function calculatePerformance(precoEntrada: string, precoAtual: string): number {
+  const entrada = parsePrice(precoEntrada);
+  const atual = parsePrice(precoAtual);
+  if (entrada <= 0) return 0;
+  return ((atual - entrada) / entrada) * 100;
+}
+
+// 🎨 INDICADOR DE MERCADO USANDO APENAS MATERIAL-UI
+interface MarketIndicatorProps {
+  title: string;
+  value: string;
+  trend?: 'up' | 'down';
+  diff?: number;
+  isLoading?: boolean;
+  description?: string;
+}
+
+function MarketIndicator({ title, value, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
-  // 🚀 BUSCAR DADOS REAIS DO IBOVESPA E IFIX
-  const { ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaRealTime();
-  const { ifixData, loading: ifixLoading, error: ifixError } = useIfixRealTime();
+  return (
+    <Box 
+      sx={{ 
+        backgroundColor: '#ffffff',
+        borderRadius: 2,
+        p: 2.5,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        opacity: isLoading ? 0.7 : 1,
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          borderColor: '#c7d2fe',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        }
+      }}
+    >
+      <Stack spacing={2}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: '#64748b',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontSize: '0.75rem'
+              }}
+            >
+              {title}
+            </Typography>
+            {description && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#94a3b8',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.7rem'
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+          </Box>
+          
+          {/* Ícone usando símbolos Unicode */}
+          <Box sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 1.5,
+            backgroundColor: '#f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748b',
+            fontSize: '1.2rem',
+            fontWeight: 'bold'
+          }}>
+            {title.includes('IBOVESPA') ? '💰' : '🏢'}
+          </Box>
+        </Stack>
+        
+        {/* Valor principal */}
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 700,
+            color: '#1e293b',
+            fontSize: '1.75rem',
+            lineHeight: 1
+          }}
+        >
+          {isLoading ? '...' : value}
+        </Typography>
+        
+        {/* Indicador de tendência */}
+        {!isLoading && diff !== undefined && trend && (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
+              color: trendColor,
+              fontSize: '0.8rem',
+              fontWeight: 'bold'
+            }}>
+              {trend === 'up' ? '↗' : '↘'}
+            </Box>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: trendColor,
+                fontWeight: 600,
+                fontSize: '0.875rem'
+              }}
+            >
+              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
+            </Typography>
+            <Typography 
+              variant="body2"
+              sx={{ 
+                color: '#64748b',
+                fontSize: '0.875rem'
+              }}
+            >
+              hoje
+            </Typography>
+          </Stack>
+        )}
+      </Stack>
+    </Box>
+  );
+}
 
-  // 🔥 CONSTRUIR DADOS DOS CARDS COM IBOVESPA E IFIX DINÂMICOS
-  const construirDadosCards = () => {
-    const dadosBase = {
-      carteiraHoje: { value: "88.7%", trend: "up" as const },
-      dividendYield: { value: "7.4%", trend: "up" as const },
-      ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
-      carteiraPeriodo: { value: "9.3%", trend: "up" as const, diff: 9.3 },
-    };
+export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }: SettingsTableProps): React.JSX.Element {
+  // Validation
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+        <Typography variant="h6" color="text.secondary">
+          📊 Nenhum FII encontrado na carteira
+        </Typography>
+      </Box>
+    );
+  }
 
-    // 🎯 USAR DADOS REAIS DO IBOVESPA SE DISPONÍVEL
-    const ibovespaFinal = ibovespaData ? {
-      value: ibovespaData.valorFormatado,
-      trend: ibovespaData.trend,
-      diff: ibovespaData.variacaoPercent
-    } : { value: "136985", trend: "down" as const, diff: -0.02 };
+  // 🔥 FORMATAÇÃO DINÂMICA DO IBOVESPA
+  const formatarIbovespa = (valor: string) => {
+    if (!valor) return '136.985';
+    
+    // Se já está formatado, manter
+    if (valor.includes('.')) return valor;
+    
+    // Se é número sem formatação, adicionar pontos
+    const numero = parseInt(valor);
+    if (!isNaN(numero)) {
+      return numero.toLocaleString('pt-BR');
+    }
+    
+    return valor;
+  };
 
-    // 🏢 USAR DADOS REAIS DO IFIX SE DISPONÍVEL
-    const ifixFinal = ifixData ? {
-      value: ifixData.valorFormatado,
-      trend: ifixData.trend,
-      diff: ifixData.variacaoPercent
-    } : { value: "3.435", trend: "up" as const, diff: 0.24 };
+  // 🎯 DADOS DOS INDICADORES COM PRIORIDADE PARA DADOS REAIS
+  const indicators = React.useMemo(() => {
+    // 📊 IBOVESPA: Priorizar dados reais do hook
+    let ibovespaFinal;
+    if (ibovespaReal) {
+      console.log('🔥 USANDO IBOVESPA REAL:', ibovespaReal);
+      ibovespaFinal = {
+        value: ibovespaReal.valorFormatado,
+        trend: ibovespaReal.trend,
+        diff: ibovespaReal.variacaoPercent
+      };
+    } else if (cardsData?.ibovespa) {
+      console.log('⚠️ USANDO IBOVESPA DOS CARDS:', cardsData.ibovespa);
+      ibovespaFinal = {
+        value: formatarIbovespa(cardsData.ibovespa.value),
+        trend: cardsData.ibovespa.trend,
+        diff: cardsData.ibovespa.diff
+      };
+    } else {
+      console.log('🔄 USANDO IBOVESPA FALLBACK');
+      ibovespaFinal = { value: '136.985', trend: 'down', diff: -0.02 };
+    }
+
+    // 🏢 IFIX: Priorizar dados reais do hook
+    let ifixFinal;
+    if (ifixReal) {
+      console.log('🏢 USANDO IFIX REAL:', ifixReal);
+      ifixFinal = {
+        value: ifixReal.valorFormatado,
+        trend: ifixReal.trend,
+        diff: ifixReal.variacaoPercent
+      };
+    } else if (cardsData?.ifix) {
+      console.log('⚠️ USANDO IFIX DOS CARDS:', cardsData.ifix);
+      ifixFinal = cardsData.ifix;
+    } else {
+      console.log('🔄 USANDO IFIX FALLBACK ATUALIZADO');
+      ifixFinal = { value: '3.435', trend: 'up', diff: 0.24 };
+    }
 
     return {
-      ...dadosBase,
       ibovespa: ibovespaFinal,
       ifix: ifixFinal
     };
-  };
+  }, [ibovespaReal, ifixReal, cardsData]);
 
-  // CALCULAR DIVIDEND YIELD MÉDIO DOS FIIs
-  const calcularDYFiis = () => {
-    if (!Array.isArray(fiis) || fiis.length === 0) return { value: "7.4%", trend: "up" as const };
-    
-    const dyValues = fiis
-      .map(fii => parseFloat(fii.dy?.replace('%', '').replace(',', '.') || '0'))
-      .filter(dy => !isNaN(dy) && dy > 0);
-    
-    if (dyValues.length === 0) return { value: "7.4%", trend: "up" as const };
-    
-    const dyMedio = dyValues.reduce((sum, dy) => sum + dy, 0) / dyValues.length;
-    
-    return {
-      value: `${dyMedio.toFixed(1)}%`,
-      trend: "up" as const,
-      diff: dyMedio,
-    };
-  };
-
-  // CALCULAR PERFORMANCE MÉDIA DA CARTEIRA FIIs
-  const calcularPerformanceFiis = () => {
-    console.log('🔍 DEBUG calcularPerformanceFiis:');
-    console.log('- fiis.length:', fiis?.length || 0);
-    
-    if (!Array.isArray(fiis) || fiis.length === 0) {
-      console.log('❌ Portfolio vazio, usando padrão');
-      return { value: "88.7%", trend: "up" as const };
-    }
-    
-    const performances = fiis
-      .filter(fii => {
-        const hasPerformance = fii.performance !== undefined && !isNaN(fii.performance);
-        console.log(`🔍 FII ${fii.ticker}: performance = ${fii.performance}, válida = ${hasPerformance}`);
-        return hasPerformance;
-      })
-      .map(fii => fii.performance);
-    
-    console.log('🔍 Performances válidas:', performances);
-    
-    if (performances.length === 0) {
-      console.log('❌ Nenhuma performance válida, usando padrão');
-      return { value: "88.7%", trend: "up" as const };
-    }
-    
-    const performancMedia = performances.reduce((sum, perf) => sum + perf, 0) / performances.length;
-    console.log('✅ Performance média calculada:', performancMedia);
-    
-    return {
-      value: `${performancMedia.toFixed(1)}%`,
-      trend: performancMedia >= 0 ? "up" as const : "down" as const,
-      diff: performancMedia,
-    };
-  };
-
-  // 🔥 CONSTRUIR DADOS FINAIS COM CÁLCULOS DINÂMICOS
-  const dadosCards = {
-    ...construirDadosCards(),
-    dividendYield: calcularDYFiis(),
-    carteiraHoje: calcularPerformanceFiis(),
-  };
-
-  React.useEffect(() => {
-    if (ibovespaData) {
-      console.log('\n🎯 IBOVESPA REAL CARREGADO (SETTINGS):');
-      console.log(`📊 Valor: ${ibovespaData.valorFormatado}`);
-      console.log(`📈 Variação: ${ibovespaData.variacaoPercent}%`);
-      console.log(`🎨 Trend: ${ibovespaData.trend}`);
-      console.log(`🕐 Fonte: ${ibovespaData.fonte}`);
-    }
-  }, [ibovespaData]);
-
-  React.useEffect(() => {
-    if (ifixData) {
-      console.log('\n🏢 IFIX REAL CARREGADO (SETTINGS):');
-      console.log(`📊 Valor: ${ifixData.valorFormatado}`);
-      console.log(`📈 Variação: ${ifixData.variacaoPercent}%`);
-      console.log(`🎨 Trend: ${ifixData.trend}`);
-      console.log(`🕐 Fonte: ${ifixData.fonte}`);
-      console.log(`🎯 Ticker usado: ${ifixData.ticker || 'fallback'}`);
-    }
-  }, [ifixData]);
-
-  React.useEffect(() => {
-    if (Array.isArray(fiis) && fiis.length > 0) {
-      console.log('\n🎯 RESULTADO FINAL FIIs PARA INTERFACE:');
-      fiis.forEach(fii => {
-        console.log(`📊 ${fii.ticker}: ${fii.precoAtual} (${fii.statusApi}) - Performance: ${fii.performance?.toFixed(2)}%`);
-      });
-    }
-  }, [fiis]);
-
-  // Loading state
-  if (fiisLoading || marketLoading || ibovLoading || ifixLoading) {
-    return (
-      <Grid container spacing={3}>
-        <Grid xs={12}>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <CircularProgress size={40} />
-            <Box ml={2} sx={{ fontSize: '1.1rem' }}>
-              🏢 Carregando dados reais do IBOVESPA, IFIX e FIIs...
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
-    );
-  }
-
-  // Error state
-  if (fiisError) {
-    return (
-      <Grid container spacing={3}>
-        <Grid xs={12}>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-            <Box textAlign="center">
-              <Typography variant="h6" color="error" gutterBottom>
-                ⚠️ Erro ao carregar FIIs
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {fiisError}
-              </Typography>
-              <Typography variant="caption" display="block" sx={{ mt: 2, color: '#64748b' }}>
-                Usando preços de entrada como fallback
-              </Typography>
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
-    );
-  }
-
-  // Validation
-  if (!Array.isArray(fiis) || fiis.length === 0) {
-    return (
-      <Grid container spacing={3}>
-        <Grid xs={12}>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-            <Typography variant="h6" color="text.secondary">
-              📊 Nenhum FII encontrado na carteira
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-    );
-  }
+  console.log('🔥 SETTINGS TABLE - Indicadores finais:', indicators);
 
   return (
-    <Grid container spacing={3}>
-      <Grid xs={12}>
-        <SettingsTable 
-          count={fiis.length} 
-          rows={fiis}
-          cardsData={dadosCards}
-          ibovespaReal={ibovespaData}
-          ifixReal={ifixData}
+    <Box>
+      {/* 🚨 ALERTAS DE STATUS DAS APIs */}
+      {(ibovespaReal?.fonte?.includes('FALLBACK') || ifixReal?.fonte?.includes('FALLBACK')) && (
+        <Box sx={{ mb: 3, p: 2, backgroundColor: '#fef3c7', borderRadius: 2, border: '1px solid #fde68a' }}>
+          <Typography variant="body2" sx={{ color: '#d97706', fontWeight: 600 }}>
+            ⚠️ Alguns dados estão em modo fallback:
+          </Typography>
+          {ibovespaReal?.fonte?.includes('FALLBACK') && (
+            <Typography variant="caption" sx={{ color: '#92400e', display: 'block' }}>
+              • IBOVESPA: Usando valor aproximado ({ibovespaReal.fonte})
+            </Typography>
+          )}
+          {ifixReal?.fonte?.includes('FALLBACK') && (
+            <Typography variant="caption" sx={{ color: '#92400e', display: 'block' }}>
+              • IFIX: Usando valor aproximado ({ifixReal.fonte})
+            </Typography>
+          )}
+        </Box>
+      )}
+
+      {/* Indicadores de Mercado - Layout Discreto (IGUAL AO OVERVIEW) */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        {/* IBOVESPA */}
+        <MarketIndicator 
+          title="IBOVESPA" 
+          description="Índice da Bolsa Brasileira"
+          value={indicators.ibovespa.value} 
+          trend={indicators.ibovespa.trend as 'up' | 'down'} 
+          diff={indicators.ibovespa.diff}
+          isLoading={false}
         />
-      </Grid>
-    </Grid>
+
+        {/* IFIX */}
+        <MarketIndicator 
+          title="ÍNDICE IFIX" 
+          description="Fundos Imobiliários da B3"
+          value={indicators.ifix.value} 
+          trend={indicators.ifix.trend as 'up' | 'down'} 
+          diff={indicators.ifix.diff}
+          isLoading={false}
+        />
+      </Box>
+      
+      {/* Tabela de FIIs */}
+      <Card sx={{ 
+        borderRadius: 4,
+        border: '1px solid',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
+        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          p: 4,
+          borderBottom: '1px solid',
+          borderColor: 'rgba(148, 163, 184, 0.2)'
+        }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 800, 
+                color: '#1e293b',
+                fontSize: '1.5rem',
+                mb: 0.5
+              }}>
+                Carteira de FIIs Premium
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: '#64748b',
+                fontSize: '1rem'
+              }}>
+                {count} fundos imobiliários • Viés calculado automaticamente
+              </Typography>
+            </Box>
+            <Box sx={{
+              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+              color: 'white',
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              {count} FIIs
+            </Box>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: '800px' }}>
+            <TableHead>
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              }}>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  width: '60px',
+                  color: '#475569',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Ativo
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Setor
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Entrada
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Inicial
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Preço Atual
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  DY
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Teto
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 700, 
+                  textAlign: 'center', 
+                  color: '#475569', 
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
+                }}>
+                  Viés
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                // Validation for each row
+                if (!row || !row.id || !row.ticker) {
+                  console.warn('Invalid FII row:', row);
+                  return null;
+                }
+
+                try {
+                  const performance = calculatePerformance(row.precoEntrada || '', row.precoAtual || '');
+                  const globalIndex = index + 1;
+
+                  return (
+                    <TableRow 
+                      hover 
+                      key={row.id}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          cursor: 'pointer',
+                          transform: 'scale(1.005)',
+                          transition: 'all 0.2s ease'
+                        },
+                        borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                      }}
+                    >
+                      <TableCell sx={{ 
+                        textAlign: 'center', 
+                        fontWeight: 800, 
+                        fontSize: '1rem',
+                        color: '#000000'
+                      }}>
+                        {globalIndex}
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Avatar 
+                            src={row.avatar} 
+                            alt={row.ticker}
+                            sx={{ 
+                              width: 44, 
+                              height: 44,
+                              border: '2px solid',
+                              borderColor: 'rgba(0, 0, 0, 0.2)'
+                            }}
+                          >
+                            {row.ticker ? row.ticker.substring(0, 2) : '??'}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ 
+                              fontWeight: 700,
+                              color: '#1e293b',
+                              fontSize: '1rem'
+                            }}>
+                              {row.ticker}
+                            </Typography>
+                            <Typography variant="caption" sx={{ 
+                              color: performance >= 0 ? '#059669' : '#dc2626',
+                              fontSize: '0.8rem',
+                              fontWeight: 600
+                            }}>
+                              {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>
+                        <Chip 
+                          label={row.setor}
+                          size="medium"
+                          sx={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            color: '#000000',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            border: '1px solid rgba(0, 0, 0, 0.2)'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        color: '#64748b',
+                        fontSize: '0.875rem',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {row.dataEntrada}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: '#475569',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.9rem'
+                      }}>
+                        {row.precoEntrada}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 700,
+                        color: performance >= 0 ? '#10b981' : '#ef4444',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.9rem'
+                      }}>
+                        {row.precoAtual}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: '#000000',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {row.dy}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: '#475569',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {row.precoTeto}
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>
+                        <Chip
+                          label={row.vies || 'Aguardar'}
+                          size="medium"
+                          sx={{
+                            backgroundColor: (row.vies === 'Compra') ? '#dcfce7' : '#fef3c7',
+                            color: (row.vies === 'Compra') ? '#059669' : '#d97706',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            border: '1px solid',
+                            borderColor: (row.vies === 'Compra') ? '#bbf7d0' : '#fde68a',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                } catch (error) {
+                  console.error('Erro ao renderizar linha do FII:', {
+                    fii: row,
+                    error: error instanceof Error ? error.message : 'Erro desconhecido'
+                  });
+                  return null;
+                }
+              })}
+            </TableBody>
+          </Table>
+        </Box>
+      </Card>
+    </Box>
   );
 }
