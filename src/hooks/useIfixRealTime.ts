@@ -11,6 +11,10 @@ export function useIfixRealTime() {
       setError(null);
 
       const res = await fetch('/api/ifix');
+      if (!res.ok) {
+        throw new Error(`Erro na resposta da API: ${res.status}`);
+      }
+
       const data = await res.json();
 
       if (!data.ifix) {
