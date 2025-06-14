@@ -1,3 +1,4 @@
+// hooks/useIfixRealTime.ts
 import { useState, useEffect, useCallback } from 'react';
 
 interface IfixData {
@@ -9,35 +10,24 @@ interface IfixData {
   timestamp: string;
   fonte: string;
   nota: string;
+  symbol?: string;
+}
+
+interface IfixResponse {
+  ifix: IfixData;
+  meta?: {
+    source: string;
+    timestamp: string;
+    status: string;
+    message?: string;
+  };
 }
 
 export function useIfixRealTime() {
   const [ifixData, setIfixData] = useState<IfixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const gerarFallback = useCallback(() => {
-    const agora = new Date();
-    const hora = agora.getHours();
-    const min = agora.getMinutes();
-    
-    // Simulação mais realista baseada no horário
-    const isHorarioComercial = hora >= 10 && hora <= 17;
-    const variacao = (Math.random() - 0.5) * (isHorarioComercial ? 2.5 : 0.8);
-    const valorBase = 3442;
-    const novoValor = valorBase * (1 + variacao / 100);
-    
-    return {
-      valor: novoValor,
-      valorFormatado: Math.round(novoValor).toLocaleString('pt-BR'),
-      variacao: valorBase * (variacao / 100),
-      variacaoPercent: variacao,
-      trend: variacao >= 0 ? 'up' as const : 'down' as const,
-      timestamp: agora.toISOString(),
-      fonte: 'FALLBACK_LOCAL',
-      nota: `Dados simulados ${hora}:${min.toString().padStart(2, '0')}`
-    };
-  }, []);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const buscarIfix = useCallback(async () => {
     try {
@@ -45,12 +35,13 @@ export function useIfixRealTime() {
       setError(null);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
       const res = await fetch('/api/ifix', {
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
 
@@ -60,40 +51,76 @@ export function useIfixRealTime() {
         throw new Error(`API retornou status ${res.status}`);
       }
 
-      const data = await res.json();
+      const data: IfixResponse = await res.json();
       
       if (!data.ifix) {
         throw new Error('Dados IFIX não encontrados na resposta');
       }
 
       setIfixData(data.ifix);
-      setError(null);
+      setLastUpdate(new Date());
+      
+      // Define mensagem de status baseada na fonte
+      if (data.meta?.status === 'fallback') {
+        setError('APIs externas indisponíveis - usando dados simulados');
+      } else if (data.ifix.fonte.includes('SIMULAÇÃO')) {
+        setError('Dados simulados (APIs indisponíveis)');
+      } else {
+        setError(null);
+      }
+
+      console.log('✅ IFIX atualizado:', {
+        valor: data.ifix.valor,
+        fonte: data.ifix.fonte,
+        timestamp: data.ifix.timestamp
+      });
 
     } catch (err) {
-      console.warn('Erro ao buscar IFIX, usando fallback:', err);
-      
-      // Usa fallback em caso de erro
-      const fallbackData = gerarFallback();
-      setIfixData(fallbackData);
+      console.error('❌ Erro ao buscar IFIX:', err);
       
       if (err instanceof Error && err.name === 'AbortError') {
-        setError('Timeout na API - usando dados simulados');
+        setError('Timeout na requisição');
       } else {
-        setError('API indisponível - usando dados simulados');
+        setError('Erro na comunicação com a API');
+      }
+      
+      // Se não tem dados ainda, não deixa o usuário sem nada
+      if (!ifixData) {
+        const agora = new Date();
+        const fallbackLocal: IfixData = {
+          valor: 3440,
+          valorFormatado: '3.440,00',
+          variacao: 0,
+          variacaoPercent: 0,
+          trend: 'up',
+          timestamp: agora.toISOString(),
+          fonte: 'ERRO_FALLBACK',
+          nota: 'Dados de emergência - API indisponível'
+        };
+        setIfixData(fallbackLocal);
       }
     } finally {
       setLoading(false);
     }
-  }, [gerarFallback]);
+  }, [ifixData]);
 
   useEffect(() => {
     buscarIfix();
     
-    // Atualiza a cada 3 minutos
-    const interval = setInterval(buscarIfix, 3 * 60 * 1000);
+    // Atualiza a cada 2 minutos
+    const interval = setInterval(buscarIfix, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [buscarIfix]);
+  }, []);
 
-  return { ifixData, loading, error, refetch: buscarIfix };
+  const isDataFresh = lastUpdate && (Date.now() - lastUpdate.getTime()) < 5 * 60 * 1000; // 5 min
+
+  return { 
+    ifixData, 
+    loading, 
+    error, 
+    lastUpdate,
+    isDataFresh,
+    refetch: buscarIfix 
+  };
 }
