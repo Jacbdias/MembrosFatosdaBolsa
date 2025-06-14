@@ -1,68 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
+export async function GET() {
+  try {
+    const res = await fetch('https://brapi.dev/api/quote/^IFIX?token=jJrMYVy9MATGEicx3GxBp8');
 
-export function useIfixRealTime() {
-  const [ifixData, setIfixData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const buscarIfix = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const res = await fetch('/api/ifix');
-      if (!res.ok) {
-        throw new Error(`Erro na resposta da API: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      if (!data || !data.valor) {
-        throw new Error('Dados do IFIX não encontrados');
-      }
-
-      const dados = {
-        valor: data.valor,
-        valorFormatado: parseFloat(data.valor).toLocaleString('pt-BR'),
-        variacao: data.variacao || 0,
-        variacaoPercent: data.variacaoPercent || 0,
-        trend: (data.variacaoPercent || 0) >= 0 ? 'up' : 'down',
-        timestamp: new Date().toISOString(),
-        fonte: data.fonte || 'BRAPI',
-        nota: data.nota || 'Dados via API interna BRAPI'
-      };
-
-      setIfixData(dados);
-    } catch (err) {
-      const agora = new Date();
-      const hora = agora.getHours();
-      const min = agora.getMinutes();
-      const variacao = (Math.random() - 0.5) * (hora >= 10 && hora <= 17 ? 2 : 0.6);
-      const valorBase = 3442;
-      const novoValor = valorBase * (1 + variacao / 100);
-
-      setIfixData({
-        valor: novoValor,
-        valorFormatado: Math.round(novoValor).toLocaleString('pt-BR'),
-        variacao: valorBase * (variacao / 100),
-        variacaoPercent: variacao,
-        trend: variacao >= 0 ? 'up' : 'down',
-        timestamp: agora.toISOString(),
-        fonte: 'FALLBACK_HORARIO_INTELIGENTE',
-        nota: `Fallback local ${hora}:${min.toString().padStart(2, '0')}`
-      });
-
-      setError('API BRAPI indisponível. Usando fallback.');
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: 'BRAPI falhou' }), { status: res.status });
     }
-  }, []);
 
-  useEffect(() => {
-    buscarIfix();
-    const interval = setInterval(buscarIfix, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [buscarIfix]);
+    const data = await res.json();
+    const result = data.results?.[0];
 
-  return { ifixData, loading, error };
+    if (!result || !result.regularMarketPrice) {
+      return new Response(
+        JSON.stringify({ error: 'Dados do IFIX não encontrados na resposta da BRAPI' }),
+        { status: 500 }
+      );
+    }
+
+    const ifix = {
+      valor: result.regularMarketPrice,
+      valorFormatado: result.regularMarketPrice.toLocaleString('pt-BR'),
+      variacao: result.regularMarketChange || 0,
+      variacaoPercent: result.regularMarketChangePercent || 0,
+      trend: (result.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+      timestamp: new Date().toISOString(),
+      fonte: 'BRAPI',
+      nota: 'Dados via API interna BRAPI'
+    };
+
+    return Response.json({ ifix });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'Erro na requisição IFIX', detail: err instanceof Error ? err.message : 'Erro desconhecido' }),
+      { status: 500 }
+    );
+  }
 }
