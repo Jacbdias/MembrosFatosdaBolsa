@@ -16,13 +16,13 @@ export function useIfixRealTime() {
       }
 
       const data = await res.json();
-
-      if (!data.ifix) {
-        throw new Error('IFIX não encontrado');
+      if (!data.ifix || !data.ifix.valor) {
+        throw new Error('Dados do IFIX inválidos na resposta da API interna');
       }
 
       setIfixData(data.ifix);
     } catch (err) {
+      console.error('Erro ao buscar IFIX:', err);
       const agora = new Date();
       const hora = agora.getHours();
       const min = agora.getMinutes();
