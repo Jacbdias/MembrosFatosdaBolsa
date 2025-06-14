@@ -1,57 +1,99 @@
 import { useState, useEffect, useCallback } from 'react';
 
+interface IfixData {
+  valor: number;
+  valorFormatado: string;
+  variacao: number;
+  variacaoPercent: number;
+  trend: 'up' | 'down';
+  timestamp: string;
+  fonte: string;
+  nota: string;
+}
+
 export function useIfixRealTime() {
-  const [ifixData, setIfixData] = useState<any>(null);
+  const [ifixData, setIfixData] = useState<IfixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const gerarFallback = useCallback(() => {
+    const agora = new Date();
+    const hora = agora.getHours();
+    const min = agora.getMinutes();
+    
+    // Simulação mais realista baseada no horário
+    const isHorarioComercial = hora >= 10 && hora <= 17;
+    const variacao = (Math.random() - 0.5) * (isHorarioComercial ? 2.5 : 0.8);
+    const valorBase = 3442;
+    const novoValor = valorBase * (1 + variacao / 100);
+    
+    return {
+      valor: novoValor,
+      valorFormatado: Math.round(novoValor).toLocaleString('pt-BR'),
+      variacao: valorBase * (variacao / 100),
+      variacaoPercent: variacao,
+      trend: variacao >= 0 ? 'up' as const : 'down' as const,
+      timestamp: agora.toISOString(),
+      fonte: 'FALLBACK_LOCAL',
+      nota: `Dados simulados ${hora}:${min.toString().padStart(2, '0')}`
+    };
+  }, []);
 
   const buscarIfix = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const res = await fetch('/api/ifix');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      const res = await fetch('/api/ifix', {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
+
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
-        throw new Error(`Erro na resposta da API: ${res.status}`);
+        throw new Error(`API retornou status ${res.status}`);
       }
 
       const data = await res.json();
-      if (!data.ifix || !data.ifix.valor) {
-        throw new Error('Dados do IFIX inválidos na resposta da API interna');
+      
+      if (!data.ifix) {
+        throw new Error('Dados IFIX não encontrados na resposta');
       }
 
       setIfixData(data.ifix);
+      setError(null);
+
     } catch (err) {
-      console.error('Erro ao buscar IFIX:', err);
-      const agora = new Date();
-      const hora = agora.getHours();
-      const min = agora.getMinutes();
-      const variacao = (Math.random() - 0.5) * (hora >= 10 && hora <= 17 ? 2 : 0.6);
-      const valorBase = 3442;
-      const novoValor = valorBase * (1 + variacao / 100);
-
-      setIfixData({
-        valor: novoValor,
-        valorFormatado: Math.round(novoValor).toLocaleString('pt-BR'),
-        variacao: valorBase * (variacao / 100),
-        variacaoPercent: variacao,
-        trend: variacao >= 0 ? 'up' : 'down',
-        timestamp: agora.toISOString(),
-        fonte: 'FALLBACK_HORARIO_INTELIGENTE',
-        nota: `Fallback local ${hora}:${min.toString().padStart(2, '0')}`
-      });
-
-      setError('API BRAPI indisponível. Usando fallback.');
+      console.warn('Erro ao buscar IFIX, usando fallback:', err);
+      
+      // Usa fallback em caso de erro
+      const fallbackData = gerarFallback();
+      setIfixData(fallbackData);
+      
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Timeout na API - usando dados simulados');
+      } else {
+        setError('API indisponível - usando dados simulados');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [gerarFallback]);
 
   useEffect(() => {
     buscarIfix();
-    const interval = setInterval(buscarIfix, 5 * 60 * 1000);
+    
+    // Atualiza a cada 3 minutos
+    const interval = setInterval(buscarIfix, 3 * 60 * 1000);
+    
     return () => clearInterval(interval);
   }, [buscarIfix]);
 
-  return { ifixData, loading, error };
+  return { ifixData, loading, error, refetch: buscarIfix };
 }
