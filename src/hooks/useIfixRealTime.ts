@@ -55,12 +55,10 @@ export function useIfixRealTime() {
 
       const data: IfixResponse = await res.json();
       
-      // Verifica se recebeu dados válidos
       if (!data.ifix && !data.success) {
         throw new Error('Dados IFIX não encontrados na resposta');
       }
 
-      // Se a resposta tem formato diferente, adapta
       let ifixInfo: IfixData;
       
       if (data.ifix) {
@@ -72,7 +70,6 @@ export function useIfixRealTime() {
       setIfixData(ifixInfo);
       setLastUpdate(new Date());
       
-      // Define mensagem de status baseada na fonte
       if (data.meta?.status === 'fallback') {
         setError('APIs externas indisponíveis - usando dados simulados');
       } else if (ifixInfo.fonte.includes('SIMULAÇÃO')) {
@@ -96,13 +93,12 @@ export function useIfixRealTime() {
         setError('Erro na comunicação com a API');
       }
       
-      // Se não tem dados ainda, cria fallback local
+      // Só cria fallback se realmente não tem dados
       if (!ifixData) {
         const agora = new Date();
         const hora = agora.getHours();
         const minuto = agora.getMinutes();
         
-        // Variação baseada no horário para simular mercado
         const isHorarioComercial = hora >= 9 && hora <= 18;
         const variacao = (Math.random() - 0.5) * (isHorarioComercial ? 2 : 0.5);
         const valorBase = 3440;
@@ -126,7 +122,7 @@ export function useIfixRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [ifixData]);
+  }, []); // ← MUDANÇA: Array vazio remove dependência circular
 
   useEffect(() => {
     buscarIfix();
@@ -135,7 +131,7 @@ export function useIfixRealTime() {
     const interval = setInterval(buscarIfix, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [buscarIfix]);
+  }, []); // ← MUDANÇA: Array vazio, sem dependência do buscarIfix
 
   const isDataFresh = lastUpdate && (Date.now() - lastUpdate.getTime()) < 5 * 60 * 1000;
 
