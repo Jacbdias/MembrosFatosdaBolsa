@@ -15,6 +15,8 @@ interface IfixData {
 
 interface IfixResponse {
   ifix: IfixData;
+  success?: boolean;
+  timestamp?: string;
   meta?: {
     source: string;
     timestamp: string;
@@ -35,9 +37,9 @@ export function useIfixRealTime() {
       setError(null);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const res = await fetch('/api/dados', { // ← MUDANÇA AQUI
+      const res = await fetch('/api/dados', {
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
@@ -53,26 +55,36 @@ export function useIfixRealTime() {
 
       const data: IfixResponse = await res.json();
       
-      if (!data.ifix) {
+      // Verifica se recebeu dados válidos
+      if (!data.ifix && !data.success) {
         throw new Error('Dados IFIX não encontrados na resposta');
       }
 
-      setIfixData(data.ifix);
+      // Se a resposta tem formato diferente, adapta
+      let ifixInfo: IfixData;
+      
+      if (data.ifix) {
+        ifixInfo = data.ifix;
+      } else {
+        throw new Error('Formato de resposta inválido');
+      }
+
+      setIfixData(ifixInfo);
       setLastUpdate(new Date());
       
       // Define mensagem de status baseada na fonte
       if (data.meta?.status === 'fallback') {
         setError('APIs externas indisponíveis - usando dados simulados');
-      } else if (data.ifix.fonte.includes('SIMULAÇÃO')) {
+      } else if (ifixInfo.fonte.includes('SIMULAÇÃO')) {
         setError('Dados simulados (APIs indisponíveis)');
       } else {
         setError(null);
       }
 
       console.log('✅ IFIX atualizado:', {
-        valor: data.ifix.valor,
-        fonte: data.ifix.fonte,
-        timestamp: data.ifix.timestamp
+        valor: ifixInfo.valor,
+        fonte: ifixInfo.fonte,
+        timestamp: ifixInfo.timestamp
       });
 
     } catch (err) {
@@ -84,18 +96,30 @@ export function useIfixRealTime() {
         setError('Erro na comunicação com a API');
       }
       
-      // Se não tem dados ainda, não deixa o usuário sem nada
+      // Se não tem dados ainda, cria fallback local
       if (!ifixData) {
         const agora = new Date();
+        const hora = agora.getHours();
+        const minuto = agora.getMinutes();
+        
+        // Variação baseada no horário para simular mercado
+        const isHorarioComercial = hora >= 9 && hora <= 18;
+        const variacao = (Math.random() - 0.5) * (isHorarioComercial ? 2 : 0.5);
+        const valorBase = 3440;
+        const novoValor = valorBase * (1 + variacao / 100);
+        
         const fallbackLocal: IfixData = {
-          valor: 3440,
-          valorFormatado: '3.440,00',
-          variacao: 0,
-          variacaoPercent: 0,
-          trend: 'up',
+          valor: novoValor,
+          valorFormatado: novoValor.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }),
+          variacao: valorBase * (variacao / 100),
+          variacaoPercent: variacao,
+          trend: variacao >= 0 ? 'up' : 'down',
           timestamp: agora.toISOString(),
-          fonte: 'ERRO_FALLBACK',
-          nota: 'Dados de emergência - API indisponível'
+          fonte: 'ERRO_FALLBACK_LOCAL',
+          nota: `Fallback local ${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`
         };
         setIfixData(fallbackLocal);
       }
@@ -111,9 +135,9 @@ export function useIfixRealTime() {
     const interval = setInterval(buscarIfix, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [buscarIfix]);
 
-  const isDataFresh = lastUpdate && (Date.now() - lastUpdate.getTime()) < 5 * 60 * 1000; // 5 min
+  const isDataFresh = lastUpdate && (Date.now() - lastUpdate.getTime()) < 5 * 60 * 1000;
 
   return { 
     ifixData, 
