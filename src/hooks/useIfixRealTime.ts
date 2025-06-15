@@ -37,7 +37,7 @@ export function useIfixRealTime() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      const res = await fetch('/api/market/ifix', { // ← MUDANÇA AQUI
+      const res = await fetch('/api/dados', { // ← MUDANÇA AQUI
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
