@@ -39,7 +39,7 @@ export function useIfixRealTime() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const res = await fetch('/api/dados', {
+      const res = await fetch('/dados-ifix', {
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
