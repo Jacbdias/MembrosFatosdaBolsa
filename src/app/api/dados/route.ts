@@ -3,7 +3,7 @@ export async function GET() {
   const hora = agora.getHours();
   const minuto = agora.getMinutes();
   
-  // Simulação realista
+  // Simulação realista baseada no horário
   const isHorarioComercial = hora >= 9 && hora <= 18;
   const valorBase = 3440;
   const variacao = (Math.random() - 0.5) * (isHorarioComercial ? 3 : 1);
