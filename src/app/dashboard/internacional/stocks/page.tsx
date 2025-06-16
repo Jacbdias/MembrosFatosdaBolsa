@@ -19,7 +19,6 @@ import Chip from '@mui/material/Chip';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
 
@@ -27,7 +26,7 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API (IGUAL AOS DIVIDENDOS)
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API (CARDS)
 function useMarketDataAPI() {
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -76,7 +75,212 @@ function useMarketDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AOS DIVIDENDOS)
+// 🚀 HOOK SIMPLES PARA ATUALIZAR APENAS OS PREÇOS ATUAIS VIA BRAPI
+function useExteriorStocks() {
+  const [pricesData, setPricesData] = React.useState<Record<string, string>>({});
+  const [loading, setLoading] = React.useState(true);
+
+  // DADOS ESTÁTICOS (mantidos como no código original)
+  const exteriorStocksBase = [
+    {
+      id: '1',
+      rank: '1º',
+      ticker: 'AMD',
+      name: 'Advanced Micro Devices Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '29/05/2025',
+      precoQueIniciou: 'US$112,86',
+      precoAtual: 'US$118,50', // fallback estático
+      precoTeto: 'US$135,20',
+      avatar: 'https://logo.clearbit.com/amd.com',
+    },
+    {
+      id: '2',
+      rank: '2º',
+      ticker: 'XP',
+      name: 'XP Inc.',
+      setor: 'Financial Services',
+      dataEntrada: '26/05/2023',
+      precoQueIniciou: 'US$18,41',
+      precoAtual: 'US$19,25', // fallback estático
+      precoTeto: 'US$24,34',
+      avatar: 'https://logo.clearbit.com/xpi.com.br',
+    },
+    {
+      id: '3',
+      rank: '3º',
+      ticker: 'HD',
+      name: 'Home Depot Inc.',
+      setor: 'Varejo',
+      dataEntrada: '24/02/2023',
+      precoQueIniciou: 'US$299,31',
+      precoAtual: 'US$315,80', // fallback estático
+      precoTeto: 'US$366,78',
+      avatar: 'https://logo.clearbit.com/homedepot.com',
+    },
+    {
+      id: '4',
+      rank: '4º',
+      ticker: 'AAPL',
+      name: 'Apple Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '05/05/2022',
+      precoQueIniciou: 'US$156,77',
+      precoAtual: 'US$162,50', // fallback estático
+      precoTeto: 'US$170,00',
+      avatar: 'https://logo.clearbit.com/apple.com',
+    },
+    {
+      id: '5',
+      rank: '5º',
+      ticker: 'FIVE',
+      name: 'Five Below Inc.',
+      setor: 'Varejo',
+      dataEntrada: '17/03/2022',
+      precoQueIniciou: 'US$163,41',
+      precoAtual: 'US$158,90', // fallback estático
+      precoTeto: 'US$179,00',
+      avatar: 'https://logo.clearbit.com/fivebelow.com',
+    },
+    {
+      id: '6',
+      rank: '6º',
+      ticker: 'AMAT',
+      name: 'Applied Materials Inc.',
+      setor: 'Semicondutores',
+      dataEntrada: '07/04/2022',
+      precoQueIniciou: 'US$122,40',
+      precoAtual: 'US$128,75', // fallback estático
+      precoTeto: 'US$151,30',
+      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
+    },
+    {
+      id: '7',
+      rank: '7º',
+      ticker: 'COST',
+      name: 'Costco Wholesale Corporation',
+      setor: 'Consumer Discretionary',
+      dataEntrada: '23/06/2022',
+      precoQueIniciou: 'US$459,00',
+      precoAtual: 'US$485,20', // fallback estático
+      precoTeto: 'US$571,00',
+      avatar: 'https://logo.clearbit.com/costco.com',
+    },
+    {
+      id: '8',
+      rank: '8º',
+      ticker: 'GOOGL',
+      name: 'Alphabet Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '06/03/2022',
+      precoQueIniciou: 'US$131,83',
+      precoAtual: 'US$142,10', // fallback estático
+      precoTeto: 'US$153,29',
+      avatar: 'https://logo.clearbit.com/google.com',
+    },
+    {
+      id: '9',
+      rank: '9º',
+      ticker: 'META',
+      name: 'Meta Platforms Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '17/02/2022',
+      precoQueIniciou: 'US$213,92',
+      precoAtual: 'US$285,40', // fallback estático
+      precoTeto: 'US$322,00',
+      avatar: 'https://logo.clearbit.com/meta.com',
+    },
+    {
+      id: '10',
+      rank: '10º',
+      ticker: 'BRK.B',
+      name: 'Berkshire Hathaway Inc.',
+      setor: 'Holding',
+      dataEntrada: '11/05/2021',
+      precoQueIniciou: 'US$286,35',
+      precoAtual: 'US$295,80', // fallback estático
+      precoTeto: 'US$330,00',
+      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
+    }
+  ];
+
+  // 🔥 BUSCAR APENAS OS PREÇOS ATUAIS DA BRAPI
+  const fetchRealPrices = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const tickers = exteriorStocksBase.map(stock => stock.ticker);
+      console.log('🔍 Buscando APENAS preços atuais da BRAPI:', tickers);
+
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      const tickersQuery = tickers.join(',');
+      const brapiUrl = `https://brapi.dev/api/quote/${tickersQuery}?token=${BRAPI_TOKEN}`;
+      
+      console.log('📡 Requisição BRAPI:', brapiUrl);
+      
+      const response = await fetch(brapiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Exterior-Stocks-App'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro BRAPI: ${response.status}`);
+      }
+
+      const brapiData = await response.json();
+      console.log('✅ Preços BRAPI recebidos:', brapiData);
+
+      // 🎯 PROCESSAR APENAS OS PREÇOS ATUAIS
+      const newPrices: Record<string, string> = {};
+      
+      if (brapiData.results && brapiData.results.length > 0) {
+        brapiData.results.forEach((quote: any) => {
+          if (quote.regularMarketPrice) {
+            newPrices[quote.symbol] = `US${quote.regularMarketPrice.toFixed(2)}`;
+            console.log(`📊 ${quote.symbol}: ${newPrices[quote.symbol]} - REAL`);
+          }
+        });
+      }
+      
+      setPricesData(newPrices);
+      console.log(`✅ ${Object.keys(newPrices).length} preços atualizados da BRAPI`);
+      
+    } catch (err) {
+      console.error('❌ Erro ao buscar preços da BRAPI:', err);
+      // Manter dados estáticos em caso de erro
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchRealPrices();
+    // Atualizar a cada 10 minutos
+    const interval = setInterval(fetchRealPrices, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchRealPrices]);
+
+  // 🔄 COMBINAR DADOS ESTÁTICOS COM PREÇOS DINÂMICOS
+  const exteriorStocks = React.useMemo(() => {
+    return exteriorStocksBase.map(stock => ({
+      ...stock,
+      // Usar preço da BRAPI se disponível, senão manter o estático
+      precoAtual: pricesData[stock.ticker] || stock.precoAtual,
+      isRealPrice: !!pricesData[stock.ticker]
+    }));
+  }, [pricesData]);
+
+  return {
+    exteriorStocks,
+    loading,
+    refetch: fetchRealPrices,
+  };
+}
+
+// 🎨 INDICADOR DE MERCADO
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -108,7 +312,6 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
       }}
     >
       <Stack spacing={2}>
-        {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Box>
             <Typography 
@@ -151,7 +354,6 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
           </Box>
         </Stack>
         
-        {/* Valor principal */}
         <Typography 
           variant="h4" 
           sx={{ 
@@ -164,7 +366,6 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
           {isLoading ? '...' : value}
         </Typography>
         
-        {/* Indicador de tendência */}
         {!isLoading && diff !== undefined && trend && (
           <Stack direction="row" alignItems="center" spacing={1}>
             <Box sx={{
@@ -206,143 +407,17 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🌎 PÁGINA EXTERIOR STOCKS - COM 2 CARDS IGUAIS AOS DIVIDENDOS");
+  console.log("🌍 PÁGINA EXTERIOR STOCKS - COM PREÇOS REAIS DA BRAPI");
 
-  // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading } = useMarketDataAPI();
+  const { data: apiData, loading: cardsLoading } = useMarketDataAPI();
+  const { exteriorStocks, loading: portfolioLoading } = useExteriorStocks();
 
-  const exteriorStocks = [
-    {
-      id: '1',
-      rank: '1º',
-      ticker: 'AMD',
-      name: 'Advanced Micro Devices Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '29/05/2025',
-      precoQueIniciou: 'US$112,86',
-      precoAtual: 'US$118,50',
-      precoTeto: 'US$135,20',
-      avatar: 'https://logo.clearbit.com/amd.com',
-    },
-    {
-      id: '2',
-      rank: '2º',
-      ticker: 'XP',
-      name: 'XP Inc.',
-      setor: 'Financial Services',
-      dataEntrada: '26/05/2023',
-      precoQueIniciou: 'US$18,41',
-      precoAtual: 'US$19,25',
-      precoTeto: 'US$24,34',
-      avatar: 'https://logo.clearbit.com/xpi.com.br',
-    },
-    {
-      id: '3',
-      rank: '3º',
-      ticker: 'HD',
-      name: 'Home Depot Inc.',
-      setor: 'Varejo',
-      dataEntrada: '24/02/2023',
-      precoQueIniciou: 'US$299,31',
-      precoAtual: 'US$315,80',
-      precoTeto: 'US$366,78',
-      avatar: 'https://logo.clearbit.com/homedepot.com',
-    },
-    {
-      id: '4',
-      rank: '4º',
-      ticker: 'AAPL',
-      name: 'Apple Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '05/05/2022',
-      precoQueIniciou: 'US$156,77',
-      precoAtual: 'US$162,50',
-      precoTeto: 'US$170,00',
-      avatar: 'https://logo.clearbit.com/apple.com',
-    },
-    {
-      id: '5',
-      rank: '5º',
-      ticker: 'FIVE',
-      name: 'Five Below Inc.',
-      setor: 'Varejo',
-      dataEntrada: '17/03/2022',
-      precoQueIniciou: 'US$163,41',
-      precoAtual: 'US$158,90',
-      precoTeto: 'US$179,00',
-      avatar: 'https://logo.clearbit.com/fivebelow.com',
-    },
-    {
-      id: '6',
-      rank: '6º',
-      ticker: 'AMAT',
-      name: 'Applied Materials Inc.',
-      setor: 'Semicondutores',
-      dataEntrada: '07/04/2022',
-      precoQueIniciou: 'US$122,40',
-      precoAtual: 'US$128,75',
-      precoTeto: 'US$151,30',
-      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
-    },
-    {
-      id: '7',
-      rank: '7º',
-      ticker: 'COST',
-      name: 'Costco Wholesale Corporation',
-      setor: 'Consumer Discretionary',
-      dataEntrada: '23/06/2022',
-      precoQueIniciou: 'US$459,00',
-      precoAtual: 'US$485,20',
-      precoTeto: 'US$571,00',
-      avatar: 'https://logo.clearbit.com/costco.com',
-    },
-    {
-      id: '8',
-      rank: '8º',
-      ticker: 'GOOGL',
-      name: 'Alphabet Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '06/03/2022',
-      precoQueIniciou: 'US$131,83',
-      precoAtual: 'US$142,10',
-      precoTeto: 'US$153,29',
-      avatar: 'https://logo.clearbit.com/google.com',
-    },
-    {
-      id: '9',
-      rank: '9º',
-      ticker: 'META',
-      name: 'Meta Platforms Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '17/02/2022',
-      precoQueIniciou: 'US$213,92',
-      precoAtual: 'US$285,40',
-      precoTeto: 'US$322,00',
-      avatar: 'https://logo.clearbit.com/meta.com',
-    },
-    {
-      id: '10',
-      rank: '10º',
-      ticker: 'BRK.B',
-      name: 'Berkshire Hathaway Inc.',
-      setor: 'Holding',
-      dataEntrada: '11/05/2021',
-      precoQueIniciou: 'US$286,35',
-      precoAtual: 'US$295,80',
-      precoTeto: 'US$330,00',
-      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
-    }
-  ];
-
-  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS 2 CARDS - IGUAL AOS DIVIDENDOS)
   const defaultIndicators = {
     sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
     nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
   };
 
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT (IGUAL AOS DIVIDENDOS)
   const indicators = React.useMemo(() => {
-    // Se temos dados da API, usar eles
     if (apiData) {
       console.log('✅ Usando dados da API:', apiData);
       return {
@@ -351,14 +426,24 @@ export default function Page(): React.JSX.Element {
       };
     }
     
-    // Por último, usar fallback
     console.log('⚠️ Usando dados de fallback');
     return defaultIndicators;
   }, [apiData]);
 
+  if (cardsLoading || portfolioLoading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <Typography variant="h6" sx={{ color: '#64748b' }}>
+            🌍 Carregando exterior stocks...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header com botão voltar */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
         <Button
           startIcon={<ArrowLeftIcon />}
@@ -392,12 +477,11 @@ export default function Page(): React.JSX.Element {
               fontSize: '1rem'
             }}
           >
-            Ações internacionais de empresas de tecnologia, crescimento e valor
+            {exteriorStocks.length} ativos • Ações internacionais de tecnologia, crescimento e valor
           </Typography>
         </Stack>
       </Stack>
 
-      {/* Indicadores de Mercado - Layout com 2 cards IGUAL AOS DIVIDENDOS */}
       <Box
         sx={{
           display: 'grid',
@@ -413,7 +497,7 @@ export default function Page(): React.JSX.Element {
           icon={<CurrencyDollarIcon />} 
           trend={indicators.sp500.trend} 
           diff={indicators.sp500.diff}
-          isLoading={loading}
+          isLoading={cardsLoading}
         />
         <MarketIndicator 
           title="NASDAQ 100" 
@@ -422,11 +506,10 @@ export default function Page(): React.JSX.Element {
           icon={<GlobeIcon />} 
           trend={indicators.nasdaq.trend} 
           diff={indicators.nasdaq.diff}
-          isLoading={loading}
+          isLoading={cardsLoading}
         />
       </Box>
       
-      {/* Tabela de Exterior Stocks */}
       <Card sx={{ 
         borderRadius: 4,
         border: '1px solid',
@@ -558,12 +641,11 @@ export default function Page(): React.JSX.Element {
                 const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
                 const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
                 const precoTeto = parseFloat(row.precoTeto.replace('US$', ''));
-                const variacao = ((precoAtual - precoIniciou) / precoIniciou) * 100;
+                const variacao = row.precoAtual !== 'N/A' ? 
+                  ((precoAtual - precoIniciou) / precoIniciou) * 100 : 0;
                 const isPositive = variacao >= 0;
                 
                 // 🎯 CÁLCULO AUTOMÁTICO DO VIÉS
-                // Se preço atual está próximo ou acima do teto (95% ou mais), AGUARDAR
-                // Se preço atual está abaixo de 95% do teto, COMPRA
                 const percentualDoTeto = (precoAtual / precoTeto) * 100;
                 const viesAutomatico = percentualDoTeto >= 95 ? 'AGUARDAR' : 'COMPRA';
                 
@@ -615,11 +697,13 @@ export default function Page(): React.JSX.Element {
                             {row.ticker}
                           </Typography>
                           <Typography variant="caption" sx={{ 
-                            color: isPositive ? '#059669' : '#dc2626',
+                            color: row.precoAtual === 'N/A' ? '#64748b' : 
+                                   isPositive ? '#059669' : '#dc2626',
                             fontSize: '0.8rem',
                             fontWeight: 600
                           }}>
-                            {isPositive ? '+' : ''}{variacao.toFixed(1)}%
+                            {row.precoAtual === 'N/A' ? 'Sem dados' : 
+                             `${isPositive ? '+' : ''}${variacao.toFixed(1)}%`}
                           </Typography>
                         </Box>
                       </Stack>
@@ -657,7 +741,8 @@ export default function Page(): React.JSX.Element {
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 700,
-                      color: isPositive ? '#10b981' : '#ef4444',
+                      color: row.precoAtual === 'N/A' ? '#64748b' :
+                             isPositive ? '#10b981' : '#ef4444',
                       whiteSpace: 'nowrap',
                       fontSize: '0.9rem'
                     }}>
