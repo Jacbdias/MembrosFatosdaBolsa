@@ -1144,7 +1144,22 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
 };
 
 // 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS MELHORADO
-const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
+'use client';
+
+import * as React from 'react';
+import { useState } from 'react';
+import { Card, CardContent, Typography, Stack, Box, Button, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@mui/material';
+import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
+
+interface DividendoDetalhado {
+  date: string;
+  value: number;
+  type: string;
+  dataFormatada: string;
+  valorFormatado: string;
+}
+
+const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
   const [proventos, setProventos] = useState<DividendoDetalhado[]>([]);
 
   const handleArquivo = (file: File) => {
@@ -1157,18 +1172,16 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
         if (file.name.endsWith('.json')) {
           dados = JSON.parse(text);
         } else if (file.name.endsWith('.csv')) {
-          // Agora esperamos: ticker,date,value,type
           dados = text
             .split('\n')
             .slice(1)
-            .map(linha => {
+            .map((linha) => {
               const partes = linha.split(',');
               if (partes.length < 4) return null;
 
-              const [csvTicker, date, value, type] = partes.map(p => p?.trim());
-              
+              const [csvTicker, date, value, type] = partes.map((p) => p?.trim());
               if (!csvTicker || !date || !value || !type) return null;
-              if (csvTicker !== ticker) return null; // Filtra pelo ticker da página
+              if (csvTicker !== ticker) return null;
 
               const numValue = parseFloat(value.replace(',', '.'));
 
@@ -1177,13 +1190,24 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
                 value: numValue,
                 type: type,
                 dataFormatada: new Date(date).toLocaleDateString('pt-BR'),
-                valorFormatado: `R$ ${numValue.toFixed(2).replace('.', ',')}`
+                valorFormatado: `R$ ${numValue.toFixed(2).replace('.', ',')}`,
               };
             })
             .filter((item): item is DividendoDetalhado => item !== null);
         }
 
-        setProventos(dados);
+        const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
+        dataEntradaDate.setHours(0, 0, 0, 0);
+
+        const dadosFiltrados = dados
+          .filter((div) => {
+            const dataDiv = new Date(div.date);
+            dataDiv.setHours(0, 0, 0, 0);
+            return dataDiv >= dataEntradaDate;
+          })
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setProventos(dadosFiltrados);
       } catch (err) {
         alert('Erro ao carregar arquivo: ' + err);
       }
@@ -1241,9 +1265,9 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
                       {div.valorFormatado}
                     </TableCell>
                     <TableCell align="right">
-                      <Chip 
-                        label={div.type} 
-                        size="small" 
+                      <Chip
+                        label={div.type}
+                        size="small"
                         variant="outlined"
                         sx={{ fontSize: '0.7rem' }}
                       />
@@ -1259,6 +1283,7 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
   );
 };
 
+export default HistoricoDividendos;
 
 // 📈 COMPONENTE DE RESUMO EXECUTIVO
 const ResumoExecutivo = ({ empresa, dados }: { empresa: EmpresaCompleta; dados: DadosFinanceiros | null }) => {
