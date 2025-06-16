@@ -1,4 +1,4 @@
-// 🎯 Hook Melhorado com API Dados de Mercado
+// 🎯 Hook Otimizado para BRAPI Premium
 'use client';
 
 import * as React from 'react';
@@ -11,6 +11,8 @@ interface DividendoDetalhado {
   valorFormatado: string;
   exDate?: string;
   paymentDate?: string;
+  label?: string;
+  relatedTo?: string;
 }
 
 interface PerformanceDetalhada {
@@ -23,20 +25,11 @@ interface PerformanceDetalhada {
   dividendosPorAno: { [ano: string]: number };
   mediaAnual: number;
   status: 'success' | 'partial' | 'error';
-  fonte: 'ddm' | 'brapi' | 'hg' | 'local';
+  fonte: string;
+  ultimaAtualizacao: string;
 }
 
-// 🗂️ MAPEAMENTO DE TICKERS PARA CÓDIGOS CVM
-const TICKER_TO_CVM: { [key: string]: string } = {
-  'ALOS3': '5410',   // Allos
-  'PETR4': '9512',   // Petrobras
-  'VALE3': '4170',   // Vale
-  'ITUB4': '18520',  // Itaú
-  'BBDC4': '17175',  // Bradesco
-  // Adicione mais conforme necessário
-};
-
-export function useDividendosMelhorado(
+export function useDividendosAtivoPremium(
   ticker: string, 
   dataEntrada: string, 
   precoEntrada: string, 
@@ -57,93 +50,264 @@ export function useDividendosMelhorado(
       setLoading(true);
       setError(null);
 
-      console.log(`🔍 === BUSCA MELHORADA DE DIVIDENDOS PARA ${ticker} ===`);
+      console.log(`🏆 === BUSCA PREMIUM BRAPI PARA ${ticker} ===`);
 
-      let dividendosEncontrados: DividendoDetalhado[] = [];
-      let fonte: 'ddm' | 'brapi' | 'hg' | 'local' = 'local';
-
-      // 🏆 ESTRATÉGIA 1: DADOS DE MERCADO (API PREMIUM)
-      try {
-        console.log('📊 Tentando API Dados de Mercado...');
-        dividendosEncontrados = await buscarDividendosDDM(ticker);
-        if (dividendosEncontrados.length > 0) {
-          fonte = 'ddm';
-          console.log(`✅ Sucesso com Dados de Mercado: ${dividendosEncontrados.length} dividendos`);
-        }
-      } catch (err) {
-        console.log('❌ Dados de Mercado falhou:', err);
-      }
-
-      // 🥈 ESTRATÉGIA 2: HG BRASIL (FALLBACK)
-      if (dividendosEncontrados.length === 0) {
-        try {
-          console.log('📊 Tentando HG Brasil...');
-          dividendosEncontrados = await buscarDividendosHG(ticker);
-          if (dividendosEncontrados.length > 0) {
-            fonte = 'hg';
-            console.log(`✅ Sucesso com HG Brasil: ${dividendosEncontrados.length} dividendos`);
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      
+      // 🏆 ESTRATÉGIAS PREMIUM BRAPI (aproveitando recursos pagos)
+      const estrategiasPremium = [
+        {
+          nome: 'Premium: Histórico Completo 10 Anos',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&range=10y&fundamental=true&dividends=true&modules=dividends,fundamentals,summaryProfile`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            return [
+              ...(result?.dividendsData?.cashDividends || []),
+              ...(result?.dividendsData?.stockDividends || []),
+              ...(result?.dividendsData?.subscriptions || [])
+            ];
           }
-        } catch (err) {
-          console.log('❌ HG Brasil falhou:', err);
-        }
-      }
-
-      // 🥉 ESTRATÉGIA 3: BRAPI (SEU HOOK ORIGINAL)
-      if (dividendosEncontrados.length === 0) {
-        try {
-          console.log('📊 Tentando BRAPI (método original)...');
-          dividendosEncontrados = await buscarDividendosBrapi(ticker);
-          if (dividendosEncontrados.length > 0) {
-            fonte = 'brapi';
-            console.log(`✅ Sucesso com BRAPI: ${dividendosEncontrados.length} dividendos`);
+        },
+        {
+          nome: 'Premium: Dividends Data Detalhado',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&dividends=true&fundamental=true`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            const dividends = result?.dividendsData;
+            if (!dividends) return [];
+            
+            return [
+              ...(dividends.cashDividends || []),
+              ...(dividends.stockDividends || []),
+              ...(dividends.subscriptions || [])
+            ];
           }
-        } catch (err) {
-          console.log('❌ BRAPI falhou:', err);
+        },
+        {
+          nome: 'Premium: Endpoint Dividendos Dedicado',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}/dividends?token=${BRAPI_TOKEN}&range=10y`,
+          extrair: (data: any) => {
+            return [
+              ...(data.dividends || []),
+              ...(data.stockDividends || []),
+              ...(data.cashDividends || [])
+            ];
+          }
+        },
+        {
+          nome: 'Premium: Módulos Específicos',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&modules=dividends,earnings,splits&range=max`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            return [
+              ...(result?.dividends || []),
+              ...(result?.earnings || []),
+              ...(result?.splits || [])
+            ];
+          }
         }
-      }
+      ];
 
-      // 🗂️ ESTRATÉGIA 4: DADOS LOCAIS (ÚLTIMO RECURSO)
-      if (dividendosEncontrados.length === 0) {
-        console.log('📊 Usando dados locais...');
-        dividendosEncontrados = buscarDividendosLocal(ticker);
-        fonte = 'local';
-      }
+      // 🔍 VARIAÇÕES PREMIUM DO TICKER
+      const tickerVariacoesPremium = [
+        ticker,                          // ALOS3
+        ticker.replace(/[34]$/, ''),     // ALOS
+        ticker + '.SA',                  // ALOS3.SA
+        ticker.replace(/[34]$/, '') + '.SA' // ALOS.SA
+      ];
 
-      // 🔍 FILTRAR POR DATA DE ENTRADA
-      const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
-      const dividendosFiltrados = dividendosEncontrados
-        .filter(div => {
+      let todosDividendos: any[] = [];
+      let melhorEstrategia = '';
+      let fonteDetalhada = '';
+
+      // 🔄 BUSCA OTIMIZADA PARA PREMIUM
+      for (const tickerTeste of tickerVariacoesPremium) {
+        console.log(`\n🎯 === TESTANDO TICKER PREMIUM: ${tickerTeste} ===`);
+        
+        for (const estrategia of estrategiasPremium) {
           try {
-            const dataDiv = new Date(div.date);
-            return dataDiv >= dataEntradaDate;
-          } catch {
-            return false;
+            const url = estrategia.getUrl(tickerTeste);
+            console.log(`🏆 ${estrategia.nome}: Buscando...`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout maior para premium
+
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: { 
+                'Accept': 'application/json',
+                'User-Agent': 'BRAPI-Premium-Client/1.0',
+                'X-Brapi-Premium': 'true' // Header para identificar cliente premium
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            console.log(`📊 Status: ${response.status} | Headers: ${JSON.stringify(Object.fromEntries(response.headers))}`);
+
+            if (!response.ok) {
+              console.log(`❌ HTTP ${response.status} - ${response.statusText}`);
+              continue;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+              console.log(`⚠️ Não é JSON: ${contentType}`);
+              continue;
+            }
+
+            let responseText;
+            try {
+              responseText = await response.text();
+              console.log(`📄 Response length: ${responseText.length} chars`);
+            } catch (textError) {
+              console.log(`❌ Erro ao ler resposta:`, textError);
+              continue;
+            }
+
+            if (responseText.trim().startsWith('<')) {
+              console.log(`⚠️ Resposta é HTML (possível erro de servidor)`);
+              continue;
+            }
+
+            let data;
+            try {
+              data = JSON.parse(responseText);
+            } catch (parseError) {
+              console.log(`❌ JSON inválido:`, parseError);
+              console.log(`Primeiros 500 chars:`, responseText.substring(0, 500));
+              continue;
+            }
+
+            // 🏆 EXTRAIR DADOS PREMIUM
+            const resultados = estrategia.extrair(data);
+            
+            if (resultados && resultados.length > 0) {
+              console.log(`✅ ${estrategia.nome} (${tickerTeste}): ${resultados.length} dividendos encontrados!`);
+              
+              // 📋 LOG DETALHADO DOS DIVIDENDOS
+              resultados.forEach((item: any, i: number) => {
+                const data = item.paymentDate || item.date || item.approvedOn;
+                const valor = item.rate || item.value || item.amount || item.factor;
+                const tipo = item.type || item.label || item.eventType || 'N/A';
+                const periodo = item.relatedTo || item.remarks || '';
+                
+                console.log(`  ${i + 1}. ${data} - ${tipo} - R$ ${valor} ${periodo ? `(${periodo})` : ''}`);
+              });
+
+              todosDividendos = [...todosDividendos, ...resultados];
+              melhorEstrategia = estrategia.nome;
+              fonteDetalhada = `${estrategia.nome} via ${tickerTeste}`;
+              
+              // Se encontrou muitos resultados com a estratégia premium, pode parar
+              if (resultados.length >= 10) {
+                console.log(`🎉 Muitos dividendos encontrados com BRAPI Premium!`);
+                break;
+              }
+            } else {
+              console.log(`📭 ${estrategia.nome} (${tickerTeste}): Sem resultados`);
+              
+              // 🔍 DEBUG: Mostrar estrutura da resposta
+              if (data) {
+                console.log(`🔍 Estrutura da resposta:`, Object.keys(data));
+                if (data.results?.[0]) {
+                  console.log(`🔍 Estrutura result[0]:`, Object.keys(data.results[0]));
+                }
+              }
+            }
+
+          } catch (err) {
+            console.log(`❌ ${estrategia.nome} (${tickerTeste}): ${err}`);
           }
-        })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
 
-      console.log(`✅ FINAL: ${dividendosFiltrados.length} dividendos desde ${dataEntrada} (fonte: ${fonte})`);
+        // Se já encontrou resultados com premium, pode parar
+        if (todosDividendos.length >= 10) break;
+      }
 
-      setDividendos(dividendosFiltrados);
-      const performanceCalculada = calcularPerformance(precoEntrada, precoAtual, dividendosFiltrados);
-      performanceCalculada.fonte = fonte;
-      setPerformance(performanceCalculada);
+      // 🔄 PROCESSAR RESULTADOS PREMIUM
+      console.log(`\n📊 === PROCESSAMENTO PREMIUM ===`);
+      console.log(`Total encontrado: ${todosDividendos.length}`);
+      console.log(`Melhor estratégia: ${melhorEstrategia}`);
+      console.log(`Fonte detalhada: ${fonteDetalhada}`);
 
-      if (dividendosFiltrados.length === 0 && dividendosEncontrados.length > 0) {
-        setError(`Encontrados ${dividendosEncontrados.length} dividendos, mas todos anteriores à entrada (${dataEntrada})`);
-      } else if (dividendosEncontrados.length === 0) {
-        setError('Nenhum dividendo encontrado em nenhuma fonte. A empresa pode não ter distribuído proventos.');
+      if (todosDividendos.length > 0) {
+        // 🔄 REMOVER DUPLICATAS AVANÇADO
+        const dividendosUnicos = removeDuplicatasAvancado(todosDividendos);
+        console.log(`Após remoção de duplicatas: ${dividendosUnicos.length}`);
+
+        // 🔍 FILTRAR POR DATA DE ENTRADA
+        const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
+        console.log(`Data de entrada: ${dataEntradaDate.toISOString()}`);
+        
+        const dividendosProcessados = dividendosUnicos
+          .filter((item: any) => {
+            if (!item.paymentDate && !item.date && !item.approvedOn) return false;
+            
+            const valor = item.rate || item.value || item.amount || item.factor || 0;
+            if (valor <= 0) return false;
+            
+            try {
+              const dataItem = new Date(item.paymentDate || item.date || item.approvedOn);
+              const isAfterEntry = dataItem >= dataEntradaDate;
+              
+              console.log(`📅 ${dataItem.toLocaleDateString('pt-BR')} (${item.type || item.label || 'N/A'}) - R$ ${valor} - Válido: ${isAfterEntry}`);
+              return isAfterEntry;
+            } catch {
+              return false;
+            }
+          })
+          .map((item: any) => {
+            const data = item.paymentDate || item.date || item.approvedOn;
+            const valor = item.rate || item.value || item.amount || item.factor || 0;
+            
+            return {
+              date: data,
+              value: valor,
+              type: item.type || item.label || item.eventType || 'Provento',
+              dataFormatada: new Date(data).toLocaleDateString('pt-BR'),
+              valorFormatado: `R$ ${valor.toFixed(4).replace('.', ',')}`,
+              exDate: item.lastDatePrior,
+              paymentDate: item.paymentDate,
+              label: item.label,
+              relatedTo: item.relatedTo
+            };
+          })
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        console.log(`✅ FINAL PREMIUM: ${dividendosProcessados.length} dividendos válidos`);
+        
+        setDividendos(dividendosProcessados);
+        const performanceCalculada = calcularPerformancePremium(precoEntrada, precoAtual, dividendosProcessados);
+        performanceCalculada.fonte = fonteDetalhada;
+        performanceCalculada.ultimaAtualizacao = new Date().toLocaleString('pt-BR');
+        setPerformance(performanceCalculada);
+
+        if (dividendosProcessados.length === 0) {
+          setError(`BRAPI Premium encontrou ${todosDividendos.length} dividendos, mas todos anteriores à entrada (${dataEntrada})`);
+        }
+
+      } else {
+        console.log(`📭 NENHUM dividendo encontrado mesmo com BRAPI Premium`);
+        setDividendos([]);
+        const performanceFallback = calcularPerformancePremium(precoEntrada, precoAtual, []);
+        performanceFallback.fonte = 'BRAPI Premium (sem dados)';
+        performanceFallback.ultimaAtualizacao = new Date().toLocaleString('pt-BR');
+        setPerformance(performanceFallback);
+        setError('BRAPI Premium: Nenhum dividendo encontrado. A empresa pode não ter distribuído proventos ou os dados podem não estar disponíveis.');
       }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error(`❌ Erro geral:`, err);
-      setError(errorMessage);
+      console.error(`❌ Erro geral no BRAPI Premium:`, err);
+      setError(`BRAPI Premium: ${errorMessage}`);
       
       setDividendos([]);
-      const performanceFallback = calcularPerformance(precoEntrada, precoAtual, []);
+      const performanceFallback = calcularPerformancePremium(precoEntrada, precoAtual, []);
       performanceFallback.status = 'error';
-      performanceFallback.fonte = 'local';
+      performanceFallback.fonte = 'BRAPI Premium (erro)';
+      performanceFallback.ultimaAtualizacao = new Date().toLocaleString('pt-BR');
       setPerformance(performanceFallback);
       
     } finally {
@@ -167,142 +331,30 @@ export function useDividendosMelhorado(
   };
 }
 
-// 🏆 API DADOS DE MERCADO (MELHOR OPÇÃO)
-async function buscarDividendosDDM(ticker: string): Promise<DividendoDetalhado[]> {
-  const cvmCode = TICKER_TO_CVM[ticker];
-  if (!cvmCode) {
-    throw new Error(`Código CVM não encontrado para ${ticker}`);
-  }
-
-  // NOTA: Você precisa de um token da API Dados de Mercado
-  // Cadastre-se em: https://www.dadosdemercado.com.br/api
-  const DDM_TOKEN = 'SEU_TOKEN_DDM'; // Substitua pelo seu token
+// 🔄 REMOÇÃO DE DUPLICATAS AVANÇADA
+function removeDuplicatasAvancado(items: any[]): any[] {
+  const vistos = new Map();
   
-  const url = `https://api.dadosdemercado.com.br/v1/companies/${cvmCode}/dividends`;
-  
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${DDM_TOKEN}`,
-      'Accept': 'application/json'
+  return items.filter(item => {
+    const data = item.paymentDate || item.date || item.approvedOn;
+    const valor = item.rate || item.value || item.amount || item.factor || 0;
+    const tipo = item.type || item.label || item.eventType || 'default';
+    
+    // Chave mais robusta para identificar duplicatas
+    const chave = `${data}_${tipo}_${valor.toFixed(4)}`;
+    
+    if (vistos.has(chave)) {
+      console.log(`🔄 Removendo duplicata: ${chave}`);
+      return false;
     }
+    
+    vistos.set(chave, true);
+    return true;
   });
-
-  if (!response.ok) {
-    throw new Error(`DDM API erro: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
-  return data.map((item: any) => ({
-    date: item.date || item.payment_date,
-    value: parseFloat(item.amount || item.value || 0),
-    type: item.type || 'Dividendo',
-    dataFormatada: new Date(item.date || item.payment_date).toLocaleDateString('pt-BR'),
-    valorFormatado: `R$ ${parseFloat(item.amount || item.value || 0).toFixed(4).replace('.', ',')}`,
-    exDate: item.ex_date,
-    paymentDate: item.payment_date
-  }));
 }
 
-// 🥈 HG BRASIL (ALTERNATIVA CONFIÁVEL)
-async function buscarDividendosHG(ticker: string): Promise<DividendoDetalhado[]> {
-  // NOTA: Você precisa de uma chave da HG Brasil
-  // Cadastre-se em: https://hgbrasil.com/
-  const HG_KEY = 'SUA_CHAVE_HG'; // Substitua pela sua chave
-  
-  const url = `https://api.hgbrasil.com/finance/dividends/${ticker}?key=${HG_KEY}`;
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    throw new Error(`HG Brasil erro: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
-  if (!data.results || !data.results.dividends) {
-    return [];
-  }
-
-  return data.results.dividends.map((item: any) => ({
-    date: item.date,
-    value: parseFloat(item.amount || 0),
-    type: item.type || 'Dividendo',
-    dataFormatada: new Date(item.date).toLocaleDateString('pt-BR'),
-    valorFormatado: `R$ ${parseFloat(item.amount || 0).toFixed(4).replace('.', ',')}`
-  }));
-}
-
-// 🥉 BRAPI (SEU MÉTODO ORIGINAL SIMPLIFICADO)
-async function buscarDividendosBrapi(ticker: string): Promise<DividendoDetalhado[]> {
-  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-  
-  const estrategias = [
-    `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&dividends=true`,
-    `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`,
-    `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}`
-  ];
-
-  for (const url of estrategias) {
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      // Extrair dividendos da resposta BRAPI
-      let dividendos: any[] = [];
-      
-      if (data.results?.[0]?.dividendsData?.cashDividends) {
-        dividendos = data.results[0].dividendsData.cashDividends;
-      } else if (data.results?.[0]?.dividends) {
-        dividendos = data.results[0].dividends;
-      } else if (data.dividends) {
-        dividendos = data.dividends;
-      }
-
-      if (dividendos.length > 0) {
-        return dividendos.map((item: any) => ({
-          date: item.paymentDate || item.date,
-          value: item.rate || item.value || item.amount || 0,
-          type: item.type || item.label || 'Dividendo',
-          dataFormatada: new Date(item.paymentDate || item.date).toLocaleDateString('pt-BR'),
-          valorFormatado: `R$ ${(item.rate || item.value || item.amount || 0).toFixed(4).replace('.', ',')}`
-        }));
-      }
-    } catch (err) {
-      console.log(`Estratégia BRAPI falhou:`, err);
-    }
-  }
-  
-  return [];
-}
-
-// 🗂️ DADOS LOCAIS (FALLBACK)
-function buscarDividendosLocal(ticker: string): DividendoDetalhado[] {
-  const dividendosLocais: { [key: string]: DividendoDetalhado[] } = {
-    'ALOS3': [
-      {
-        date: '2024-05-15',
-        value: 0.85,
-        type: 'Dividendo',
-        dataFormatada: '15/05/2024',
-        valorFormatado: 'R$ 0,8500'
-      },
-      {
-        date: '2023-12-15', 
-        value: 0.80,
-        type: 'Dividendo',
-        dataFormatada: '15/12/2023',
-        valorFormatado: 'R$ 0,8000'
-      }
-    ]
-    // Adicione mais tickers conforme necessário
-  };
-
-  return dividendosLocais[ticker] || [];
-}
-
-// 📊 FUNÇÃO DE CÁLCULO (MESMA DO SEU HOOK)
-function calcularPerformance(
+// 📊 CÁLCULO DE PERFORMANCE PREMIUM
+function calcularPerformancePremium(
   precoEntrada: string,
   precoAtual: string,
   dividendos: DividendoDetalhado[]
@@ -320,11 +372,15 @@ function calcularPerformance(
 
   const ultimoDividendo = dividendos.length > 0 ? dividendos[0].dataFormatada : 'Nenhum';
 
+  // 📊 ANÁLISE POR ANO MAIS DETALHADA
   const dividendosPorAno: { [ano: string]: number } = {};
+  const countPorAno: { [ano: string]: number } = {};
+  
   dividendos.forEach(div => {
     try {
       const ano = new Date(div.date).getFullYear().toString();
       dividendosPorAno[ano] = (dividendosPorAno[ano] || 0) + (div.value || 0);
+      countPorAno[ano] = (countPorAno[ano] || 0) + 1;
     } catch {
       // Ignorar datas inválidas
     }
@@ -334,6 +390,13 @@ function calcularPerformance(
   const mediaAnual = anos.length > 0 
     ? Object.values(dividendosPorAno).reduce((sum, valor) => sum + valor, 0) / anos.length
     : 0;
+
+  // 📊 LOG DA ANÁLISE
+  console.log(`📊 === ANÁLISE DE PERFORMANCE PREMIUM ===`);
+  console.log(`Capital: ${performanceCapital.toFixed(2)}%`);
+  console.log(`Dividendos: R$ ${dividendosTotal.toFixed(4)} (${dividendosPercentual.toFixed(2)}%)`);
+  console.log(`Total: ${performanceTotal.toFixed(2)}%`);
+  console.log(`Dividendos por ano:`, dividendosPorAno);
 
   return {
     performanceCapital,
@@ -345,6 +408,7 @@ function calcularPerformance(
     dividendosPorAno,
     mediaAnual,
     status: dividendos.length > 0 ? 'success' : 'partial',
-    fonte: 'local' // Será sobrescrito
+    fonte: '',
+    ultimaAtualizacao: ''
   };
 }
