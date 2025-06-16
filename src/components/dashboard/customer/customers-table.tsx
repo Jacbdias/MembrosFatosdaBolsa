@@ -20,59 +20,9 @@ import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
-import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 
 function noop(): void {
   // Função vazia para props obrigatórias
-}
-
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
-function useMarketDataAPI() {
-  const [data, setData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const fetchData = React.useCallback(async () => {
-    try {
-      console.log('🔄 Buscando dados da API...');
-      
-      const timestamp = Date.now();
-      const response = await fetch(`/api/financial/market-data?_t=${timestamp}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Dados da API recebidos:', result);
-      
-      setData(result.marketData);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Erro ao buscar dados da API:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-    
-    // Refresh a cada 5 minutos
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  return { data, loading, error, refresh: fetchData };
 }
 
 // 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE
@@ -84,9 +34,10 @@ interface MarketIndicatorProps {
   diff?: number;
   isLoading?: boolean;
   description?: string;
+  fonte?: string;
 }
 
-function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description, fonte }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
@@ -133,6 +84,20 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
                 }}
               >
                 {description}
+              </Typography>
+            )}
+            {fonte && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#059669',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.6rem',
+                  fontWeight: 600
+                }}
+              >
+                📡 {fonte}
               </Typography>
             )}
           </Box>
@@ -215,6 +180,7 @@ export interface Ativo {
   dy: string;
   precoTeto: string;
   vies: string;
+
 }
 
 interface AtivosTableProps {
@@ -230,6 +196,12 @@ interface AtivosTableProps {
     ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
+  ibovespaReal?: {
+    valorFormatado: string;
+    trend: 'up' | 'down';
+    variacaoPercent: number;
+    fonte: string;
+  };
 }
 
 export function AtivosTable({
@@ -238,41 +210,31 @@ export function AtivosTable({
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
+  ibovespaReal, // 🔥 RECEBENDO dados reais do Ibovespa
 }: AtivosTableProps): React.JSX.Element {
-  // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading } = useMarketDataAPI();
 
-  // 🔥 VALORES PADRÃO PARA MICRO CAPS (APENAS FALLBACK QUANDO API FALHA)
-  const defaultIndicators = {
-    ibovespa: { value: "132k", trend: "up" as const, diff: 1.6 },
-    indiceSmall: { value: "1.255k", trend: "down" as const, diff: -3.2 },
-  };
-
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
+  // 🔥 USAR DADOS REAIS DOS CARDS PASSADOS PELO PAGE.TSX
   const indicators = React.useMemo(() => {
-    // Se temos dados da API, usar eles
-    if (apiData) {
-      console.log('✅ Usando dados da API:', apiData);
-      return {
-        ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
-        indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
-      };
-    }
+    console.log('📊 Dados recebidos no AtivosTable:');
+    console.log('  - cardsData:', cardsData);
+    console.log('  - ibovespaReal:', ibovespaReal);
     
-    // Senão, usar cardsData se disponível
-    if (Object.keys(cardsData).length > 0) {
-      console.log('⚠️ Usando cardsData prop:', cardsData);
-      return { ...defaultIndicators, ...cardsData };
-    }
-    
-    // Por último, usar fallback
-    console.log('⚠️ Usando dados de fallback');
-    return defaultIndicators;
-  }, [apiData, cardsData]);
+    return {
+      ibovespa: cardsData.ibovespa || { value: "137.213", trend: "down" as const, diff: -0.26 },
+      indiceSmall: cardsData.indiceSmall || { value: "2.205", trend: "down" as const, diff: -0.94 },
+    };
+  }, [cardsData, ibovespaReal]);
+
+  // 🔥 DETECTAR SE AINDA ESTÁ CARREGANDO
+  const isLoading = React.useMemo(() => {
+    // Se não temos dados do cardsData ou são os valores padrão, considerar loading
+    const hasRealData = cardsData.ibovespa || cardsData.indiceSmall;
+    return !hasRealData;
+  }, [cardsData]);
 
   return (
     <Box>
-      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
+      {/* Indicadores de Mercado - Layout com 2 cards */}
       <Box
         sx={{
           display: 'grid',
@@ -288,7 +250,8 @@ export function AtivosTable({
           icon={<CurrencyDollarIcon />} 
           trend={indicators.ibovespa.trend} 
           diff={indicators.ibovespa.diff}
-          isLoading={loading}
+          fonte={indicators.ibovespa.fonte || 'FALLBACK'}
+          isLoading={false}
         />
         <MarketIndicator 
           title="ÍNDICE SMALL CAP" 
@@ -297,7 +260,8 @@ export function AtivosTable({
           icon={<UsersThreeIcon />} 
           trend={indicators.indiceSmall.trend} 
           diff={indicators.indiceSmall.diff}
-          isLoading={loading}
+          fonte={indicators.indiceSmall.fonte || 'DINAMICO'}
+          isLoading={false}
         />
       </Box>
       
@@ -438,7 +402,19 @@ export function AtivosTable({
             </TableHead>
             <TableBody>
               {rows.map((row, index) => {
+                // CALCULAR PERFORMANCE SE TIVER COTAÇÃO
+                let performance = 0;
+                
+                if (row.precoAtual !== 'N/A') {
+                  const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
+                  const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
+                  performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
+                }
+                
+                // CALCULAR VIÉS DINAMICAMENTE
                 const calcularVies = (precoTeto: string, precoAtual: string) => {
+                  if (precoAtual === 'N/A') return 'Aguardar';
+                  
                   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
                   const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
                   
@@ -450,10 +426,6 @@ export function AtivosTable({
                 };
                 
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
-                
-                const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
-                const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
-                const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
                 
                 return (
                   <TableRow 
@@ -498,12 +470,15 @@ export function AtivosTable({
                           }}>
                             {row.ticker}
                           </Typography>
+                          {/* EXIBIR PERFORMANCE REAL OU 'N/A' SE SEM DADOS */}
                           <Typography variant="caption" sx={{ 
-                            color: performance >= 0 ? '#059669' : '#dc2626',
+                            color: row.precoAtual === 'N/A' ? '#64748b' : 
+                                   performance >= 0 ? '#059669' : '#dc2626',
                             fontSize: '0.8rem',
                             fontWeight: 600
                           }}>
-                            {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                            {row.precoAtual === 'N/A' ? 'Sem dados' : 
+                             `${performance > 0 ? '+' : ''}${performance.toFixed(1)}%`}
                           </Typography>
                         </Box>
                       </Stack>
@@ -541,7 +516,8 @@ export function AtivosTable({
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 700,
-                      color: performance >= 0 ? '#10b981' : '#ef4444',
+                      color: row.precoAtual === 'N/A' ? '#64748b' :
+                             performance >= 0 ? '#10b981' : '#ef4444',
                       whiteSpace: 'nowrap',
                       fontSize: '0.9rem'
                     }}>
