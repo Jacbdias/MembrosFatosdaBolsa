@@ -1545,7 +1545,7 @@ export default function EmpresaDetalhes() {
         {/* Histórico de Dividendos */}
         <Grid item xs={12} md={6}>
           <HistoricoDividendos ticker={ticker} empresa={empresaCompleta} />
-        </Grid>} />
+        </Grid>
         </Grid>
       </Grid>
 
