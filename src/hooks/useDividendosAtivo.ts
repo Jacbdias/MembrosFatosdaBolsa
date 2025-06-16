@@ -1,4 +1,4 @@
-// 🎯 HOOK CORRIGIDO PARA DIVIDENDOS
+// 🎯 HOOK CORRIGIDO PARA DIVIDENDOS - VERSÃO FINAL
 function useDividendosAtivo(
   ticker: string, 
   dataEntrada: string, 
@@ -100,7 +100,7 @@ function useDividendosAtivo(
               console.log(`✅ ${estrategia.nome} (${tickerTeste}): ${resultados.length} resultados!`);
               
               resultados.forEach((item: any, i: number) => {
-                console.log(`  ${i + 1}. ${item.paymentDate || 'sem data'} - ${item.label || 'sem tipo'} - R$ ${item.rate || 'sem valor'}`);
+                console.log(`  ${i + 1}. ${item.paymentDate || item.approvedOn || 'sem data'} - ${item.label || 'sem tipo'} - R$ ${item.rate || 'sem valor'}`);
               });
 
               todosResultados = [...todosResultados, ...resultados];
@@ -134,37 +134,35 @@ function useDividendosAtivo(
         const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
         console.log(`Data de entrada: ${dataEntradaDate.toISOString()}`);
         
-// 🔧 FILTRO CORRIGIDO - Substitua apenas esta parte do seu hook:
+        const dividendosProcessados = resultadosUnicos
+          .filter((item: any) => {
+            // ✅ FILTRO CORRIGIDO - aceitar dividendos com paymentDate null
+            if (!item.paymentDate && !item.approvedOn) return false;
+            
+            const valor = item.rate || 0;
+            if (valor <= 0) return false;
+            
+            try {
+              // Usar paymentDate ou approvedOn como fallback
+              const dataParaComparar = item.paymentDate || item.approvedOn;
+              const dataItem = new Date(dataParaComparar);
+              const isAfterEntry = dataItem >= dataEntradaDate;
+              
+              console.log(`📅 ${dataParaComparar} (${item.label || 'N/A'}) - R$ ${valor} - Após entrada: ${isAfterEntry}`);
+              return isAfterEntry;
+            } catch {
+              return false;
+            }
+          })
+          .map((item: any) => ({
+            date: item.paymentDate || item.approvedOn,
+            value: item.rate || 0,
+            type: item.label || 'Provento',
+            dataFormatada: new Date(item.paymentDate || item.approvedOn).toLocaleDateString('pt-BR'),
+            valorFormatado: `R$ ${(item.rate || 0).toFixed(2).replace('.', ',')}`
+          }))
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-const dividendosProcessados = resultadosUnicos
-  .filter((item: any) => {
-    // 🔧 FILTRO CORRIGIDO - aceitar paymentDate null mas ter approvedOn
-    if (!item.paymentDate && !item.approvedOn) return false; // Só rejeita se AMBOS forem null
-    
-    const valor = item.rate || 0; // rate, não value
-    if (valor <= 0) return false;
-    
-    try {
-      // Usar paymentDate se disponível, senão approvedOn como fallback
-      const dataParaComparar = item.paymentDate || item.approvedOn;
-      const dataItem = new Date(dataParaComparar);
-      const isAfterEntry = dataItem >= dataEntradaDate;
-      
-      console.log(`📅 ${dataParaComparar} (${item.label || 'N/A'}) - R$ ${valor} - Após entrada: ${isAfterEntry}`);
-      return isAfterEntry;
-    } catch {
-      return false;
-    }
-  })
-  .map((item: any) => ({
-    date: item.paymentDate || item.approvedOn, // Usar paymentDate ou approvedOn
-    value: item.rate || 0,   // rate para value
-    type: item.label || 'Provento', // label para type
-    dataFormatada: new Date(item.paymentDate || item.approvedOn).toLocaleDateString('pt-BR'),
-    valorFormatado: `R$ ${(item.rate || 0).toFixed(2).replace('.', ',')}`
-  }))
-  .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
         console.log(`✅ FINAL: ${dividendosProcessados.length} proventos válidos desde ${dataEntrada}`);
         
         setDividendos(dividendosProcessados);
@@ -217,7 +215,7 @@ function removeDuplicatas(items: any[]): any[] {
   const vistos = new Set();
   return items.filter(item => {
     // Usar paymentDate + label + rate para chave única
-    const chave = `${item.paymentDate}_${item.label || 'default'}_${item.rate || 0}`;
+    const chave = `${item.paymentDate || item.approvedOn}_${item.label || 'default'}_${item.rate || 0}`;
     if (vistos.has(chave)) return false;
     vistos.add(chave);
     return true;
