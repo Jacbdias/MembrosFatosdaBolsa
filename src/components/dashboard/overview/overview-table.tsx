@@ -22,63 +22,12 @@ import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
-import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
-import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
 import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 
 import { useSelection } from '@/hooks/use-selection';
 
 function noop(): void {
   // Função vazia para props obrigatórias
-}
-
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
-function useMarketDataAPI() {
-  const [data, setData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const fetchData = React.useCallback(async () => {
-    try {
-      console.log('🔄 Buscando dados da API...');
-      
-      const timestamp = Date.now();
-      const response = await fetch(`/api/financial/market-data?_t=${timestamp}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Dados da API recebidos:', result);
-      
-      setData(result.marketData);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Erro ao buscar dados da API:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-    
-    // Refresh a cada 5 minutos
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  return { data, loading, error, refresh: fetchData };
 }
 
 // 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE
@@ -90,9 +39,10 @@ interface MarketIndicatorProps {
   diff?: number;
   isLoading?: boolean;
   description?: string;
+  fonte?: string;
 }
 
-function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description, fonte }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
@@ -139,6 +89,20 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
                 }}
               >
                 {description}
+              </Typography>
+            )}
+            {fonte && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#059669',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.6rem',
+                  fontWeight: 600
+                }}
+              >
+                📡 {fonte}
               </Typography>
             )}
           </Box>
@@ -231,6 +195,14 @@ interface OverviewTableProps {
   cardsData?: {
     ibovespa?: { value: string; trend?: 'up' | 'down'; diff?: number };
     indiceSmall?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    dividendYield?: { value: string; trend?: 'up' | 'down'; diff?: number };
+    carteiraHoje?: { value: string; trend?: 'up' | 'down'; diff?: number };
+  };
+  ibovespaReal?: {
+    valorFormatado: string;
+    trend: 'up' | 'down';
+    variacaoPercent: number;
+    fonte: string;
   };
 }
 
@@ -239,70 +211,45 @@ export function OverviewTable({
   rows = [],
   page = 0,
   rowsPerPage = 0,
-  cardsData = {}
+  cardsData = {},
+  ibovespaReal
 }: OverviewTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading, error, refresh } = useMarketDataAPI();
-
-  // 🔥 VALORES PADRÃO ATUALIZADOS (APENAS FALLBACK QUANDO API FALHA)
-  const defaultIndicators = {
-    ibovespa: { value: "136.431", trend: "down" as const, diff: -0.26 },
-    indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 },
-  };
-
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
+  // 🔥 USAR DADOS DINÂMICOS DOS PROPS (PRIORIDADE MÁXIMA)
   const indicators = React.useMemo(() => {
-    // Se temos dados da API, usar eles
-    if (apiData) {
-      console.log('✅ Usando dados da API:', apiData);
-      return {
-        ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
-        indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
-      };
-    }
+    console.log('🎯 OverviewTable recebeu cardsData:', cardsData);
+    console.log('🎯 OverviewTable recebeu ibovespaReal:', ibovespaReal);
     
-    // Senão, usar cardsData se disponível
-    if (Object.keys(cardsData).length > 0) {
-      console.log('⚠️ Usando cardsData prop:', cardsData);
-      return { ...defaultIndicators, ...cardsData };
-    }
-    
-    // Por último, usar fallback
-    console.log('⚠️ Usando dados de fallback');
-    return defaultIndicators;
-  }, [apiData, cardsData]);
+    // ✅ PRIORIZAR DADOS REAIS DOS HOOKS DA PÁGINA
+    const ibovespaData = ibovespaReal ? {
+      value: ibovespaReal.valorFormatado,
+      trend: ibovespaReal.trend,
+      diff: ibovespaReal.variacaoPercent,
+      fonte: ibovespaReal.fonte
+    } : (cardsData.ibovespa || { value: "137.213", trend: "down" as const, diff: -0.43 });
+
+    const indiceSmallData = cardsData.indiceSmall || { 
+      value: "2.205", 
+      trend: "down" as const, 
+      diff: -0.94 
+    };
+
+    console.log('✅ Dados finais dos indicadores:', { ibovespaData, indiceSmallData });
+
+    return {
+      ibovespa: ibovespaData,
+      indiceSmall: indiceSmallData,
+    };
+  }, [cardsData, ibovespaReal]);
+
+  // Log para debug
+  React.useEffect(() => {
+    console.log('🔄 OverviewTable - Indicadores atualizados:', indicators);
+  }, [indicators]);
 
   return (
     <Box>
-      {/* Header com status da API */}
-      {error && (
-        <Box sx={{ mb: 3, p: 3, backgroundColor: '#fef2f2', borderRadius: 2, border: '1px solid #fecaca' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="body2" sx={{ color: '#dc2626' }}>
-              ⚠️ Erro ao carregar dados da API: {error}
-            </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
-              onClick={refresh}
-            >
-              🔄 Tentar novamente
-            </Typography>
-          </Stack>
-        </Box>
-      )}
-
-      {loading && (
-        <Box sx={{ mb: 3 }}>
-          <LinearProgress sx={{ borderRadius: 1, height: 6 }} />
-          <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', mt: 2 }}>
-            Carregando dados em tempo real...
-          </Typography>
-        </Box>
-      )}
-
       {/* Indicadores de Mercado - Layout Discreto */}
       <Box
         sx={{
@@ -319,7 +266,7 @@ export function OverviewTable({
           icon={<CurrencyDollarIcon />} 
           trend={indicators.ibovespa.trend} 
           diff={indicators.ibovespa.diff}
-          isLoading={loading}
+          fonte={indicators.ibovespa.fonte || 'FALLBACK'}
         />
         <MarketIndicator 
           title="ÍNDICE SMALL CAP" 
@@ -328,7 +275,7 @@ export function OverviewTable({
           icon={<UsersThreeIcon />} 
           trend={indicators.indiceSmall.trend} 
           diff={indicators.indiceSmall.diff}
-          isLoading={loading}
+          fonte={indicators.indiceSmall.fonte || 'DINAMICO'}
         />
       </Box>
       
