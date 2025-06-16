@@ -21,8 +21,6 @@ import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { UsersThree as UsersThreeIcon } from '@phosphor-icons/react/dist/ssr/UsersThree';
-import { ListBullets as ListBulletsIcon } from '@phosphor-icons/react/dist/ssr/ListBullets';
-import { ChartBar as ChartBarIcon } from '@phosphor-icons/react/dist/ssr/ChartBar';
 import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 
 import { useSelection } from '@/hooks/use-selection';
@@ -31,56 +29,7 @@ function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
-function useMarketDataAPI() {
-  const [data, setData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const fetchData = React.useCallback(async () => {
-    try {
-      console.log('🔄 Buscando dados da API...');
-      
-      const timestamp = Date.now();
-      const response = await fetch(`/api/financial/market-data?_t=${timestamp}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Dados da API recebidos:', result);
-      
-      setData(result.marketData);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Erro ao buscar dados da API:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-    
-    // Refresh a cada 5 minutos
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  return { data, loading, error, refresh: fetchData };
-}
-
-// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AO OVERVIEW)
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AO CUSTOMER-TABLE)
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -89,9 +38,10 @@ interface MarketIndicatorProps {
   diff?: number;
   isLoading?: boolean;
   description?: string;
+  fonte?: string;
 }
 
-function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description, fonte }: MarketIndicatorProps): React.JSX.Element {
   const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
@@ -138,6 +88,20 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
                 }}
               >
                 {description}
+              </Typography>
+            )}
+            {fonte && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#059669',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.6rem',
+                  fontWeight: 600
+                }}
+              >
+                📡 {fonte}
               </Typography>
             )}
           </Box>
@@ -235,6 +199,12 @@ interface IntegrationsTableProps {
     ibovespaPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
     carteiraPeriodo?: { value: string; trend?: 'up' | 'down'; diff?: number };
   };
+  ibovespaReal?: {
+    valorFormatado: string;
+    trend: 'up' | 'down';
+    variacaoPercent: number;
+    fonte: string;
+  };
 }
 
 export function IntegrationsTable({
@@ -243,60 +213,49 @@ export function IntegrationsTable({
   page = 0,
   rowsPerPage = 0,
   cardsData = {},
+  ibovespaReal
 }: IntegrationsTableProps): React.JSX.Element {
   const rowIds = React.useMemo(() => rows.map((item) => item.id), [rows]);
 
-  // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading, error, refresh } = useMarketDataAPI();
-
-  // 🔥 VALORES PADRÃO PARA DIVIDENDOS (APENAS FALLBACK QUANDO API FALHA)
-  const defaultIndicators = {
-    ibovespa: { value: "158k", trend: "up" as const, diff: 3.2 },
-    indiceSmall: { value: "2.100k", trend: "up" as const, diff: 1.8 },
-    carteiraHoje: { value: "92.1%", trend: "up" as const },
-    dividendYield: { value: "8.8%", trend: "up" as const },
-    ibovespaPeriodo: { value: "7.1%", trend: "up" as const, diff: 7.1 },
-    carteiraPeriodo: { value: "11.4%", trend: "up" as const, diff: 11.4 },
-  };
-
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS cardsData, DEPOIS DEFAULT
+  // 🔥 USAR DADOS DINÂMICOS DOS PROPS (MESMA LÓGICA DO CUSTOMER-TABLE)
   const indicators = React.useMemo(() => {
-    // Se temos dados da API, usar eles
-    if (apiData) {
-      console.log('✅ Usando dados da API:', apiData);
-      return {
-        ibovespa: apiData.ibovespa || defaultIndicators.ibovespa,
-        indiceSmall: apiData.indiceSmall || defaultIndicators.indiceSmall,
-        carteiraHoje: cardsData.carteiraHoje || defaultIndicators.carteiraHoje,
-        dividendYield: cardsData.dividendYield || defaultIndicators.dividendYield,
-        ibovespaPeriodo: cardsData.ibovespaPeriodo || defaultIndicators.ibovespaPeriodo,
-        carteiraPeriodo: cardsData.carteiraPeriodo || defaultIndicators.carteiraPeriodo,
-      };
-    }
+    console.log('🎯 IntegrationsTable recebeu cardsData:', cardsData);
+    console.log('🎯 IntegrationsTable recebeu ibovespaReal:', ibovespaReal);
     
-    // Senão, usar cardsData se disponível
-    if (Object.keys(cardsData).length > 0) {
-      console.log('⚠️ Usando cardsData prop:', cardsData);
-      return { ...defaultIndicators, ...cardsData };
-    }
-    
-    // Por último, usar fallback
-    console.log('⚠️ Usando dados de fallback');
-    return defaultIndicators;
-  }, [apiData, cardsData]);
+    // ✅ PRIORIZAR DADOS REAIS DOS HOOKS DA PÁGINA
+    const ibovespaData = ibovespaReal ? {
+      value: ibovespaReal.valorFormatado,
+      trend: ibovespaReal.trend,
+      diff: ibovespaReal.variacaoPercent,
+      fonte: ibovespaReal.fonte
+    } : (cardsData.ibovespa || { value: "137.213", trend: "down" as const, diff: -0.43 });
+
+    const indiceSmallData = cardsData.indiceSmall || { 
+      value: "2.205", 
+      trend: "down" as const, 
+      diff: -0.94 
+    };
+
+    console.log('✅ Dados finais dos indicadores:', { ibovespaData, indiceSmallData });
+
+    return {
+      ibovespa: ibovespaData,
+      indiceSmall: indiceSmallData,
+    };
+  }, [cardsData, ibovespaReal]);
+
+  // Log para debug
+  React.useEffect(() => {
+    console.log('🔄 IntegrationsTable - Indicadores atualizados:', indicators);
+  }, [indicators]);
 
   return (
     <Box>
-      {/* Indicadores de Mercado - Layout com 6 cards para Dividendos */}
+      {/* Indicadores de Mercado - Layout com 2 cards como customer-table */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(6, 1fr)',
-          },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
           gap: 2,
           mb: 4,
         }}
@@ -308,52 +267,18 @@ export function IntegrationsTable({
           icon={<CurrencyDollarIcon />} 
           trend={indicators.ibovespa.trend} 
           diff={indicators.ibovespa.diff}
-          isLoading={loading}
+          fonte={indicators.ibovespa.fonte || 'FALLBACK'}
+          isLoading={false}
         />
         <MarketIndicator 
-          title="ÍNDICE SMALL" 
+          title="ÍNDICE SMALL CAP" 
           description="Small Caps da B3"
           value={indicators.indiceSmall.value} 
           icon={<UsersThreeIcon />} 
           trend={indicators.indiceSmall.trend} 
           diff={indicators.indiceSmall.diff}
-          isLoading={loading}
-        />
-        <MarketIndicator 
-          title="CARTEIRA HOJE" 
-          description="Performance atual"
-          value={indicators.carteiraHoje.value} 
-          icon={<ListBulletsIcon />}
-          trend={indicators.carteiraHoje.trend}
-          diff={indicators.carteiraHoje.diff}
-          isLoading={loading}
-        />
-        <MarketIndicator 
-          title="DIVIDEND YIELD" 
-          description="Rendimento médio"
-          value={indicators.dividendYield.value} 
-          icon={<ChartBarIcon />}
-          trend={indicators.dividendYield.trend}
-          diff={indicators.dividendYield.diff}
-          isLoading={loading}
-        />
-        <MarketIndicator 
-          title="IBOVESPA PERÍODO" 
-          description="Performance no período"
-          value={indicators.ibovespaPeriodo.value} 
-          icon={<CurrencyDollarIcon />} 
-          trend={indicators.ibovespaPeriodo.trend} 
-          diff={indicators.ibovespaPeriodo.diff}
-          isLoading={loading}
-        />
-        <MarketIndicator 
-          title="CARTEIRA PERÍODO" 
-          description="Performance acumulada"
-          value={indicators.carteiraPeriodo.value} 
-          icon={<ChartBarIcon />} 
-          trend={indicators.carteiraPeriodo.trend} 
-          diff={indicators.carteiraPeriodo.diff}
-          isLoading={loading}
+          fonte={indicators.indiceSmall.fonte || 'DINAMICO'}
+          isLoading={false}
         />
       </Box>
       
@@ -494,7 +419,19 @@ export function IntegrationsTable({
             </TableHead>
             <TableBody>
               {rows.map((row, index) => {
+                // CALCULAR PERFORMANCE SE TIVER COTAÇÃO
+                let performance = 0;
+                
+                if (row.precoAtual !== 'N/A') {
+                  const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
+                  const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
+                  performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
+                }
+                
+                // CALCULAR VIÉS DINAMICAMENTE
                 const calcularVies = (precoTeto: string, precoAtual: string) => {
+                  if (precoAtual === 'N/A') return 'Aguardar';
+                  
                   const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
                   const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
                   
@@ -506,10 +443,6 @@ export function IntegrationsTable({
                 };
                 
                 const viesCalculado = calcularVies(row.precoTeto, row.precoAtual);
-                
-                const precoEntradaNum = parseFloat(row.precoEntrada.replace('R$ ', '').replace(',', '.'));
-                const precoAtualNum = parseFloat(row.precoAtual.replace('R$ ', '').replace(',', '.'));
-                const performance = ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100;
                 
                 return (
                   <TableRow 
@@ -554,12 +487,15 @@ export function IntegrationsTable({
                           }}>
                             {row.ticker}
                           </Typography>
+                          {/* EXIBIR PERFORMANCE REAL OU 'N/A' SE SEM DADOS */}
                           <Typography variant="caption" sx={{ 
-                            color: performance >= 0 ? '#059669' : '#dc2626',
+                            color: row.precoAtual === 'N/A' ? '#64748b' : 
+                                   performance >= 0 ? '#059669' : '#dc2626',
                             fontSize: '0.8rem',
                             fontWeight: 600
                           }}>
-                            {performance > 0 ? '+' : ''}{performance.toFixed(1)}%
+                            {row.precoAtual === 'N/A' ? 'Sem dados' : 
+                             `${performance > 0 ? '+' : ''}${performance.toFixed(1)}%`}
                           </Typography>
                         </Box>
                       </Stack>
@@ -597,7 +533,8 @@ export function IntegrationsTable({
                     <TableCell sx={{ 
                       textAlign: 'center',
                       fontWeight: 700,
-                      color: performance >= 0 ? '#10b981' : '#ef4444',
+                      color: row.precoAtual === 'N/A' ? '#64748b' :
+                             performance >= 0 ? '#10b981' : '#ef4444',
                       whiteSpace: 'nowrap',
                       fontSize: '0.9rem'
                     }}>
