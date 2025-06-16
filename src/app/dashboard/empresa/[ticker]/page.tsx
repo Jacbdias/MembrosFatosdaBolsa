@@ -1157,17 +1157,30 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
         if (file.name.endsWith('.json')) {
           dados = JSON.parse(text);
         } else if (file.name.endsWith('.csv')) {
-          // Simples parse CSV: date,value,type
-          dados = text.split('\n').slice(1).map(linha => {
-            const [date, value, type] = linha.split(',');
-            return {
-              date: date.trim(),
-              value: parseFloat(value.trim()),
-              type: type.trim(),
-              dataFormatada: new Date(date.trim()).toLocaleDateString('pt-BR'),
-              valorFormatado: `R$ ${parseFloat(value.trim()).toFixed(2).replace('.', ',')}`
-            };
-          });
+          // Agora esperamos: ticker,date,value,type
+          dados = text
+            .split('\n')
+            .slice(1)
+            .map(linha => {
+              const partes = linha.split(',');
+              if (partes.length < 4) return null;
+
+              const [csvTicker, date, value, type] = partes.map(p => p?.trim());
+              
+              if (!csvTicker || !date || !value || !type) return null;
+              if (csvTicker !== ticker) return null; // Filtra pelo ticker da página
+
+              const numValue = parseFloat(value.replace(',', '.'));
+
+              return {
+                date: date,
+                value: numValue,
+                type: type,
+                dataFormatada: new Date(date).toLocaleDateString('pt-BR'),
+                valorFormatado: `R$ ${numValue.toFixed(2).replace('.', ',')}`
+              };
+            })
+            .filter((item): item is DividendoDetalhado => item !== null);
         }
 
         setProventos(dados);
@@ -1207,7 +1220,7 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
         {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
-              Nenhum provento carregado. Selecione um arquivo CSV ou JSON.
+              Nenhum provento carregado para {ticker}. Selecione um arquivo CSV ou JSON.
             </Typography>
           </Box>
         ) : (
@@ -1245,6 +1258,7 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
     </Card>
   );
 };
+
 
 // 📈 COMPONENTE DE RESUMO EXECUTIVO
 const ResumoExecutivo = ({ empresa, dados }: { empresa: EmpresaCompleta; dados: DadosFinanceiros | null }) => {
