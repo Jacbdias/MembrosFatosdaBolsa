@@ -134,33 +134,36 @@ function useDividendosAtivo(
         const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
         console.log(`Data de entrada: ${dataEntradaDate.toISOString()}`);
         
-        const dividendosProcessados = resultadosUnicos
-          .filter((item: any) => {
-            // 🔧 FILTROS CORRIGIDOS
-            if (!item.paymentDate) return false; // paymentDate, não date
-            
-            const valor = item.rate || 0; // rate, não value
-            if (valor <= 0) return false;
-            
-            try {
-              const dataItem = new Date(item.paymentDate); // paymentDate, não date
-              const isAfterEntry = dataItem >= dataEntradaDate;
-              
-              console.log(`📅 ${item.paymentDate} (${item.label || 'N/A'}) - R$ ${valor} - Após entrada: ${isAfterEntry}`);
-              return isAfterEntry;
-            } catch {
-              return false;
-            }
-          })
-          .map((item: any) => ({
-            date: item.paymentDate, // paymentDate para date
-            value: item.rate || 0,   // rate para value
-            type: item.label || 'Provento', // label para type
-            dataFormatada: new Date(item.paymentDate).toLocaleDateString('pt-BR'),
-            valorFormatado: `R$ ${(item.rate || 0).toFixed(2).replace('.', ',')}`
-          }))
-          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+// 🔧 FILTRO CORRIGIDO - Substitua apenas esta parte do seu hook:
 
+const dividendosProcessados = resultadosUnicos
+  .filter((item: any) => {
+    // 🔧 FILTRO CORRIGIDO - aceitar paymentDate null mas ter approvedOn
+    if (!item.paymentDate && !item.approvedOn) return false; // Só rejeita se AMBOS forem null
+    
+    const valor = item.rate || 0; // rate, não value
+    if (valor <= 0) return false;
+    
+    try {
+      // Usar paymentDate se disponível, senão approvedOn como fallback
+      const dataParaComparar = item.paymentDate || item.approvedOn;
+      const dataItem = new Date(dataParaComparar);
+      const isAfterEntry = dataItem >= dataEntradaDate;
+      
+      console.log(`📅 ${dataParaComparar} (${item.label || 'N/A'}) - R$ ${valor} - Após entrada: ${isAfterEntry}`);
+      return isAfterEntry;
+    } catch {
+      return false;
+    }
+  })
+  .map((item: any) => ({
+    date: item.paymentDate || item.approvedOn, // Usar paymentDate ou approvedOn
+    value: item.rate || 0,   // rate para value
+    type: item.label || 'Provento', // label para type
+    dataFormatada: new Date(item.paymentDate || item.approvedOn).toLocaleDateString('pt-BR'),
+    valorFormatado: `R$ ${(item.rate || 0).toFixed(2).replace('.', ',')}`
+  }))
+  .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
         console.log(`✅ FINAL: ${dividendosProcessados.length} proventos válidos desde ${dataEntrada}`);
         
         setDividendos(dividendosProcessados);
