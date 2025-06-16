@@ -1144,149 +1144,102 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
 };
 
 // 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS MELHORADO
-const HistoricoDividendos = ({ ticker, empresa }: { ticker: string; empresa: EmpresaCompleta }) => {
-  const precoAtualFormatado = empresa.dadosFinanceiros?.precoAtual 
-    ? formatarValor(empresa.dadosFinanceiros.precoAtual) 
-    : empresa.precoIniciou;
+const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
+  const [proventos, setProventos] = useState<DividendoDetalhado[]>([]);
 
-  const { 
-    dividendos, 
-    performance, 
-    loading, 
-    error, 
-    refetch 
-  } = useDividendosAtivo(
-    ticker,
-    empresa.dataEntrada,
-    empresa.precoIniciou,
-    precoAtualFormatado
-  );
+  const handleArquivo = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        let dados: DividendoDetalhado[] = [];
+
+        if (file.name.endsWith('.json')) {
+          dados = JSON.parse(text);
+        } else if (file.name.endsWith('.csv')) {
+          // Simples parse CSV: date,value,type
+          dados = text.split('\n').slice(1).map(linha => {
+            const [date, value, type] = linha.split(',');
+            return {
+              date: date.trim(),
+              value: parseFloat(value.trim()),
+              type: type.trim(),
+              dataFormatada: new Date(date.trim()).toLocaleDateString('pt-BR'),
+              valorFormatado: `R$ ${parseFloat(value.trim()).toFixed(2).replace('.', ',')}`
+            };
+          });
+        }
+
+        setProventos(dados);
+      } catch (err) {
+        alert('Erro ao carregar arquivo: ' + err);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <Card>
       <CardContent sx={{ p: 4 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            💰 Proventos desde a Entrada
+            💰 Proventos Carregados
           </Typography>
-          <IconButton onClick={refetch} disabled={loading} size="small">
-            <RefreshIcon size={16} />
-          </IconButton>
+          <Box>
+            <input
+              type="file"
+              accept=".csv,.json"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleArquivo(file);
+              }}
+              style={{ display: 'none' }}
+              id="upload-proventos"
+            />
+            <label htmlFor="upload-proventos">
+              <Button component="span" variant="outlined" size="small" startIcon={<UploadIcon />}>
+                Carregar Proventos
+              </Button>
+            </label>
+          </Box>
         </Stack>
 
-        {loading ? (
-          <Stack spacing={1}>
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} variant="rectangular" height={40} />
-            ))}
-          </Stack>
-        ) : error ? (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        ) : dividendos.length > 0 ? (
-          <>
-            {/* Resumo rápido */}
-            {performance && (
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={6}>
-                  <Box sx={{ p: 2, backgroundColor: '#f0f9ff', borderRadius: 1, textAlign: 'center' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#0369a1' }}>
-                      {formatarValor(performance.dividendosTotal)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Recebido
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box sx={{ p: 2, backgroundColor: '#f0fdf4', borderRadius: 1, textAlign: 'center' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
-                      {formatarValor(performance.dividendosPercentual, 'percent')}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      % do Investimento
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            )}
-
-            {/* Tabela de dividendos */}
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Data</TableCell>
-                    <TableCell align="right">Valor</TableCell>
-                    <TableCell align="right">Tipo</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {dividendos.slice(0, 10).map((div, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{div.dataFormatada}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
-                        {div.valorFormatado}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip 
-                          label={div.type} 
-                          size="small" 
-                          variant="outlined"
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            {dividendos.length > 10 && (
-              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 2 }}>
-                Mostrando 10 de {dividendos.length} proventos
-              </Typography>
-            )}
-
-            {/* Performance detalhada */}
-            {performance && (
-              <Box sx={{ mt: 3, p: 2, backgroundColor: '#fafafa', borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  📊 Análise de Performance
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Capital:</Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600,
-                      color: performance.performanceCapital >= 0 ? '#16a34a' : '#dc2626'
-                    }}>
-                      {formatarValor(performance.performanceCapital, 'percent')}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Total:</Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600,
-                      color: performance.performanceTotal >= 0 ? '#16a34a' : '#dc2626'
-                    }}>
-                      {formatarValor(performance.performanceTotal, 'percent')}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            )}
-          </>
-        ) : (
+        {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
-              Nenhum provento encontrado desde {empresa.dataEntrada}
-            </Typography>
-            <Typography variant="caption">
-              A empresa pode não ter distribuído proventos ou os dados podem não estar disponíveis
+              Nenhum provento carregado. Selecione um arquivo CSV ou JSON.
             </Typography>
           </Box>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Data</TableCell>
+                  <TableCell align="right">Valor</TableCell>
+                  <TableCell align="right">Tipo</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {proventos.map((div, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{div.dataFormatada}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
+                      {div.valorFormatado}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Chip 
+                        label={div.type} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ fontSize: '0.7rem' }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </CardContent>
     </Card>
