@@ -38,6 +38,9 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
@@ -49,6 +52,7 @@ import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Trash as DeleteIcon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { FileText as FileIcon } from '@phosphor-icons/react/dist/ssr/FileText';
+import { CaretDown as ExpandMoreIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
 
 // 🔑 TOKEN BRAPI VALIDADO
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
@@ -93,6 +97,275 @@ interface Relatorio {
   arquivo: string; // Base64 ou URL
   tamanho: string;
 }
+
+// 🔍 COMPONENTE DEBUG PARA VERIFICAR DIVIDENDOS
+const DebugDividendos = ({ ticker }: { ticker: string }) => {
+  const [resultados, setResultados] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const testarTodasEstrategias = async () => {
+    setLoading(true);
+    setResultados([]);
+
+    const estrategias = [
+      {
+        nome: '1. Endpoint Básico com Dividendos',
+        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&dividends=true`,
+        extrair: (data: any) => {
+          console.log('📊 Estrutura completa da resposta:', data);
+          return {
+            results: data.results,
+            dividendsData: data.results?.[0]?.dividendsData,
+            cashDividends: data.results?.[0]?.dividendsData?.cashDividends,
+            stockDividends: data.results?.[0]?.dividendsData?.stockDividends
+          };
+        }
+      },
+      {
+        nome: '2. Endpoint Fundamental + Dividends',
+        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`,
+        extrair: (data: any) => {
+          return {
+            results: data.results,
+            fundamentals: data.results?.[0]?.summaryProfile,
+            dividendsData: data.results?.[0]?.dividendsData
+          };
+        }
+      },
+      {
+        nome: '3. Endpoint Direto de Dividendos',
+        url: `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}`,
+        extrair: (data: any) => {
+          return {
+            dividends: data.dividends,
+            cashDividends: data.cashDividends,
+            stockDividends: data.stockDividends
+          };
+        }
+      },
+      {
+        nome: '4. Com Módulos Específicos',
+        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&modules=dividends`,
+        extrair: (data: any) => {
+          return {
+            results: data.results,
+            dividends: data.results?.[0]?.dividends,
+            modules: data.results?.[0]
+          };
+        }
+      },
+      {
+        nome: '5. Range 5 Anos',
+        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=5y&dividends=true`,
+        extrair: (data: any) => {
+          return {
+            results: data.results,
+            dividendsData: data.results?.[0]?.dividendsData,
+            historicalData: data.results?.[0]?.historicalDataPrice?.length || 0
+          };
+        }
+      },
+      {
+        nome: '6. Ticker com .SA',
+        url: `https://brapi.dev/api/quote/${ticker}.SA?token=${BRAPI_TOKEN}&dividends=true`,
+        extrair: (data: any) => {
+          return {
+            results: data.results,
+            dividendsData: data.results?.[0]?.dividendsData
+          };
+        }
+      }
+    ];
+
+    const resultadosCompletos = [];
+
+    for (const estrategia of estrategias) {
+      try {
+        console.log(`🔍 Testando: ${estrategia.nome}`);
+        console.log(`📡 URL: ${estrategia.url}`);
+
+        const response = await fetch(estrategia.url);
+        const data = await response.json();
+        
+        const dadosExtraidos = estrategia.extrair(data);
+        
+        resultadosCompletos.push({
+          estrategia: estrategia.nome,
+          url: estrategia.url,
+          status: response.status,
+          success: response.ok,
+          dataCompleta: data,
+          dadosExtraidos,
+          dividendosEncontrados: contarDividendos(dadosExtraidos),
+          timestamp: new Date().toISOString()
+        });
+
+      } catch (error) {
+        resultadosCompletos.push({
+          estrategia: estrategia.nome,
+          url: estrategia.url,
+          success: false,
+          error: error instanceof Error ? error.message : 'Erro desconhecido',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    setResultados(resultadosCompletos);
+    setLoading(false);
+  };
+
+  const contarDividendos = (dados: any): number => {
+    let total = 0;
+    
+    if (dados.cashDividends && Array.isArray(dados.cashDividends)) {
+      total += dados.cashDividends.length;
+    }
+    if (dados.stockDividends && Array.isArray(dados.stockDividends)) {
+      total += dados.stockDividends.length;
+    }
+    if (dados.dividends && Array.isArray(dados.dividends)) {
+      total += dados.dividends.length;
+    }
+    
+    return total;
+  };
+
+  const testarPETR4 = () => {
+    // Teste com PETR4 que sabemos que tem dividendos
+    window.open(`/dashboard/empresa/PETR4`, '_blank');
+  };
+
+  return (
+    <Card sx={{ mt: 3, border: '2px solid #3b82f6' }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom sx={{ color: '#3b82f6' }}>
+          🔍 Debug Completo - Dividendos {ticker}
+        </Typography>
+        
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Este componente testa todas as estratégias possíveis para buscar dividendos na BRAPI.
+        </Alert>
+
+        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Button 
+            variant="contained" 
+            onClick={testarTodasEstrategias}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : null}
+          >
+            {loading ? 'Testando...' : 'Testar Todas Estratégias'}
+          </Button>
+          
+          <Button 
+            variant="outlined" 
+            onClick={testarPETR4}
+          >
+            Testar com PETR4
+          </Button>
+        </Stack>
+
+        {resultados.length > 0 && (
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              Resultados dos Testes:
+            </Typography>
+
+            {resultados.map((resultado, index) => (
+              <Accordion key={index}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                    <Typography variant="subtitle2">
+                      {resultado.estrategia}
+                    </Typography>
+                    <Chip 
+                      label={resultado.success ? `${resultado.status} ✓` : 'ERRO'}
+                      color={resultado.success ? 'success' : 'error'}
+                      size="small"
+                    />
+                    {resultado.dividendosEncontrados > 0 && (
+                      <Chip 
+                        label={`${resultado.dividendosEncontrados} dividendos`}
+                        color="primary"
+                        size="small"
+                      />
+                    )}
+                  </Box>
+                </AccordionSummary>
+                
+                <AccordionDetails>
+                  <Stack spacing={2}>
+                    <Typography variant="body2">
+                      <strong>URL:</strong> {resultado.url}
+                    </Typography>
+                    
+                    {resultado.error && (
+                      <Alert severity="error">
+                        <strong>Erro:</strong> {resultado.error}
+                      </Alert>
+                    )}
+                    
+                    {resultado.success && (
+                      <>
+                        <Typography variant="subtitle2">
+                          Dividendos Encontrados: {resultado.dividendosEncontrados}
+                        </Typography>
+                        
+                        {resultado.dividendosEncontrados > 0 ? (
+                          <Alert severity="success">
+                            🎉 <strong>DIVIDENDOS ENCONTRADOS!</strong> Esta estratégia funcionou.
+                          </Alert>
+                        ) : (
+                          <Alert severity="warning">
+                            📭 Nenhum dividendo encontrado nesta estratégia.
+                          </Alert>
+                        )}
+                        
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Estrutura da Resposta:
+                          </Typography>
+                          <Box component="pre" sx={{ 
+                            fontSize: '0.7rem', 
+                            backgroundColor: '#f5f5f5', 
+                            p: 2, 
+                            borderRadius: 1,
+                            overflow: 'auto',
+                            maxHeight: 300
+                          }}>
+                            {JSON.stringify(resultado.dadosExtraidos, null, 2)}
+                          </Box>
+                        </Box>
+
+                        {resultado.dataCompleta && (
+                          <Box>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Resposta Completa da API:
+                            </Typography>
+                            <Box component="pre" sx={{ 
+                              fontSize: '0.6rem', 
+                              backgroundColor: '#f0f0f0', 
+                              p: 2, 
+                              borderRadius: 1,
+                              overflow: 'auto',
+                              maxHeight: 200
+                            }}>
+                              {JSON.stringify(resultado.dataCompleta, null, 2)}
+                            </Box>
+                          </Box>
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 // 🚀 HOOK PARA BUSCAR DADOS FINANCEIROS
 function useDadosFinanceiros(ticker: string) {
@@ -1534,6 +1807,9 @@ export default function EmpresaDetalhes() {
           />
         </Grid>
       </Grid>
+
+      {/* COMPONENTE DEBUG ADICIONADO AQUI */}
+      <DebugDividendos ticker={ticker} />
 
       {/* NOVAS SEÇÕES EM GRID */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
