@@ -164,6 +164,7 @@ const dividendosProcessados = resultadosUnicos
     valorFormatado: `R$ ${(item.rate || 0).toFixed(2).replace('.', ',')}`
   }))
   .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
         console.log(`✅ FINAL: ${dividendosProcessados.length} proventos válidos desde ${dataEntrada}`);
         
         setDividendos(dividendosProcessados);
