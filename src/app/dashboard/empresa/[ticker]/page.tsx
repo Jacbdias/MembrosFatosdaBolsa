@@ -1546,9 +1546,8 @@ export default function EmpresaDetalhes() {
         <Grid item xs={12} md={6}>
           <HistoricoDividendos ticker={ticker} empresa={empresaCompleta} />
         </Grid>
-        </Grid>
       </Grid>
-
+      
       {/* Dados da posição */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
