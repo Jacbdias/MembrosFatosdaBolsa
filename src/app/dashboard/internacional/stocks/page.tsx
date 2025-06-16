@@ -22,14 +22,12 @@ import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/Arrow
 import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
-import { ChartLine as ChartLineIcon } from '@phosphor-icons/react/dist/ssr/ChartLine';
-import { Buildings as BuildingsIcon } from '@phosphor-icons/react/dist/ssr/Buildings';
 
 function noop(): void {
   // Função vazia para props obrigatórias
 }
 
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API (IGUAL AOS DIVIDENDOS)
 function useMarketDataAPI() {
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -78,7 +76,7 @@ function useMarketDataAPI() {
   return { data, loading, error, refresh: fetchData };
 }
 
-// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (INTERNACIONAL)
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AOS DIVIDENDOS)
 interface MarketIndicatorProps {
   title: string;
   value: string;
@@ -158,7 +156,7 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
           variant="h4" 
           sx={{ 
             fontWeight: 700,
-            color: trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#1e293b',
+            color: '#1e293b',
             fontSize: '1.75rem',
             lineHeight: 1
           }}
@@ -208,7 +206,7 @@ function MarketIndicator({ title, value, icon, trend, diff, isLoading, descripti
 }
 
 export default function Page(): React.JSX.Element {
-  console.log("🌎 PÁGINA EXTERIOR STOCKS - VERSÃO LIMPA");
+  console.log("🌎 PÁGINA EXTERIOR STOCKS - COM 2 CARDS IGUAIS AOS DIVIDENDOS");
 
   // 🔥 BUSCAR DADOS REAIS DA API
   const { data: apiData, loading } = useMarketDataAPI();
@@ -336,24 +334,20 @@ export default function Page(): React.JSX.Element {
     }
   ];
 
-  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (4 INDICADORES)
+  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS 2 CARDS - IGUAL AOS DIVIDENDOS)
   const defaultIndicators = {
-    carteira: { value: "+62,66%", trend: "up" as const, diff: 62.66 },
-    sp500Periodo: { value: "+36,93%", trend: "up" as const, diff: 36.93 },
-    sp500Hoje: { value: "-0,67%", trend: "down" as const, diff: -0.67 },
-    nasdaqHoje: { value: "-1,00%", trend: "down" as const, diff: -1.00 },
+    sp500: { value: "5.845", trend: "up" as const, diff: 25.13 },
+    nasdaq: { value: "19.345", trend: "up" as const, diff: 28.7 },
   };
 
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
+  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT (IGUAL AOS DIVIDENDOS)
   const indicators = React.useMemo(() => {
     // Se temos dados da API, usar eles
     if (apiData) {
       console.log('✅ Usando dados da API:', apiData);
       return {
-        carteira: apiData.carteira || defaultIndicators.carteira,
-        sp500Periodo: apiData.sp500Periodo || defaultIndicators.sp500Periodo,
-        sp500Hoje: apiData.sp500Hoje || defaultIndicators.sp500Hoje,
-        nasdaqHoje: apiData.nasdaqHoje || defaultIndicators.nasdaqHoje,
+        sp500: apiData.sp500 || defaultIndicators.sp500,
+        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
       };
     }
     
@@ -403,49 +397,31 @@ export default function Page(): React.JSX.Element {
         </Stack>
       </Stack>
 
-      {/* Indicadores de Mercado - Layout com 4 cards */}
+      {/* Indicadores de Mercado - Layout com 2 cards IGUAL AOS DIVIDENDOS */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
           gap: 2,
           mb: 4,
         }}
       >
         <MarketIndicator 
-          title="CARTEIRA NO PERÍODO" 
-          description="Performance total da carteira"
-          value={indicators.carteira.value} 
-          icon={<BuildingsIcon />} 
-          trend={indicators.carteira.trend} 
-          diff={indicators.carteira.diff}
-          isLoading={loading}
-        />
-        <MarketIndicator 
-          title="S&P 500 NO PERÍODO" 
-          description="Performance do S&P 500"
-          value={indicators.sp500Periodo.value} 
-          icon={<ChartLineIcon />} 
-          trend={indicators.sp500Periodo.trend} 
-          diff={indicators.sp500Periodo.diff}
-          isLoading={loading}
-        />
-        <MarketIndicator 
-          title="S&P 500 HOJE" 
-          description="Variação diária do S&P 500"
-          value={indicators.sp500Hoje.value} 
+          title="S&P 500" 
+          description="Índice das 500 maiores empresas dos EUA"
+          value={indicators.sp500.value} 
           icon={<CurrencyDollarIcon />} 
-          trend={indicators.sp500Hoje.trend} 
-          diff={indicators.sp500Hoje.diff}
+          trend={indicators.sp500.trend} 
+          diff={indicators.sp500.diff}
           isLoading={loading}
         />
         <MarketIndicator 
-          title="NASDAQ HOJE" 
-          description="Variação diária do NASDAQ"
-          value={indicators.nasdaqHoje.value} 
+          title="NASDAQ 100" 
+          description="Índice de tecnologia americana"
+          value={indicators.nasdaq.value} 
           icon={<GlobeIcon />} 
-          trend={indicators.nasdaqHoje.trend} 
-          diff={indicators.nasdaqHoje.diff}
+          trend={indicators.nasdaq.trend} 
+          diff={indicators.nasdaq.diff}
           isLoading={loading}
         />
       </Box>
