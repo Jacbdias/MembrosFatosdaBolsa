@@ -25,6 +25,19 @@ import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
@@ -32,6 +45,10 @@ import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
 import { ArrowClockwise as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise';
 import { WarningCircle as WarningIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
 import { CheckCircle as CheckIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
+import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
+import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
+import { Trash as DeleteIcon } from '@phosphor-icons/react/dist/ssr/Trash';
+import { FileText as FileIcon } from '@phosphor-icons/react/dist/ssr/FileText';
 
 // 🔑 TOKEN BRAPI VALIDADO
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
@@ -65,6 +82,22 @@ interface EmpresaCompleta {
   dadosFinanceiros?: DadosFinanceiros;
   statusApi?: string;
   ultimaAtualizacao?: string;
+}
+
+interface Relatorio {
+  id: string;
+  nome: string;
+  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
+  dataUpload: string;
+  dataReferencia: string;
+  arquivo: string; // Base64 ou URL
+  tamanho: string;
+}
+
+interface Dividendo {
+  paymentDate: string;
+  rate: number;
+  type: string;
 }
 
 // 🚀 HOOK PARA BUSCAR DADOS FINANCEIROS
@@ -149,6 +182,37 @@ function useDadosFinanceiros(ticker: string) {
   }, [buscarDados]);
 
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
+}
+
+// 🚀 HOOK PARA BUSCAR DIVIDENDOS
+function useDividendos(ticker: string) {
+  const [dividendos, setDividendos] = useState<Dividendo[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const buscarDividendos = React.useCallback(async () => {
+    if (!ticker) return;
+    
+    setLoading(true);
+    try {
+      const url = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&dividends=true`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.results?.[0]?.dividendsData?.cashDividends) {
+        setDividendos(data.results[0].dividendsData.cashDividends.slice(0, 8));
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dividendos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker]);
+
+  useEffect(() => {
+    buscarDividendos();
+  }, [buscarDividendos]);
+
+  return { dividendos, loading, refetch: buscarDividendos };
 }
 
 // 🎯 FUNÇÃO PARA CALCULAR VIÉS
@@ -323,6 +387,342 @@ const MetricCard = ({
     </CardContent>
   </Card>
 );
+
+// 📄 COMPONENTE PARA UPLOAD DE RELATÓRIOS PDF
+const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
+  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [novoRelatorio, setNovoRelatorio] = useState({
+    nome: '',
+    tipo: 'trimestral' as const,
+    dataReferencia: '',
+    arquivo: null as File | null
+  });
+
+  // Carregar relatórios do localStorage
+  useEffect(() => {
+    const chave = `relatorios_${ticker}`;
+    const relatoriosExistentes = localStorage.getItem(chave);
+    if (relatoriosExistentes) {
+      setRelatorios(JSON.parse(relatoriosExistentes));
+    }
+  }, [ticker]);
+
+  const salvarRelatorio = () => {
+    if (novoRelatorio.arquivo && novoRelatorio.nome) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const relatorio: Relatorio = {
+          id: Date.now().toString(),
+          nome: novoRelatorio.nome,
+          tipo: novoRelatorio.tipo,
+          dataUpload: new Date().toISOString(),
+          dataReferencia: novoRelatorio.dataReferencia,
+          arquivo: e.target?.result as string, // Base64
+          tamanho: `${(novoRelatorio.arquivo!.size / 1024 / 1024).toFixed(1)} MB`
+        };
+
+        const chave = `relatorios_${ticker}`;
+        const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+        relatoriosExistentes.push(relatorio);
+        localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+        
+        setRelatorios(relatoriosExistentes);
+        setDialogAberto(false);
+        setNovoRelatorio({ nome: '', tipo: 'trimestral', dataReferencia: '', arquivo: null });
+      };
+      reader.readAsDataURL(novoRelatorio.arquivo);
+    }
+  };
+
+  const excluirRelatorio = (id: string) => {
+    const chave = `relatorios_${ticker}`;
+    const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
+    localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
+    setRelatorios(relatoriosAtualizados);
+  };
+
+  const baixarRelatorio = (relatorio: Relatorio) => {
+    const link = document.createElement('a');
+    link.href = relatorio.arquivo;
+    link.download = `${relatorio.nome}.pdf`;
+    link.click();
+  };
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            📄 Relatórios e Apresentações
+          </Typography>
+          <Button 
+            startIcon={<UploadIcon />}
+            onClick={() => setDialogAberto(true)}
+            variant="contained"
+            size="small"
+          >
+            Adicionar PDF
+          </Button>
+        </Stack>
+
+        {relatorios.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <FileIcon size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+            <Typography>Nenhum relatório cadastrado ainda</Typography>
+            <Typography variant="caption">Clique em "Adicionar PDF" para começar</Typography>
+          </Box>
+        ) : (
+          <List>
+            {relatorios.map((relatorio) => (
+              <ListItem key={relatorio.id} divider sx={{ px: 0 }}>
+                <ListItemText
+                  primary={relatorio.nome}
+                  secondary={
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip 
+                        label={relatorio.tipo} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ fontSize: '0.7rem' }}
+                      />
+                      <Typography variant="caption">
+                        {relatorio.dataReferencia} • {relatorio.tamanho}
+                      </Typography>
+                    </Stack>
+                  }
+                />
+                <ListItemSecondaryAction>
+                  <IconButton 
+                    size="small" 
+                    color="primary"
+                    onClick={() => baixarRelatorio(relatorio)}
+                    sx={{ mr: 1 }}
+                  >
+                    <DownloadIcon />
+                  </IconButton>
+                  <IconButton 
+                    size="small" 
+                    color="error"
+                    onClick={() => excluirRelatorio(relatorio.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        )}
+
+        {/* Dialog para upload */}
+        <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Adicionar Novo Relatório</DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <TextField
+                label="Nome do Relatório"
+                value={novoRelatorio.nome}
+                onChange={(e) => setNovoRelatorio({...novoRelatorio, nome: e.target.value})}
+                fullWidth
+                placeholder="Ex: Resultados 3T24"
+              />
+              
+              <FormControl fullWidth>
+                <InputLabel>Tipo</InputLabel>
+                <Select
+                  value={novoRelatorio.tipo}
+                  onChange={(e) => setNovoRelatorio({...novoRelatorio, tipo: e.target.value as any})}
+                >
+                  <MenuItem value="trimestral">Resultado Trimestral</MenuItem>
+                  <MenuItem value="anual">Resultado Anual</MenuItem>
+                  <MenuItem value="apresentacao">Apresentação</MenuItem>
+                  <MenuItem value="outros">Outros</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Data de Referência"
+                type="date"
+                value={novoRelatorio.dataReferencia}
+                onChange={(e) => setNovoRelatorio({...novoRelatorio, dataReferencia: e.target.value})}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+
+              <Box>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const arquivo = e.target.files?.[0];
+                    if (arquivo) {
+                      setNovoRelatorio({...novoRelatorio, arquivo});
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                  id="upload-pdf"
+                />
+                <label htmlFor="upload-pdf">
+                  <Button component="span" variant="outlined" fullWidth startIcon={<UploadIcon />}>
+                    {novoRelatorio.arquivo ? novoRelatorio.arquivo.name : 'Selecionar PDF'}
+                  </Button>
+                </label>
+              </Box>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogAberto(false)}>Cancelar</Button>
+            <Button 
+              onClick={salvarRelatorio} 
+              variant="contained" 
+              disabled={!novoRelatorio.arquivo || !novoRelatorio.nome}
+            >
+              Salvar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+};
+
+// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS
+const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
+  const { dividendos, loading } = useDividendos(ticker);
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          💰 Histórico de Dividendos
+        </Typography>
+
+        {loading ? (
+          <Stack spacing={1}>
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} variant="rectangular" height={40} />
+            ))}
+          </Stack>
+        ) : dividendos.length > 0 ? (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Data</TableCell>
+                  <TableCell align="right">Valor</TableCell>
+                  <TableCell align="right">Tipo</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {dividendos.map((div, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{new Date(div.paymentDate).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell align="right">{formatarValor(div.rate)}</TableCell>
+                    <TableCell align="right">
+                      <Chip label={div.type} size="small" variant="outlined" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+            Nenhum histórico de dividendos disponível
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// 📈 COMPONENTE DE RESUMO EXECUTIVO
+const ResumoExecutivo = ({ empresa, dados }: { empresa: EmpresaCompleta; dados: DadosFinanceiros | null }) => {
+  const calcularResumo = () => {
+    const precoEntrada = parseFloat(empresa.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    const precoTeto = parseFloat(empresa.precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    const precoAtual = dados?.precoAtual || precoEntrada;
+    
+    const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
+    const potencialTeto = ((precoTeto - precoAtual) / precoAtual) * 100;
+    
+    return {
+      performance,
+      potencialTeto,
+      statusInvestimento: performance > 0 ? 'Lucro' : 'Prejuízo',
+      recomendacao: potencialTeto > 20 ? 'Oportunidade' : potencialTeto > 0 ? 'Neutro' : 'Atenção'
+    };
+  };
+
+  const resumo = calcularResumo();
+
+  return (
+    <Card sx={{ 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      mb: 4
+    }}>
+      <CardContent sx={{ p: 4 }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          📈 Resumo Executivo
+        </Typography>
+
+        <Grid container spacing={3}>
+          <Grid item xs={6} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                {formatarValor(resumo.performance, 'percent')}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Performance Total
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                {formatarValor(resumo.potencialTeto, 'percent')}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Potencial até Teto
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Chip 
+                label={resumo.statusInvestimento}
+                sx={{ 
+                  backgroundColor: resumo.performance > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                  color: 'white',
+                  fontWeight: 600
+                }}
+              />
+              <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+                Status Atual
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Chip 
+                label={resumo.recomendacao}
+                sx={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  fontWeight: 600
+                }}
+              />
+              <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+                Recomendação
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </CardContent>
+    </Card>
+  );
+};
 
 // 🔥 DADOS BASE
 const ativosBase = [
@@ -655,6 +1055,9 @@ export default function EmpresaDetalhes() {
         </CardContent>
       </Card>
 
+      {/* NOVO: Resumo Executivo */}
+      <ResumoExecutivo empresa={empresaCompleta} dados={dados} />
+
       {/* Cards de métricas - ESTILO MODERNO */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={6} md={2}>
@@ -745,6 +1148,19 @@ export default function EmpresaDetalhes() {
             loading={dadosLoading}
             subtitle="Retorno patrimônio"
           />
+        </Grid>
+      </Grid>
+
+      {/* NOVAS SEÇÕES EM GRID */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Upload de Relatórios */}
+        <Grid item xs={12} md={6}>
+          <GerenciadorRelatorios ticker={ticker} />
+        </Grid>
+        
+        {/* Histórico de Dividendos */}
+        <Grid item xs={12} md={6}>
+          <HistoricoDividendos ticker={ticker} />
         </Grid>
       </Grid>
 
