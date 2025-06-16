@@ -94,12 +94,6 @@ interface Relatorio {
   tamanho: string;
 }
 
-interface Dividendo {
-  paymentDate: string;
-  rate: number;
-  type: string;
-}
-
 // 🚀 HOOK PARA BUSCAR DADOS FINANCEIROS
 function useDadosFinanceiros(ticker: string) {
   const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
@@ -184,35 +178,325 @@ function useDadosFinanceiros(ticker: string) {
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
 }
 
-// 🚀 HOOK PARA BUSCAR DIVIDENDOS
-function useDividendos(ticker: string) {
-  const [dividendos, setDividendos] = useState<Dividendo[]>([]);
-  const [loading, setLoading] = useState(false);
+// 🎯 HOOK PARA DIVIDENDOS (usando seu hook customizado)
+interface DividendoDetalhado {
+  date: string;
+  value: number;
+  type: string;
+  dataFormatada: string;
+  valorFormatado: string;
+}
+
+interface PerformanceDetalhada {
+  performanceCapital: number;
+  dividendosTotal: number;
+  dividendosPercentual: number;
+  performanceTotal: number;
+  quantidadeDividendos: number;
+  ultimoDividendo: string;
+  dividendosPorAno: { [ano: string]: number };
+  mediaAnual: number;
+  status: 'success' | 'partial' | 'error';
+}
+
+function useDividendosAtivo(
+  ticker: string, 
+  dataEntrada: string, 
+  precoEntrada: string, 
+  precoAtual: string
+) {
+  const [dividendos, setDividendos] = React.useState<DividendoDetalhado[]>([]);
+  const [performance, setPerformance] = React.useState<PerformanceDetalhada | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   const buscarDividendos = React.useCallback(async () => {
-    if (!ticker) return;
-    
-    setLoading(true);
+    if (!ticker || !dataEntrada || !precoEntrada) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const url = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&dividends=true`;
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.results?.[0]?.dividendsData?.cashDividends) {
-        setDividendos(data.results[0].dividendsData.cashDividends.slice(0, 8));
+      setLoading(true);
+      setError(null);
+
+      console.log(`🔍 === BUSCA COMPLETA DE PROVENTOS PARA ${ticker} ===`);
+
+      // 🔍 TODAS AS ESTRATÉGIAS POSSÍVEIS
+      const estrategias = [
+        {
+          nome: 'Dividendos Direto',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}/dividends?token=${BRAPI_TOKEN}`,
+          extrair: (data: any) => data.dividends || []
+        },
+        {
+          nome: 'Quote com Dividends Module',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&modules=dividends`,
+          extrair: (data: any) => data.results?.[0]?.dividends || []
+        },
+        {
+          nome: 'Quote Fundamental Completo',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&fundamental=true`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            return [
+              ...(result?.dividends || []),
+              ...(result?.splits || []),
+              ...(result?.earnings || [])
+            ];
+          }
+        },
+        {
+          nome: 'Histórico 5 Anos',
+          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&range=5y&fundamental=true&modules=dividends,splits,earnings`,
+          extrair: (data: any) => {
+            const result = data.results?.[0];
+            return [
+              ...(result?.dividends || []),
+              ...(result?.stockSplits || []),
+              ...(result?.capitalGains || [])
+            ];
+          }
+        }
+      ];
+
+      // 🔍 VARIAÇÕES DO TICKER
+      const tickerVariacoes = [
+        ticker,
+        ticker.replace(/[34]$/, ''),
+        ticker + '.SA',
+        ticker.replace(/[34]$/, '') + '.SA',
+        ticker.toUpperCase(),
+        ticker.toLowerCase()
+      ];
+
+      let todosResultados: any[] = [];
+      let melhorEstrategia = '';
+
+      // 🔄 TESTAR CADA COMBINAÇÃO
+      for (const tickerTeste of tickerVariacoes) {
+        console.log(`\n🎯 === TESTANDO TICKER: ${tickerTeste} ===`);
+        
+        for (const estrategia of estrategias) {
+          try {
+            const url = estrategia.getUrl(tickerTeste);
+            console.log(`📡 ${estrategia.nome}: Buscando...`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: { 
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; DividendSearcher/1.0)'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              console.log(`❌ HTTP ${response.status}`);
+              continue;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+              console.log(`⚠️ Não é JSON: ${contentType}`);
+              continue;
+            }
+
+            let responseText;
+            try {
+              responseText = await response.text();
+            } catch (textError) {
+              console.log(`❌ Erro ao ler texto:`, textError);
+              continue;
+            }
+
+            if (responseText.trim().startsWith('<')) {
+              console.log(`⚠️ Resposta é HTML`);
+              continue;
+            }
+
+            let data;
+            try {
+              data = JSON.parse(responseText);
+            } catch (parseError) {
+              console.log(`❌ JSON inválido:`, parseError);
+              continue;
+            }
+
+            const resultados = estrategia.extrair(data);
+            
+            if (resultados && resultados.length > 0) {
+              console.log(`✅ ${estrategia.nome} (${tickerTeste}): ${resultados.length} resultados!`);
+              
+              resultados.forEach((item: any, i: number) => {
+                console.log(`  ${i + 1}. ${item.date || 'sem data'} - ${item.type || item.eventType || 'sem tipo'} - ${item.value || item.amount || 'sem valor'}`);
+              });
+
+              todosResultados = [...todosResultados, ...resultados];
+              melhorEstrategia = `${estrategia.nome} (${tickerTeste})`;
+              
+              if (resultados.length >= 5) {
+                console.log(`🎉 Muitos resultados encontrados, usando: ${melhorEstrategia}`);
+                break;
+              }
+            } else {
+              console.log(`📭 ${estrategia.nome} (${tickerTeste}): Sem resultados`);
+            }
+
+          } catch (err) {
+            console.log(`❌ ${estrategia.nome} (${tickerTeste}): ${err}`);
+          }
+        }
+
+        if (todosResultados.length >= 5) break;
       }
-    } catch (error) {
-      console.error('Erro ao buscar dividendos:', error);
+
+      // 🔄 PROCESSAR RESULTADOS
+      console.log(`\n📊 === PROCESSAMENTO FINAL ===`);
+      console.log(`Total bruto encontrado: ${todosResultados.length}`);
+      console.log(`Melhor estratégia: ${melhorEstrategia}`);
+
+      if (todosResultados.length > 0) {
+        const resultadosUnicos = removeDuplicatas(todosResultados);
+        console.log(`Após remoção de duplicatas: ${resultadosUnicos.length}`);
+
+        const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
+        console.log(`Data de entrada: ${dataEntradaDate.toISOString()}`);
+        
+        const dividendosProcessados = resultadosUnicos
+          .filter((item: any) => {
+            if (!item.date) return false;
+            
+            const valor = item.value || item.amount || item.rate || 0;
+            if (valor <= 0) return false;
+            
+            try {
+              const dataItem = new Date(item.date);
+              const isAfterEntry = dataItem >= dataEntradaDate;
+              
+              console.log(`📅 ${item.date} (${item.type || 'N/A'}) - R$ ${valor} - Após entrada: ${isAfterEntry}`);
+              return isAfterEntry;
+            } catch {
+              return false;
+            }
+          })
+          .map((item: any) => ({
+            date: item.date,
+            value: item.value || item.amount || item.rate || 0,
+            type: item.type || item.eventType || 'Provento',
+            dataFormatada: new Date(item.date).toLocaleDateString('pt-BR'),
+            valorFormatado: `R$ ${(item.value || item.amount || item.rate || 0).toFixed(2).replace('.', ',')}`
+          }))
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        console.log(`✅ FINAL: ${dividendosProcessados.length} proventos válidos desde ${dataEntrada}`);
+        
+        setDividendos(dividendosProcessados);
+        setPerformance(calcularPerformance(precoEntrada, precoAtual, dividendosProcessados));
+
+        if (dividendosProcessados.length === 0) {
+          setError(`Encontrados ${todosResultados.length} proventos, mas todos anteriores à entrada (${dataEntrada})`);
+        }
+
+      } else {
+        console.log(`📭 NENHUM resultado encontrado em todas as estratégias`);
+        setDividendos([]);
+        setPerformance(calcularPerformance(precoEntrada, precoAtual, []));
+        setError('Nenhum provento encontrado em nenhuma fonte. Pode não estar disponível na API.');
+      }
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error(`❌ Erro geral:`, err);
+      setError(errorMessage);
+      
+      setDividendos([]);
+      const performanceFallback = calcularPerformance(precoEntrada, precoAtual, []);
+      performanceFallback.status = 'error';
+      setPerformance(performanceFallback);
+      
     } finally {
       setLoading(false);
     }
-  }, [ticker]);
+  }, [ticker, dataEntrada, precoEntrada, precoAtual]);
 
-  useEffect(() => {
-    buscarDividendos();
+  React.useEffect(() => {
+    if (ticker && dataEntrada && precoEntrada) {
+      const timer = setTimeout(buscarDividendos, 500);
+      return () => clearTimeout(timer);
+    }
   }, [buscarDividendos]);
 
-  return { dividendos, loading, refetch: buscarDividendos };
+  return {
+    dividendos,
+    performance,
+    loading,
+    error,
+    refetch: buscarDividendos
+  };
+}
+
+// 🔄 FUNÇÃO PARA REMOVER DUPLICATAS
+function removeDuplicatas(items: any[]): any[] {
+  const vistos = new Set();
+  return items.filter(item => {
+    const chave = `${item.date}_${item.type || 'default'}_${item.value || item.amount || 0}`;
+    if (vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+}
+
+// 📊 FUNÇÃO DE CÁLCULO
+function calcularPerformance(
+  precoEntrada: string,
+  precoAtual: string,
+  dividendos: DividendoDetalhado[]
+): PerformanceDetalhada {
+  const precoEntradaNum = parseFloat(precoEntrada.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+  const precoAtualNum = parseFloat(precoAtual.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+
+  const performanceCapital = precoEntradaNum > 0 
+    ? ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100 
+    : 0;
+
+  const dividendosTotal = dividendos.reduce((sum, div) => sum + (div.value || 0), 0);
+  const dividendosPercentual = precoEntradaNum > 0 ? (dividendosTotal / precoEntradaNum) * 100 : 0;
+  const performanceTotal = performanceCapital + dividendosPercentual;
+
+  const ultimoDividendo = dividendos.length > 0 ? dividendos[0].dataFormatada : 'Nenhum';
+
+  const dividendosPorAno: { [ano: string]: number } = {};
+  dividendos.forEach(div => {
+    try {
+      const ano = new Date(div.date).getFullYear().toString();
+      dividendosPorAno[ano] = (dividendosPorAno[ano] || 0) + (div.value || 0);
+    } catch {
+      // Ignorar datas inválidas
+    }
+  });
+
+  const anos = Object.keys(dividendosPorAno);
+  const mediaAnual = anos.length > 0 
+    ? Object.values(dividendosPorAno).reduce((sum, valor) => sum + valor, 0) / anos.length
+    : 0;
+
+  return {
+    performanceCapital,
+    dividendosTotal,
+    dividendosPercentual,
+    performanceTotal,
+    quantidadeDividendos: dividendos.length,
+    ultimoDividendo,
+    dividendosPorAno,
+    mediaAnual,
+    status: dividendos.length > 0 ? 'success' : 'partial'
+  };
 }
 
 // 🎯 FUNÇÃO PARA CALCULAR VIÉS
@@ -586,16 +870,36 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   );
 };
 
-// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS
-const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
-  const { dividendos, loading } = useDividendos(ticker);
+// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS MELHORADO
+const HistoricoDividendos = ({ ticker, empresa }: { ticker: string; empresa: EmpresaCompleta }) => {
+  const precoAtualFormatado = empresa.dadosFinanceiros?.precoAtual 
+    ? formatarValor(empresa.dadosFinanceiros.precoAtual) 
+    : empresa.precoIniciou;
+
+  const { 
+    dividendos, 
+    performance, 
+    loading, 
+    error, 
+    refetch 
+  } = useDividendosAtivo(
+    ticker,
+    empresa.dataEntrada,
+    empresa.precoIniciou,
+    precoAtualFormatado
+  );
 
   return (
     <Card>
       <CardContent sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-          💰 Histórico de Dividendos
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            💰 Proventos desde a Entrada
+          </Typography>
+          <IconButton onClick={refetch} disabled={loading} size="small">
+            <RefreshIcon size={16} />
+          </IconButton>
+        </Stack>
 
         {loading ? (
           <Stack spacing={1}>
@@ -603,33 +907,113 @@ const HistoricoDividendos = ({ ticker }: { ticker: string }) => {
               <Skeleton key={i} variant="rectangular" height={40} />
             ))}
           </Stack>
+        ) : error ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
         ) : dividendos.length > 0 ? (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Data</TableCell>
-                  <TableCell align="right">Valor</TableCell>
-                  <TableCell align="right">Tipo</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {dividendos.map((div, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{new Date(div.paymentDate).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell align="right">{formatarValor(div.rate)}</TableCell>
-                    <TableCell align="right">
-                      <Chip label={div.type} size="small" variant="outlined" />
-                    </TableCell>
+          <>
+            {/* Resumo rápido */}
+            {performance && (
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={6}>
+                  <Box sx={{ p: 2, backgroundColor: '#f0f9ff', borderRadius: 1, textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#0369a1' }}>
+                      {formatarValor(performance.dividendosTotal)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Total Recebido
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ p: 2, backgroundColor: '#f0fdf4', borderRadius: 1, textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
+                      {formatarValor(performance.dividendosPercentual, 'percent')}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      % do Investimento
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Tabela de dividendos */}
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Data</TableCell>
+                    <TableCell align="right">Valor</TableCell>
+                    <TableCell align="right">Tipo</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {dividendos.slice(0, 10).map((div, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{div.dataFormatada}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
+                        {div.valorFormatado}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip 
+                          label={div.type} 
+                          size="small" 
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {dividendos.length > 10 && (
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 2 }}>
+                Mostrando 10 de {dividendos.length} proventos
+              </Typography>
+            )}
+
+            {/* Performance detalhada */}
+            {performance && (
+              <Box sx={{ mt: 3, p: 2, backgroundColor: '#fafafa', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  📊 Análise de Performance
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">Capital:</Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600,
+                      color: performance.performanceCapital >= 0 ? '#16a34a' : '#dc2626'
+                    }}>
+                      {formatarValor(performance.performanceCapital, 'percent')}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">Total:</Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600,
+                      color: performance.performanceTotal >= 0 ? '#16a34a' : '#dc2626'
+                    }}>
+                      {formatarValor(performance.performanceTotal, 'percent')}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+          </>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-            Nenhum histórico de dividendos disponível
-          </Typography>
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              Nenhum provento encontrado desde {empresa.dataEntrada}
+            </Typography>
+            <Typography variant="caption">
+              A empresa pode não ter distribuído proventos ou os dados podem não estar disponíveis
+            </Typography>
+          </Box>
         )}
       </CardContent>
     </Card>
@@ -1160,7 +1544,8 @@ export default function EmpresaDetalhes() {
         
         {/* Histórico de Dividendos */}
         <Grid item xs={12} md={6}>
-          <HistoricoDividendos ticker={ticker} />
+          <HistoricoDividendos ticker={ticker} empresa={empresaCompleta} />
+        </Grid>} />
         </Grid>
       </Grid>
 
