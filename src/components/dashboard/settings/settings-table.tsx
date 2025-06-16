@@ -12,6 +12,10 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
+import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { Buildings as BuildingsIcon } from '@phosphor-icons/react/dist/ssr/Buildings';
 
 interface FII {
   id: string;
@@ -69,17 +73,20 @@ function calculatePerformance(precoEntrada: string, precoAtual: string): number 
   return ((atual - entrada) / entrada) * 100;
 }
 
-// 🎨 INDICADOR DE MERCADO USANDO APENAS MATERIAL-UI
+// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (IGUAL AO OVERVIEW)
 interface MarketIndicatorProps {
   title: string;
   value: string;
+  icon: React.ReactNode;
   trend?: 'up' | 'down';
   diff?: number;
   isLoading?: boolean;
   description?: string;
+  fonte?: string;
 }
 
-function MarketIndicator({ title, value, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
+function MarketIndicator({ title, value, icon, trend, diff, isLoading, description, fonte }: MarketIndicatorProps): React.JSX.Element {
+  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
   
   return (
@@ -127,9 +134,21 @@ function MarketIndicator({ title, value, trend, diff, isLoading, description }: 
                 {description}
               </Typography>
             )}
+            {fonte && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#059669',
+                  display: 'block',
+                  mt: 0.25,
+                  fontSize: '0.6rem',
+                  fontWeight: 600
+                }}
+              >
+                📡 {fonte}
+              </Typography>
+            )}
           </Box>
-          
-          {/* Ícone usando símbolos Unicode */}
           <Box sx={{
             width: 32,
             height: 32,
@@ -138,11 +157,9 @@ function MarketIndicator({ title, value, trend, diff, isLoading, description }: 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#64748b',
-            fontSize: '1.2rem',
-            fontWeight: 'bold'
+            color: '#64748b'
           }}>
-            {title.includes('IBOVESPA') ? '💰' : '🏢'}
+            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
           </Box>
         </Stack>
         
@@ -170,11 +187,9 @@ function MarketIndicator({ title, value, trend, diff, isLoading, description }: 
               height: 20,
               borderRadius: '50%',
               backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
-              color: trendColor,
-              fontSize: '0.8rem',
-              fontWeight: 'bold'
+              color: trendColor
             }}>
-              {trend === 'up' ? '↗' : '↘'}
+              <TrendIcon size={12} weight="bold" />
             </Box>
             <Typography 
               variant="body2"
@@ -239,7 +254,8 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
       ibovespaFinal = {
         value: ibovespaReal.valorFormatado,
         trend: ibovespaReal.trend,
-        diff: ibovespaReal.variacaoPercent
+        diff: ibovespaReal.variacaoPercent,
+        fonte: ibovespaReal.fonte
       };
     } else if (cardsData?.ibovespa) {
       console.log('⚠️ USANDO IBOVESPA DOS CARDS:', cardsData.ibovespa);
@@ -260,7 +276,8 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
       ifixFinal = {
         value: ifixReal.valorFormatado,
         trend: ifixReal.trend,
-        diff: ifixReal.variacaoPercent
+        diff: ifixReal.variacaoPercent,
+        fonte: ifixReal.fonte
       };
     } else if (cardsData?.ifix) {
       console.log('⚠️ USANDO IFIX DOS CARDS:', cardsData.ifix);
@@ -313,9 +330,10 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
           title="IBOVESPA" 
           description="Índice da Bolsa Brasileira"
           value={indicators.ibovespa.value} 
+          icon={<CurrencyDollarIcon />} 
           trend={indicators.ibovespa.trend as 'up' | 'down'} 
           diff={indicators.ibovespa.diff}
-          isLoading={false}
+          fonte={indicators.ibovespa.fonte || 'FALLBACK'}
         />
 
         {/* IFIX */}
@@ -323,9 +341,10 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
           title="ÍNDICE IFIX" 
           description="Fundos Imobiliários da B3"
           value={indicators.ifix.value} 
+          icon={<BuildingsIcon />} 
           trend={indicators.ifix.trend as 'up' | 'down'} 
           diff={indicators.ifix.diff}
-          isLoading={false}
+          fonte={indicators.ifix.fonte || 'DINAMICO'}
         />
       </Box>
       
