@@ -1,5 +1,4 @@
 // src/services/portfolioDataService.ts
-import React from 'react';
 
 export interface Ativo {
   id: string;
@@ -37,6 +36,21 @@ export interface DadosProventos {
   data: string;
   valor: number;
   tipo: string;
+}
+
+// Interface para o hook personalizado
+export interface UsePortfolioDataReturn {
+  ativos: Ativo[];
+  configuracoes: Configuracao[];
+  loading: boolean;
+  service: PortfolioDataService;
+  refetch: () => void;
+}
+
+export interface UseAtivoReturn {
+  ativo: Ativo | null;
+  loading: boolean;
+  refetch: () => void;
 }
 
 class PortfolioDataService {
@@ -144,44 +158,73 @@ class PortfolioDataService {
     }
   ];
 
-  // Verificar se estamos em ambiente browser
-  private isBrowser(): boolean {
-    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  // Verificar se localStorage está disponível de forma segura
+  private getStorage(): Storage | null {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // Teste se consegue usar localStorage
+        const testKey = '__test__';
+        window.localStorage.setItem(testKey, 'test');
+        window.localStorage.removeItem(testKey);
+        return window.localStorage;
+      }
+    } catch (error) {
+      console.warn('localStorage não disponível:', error);
+    }
+    return null;
   }
 
   // Métodos para gerenciar ativos
   obterAtivos(): Ativo[] {
     try {
-      if (!this.isBrowser()) {
-        return this.dadosIniciais;
+      const storage = this.getStorage();
+      if (!storage) {
+        return [...this.dadosIniciais];
       }
 
-      const dados = localStorage.getItem(this.ATIVOS_KEY);
+      const dados = storage.getItem(this.ATIVOS_KEY);
       if (dados) {
-        return JSON.parse(dados);
+        const parsedData = JSON.parse(dados);
+        // Validar se os dados são válidos
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          return parsedData;
+        }
       }
-      // Se não existe, criar com dados iniciais
+      
+      // Se não existe ou dados inválidos, criar com dados iniciais
       this.salvarAtivos(this.dadosIniciais);
-      return this.dadosIniciais;
+      return [...this.dadosIniciais];
     } catch (error) {
       console.error('Erro ao obter ativos:', error);
-      return this.dadosIniciais;
+      return [...this.dadosIniciais];
     }
   }
 
   obterAtivoPorTicker(ticker: string): Ativo | null {
-    const ativos = this.obterAtivos();
-    return ativos.find(ativo => ativo.ticker.toLowerCase() === ticker.toLowerCase()) || null;
+    try {
+      const ativos = this.obterAtivos();
+      return ativos.find(ativo => 
+        ativo.ticker && ativo.ticker.toLowerCase() === ticker.toLowerCase()
+      ) || null;
+    } catch (error) {
+      console.error('Erro ao obter ativo por ticker:', error);
+      return null;
+    }
   }
 
   salvarAtivos(ativos: Ativo[]): void {
     try {
-      if (!this.isBrowser()) {
-        console.warn('localStorage não disponível - executando em ambiente servidor');
+      if (!Array.isArray(ativos)) {
+        throw new Error('Dados de ativos devem ser um array');
+      }
+
+      const storage = this.getStorage();
+      if (!storage) {
+        console.warn('localStorage não disponível - dados não salvos');
         return;
       }
 
-      localStorage.setItem(this.ATIVOS_KEY, JSON.stringify(ativos));
+      storage.setItem(this.ATIVOS_KEY, JSON.stringify(ativos));
       this.notificarListeners();
     } catch (error) {
       console.error('Erro ao salvar ativos:', error);
@@ -190,78 +233,108 @@ class PortfolioDataService {
   }
 
   adicionarAtivo(ativo: Omit<Ativo, 'id' | 'criadoEm' | 'atualizadoEm'>): Ativo {
-    const ativos = this.obterAtivos();
-    const novoAtivo: Ativo = {
-      ...ativo,
-      id: Date.now().toString(),
-      criadoEm: new Date().toISOString(),
-      atualizadoEm: new Date().toISOString()
-    };
-    
-    ativos.push(novoAtivo);
-    this.salvarAtivos(ativos);
-    return novoAtivo;
+    try {
+      const ativos = this.obterAtivos();
+      const novoAtivo: Ativo = {
+        ...ativo,
+        id: Date.now().toString(),
+        criadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString()
+      };
+      
+      ativos.push(novoAtivo);
+      this.salvarAtivos(ativos);
+      return novoAtivo;
+    } catch (error) {
+      console.error('Erro ao adicionar ativo:', error);
+      throw error;
+    }
   }
 
   atualizarAtivo(id: string, dadosAtualizados: Partial<Ativo>): Ativo | null {
-    const ativos = this.obterAtivos();
-    const indice = ativos.findIndex(ativo => ativo.id === id);
-    
-    if (indice === -1) return null;
-    
-    ativos[indice] = {
-      ...ativos[indice],
-      ...dadosAtualizados,
-      atualizadoEm: new Date().toISOString()
-    };
-    
-    this.salvarAtivos(ativos);
-    return ativos[indice];
+    try {
+      const ativos = this.obterAtivos();
+      const indice = ativos.findIndex(ativo => ativo.id === id);
+      
+      if (indice === -1) return null;
+      
+      ativos[indice] = {
+        ...ativos[indice],
+        ...dadosAtualizados,
+        atualizadoEm: new Date().toISOString()
+      };
+      
+      this.salvarAtivos(ativos);
+      return ativos[indice];
+    } catch (error) {
+      console.error('Erro ao atualizar ativo:', error);
+      return null;
+    }
   }
 
   excluirAtivo(id: string): boolean {
-    const ativos = this.obterAtivos();
-    const novosAtivos = ativos.filter(ativo => ativo.id !== id);
-    
-    if (novosAtivos.length === ativos.length) return false;
-    
-    this.salvarAtivos(novosAtivos);
-    return true;
+    try {
+      const ativos = this.obterAtivos();
+      const novosAtivos = ativos.filter(ativo => ativo.id !== id);
+      
+      if (novosAtivos.length === ativos.length) return false;
+      
+      this.salvarAtivos(novosAtivos);
+      return true;
+    } catch (error) {
+      console.error('Erro ao excluir ativo:', error);
+      return false;
+    }
   }
 
   // Métodos para gerenciar configurações
   obterConfiguracoes(): Configuracao[] {
     try {
-      if (!this.isBrowser()) {
-        return this.configsIniciais;
+      const storage = this.getStorage();
+      if (!storage) {
+        return [...this.configsIniciais];
       }
 
-      const dados = localStorage.getItem(this.CONFIGS_KEY);
+      const dados = storage.getItem(this.CONFIGS_KEY);
       if (dados) {
-        return JSON.parse(dados);
+        const parsedData = JSON.parse(dados);
+        if (Array.isArray(parsedData)) {
+          return parsedData;
+        }
       }
+      
       this.salvarConfiguracoes(this.configsIniciais);
-      return this.configsIniciais;
+      return [...this.configsIniciais];
     } catch (error) {
       console.error('Erro ao obter configurações:', error);
-      return this.configsIniciais;
+      return [...this.configsIniciais];
     }
   }
 
   obterConfiguracao(chave: string): string | null {
-    const configs = this.obterConfiguracoes();
-    const config = configs.find(c => c.chave === chave);
-    return config ? config.valor : null;
+    try {
+      const configs = this.obterConfiguracoes();
+      const config = configs.find(c => c.chave === chave);
+      return config ? config.valor : null;
+    } catch (error) {
+      console.error('Erro ao obter configuração:', error);
+      return null;
+    }
   }
 
   salvarConfiguracoes(configuracoes: Configuracao[]): void {
     try {
-      if (!this.isBrowser()) {
-        console.warn('localStorage não disponível - executando em ambiente servidor');
+      if (!Array.isArray(configuracoes)) {
+        throw new Error('Configurações devem ser um array');
+      }
+
+      const storage = this.getStorage();
+      if (!storage) {
+        console.warn('localStorage não disponível - configurações não salvas');
         return;
       }
 
-      localStorage.setItem(this.CONFIGS_KEY, JSON.stringify(configuracoes));
+      storage.setItem(this.CONFIGS_KEY, JSON.stringify(configuracoes));
       this.notificarListeners();
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
@@ -270,25 +343,35 @@ class PortfolioDataService {
   }
 
   atualizarConfiguracao(chave: string, valor: string): boolean {
-    const configs = this.obterConfiguracoes();
-    const indice = configs.findIndex(c => c.chave === chave);
-    
-    if (indice === -1) return false;
-    
-    configs[indice].valor = valor;
-    this.salvarConfiguracoes(configs);
-    return true;
+    try {
+      const configs = this.obterConfiguracoes();
+      const indice = configs.findIndex(c => c.chave === chave);
+      
+      if (indice === -1) return false;
+      
+      configs[indice].valor = valor;
+      this.salvarConfiguracoes(configs);
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar configuração:', error);
+      return false;
+    }
   }
 
   // Métodos para gerenciar proventos
   obterProventos(ticker?: string): DadosProventos[] {
     try {
-      if (!this.isBrowser()) {
+      const storage = this.getStorage();
+      if (!storage) {
         return [];
       }
 
-      const dados = localStorage.getItem(this.PROVENTOS_KEY);
+      const dados = storage.getItem(this.PROVENTOS_KEY);
       const proventos = dados ? JSON.parse(dados) : [];
+      
+      if (!Array.isArray(proventos)) {
+        return [];
+      }
       
       if (ticker) {
         return proventos.filter((p: DadosProventos) => p.ticker === ticker);
@@ -303,8 +386,9 @@ class PortfolioDataService {
 
   salvarProventos(ticker: string, proventos: Omit<DadosProventos, 'ticker'>[]): void {
     try {
-      if (!this.isBrowser()) {
-        console.warn('localStorage não disponível - executando em ambiente servidor');
+      const storage = this.getStorage();
+      if (!storage) {
+        console.warn('localStorage não disponível - proventos não salvos');
         return;
       }
 
@@ -317,7 +401,7 @@ class PortfolioDataService {
       const novosProventos = proventos.map(p => ({ ...p, ticker }));
       const proventosFinais = [...proventosFiltrados, ...novosProventos];
       
-      localStorage.setItem(this.PROVENTOS_KEY, JSON.stringify(proventosFinais));
+      storage.setItem(this.PROVENTOS_KEY, JSON.stringify(proventosFinais));
       this.notificarListeners();
     } catch (error) {
       console.error('Erro ao salvar proventos:', error);
@@ -327,14 +411,19 @@ class PortfolioDataService {
 
   // Métodos para exportar/importar dados
   exportarDados(): string {
-    const dados = {
-      ativos: this.obterAtivos(),
-      configuracoes: this.obterConfiguracoes(),
-      proventos: this.obterProventos(),
-      exportadoEm: new Date().toISOString(),
-      versao: '1.0'
-    };
-    return JSON.stringify(dados, null, 2);
+    try {
+      const dados = {
+        ativos: this.obterAtivos(),
+        configuracoes: this.obterConfiguracoes(),
+        proventos: this.obterProventos(),
+        exportadoEm: new Date().toISOString(),
+        versao: '1.0'
+      };
+      return JSON.stringify(dados, null, 2);
+    } catch (error) {
+      console.error('Erro ao exportar dados:', error);
+      throw new Error('Falha ao exportar dados');
+    }
   }
 
   importarDados(dadosJson: string): { sucesso: boolean; mensagem: string } {
@@ -357,23 +446,29 @@ class PortfolioDataService {
       // Importar dados
       this.salvarAtivos(dados.ativos);
       
-      if (dados.configuracoes) {
+      if (dados.configuracoes && Array.isArray(dados.configuracoes)) {
         this.salvarConfiguracoes(dados.configuracoes);
       }
       
-      if (dados.proventos && this.isBrowser()) {
-        localStorage.setItem(this.PROVENTOS_KEY, JSON.stringify(dados.proventos));
+      if (dados.proventos && Array.isArray(dados.proventos)) {
+        const storage = this.getStorage();
+        if (storage) {
+          storage.setItem(this.PROVENTOS_KEY, JSON.stringify(dados.proventos));
+        }
       }
 
       return { sucesso: true, mensagem: 'Dados importados com sucesso' };
     } catch (error) {
+      console.error('Erro ao importar dados:', error);
       return { sucesso: false, mensagem: 'Erro ao processar arquivo JSON' };
     }
   }
 
   // Sistema de listeners para sincronização
   adicionarListener(callback: () => void): void {
-    this.listeners.push(callback);
+    if (typeof callback === 'function') {
+      this.listeners.push(callback);
+    }
   }
 
   removerListener(callback: () => void): void {
@@ -383,7 +478,9 @@ class PortfolioDataService {
   private notificarListeners(): void {
     this.listeners.forEach(callback => {
       try {
-        callback();
+        if (typeof callback === 'function') {
+          callback();
+        }
       } catch (error) {
         console.error('Erro ao notificar listener:', error);
       }
@@ -392,99 +489,48 @@ class PortfolioDataService {
 
   // Métodos utilitários
   obterEstatisticas() {
-    const ativos = this.obterAtivos();
-    const ativosAtivos = ativos.filter(a => a.ativo);
-    
-    return {
-      totalAtivos: ativos.length,
-      ativosAtivos: ativosAtivos.length,
-      totalAcoes: ativos.filter(a => a.tipo === 'ACAO').length,
-      totalFIIs: ativos.filter(a => a.tipo === 'FII').length,
-      setoresUnicos: [...new Set(ativos.map(a => a.setor))].length,
-      ultimaAtualizacao: new Date().toISOString()
-    };
+    try {
+      const ativos = this.obterAtivos();
+      const ativosAtivos = ativos.filter(a => a.ativo);
+      
+      return {
+        totalAtivos: ativos.length,
+        ativosAtivos: ativosAtivos.length,
+        totalAcoes: ativos.filter(a => a.tipo === 'ACAO').length,
+        totalFIIs: ativos.filter(a => a.tipo === 'FII').length,
+        setoresUnicos: [...new Set(ativos.map(a => a.setor))].length,
+        ultimaAtualizacao: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Erro ao obter estatísticas:', error);
+      return {
+        totalAtivos: 0,
+        ativosAtivos: 0,
+        totalAcoes: 0,
+        totalFIIs: 0,
+        setoresUnicos: 0,
+        ultimaAtualizacao: new Date().toISOString()
+      };
+    }
   }
 
   limparDados(): void {
-    if (!this.isBrowser()) {
-      console.warn('localStorage não disponível - executando em ambiente servidor');
-      return;
-    }
+    try {
+      const storage = this.getStorage();
+      if (!storage) {
+        console.warn('localStorage não disponível - não é possível limpar dados');
+        return;
+      }
 
-    localStorage.removeItem(this.ATIVOS_KEY);
-    localStorage.removeItem(this.CONFIGS_KEY);
-    localStorage.removeItem(this.PROVENTOS_KEY);
-    this.notificarListeners();
+      storage.removeItem(this.ATIVOS_KEY);
+      storage.removeItem(this.CONFIGS_KEY);
+      storage.removeItem(this.PROVENTOS_KEY);
+      this.notificarListeners();
+    } catch (error) {
+      console.error('Erro ao limpar dados:', error);
+    }
   }
 }
 
 // Singleton para garantir uma única instância
 export const portfolioDataService = new PortfolioDataService();
-
-// Hook personalizado para usar em componentes React
-export function usePortfolioData() {
-  const [ativos, setAtivos] = React.useState<Ativo[]>([]);
-  const [configuracoes, setConfiguracoes] = React.useState<Configuracao[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  const atualizarDados = React.useCallback(() => {
-    try {
-      setAtivos(portfolioDataService.obterAtivos());
-      setConfiguracoes(portfolioDataService.obterConfiguracoes());
-    } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    atualizarDados();
-    portfolioDataService.adicionarListener(atualizarDados);
-    
-    return () => {
-      portfolioDataService.removerListener(atualizarDados);
-    };
-  }, [atualizarDados]);
-
-  return {
-    ativos,
-    configuracoes,
-    loading,
-    service: portfolioDataService,
-    refetch: atualizarDados
-  };
-}
-
-// Hook para um ativo específico
-export function useAtivo(ticker: string) {
-  const [ativo, setAtivo] = React.useState<Ativo | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  const atualizarAtivo = React.useCallback(() => {
-    try {
-      const ativoEncontrado = portfolioDataService.obterAtivoPorTicker(ticker);
-      setAtivo(ativoEncontrado);
-    } catch (error) {
-      console.error('Erro ao obter ativo:', error);
-      setAtivo(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker]);
-
-  React.useEffect(() => {
-    atualizarAtivo();
-    portfolioDataService.adicionarListener(atualizarAtivo);
-    
-    return () => {
-      portfolioDataService.removerListener(atualizarAtivo);
-    };
-  }, [atualizarAtivo]);
-
-  return {
-    ativo,
-    loading,
-    refetch: atualizarAtivo
-  };
-}
