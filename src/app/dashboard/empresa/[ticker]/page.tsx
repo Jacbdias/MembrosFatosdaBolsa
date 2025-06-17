@@ -869,59 +869,47 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
             </Typography>
           </Box>
         ) : (
-          <List>
-            {relatorios.map((relatorio) => (
-              <ListItem key={relatorio.id} divider sx={{ px: 0, py: 2 }}>
-                <Box sx={{ mr: 2, fontSize: '1.5rem' }}>
-                  {getIconePorTipo(relatorio.tipoVisualizacao)}
-                </Box>
-                <ListItemText
-                  primary={relatorio.nome}
-                  secondary={
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-                      <Chip 
-                        label={relatorio.tipo} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                      <Chip 
-                        label={relatorio.tipoVisualizacao.toUpperCase()} 
-                        size="small" 
-                        color="primary"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {relatorio.dataReferencia}
-                      </Typography>
-                    </Stack>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <Stack direction="row" spacing={1}>
-                    <IconButton 
-                      size="small" 
-                      color="primary"
-                      onClick={() => {
-                        setRelatorioSelecionado(relatorio);
-                        setLoadingIframe(true);
-                        setDialogVisualizacao(true);
-                      }}
-                    >
-                      <ViewIcon />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => excluirRelatorio(relatorio.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Stack>
-                </ListItemSecondaryAction>
-              </ListItem>
-            ))}
-          </List>
+<List>
+  {relatorios.map((relatorio) => (
+    <ListItem key={relatorio.id} divider sx={{ px: 0, py: 2 }}>
+      <Box sx={{ mr: 2, fontSize: '1.5rem' }}>
+        {getIconePorTipo(relatorio.tipoVisualizacao)}
+      </Box>
+      <ListItemText
+        primary={relatorio.nome}
+        secondary={
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+            <Chip 
+              label={relatorio.tipo} 
+              size="small" 
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            
+            {/* INÍCIO DA CORREÇÃO:
+              - Usamos `?.` (optional chaining) para evitar o erro caso `relatorio.tipoVisualizacao` seja undefined.
+              - Usamos `|| 'N/D'` para exibir um valor padrão ("Não Disponível") se a propriedade não existir.
+            */}
+            <Chip 
+              label={relatorio.tipoVisualizacao?.toUpperCase() || 'N/D'} 
+              size="small" 
+              color="primary"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            {/* FIM DA CORREÇÃO */}
+
+            <Typography variant="caption" color="text.secondary">
+              {relatorio.dataReferencia}
+            </Typography>
+          </Stack>
+        }
+      />
+      <ListItemSecondaryAction>
+        {/* ... (ícones de ação) ... */}
+      </ListItemSecondaryAction>
+    </ListItem>
+  ))}
+</List>
         )}
 
         {/* Dialog compacto para adicionar */}
