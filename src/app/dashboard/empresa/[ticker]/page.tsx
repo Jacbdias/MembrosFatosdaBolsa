@@ -546,153 +546,191 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
           </Box>
         ) : (
           <>
-            {/* Resumo dos proventos */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6} md={3}>
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  p: 2, 
-                  backgroundColor: '#f0f9ff', 
-                  borderRadius: 1,
-                  border: '1px solid #0ea5e9'
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#0ea5e9' }}>
-                    {proventos.length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Pagamentos
-                  </Typography>
-                </Box>
+            {/* Resumo dos proventos - LAYOUT HORIZONTAL OTIMIZADO */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                📊 Resumo dos Proventos
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#f0f9ff', 
+                    borderRadius: 2,
+                    border: '1px solid #0ea5e9',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#0ea5e9', mb: 1 }}>
+                      {proventos.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Pagamentos
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#f0fdf4', 
+                    borderRadius: 2,
+                    border: '1px solid #22c55e',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#22c55e', mb: 1 }}>
+                      {formatarValor(totalProventos).replace('R$ ', '')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Total Recebido
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#fefce8', 
+                    borderRadius: 2,
+                    border: '1px solid #eab308',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#eab308', mb: 1 }}>
+                      {formatarValor(mediaProvento).replace('R$ ', '')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Média por Pagamento
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#fdf4ff', 
+                    borderRadius: 2,
+                    border: '1px solid #a855f7',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#a855f7', mb: 1 }}>
+                      {ultimoProvento ? ultimoProvento.dataFormatada.replace(/\/\d{4}/, '') : 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Último Pagamento
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
-              <Grid item xs={6} md={3}>
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  p: 2, 
-                  backgroundColor: '#f0fdf4', 
-                  borderRadius: 1,
-                  border: '1px solid #22c55e'
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#22c55e' }}>
-                    {formatarValor(totalProventos)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Total Recebido
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  p: 2, 
-                  backgroundColor: '#fefce8', 
-                  borderRadius: 1,
-                  border: '1px solid #eab308'
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#eab308' }}>
-                    {formatarValor(mediaProvento)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Média por Pagamento
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  p: 2, 
-                  backgroundColor: '#fdf4ff', 
-                  borderRadius: 1,
-                  border: '1px solid #a855f7'
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#a855f7' }}>
-                    {ultimoProvento ? ultimoProvento.dataFormatada : 'N/A'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Último Pagamento
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
+            </Box>
 
-            {/* Resumo por ano */}
+            {/* Resumo por ano - LAYOUT HORIZONTAL */}
             {totalPorAno.length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  📊 Resumo por Ano
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600 }}>
+                  📈 Resumo por Ano
                 </Typography>
-                <TableContainer component={Box} sx={{ backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Ano</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Pagamentos</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Total</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Média</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {totalPorAno.map((item) => (
-                        <TableRow key={item.ano}>
-                          <TableCell sx={{ fontWeight: 600 }}>{item.ano}</TableCell>
-                          <TableCell align="right">{item.quantidade}</TableCell>
-                          <TableCell align="right" sx={{ color: '#22c55e', fontWeight: 600 }}>
+                <Grid container spacing={2}>
+                  {totalPorAno.map((item) => (
+                    <Grid item xs={6} sm={4} md={3} key={item.ano}>
+                      <Card sx={{ 
+                        backgroundColor: '#f8fafc', 
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': { 
+                          transform: 'translateY(-2px)', 
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+                        }
+                      }}>
+                        <CardContent sx={{ textAlign: 'center', p: 2.5 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1f2937' }}>
+                            {item.ano}
+                          </Typography>
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: '#22c55e', my: 1 }}>
                             {formatarValor(item.total)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {formatarValor(item.total / item.quantidade)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.quantidade} pagamentos • Média: {formatarValor(item.total / item.quantidade)}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
               </Box>
             )}
 
-            {/* Tabela detalhada de proventos */}
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-              📋 Histórico Detalhado
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Valor</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {proventos.map((provento, index) => (
-                    <TableRow 
-                      key={`${provento.data}-${index}`}
-                      sx={{ 
-                        '&:nth-of-type(odd)': { backgroundColor: '#f8fafc' },
-                        '&:hover': { backgroundColor: '#e5e7eb' }
-                      }}
-                    >
-                      <TableCell>{provento.dataFormatada}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                        {provento.valorFormatado}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={provento.tipo}
-                          size="small"
-                          variant="outlined"
-                          color={
-                            provento.tipo.toLowerCase().includes('jcp') ? 'secondary' :
-                            provento.tipo.toLowerCase().includes('jscp') ? 'warning' :
-                            'primary'
-                          }
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      </TableCell>
+            {/* Tabela detalhada de proventos - OTIMIZADA HORIZONTAL */}
+            <Box>
+              <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600 }}>
+                📋 Histórico Detalhado
+              </Typography>
+              <TableContainer sx={{ 
+                backgroundColor: 'white',
+                borderRadius: 2,
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+                      <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Data</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Valor</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Tipo</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Ano</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {proventos.slice(0, 10).map((provento, index) => (
+                      <TableRow 
+                        key={`${provento.data}-${index}`}
+                        sx={{ 
+                          '&:nth-of-type(odd)': { backgroundColor: '#fafafa' },
+                          '&:hover': { 
+                            backgroundColor: '#e5e7eb',
+                            transform: 'scale(1.01)',
+                            transition: 'all 0.1s ease'
+                          }
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e', fontSize: '0.95rem' }}>
+                          {provento.valorFormatado}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={provento.tipo}
+                            size="small"
+                            variant="outlined"
+                            color={
+                              provento.tipo.toLowerCase().includes('jcp') ? 'secondary' :
+                              provento.tipo.toLowerCase().includes('jscp') ? 'warning' :
+                              'primary'
+                            }
+                            sx={{ fontSize: '0.7rem', fontWeight: 600 }}
+                          />
+                        </TableCell>
+                        <TableCell align="center" sx={{ color: '#6b7280', fontWeight: 500 }}>
+                          {provento.dataObj.getFullYear()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {proventos.length > 10 && (
+                <Box sx={{ textAlign: 'center', mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Mostrando os 10 proventos mais recentes • Total: {proventos.length} registros
+                  </Typography>
+                </Box>
+              )}
+            </Box>
           </>
         )}
       </CardContent>
@@ -1307,16 +1345,18 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* Seções principais */}
+      {/* Histórico de Dividendos - SEÇÃO COMPLETA HORIZONTAL */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
+        </Grid>
+      </Grid>
+
+      {/* Seções secundárias */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Upload de Relatórios */}
         <Grid item xs={12} md={6}>
           <GerenciadorRelatorios ticker={ticker} />
-        </Grid>
-        
-        {/* Histórico de Dividendos */}
-        <Grid item xs={12} md={6}>
-          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
         </Grid>
         
         {/* Dados da posição */}
