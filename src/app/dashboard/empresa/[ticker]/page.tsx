@@ -99,7 +99,7 @@ interface Relatorio {
   tamanho: string;
 }
 
-// Hook para buscar dados financeiros
+// Hook para buscar dados financeiros MELHORADO
 function useDadosFinanceiros(ticker: string) {
   const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,46 +113,26 @@ function useDadosFinanceiros(ticker: string) {
       setLoading(true);
       setError(null);
 
-      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`;
+      // 🎯 ESTRATÉGIA 1: BRAPI Fundamental Completo
+      let dados = await tentarBRAPIFundamental(ticker);
       
-      const response = await fetch(quoteUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Portfolio-Details-App',
-          'Cache-Control': 'no-cache'
-        }
-      });
+      // 🎯 ESTRATÉGIA 2: Yahoo Finance (Fallback)
+      if (!dados || (!dados.pvp && !dados.roe)) {
+        const dadosYahoo = await tentarYahooFinance(ticker);
+        dados = { ...dados, ...dadosYahoo };
+      }
 
-      if (response.ok) {
-        const data = await response.json();
+      // 🎯 ESTRATÉGIA 3: Alpha Vantage (Premium Fallback)
+      if (!dados || (!dados.pvp && !dados.roe)) {
+        const dadosAlpha = await tentarAlphaVantage(ticker);
+        dados = { ...dados, ...dadosAlpha };
+      }
 
-        if (data.results && data.results.length > 0) {
-          const quote = data.results[0];
-          
-          const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
-          const dividendYield = quote.dividendYield || 0;
-
-          const dadosProcessados: DadosFinanceiros = {
-            precoAtual: precoAtual,
-            variacao: quote.regularMarketChange || 0,
-            variacaoPercent: quote.regularMarketChangePercent || 0,
-            volume: quote.regularMarketVolume || quote.volume || 0,
-            dy: dividendYield,
-            marketCap: quote.marketCap,
-            pl: quote.priceEarnings || quote.pe,
-            pvp: quote.priceToBook,
-            roe: quote.returnOnEquity ? quote.returnOnEquity * 100 : undefined
-          };
-
-          setDadosFinanceiros(dadosProcessados);
-          setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
-          
-        } else {
-          throw new Error('Nenhum resultado encontrado');
-        }
+      if (dados && dados.precoAtual > 0) {
+        setDadosFinanceiros(dados);
+        setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
       } else {
-        throw new Error(`Erro HTTP ${response.status}`);
+        throw new Error('Nenhum dado válido encontrado em todas as fontes');
       }
 
     } catch (err) {
@@ -165,11 +145,145 @@ function useDadosFinanceiros(ticker: string) {
 
   useEffect(() => {
     buscarDados();
-    const interval = setInterval(buscarDados, 5 * 60 * 1000); // 5 minutos
+    const interval = setInterval(buscarDados, 10 * 60 * 1000); // 10 minutos
     return () => clearInterval(interval);
   }, [buscarDados]);
 
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
+}
+
+// 🚀 FUNÇÃO 1: BRAPI Fundamental
+async function tentarBRAPIFundamental(ticker: string): Promise<DadosFinanceiros | null> {
+  try {
+    console.log(`📡 Tentando BRAPI Fundamental para ${ticker}`);
+    
+    const url = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics`;
+    
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`BRAPI HTTP ${response.status}`);
+    
+    const data = await response.json();
+    const quote = data.results?.[0];
+    
+    if (!quote) throw new Error('Sem dados na resposta BRAPI');
+
+    // Extrair dados básicos
+    const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
+    
+    // Tentar extrair P/VP e ROE de diferentes lugares
+    let pvp = quote.priceToBook || quote.financialData?.priceToBook || quote.summaryProfile?.priceToBook;
+    let roe = quote.returnOnEquity || quote.financialData?.returnOnEquity || quote.summaryProfile?.returnOnEquity;
+    
+    // Converter ROE para porcentagem se necessário
+    if (roe && roe < 1) roe = roe * 100;
+
+    console.log(`✅ BRAPI: P/VP=${pvp}, ROE=${roe}`);
+
+    return {
+      precoAtual: precoAtual,
+      variacao: quote.regularMarketChange || 0,
+      variacaoPercent: quote.regularMarketChangePercent || 0,
+      volume: quote.regularMarketVolume || quote.volume || 0,
+      dy: quote.dividendYield || 0,
+      marketCap: quote.marketCap,
+      pl: quote.priceEarnings || quote.pe,
+      pvp: pvp,
+      roe: roe
+    };
+
+  } catch (error) {
+    console.log(`❌ BRAPI falhou:`, error);
+    return null;
+  }
+}
+
+// 🚀 FUNÇÃO 2: Yahoo Finance
+async function tentarYahooFinance(ticker: string): Promise<Partial<DadosFinanceiros> | null> {
+  try {
+    console.log(`📡 Tentando Yahoo Finance para ${ticker}`);
+    
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}.SA?modules=summaryDetail,financialData,defaultKeyStatistics`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) throw new Error(`Yahoo HTTP ${response.status}`);
+    
+    const data = await response.json();
+    const quoteSummary = data.quoteSummary?.result?.[0];
+    
+    if (!quoteSummary) throw new Error('Sem dados Yahoo');
+
+    const summaryDetail = quoteSummary.summaryDetail;
+    const financialData = quoteSummary.financialData;
+    const keyStatistics = quoteSummary.defaultKeyStatistics;
+
+    let pvp = summaryDetail?.priceToBook?.raw || keyStatistics?.priceToBook?.raw;
+    let roe = financialData?.returnOnEquity?.raw || keyStatistics?.returnOnEquity?.raw;
+    
+    // Converter ROE para porcentagem
+    if (roe && roe < 1) roe = roe * 100;
+
+    console.log(`✅ Yahoo: P/VP=${pvp}, ROE=${roe}`);
+
+    return {
+      pvp: pvp,
+      roe: roe,
+      pl: summaryDetail?.trailingPE?.raw,
+      marketCap: summaryDetail?.marketCap?.raw
+    };
+
+  } catch (error) {
+    console.log(`❌ Yahoo falhou:`, error);
+    return null;
+  }
+}
+
+// 🚀 FUNÇÃO 3: Alpha Vantage (Requer API Key)
+async function tentarAlphaVantage(ticker: string): Promise<Partial<DadosFinanceiros> | null> {
+  try {
+    // Só tentar se houver API key configurada
+    const API_KEY = 'SUA_API_KEY_AQUI'; // Substituir por uma chave real
+    if (!API_KEY || API_KEY === 'SUA_API_KEY_AQUI') {
+      console.log(`⚠️ Alpha Vantage: API Key não configurada`);
+      return null;
+    }
+
+    console.log(`📡 Tentando Alpha Vantage para ${ticker}`);
+    
+    const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}.SAO&apikey=${API_KEY}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Alpha Vantage HTTP ${response.status}`);
+    
+    const data = await response.json();
+    
+    if (data.Note || data['Error Message']) {
+      throw new Error('Alpha Vantage limite ou erro');
+    }
+
+    const pvp = parseFloat(data.PriceToBookRatio) || null;
+    const roe = parseFloat(data.ReturnOnEquityTTM) || null;
+    
+    // Converter ROE para porcentagem se necessário
+    const roePercent = roe && roe < 1 ? roe * 100 : roe;
+
+    console.log(`✅ Alpha Vantage: P/VP=${pvp}, ROE=${roePercent}`);
+
+    return {
+      pvp: pvp,
+      roe: roePercent,
+      pl: parseFloat(data.PERatio) || null,
+      marketCap: parseFloat(data.MarketCapitalization) || null
+    };
+
+  } catch (error) {
+    console.log(`❌ Alpha Vantage falhou:`, error);
+    return null;
+  }
 }
 
 // Função para calcular viés
@@ -1178,11 +1292,12 @@ export default function EmpresaDetalhes() {
           Voltar
         </Button>
         
+        {/* Status da API Simplificado */}
         <Stack direction="row" spacing={2} alignItems="center">
           {dadosLoading ? (
             <Alert severity="info" sx={{ py: 0.5 }}>
               <CircularProgress size={16} sx={{ mr: 1 }} />
-              Carregando dados...
+              Carregando dados da API...
             </Alert>
           ) : dadosError ? (
             <Alert severity="warning" sx={{ py: 0.5 }}>
@@ -1192,7 +1307,7 @@ export default function EmpresaDetalhes() {
           ) : dados && dados.precoAtual > 0 ? (
             <Alert severity="success" sx={{ py: 0.5 }}>
               <CheckIcon />
-              Dados atualizados via API
+              Dados atualizados via API BRAPI
             </Alert>
           ) : (
             <Alert severity="info" sx={{ py: 0.5 }}>
@@ -1330,9 +1445,9 @@ export default function EmpresaDetalhes() {
         </CardContent>
       </Card>
 
-      {/* Cards de métricas - LAYOUT OTIMIZADO */}
+      {/* Cards de métricas - LAYOUT SIMPLIFICADO */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="COTAÇÃO" 
             value={precoAtualFormatado.replace('R$ ', 'R$ ')}
@@ -1340,7 +1455,7 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="VARIAÇÃO HOJE" 
             value={dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
@@ -1350,7 +1465,7 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="PERFORMANCE" 
             value={calcularPerformance()}
@@ -1360,7 +1475,7 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="P/L" 
             value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
@@ -1369,39 +1484,38 @@ export default function EmpresaDetalhes() {
             showInfo={true}
           />
         </Grid>
-        <Grid item xs={6} md={2.4}>
-          <MetricCard 
-            title="P/VP" 
-            value={dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
-            loading={dadosLoading}
-            subtitle="preço/valor patrimonial"
-            showInfo={true}
-          />
-        </Grid>
       </Grid>
 
-      {/* Cards adicionais - Segunda linha OTIMIZADA */}
+      {/* Cards adicionais - Segunda linha SIMPLIFICADA */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="% CARTEIRA" 
             value={empresaCompleta.percentualCarteira || 'N/A'} 
             subtitle="Participação na carteira"
           />
         </Grid>
-        <Grid item xs={6} md={4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="PREÇO TETO" 
             value={empresaCompleta.precoTeto} 
             subtitle="Meta de preço definida"
           />
         </Grid>
-        <Grid item xs={6} md={4}>
+        <Grid item xs={6} md={3}>
           <MetricCard 
             title="DY ESTIMADO" 
             value={dados?.dy ? formatarValor(dados.dy, 'percent') : 'N/A'}
             loading={dadosLoading}
             subtitle="Dividend yield"
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MetricCard 
+            title="MARKET CAP" 
+            value={dados?.marketCap ? formatarValor(dados.marketCap, 'millions') : 'N/A'}
+            loading={dadosLoading}
+            subtitle="Valor de mercado"
           />
         </Grid>
       </Grid>
@@ -1479,7 +1593,7 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* Dados fundamentalistas */}
+      {/* Dados fundamentalistas SIMPLIFICADOS */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
           <Card>
@@ -1490,15 +1604,15 @@ export default function EmpresaDetalhes() {
               
               {dadosLoading ? (
                 <Grid container spacing={2}>
-                  {[...Array(4)].map((_, index) => (
-                    <Grid item xs={6} md={3} key={index}>
+                  {[...Array(2)].map((_, index) => (
+                    <Grid item xs={6} key={index}>
                       <Skeleton variant="rectangular" height={80} />
                     </Grid>
                   ))}
                 </Grid>
               ) : (
                 <Grid container spacing={2}>
-                  <Grid item xs={6} md={3}>
+                  <Grid item xs={6}>
                     <Box sx={{ 
                       p: 2, 
                       backgroundColor: dados?.marketCap ? '#e8f5e8' : '#f8fafc', 
@@ -1511,7 +1625,7 @@ export default function EmpresaDetalhes() {
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={6} md={3}>
+                  <Grid item xs={6}>
                     <Box sx={{ 
                       p: 2, 
                       backgroundColor: dados?.pl ? '#e8f5e8' : '#f8fafc', 
@@ -1521,6 +1635,24 @@ export default function EmpresaDetalhes() {
                       <Typography variant="body2" color="text.secondary">P/L</Typography>
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>'N/A'}
                       </Typography>
                     </Box>
                   </Grid>
@@ -1665,6 +1797,12 @@ export default function EmpresaDetalhes() {
                           <Typography variant="body2" color="text.secondary">DY estimado:</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: '#22c55e' }}>
                             {dados?.dy ? formatarValor(dados.dy, 'percent') : 'N/A'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">P/L atual:</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#1f2937' }}>
+                            {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
