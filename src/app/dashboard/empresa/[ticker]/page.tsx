@@ -1,4 +1,731 @@
-<TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Tipo</TableCell>
+'use client';
+
+import * as React from 'react';
+import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import LinearProgress from '@mui/material/LinearProgress';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Skeleton from '@mui/material/Skeleton';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+
+// Ícones mock
+const ArrowLeftIcon = () => <span>←</span>;
+const TrendUpIcon = () => <span style={{ color: '#22c55e' }}>↗</span>;
+const TrendDownIcon = () => <span style={{ color: '#ef4444' }}>↘</span>;
+const SettingsIcon = () => <span>⚙</span>;
+const RefreshIcon = () => <span>🔄</span>;
+const WarningIcon = () => <span>⚠</span>;
+const CheckIcon = () => <span>✓</span>;
+const UploadIcon = () => <span>📤</span>;
+const DownloadIcon = () => <span>📥</span>;
+const DeleteIcon = () => <span>🗑</span>;
+const FileIcon = () => <span>📄</span>;
+
+// Token da API
+const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+interface DadosFinanceiros {
+  precoAtual: number;
+  variacao: number;
+  variacaoPercent: number;
+  volume: number;
+  marketCap?: number;
+  pl?: number;
+  dy?: number;
+}
+
+interface EmpresaCompleta {
+  ticker: string;
+  nomeCompleto: string;
+  setor: string;
+  descricao: string;
+  avatar: string;
+  dataEntrada: string;
+  precoIniciou: string;
+  precoTeto: string;
+  viesAtual: string;
+  ibovespaEpoca: string;
+  percentualCarteira: string;
+  tipo?: 'FII';
+  gestora?: string;
+  dadosFinanceiros?: DadosFinanceiros;
+  statusApi?: string;
+  ultimaAtualizacao?: string;
+}
+
+interface Relatorio {
+  id: string;
+  nome: string;
+  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
+  dataUpload: string;
+  dataReferencia: string;
+  arquivo: string;
+  tamanho: string;
+}
+
+// Hook para buscar dados financeiros
+function useDadosFinanceiros(ticker: string) {
+  const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
+
+  const buscarDados = React.useCallback(async () => {
+    if (!ticker) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`;
+      
+      const response = await fetch(quoteUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Portfolio-Details-App',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          const quote = data.results[0];
+          
+          const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
+          const dividendYield = quote.dividendYield || 0;
+
+          const dadosProcessados: DadosFinanceiros = {
+            precoAtual: precoAtual,
+            variacao: quote.regularMarketChange || 0,
+            variacaoPercent: quote.regularMarketChangePercent || 0,
+            volume: quote.regularMarketVolume || quote.volume || 0,
+            dy: dividendYield,
+            marketCap: quote.marketCap,
+            pl: quote.priceEarnings || quote.pe
+          };
+
+          setDadosFinanceiros(dadosProcessados);
+          setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
+          
+        } else {
+          throw new Error('Nenhum resultado encontrado');
+        }
+      } else {
+        throw new Error(`Erro HTTP ${response.status}`);
+      }
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker]);
+
+  useEffect(() => {
+    buscarDados();
+    const interval = setInterval(buscarDados, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [buscarDados]);
+
+  return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
+}
+
+// Função para calcular viés
+function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
+  try {
+    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    
+    if (isNaN(precoTetoNum) || precoAtual <= 0) {
+      return 'Aguardar';
+    }
+    
+    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
+    
+    if (percentualDoTeto <= 80) {
+      return 'Compra Forte';
+    } else if (percentualDoTeto <= 95) {
+      return 'Compra';
+    } else if (percentualDoTeto <= 105) {
+      return 'Neutro';
+    } else if (percentualDoTeto <= 120) {
+      return 'Aguardar';
+    } else {
+      return 'Venda';
+    }
+  } catch {
+    return 'Aguardar';
+  }
+}
+
+// Função para formatar valores
+function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
+  if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
+  
+  switch (tipo) {
+    case 'currency':
+      return new Intl.NumberFormat('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(valor);
+    
+    case 'percent':
+      return `${valor.toFixed(2).replace('.', ',')}%`;
+    
+    case 'millions':
+      if (valor >= 1000000000) {
+        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
+      } else if (valor >= 1000000) {
+        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
+      } else {
+        return formatarValor(valor, 'currency');
+      }
+    
+    case 'number':
+      return valor.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2 
+      });
+    
+    default:
+      return valor.toString();
+  }
+}
+
+// Componente de métrica
+const MetricCard = ({ 
+  title, 
+  value, 
+  color = 'primary', 
+  subtitle, 
+  loading = false,
+  trend,
+  highlight = false,
+  showInfo = false
+}: { 
+  title: string; 
+  value: string; 
+  color?: string; 
+  subtitle?: string;
+  loading?: boolean;
+  trend?: 'up' | 'down';
+  highlight?: boolean;
+  showInfo?: boolean;
+}) => (
+  <Card sx={{ 
+    borderRadius: 3,
+    overflow: 'hidden',
+    border: 'none',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    transition: 'all 0.3s ease',
+    '&:hover': { 
+      transform: 'translateY(-4px)', 
+      boxShadow: '0 8px 25px rgba(0,0,0,0.15)' 
+    },
+    height: '100%'
+  }}>
+    <Box sx={{ 
+      backgroundColor: '#f8fafc',
+      borderBottom: '1px solid #e2e8f0',
+      py: 2,
+      px: 2.5,
+    }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="body2" sx={{ 
+          fontWeight: 700,
+          fontSize: '0.75rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.8px',
+          color: '#64748b'
+        }}>
+          {title}
+        </Typography>
+        {showInfo && (
+          <Box sx={{ 
+            width: 16, 
+            height: 16, 
+            borderRadius: '50%', 
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '10px',
+            color: '#64748b',
+            backgroundColor: 'white'
+          }}>
+            ?
+          </Box>
+        )}
+      </Stack>
+    </Box>
+
+    <CardContent sx={{ 
+      backgroundColor: 'white',
+      p: 3,
+      textAlign: 'center',
+      '&:last-child': { pb: 3 }
+    }}>
+      {loading ? (
+        <Skeleton variant="text" height={50} />
+      ) : (
+        <>
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+            <Typography variant="h3" sx={{ 
+              fontWeight: 800, 
+              fontSize: '2rem',
+              color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
+              lineHeight: 1,
+              letterSpacing: '-0.5px'
+            }}>
+              {value}
+            </Typography>
+            {trend && (
+              <Box sx={{ ml: 0.5 }}>
+                {trend === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
+              </Box>
+            )}
+          </Stack>
+          
+          {subtitle && (
+            <Typography variant="caption" sx={{ 
+              color: '#64748b',
+              fontSize: '0.75rem',
+              display: 'block',
+              mt: 1,
+              lineHeight: 1.3,
+              fontWeight: 500
+            }}>
+              {subtitle}
+            </Typography>
+          )}
+        </>
+      )}
+    </CardContent>
+  </Card>
+);
+
+// Componente para histórico de dividendos
+const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
+  const [proventos, setProventos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (ticker && typeof window !== 'undefined') {
+      const chaveStorage = `proventos_${ticker}`;
+      const dadosSalvos = localStorage.getItem(chaveStorage);
+      
+      if (dadosSalvos) {
+        try {
+          const proventosSalvos = JSON.parse(dadosSalvos);
+          const proventosComData = proventosSalvos.map((item: any) => ({
+            ...item,
+            dataObj: new Date(item.dataObj)
+          }));
+          setProventos(proventosComData);
+        } catch (err) {
+          console.error('Erro ao carregar proventos salvos:', err);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(chaveStorage);
+          }
+        }
+      }
+    }
+  }, [ticker]);
+
+  const salvarProventos = (novosProventos: any[]) => {
+    if (ticker && typeof window !== 'undefined') {
+      const chaveStorage = `proventos_${ticker}`;
+      localStorage.setItem(chaveStorage, JSON.stringify(novosProventos));
+    }
+  };
+
+  const limparProventos = () => {
+    if (ticker && typeof window !== 'undefined') {
+      const chaveStorage = `proventos_${ticker}`;
+      localStorage.removeItem(chaveStorage);
+      setProventos([]);
+      setError(null);
+    }
+  };
+
+  const handleArquivoCSV = (file: File) => {
+    setLoading(true);
+    setError(null);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const linhas = text.split('\n').filter(linha => linha.trim());
+        
+        if (linhas.length < 2) {
+          throw new Error('Arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados');
+        }
+
+        const dados = linhas
+          .slice(1)
+          .map((linha, index) => {
+            const partes = linha.split(',').map(p => p.trim().replace(/"/g, ''));
+            
+            if (partes.length < 4) {
+              console.warn(`Linha ${index + 2} ignorada: dados insuficientes`);
+              return null;
+            }
+
+            const [csvTicker, data, valor, tipo] = partes;
+            
+            if (!csvTicker || !data || !valor || !tipo) return null;
+            if (csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
+
+            const valorNum = parseFloat(valor.replace(',', '.'));
+            if (isNaN(valorNum)) {
+              console.warn(`Linha ${index + 2} ignorada: valor inválido`);
+              return null;
+            }
+
+            let dataObj;
+            try {
+              if (data.includes('/')) {
+                const [dia, mes, ano] = data.split('/');
+                dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+              } else if (data.includes('-')) {
+                dataObj = new Date(data);
+              } else {
+                throw new Error('Formato de data não reconhecido');
+              }
+              
+              if (isNaN(dataObj.getTime())) {
+                throw new Error('Data inválida');
+              }
+            } catch {
+              console.warn(`Linha ${index + 2} ignorada: data inválida`);
+              return null;
+            }
+
+            return {
+              ticker: csvTicker.toUpperCase(),
+              data: data,
+              dataObj: dataObj,
+              valor: valorNum,
+              tipo: tipo || 'Dividendo',
+              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
+              valorFormatado: `R$ ${valorNum.toFixed(2).replace('.', ',')}`
+            };
+          })
+          .filter(item => item !== null);
+
+        let dadosFiltrados = dados;
+        if (dataEntrada) {
+          try {
+            const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
+            dadosFiltrados = dados.filter(item => item.dataObj >= dataEntradaObj);
+          } catch (err) {
+            console.warn('Erro ao filtrar por data de entrada:', err);
+          }
+        }
+
+        dadosFiltrados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+
+        setProventos(dadosFiltrados);
+        salvarProventos(dadosFiltrados);
+        
+        if (dadosFiltrados.length === 0) {
+          setError(`Nenhum provento encontrado para ${ticker} após ${dataEntrada || 'a data de entrada'}`);
+        } else {
+          setError(null);
+        }
+
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Erro ao processar arquivo CSV';
+        setError(errorMessage);
+        console.error('Erro ao processar CSV:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    reader.onerror = () => {
+      setError('Erro ao ler o arquivo');
+      setLoading(false);
+    };
+
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const totalProventos = proventos.reduce((sum, item) => sum + item.valor, 0);
+  const mediaProvento = proventos.length > 0 ? totalProventos / proventos.length : 0;
+  const ultimoProvento = proventos.length > 0 ? proventos[0] : null;
+
+  const proventosPorAno = proventos.reduce((acc, item) => {
+    const ano = item.dataObj.getFullYear().toString();
+    if (!acc[ano]) acc[ano] = [];
+    acc[ano].push(item);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  const totalPorAno = Object.entries(proventosPorAno).map(([ano, items]) => ({
+    ano,
+    total: items.reduce((sum, item) => sum + item.valor, 0),
+    quantidade: items.length
+  })).sort((a, b) => parseInt(b.ano) - parseInt(a.ano));
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            💰 Histórico de Proventos
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            {proventos.length > 0 && (
+              <Button 
+                variant="outlined" 
+                size="small" 
+                color="error"
+                onClick={limparProventos}
+                sx={{ mr: 1 }}
+              >
+                🗑️ Limpar
+              </Button>
+            )}
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleArquivoCSV(file);
+              }}
+              style={{ display: 'none' }}
+              id="upload-proventos-csv"
+            />
+            <label htmlFor="upload-proventos-csv">
+              <Button 
+                component="span" 
+                variant="outlined" 
+                size="small" 
+                startIcon={<UploadIcon />}
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : 'Carregar CSV'}
+              </Button>
+            </label>
+          </Stack>
+        </Stack>
+
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            <strong>Formato do CSV esperado:</strong>
+          </Typography>
+          <Typography variant="caption" component="div">
+            ticker,data,valor,tipo<br/>
+            ALOS3,15/03/2024,0.45,Dividendo<br/>
+            ALOS3,15/06/2024,0.52,JCP
+          </Typography>
+        </Alert>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {proventos.length === 0 && !loading ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              Nenhum provento carregado para {ticker}
+            </Typography>
+            <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+              📅 Data de entrada: {dataEntrada}
+            </Typography>
+            <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+              Carregue um arquivo CSV com o histórico de proventos
+            </Typography>
+            <Typography variant="caption" sx={{ mt: 1, display: 'block', fontStyle: 'italic', color: '#22c55e' }}>
+              💾 Os dados serão salvos automaticamente e mantidos após recarregar a página
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {proventos.length > 0 && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                💾 <strong>{proventos.length} proventos carregados</strong> - Os dados estão salvos localmente e persistem entre as sessões.
+              </Alert>
+            )}
+
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                📊 Resumo dos Proventos
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#f0f9ff', 
+                    borderRadius: 2,
+                    border: '1px solid #0ea5e9',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#0ea5e9', mb: 1 }}>
+                      {proventos.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Pagamentos
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#f0fdf4', 
+                    borderRadius: 2,
+                    border: '1px solid #22c55e',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#22c55e', mb: 1 }}>
+                      {formatarValor(totalProventos).replace('R$ ', '')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Total Recebido
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#fefce8', 
+                    borderRadius: 2,
+                    border: '1px solid #eab308',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#eab308', mb: 1 }}>
+                      {formatarValor(mediaProvento).replace('R$ ', '')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Média por Pagamento
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 3, 
+                    backgroundColor: '#fdf4ff', 
+                    borderRadius: 2,
+                    border: '1px solid #a855f7',
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateY(-2px)' }
+                  }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#a855f7', mb: 1 }}>
+                      {ultimoProvento ? ultimoProvento.dataFormatada.replace(/\/\d{4}/, '') : 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Último Pagamento
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {totalPorAno.length > 0 && (
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600 }}>
+                  📈 Resumo por Ano
+                </Typography>
+                <Grid container spacing={2}>
+                  {totalPorAno.map((item) => (
+                    <Grid item xs={6} sm={4} md={3} key={item.ano}>
+                      <Card sx={{ 
+                        backgroundColor: '#f8fafc', 
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.2s ease',
+                        '&:hover': { 
+                          transform: 'translateY(-2px)', 
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+                        }
+                      }}>
+                        <CardContent sx={{ textAlign: 'center', p: 2.5 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1f2937' }}>
+                            {item.ano}
+                          </Typography>
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: '#22c55e', my: 1 }}>
+                            {formatarValor(item.total)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.quantidade} pagamentos • Média: {formatarValor(item.total / item.quantidade)}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
+            <Box>
+              <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600 }}>
+                📋 Histórico Detalhado
+              </Typography>
+              <TableContainer sx={{ 
+                backgroundColor: 'white',
+                borderRadius: 2,
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+                      <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Data</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Valor</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Tipo</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700, color: '#374151' }}>Ano</TableCell>
                     </TableRow>
                   </TableHead>
@@ -955,731 +1682,3 @@ export default function EmpresaDetalhes() {
     </Box>
   );
 }
-      'use client';
-
-import * as React from 'react';
-import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import LinearProgress from '@mui/material/LinearProgress';
-import CircularProgress from '@mui/material/CircularProgress';
-import Alert from '@mui/material/Alert';
-import Skeleton from '@mui/material/Skeleton';
-import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
-import TextField from '@mui/material/TextField';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-
-// Ícones mock
-const ArrowLeftIcon = () => <span>←</span>;
-const TrendUpIcon = () => <span style={{ color: '#22c55e' }}>↗</span>;
-const TrendDownIcon = () => <span style={{ color: '#ef4444' }}>↘</span>;
-const SettingsIcon = () => <span>⚙</span>;
-const RefreshIcon = () => <span>🔄</span>;
-const WarningIcon = () => <span>⚠</span>;
-const CheckIcon = () => <span>✓</span>;
-const UploadIcon = () => <span>📤</span>;
-const DownloadIcon = () => <span>📥</span>;
-const DeleteIcon = () => <span>🗑</span>;
-const FileIcon = () => <span>📄</span>;
-
-// Token da API
-const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-interface DadosFinanceiros {
-  precoAtual: number;
-  variacao: number;
-  variacaoPercent: number;
-  volume: number;
-  marketCap?: number;
-  pl?: number;
-  dy?: number;
-}
-
-interface EmpresaCompleta {
-  ticker: string;
-  nomeCompleto: string;
-  setor: string;
-  descricao: string;
-  avatar: string;
-  dataEntrada: string;
-  precoIniciou: string;
-  precoTeto: string;
-  viesAtual: string;
-  ibovespaEpoca: string;
-  percentualCarteira: string;
-  tipo?: 'FII';
-  gestora?: string;
-  dadosFinanceiros?: DadosFinanceiros;
-  statusApi?: string;
-  ultimaAtualizacao?: string;
-}
-
-interface Relatorio {
-  id: string;
-  nome: string;
-  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
-  dataUpload: string;
-  dataReferencia: string;
-  arquivo: string;
-  tamanho: string;
-}
-
-// Hook para buscar dados financeiros
-function useDadosFinanceiros(ticker: string) {
-  const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
-
-  const buscarDados = React.useCallback(async () => {
-    if (!ticker) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`;
-      
-      const response = await fetch(quoteUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Portfolio-Details-App',
-          'Cache-Control': 'no-cache'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        if (data.results && data.results.length > 0) {
-          const quote = data.results[0];
-          
-          const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
-          const dividendYield = quote.dividendYield || 0;
-
-          const dadosProcessados: DadosFinanceiros = {
-            precoAtual: precoAtual,
-            variacao: quote.regularMarketChange || 0,
-            variacaoPercent: quote.regularMarketChangePercent || 0,
-            volume: quote.regularMarketVolume || quote.volume || 0,
-            dy: dividendYield,
-            marketCap: quote.marketCap,
-            pl: quote.priceEarnings || quote.pe
-          };
-
-          setDadosFinanceiros(dadosProcessados);
-          setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
-          
-        } else {
-          throw new Error('Nenhum resultado encontrado');
-        }
-      } else {
-        throw new Error(`Erro HTTP ${response.status}`);
-      }
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker]);
-
-  useEffect(() => {
-    buscarDados();
-    const interval = setInterval(buscarDados, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [buscarDados]);
-
-  return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
-}
-
-// Função para calcular viés
-function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
-  try {
-    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    
-    if (isNaN(precoTetoNum) || precoAtual <= 0) {
-      return 'Aguardar';
-    }
-    
-    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
-    
-    if (percentualDoTeto <= 80) {
-      return 'Compra Forte';
-    } else if (percentualDoTeto <= 95) {
-      return 'Compra';
-    } else if (percentualDoTeto <= 105) {
-      return 'Neutro';
-    } else if (percentualDoTeto <= 120) {
-      return 'Aguardar';
-    } else {
-      return 'Venda';
-    }
-  } catch {
-    return 'Aguardar';
-  }
-}
-
-// Função para formatar valores
-function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
-  if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
-  
-  switch (tipo) {
-    case 'currency':
-      return new Intl.NumberFormat('pt-BR', { 
-        style: 'currency', 
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(valor);
-    
-    case 'percent':
-      return `${valor.toFixed(2).replace('.', ',')}%`;
-    
-    case 'millions':
-      if (valor >= 1000000000) {
-        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
-      } else if (valor >= 1000000) {
-        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
-      } else {
-        return formatarValor(valor, 'currency');
-      }
-    
-    case 'number':
-      return valor.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2 
-      });
-    
-    default:
-      return valor.toString();
-  }
-}
-
-// Componente de métrica
-const MetricCard = ({ 
-  title, 
-  value, 
-  color = 'primary', 
-  subtitle, 
-  loading = false,
-  trend,
-  highlight = false,
-  showInfo = false
-}: { 
-  title: string; 
-  value: string; 
-  color?: string; 
-  subtitle?: string;
-  loading?: boolean;
-  trend?: 'up' | 'down';
-  highlight?: boolean;
-  showInfo?: boolean;
-}) => (
-  <Card sx={{ 
-    borderRadius: 3,
-    overflow: 'hidden',
-    border: 'none',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-    transition: 'all 0.3s ease',
-    '&:hover': { 
-      transform: 'translateY(-4px)', 
-      boxShadow: '0 8px 25px rgba(0,0,0,0.15)' 
-    },
-    height: '100%'
-  }}>
-    <Box sx={{ 
-      backgroundColor: '#f8fafc',
-      borderBottom: '1px solid #e2e8f0',
-      py: 2,
-      px: 2.5,
-    }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="body2" sx={{ 
-          fontWeight: 700,
-          fontSize: '0.75rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.8px',
-          color: '#64748b'
-        }}>
-          {title}
-        </Typography>
-        {showInfo && (
-          <Box sx={{ 
-            width: 16, 
-            height: 16, 
-            borderRadius: '50%', 
-            border: '1px solid #cbd5e1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '10px',
-            color: '#64748b',
-            backgroundColor: 'white'
-          }}>
-            ?
-          </Box>
-        )}
-      </Stack>
-    </Box>
-
-    <CardContent sx={{ 
-      backgroundColor: 'white',
-      p: 3,
-      textAlign: 'center',
-      '&:last-child': { pb: 3 }
-    }}>
-      {loading ? (
-        <Skeleton variant="text" height={50} />
-      ) : (
-        <>
-          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Typography variant="h3" sx={{ 
-              fontWeight: 800, 
-              fontSize: '2rem',
-              color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
-              lineHeight: 1,
-              letterSpacing: '-0.5px'
-            }}>
-              {value}
-            </Typography>
-            {trend && (
-              <Box sx={{ ml: 0.5 }}>
-                {trend === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
-              </Box>
-            )}
-          </Stack>
-          
-          {subtitle && (
-            <Typography variant="caption" sx={{ 
-              color: '#64748b',
-              fontSize: '0.75rem',
-              display: 'block',
-              mt: 1,
-              lineHeight: 1.3,
-              fontWeight: 500
-            }}>
-              {subtitle}
-            </Typography>
-          )}
-        </>
-      )}
-    </CardContent>
-  </Card>
-);
-
-// Componente para histórico de dividendos
-const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
-  const [proventos, setProventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      const dadosSalvos = localStorage.getItem(chaveStorage);
-      
-      if (dadosSalvos) {
-        try {
-          const proventosSalvos = JSON.parse(dadosSalvos);
-          const proventosComData = proventosSalvos.map((item: any) => ({
-            ...item,
-            dataObj: new Date(item.dataObj)
-          }));
-          setProventos(proventosComData);
-        } catch (err) {
-          console.error('Erro ao carregar proventos salvos:', err);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(chaveStorage);
-          }
-        }
-      }
-    }
-  }, [ticker]);
-
-  const salvarProventos = (novosProventos: any[]) => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      localStorage.setItem(chaveStorage, JSON.stringify(novosProventos));
-    }
-  };
-
-  const limparProventos = () => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      localStorage.removeItem(chaveStorage);
-      setProventos([]);
-      setError(null);
-    }
-  };
-
-  const handleArquivoCSV = (file: File) => {
-    setLoading(true);
-    setError(null);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const linhas = text.split('\n').filter(linha => linha.trim());
-        
-        if (linhas.length < 2) {
-          throw new Error('Arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados');
-        }
-
-        const dados = linhas
-          .slice(1)
-          .map((linha, index) => {
-            const partes = linha.split(',').map(p => p.trim().replace(/"/g, ''));
-            
-            if (partes.length < 4) {
-              console.warn(`Linha ${index + 2} ignorada: dados insuficientes`);
-              return null;
-            }
-
-            const [csvTicker, data, valor, tipo] = partes;
-            
-            if (!csvTicker || !data || !valor || !tipo) return null;
-            if (csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
-
-            const valorNum = parseFloat(valor.replace(',', '.'));
-            if (isNaN(valorNum)) {
-              console.warn(`Linha ${index + 2} ignorada: valor inválido`);
-              return null;
-            }
-
-            let dataObj;
-            try {
-              if (data.includes('/')) {
-                const [dia, mes, ano] = data.split('/');
-                dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-              } else if (data.includes('-')) {
-                dataObj = new Date(data);
-              } else {
-                throw new Error('Formato de data não reconhecido');
-              }
-              
-              if (isNaN(dataObj.getTime())) {
-                throw new Error('Data inválida');
-              }
-            } catch {
-              console.warn(`Linha ${index + 2} ignorada: data inválida`);
-              return null;
-            }
-
-            return {
-              ticker: csvTicker.toUpperCase(),
-              data: data,
-              dataObj: dataObj,
-              valor: valorNum,
-              tipo: tipo || 'Dividendo',
-              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
-              valorFormatado: `R$ ${valorNum.toFixed(2).replace('.', ',')}`
-            };
-          })
-          .filter(item => item !== null);
-
-        let dadosFiltrados = dados;
-        if (dataEntrada) {
-          try {
-            const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-            dadosFiltrados = dados.filter(item => item.dataObj >= dataEntradaObj);
-          } catch (err) {
-            console.warn('Erro ao filtrar por data de entrada:', err);
-          }
-        }
-
-        dadosFiltrados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-
-        setProventos(dadosFiltrados);
-        salvarProventos(dadosFiltrados);
-        
-        if (dadosFiltrados.length === 0) {
-          setError(`Nenhum provento encontrado para ${ticker} após ${dataEntrada || 'a data de entrada'}`);
-        } else {
-          setError(null);
-        }
-
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Erro ao processar arquivo CSV';
-        setError(errorMessage);
-        console.error('Erro ao processar CSV:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    reader.onerror = () => {
-      setError('Erro ao ler o arquivo');
-      setLoading(false);
-    };
-
-    reader.readAsText(file, 'UTF-8');
-  };
-
-  const totalProventos = proventos.reduce((sum, item) => sum + item.valor, 0);
-  const mediaProvento = proventos.length > 0 ? totalProventos / proventos.length : 0;
-  const ultimoProvento = proventos.length > 0 ? proventos[0] : null;
-
-  const proventosPorAno = proventos.reduce((acc, item) => {
-    const ano = item.dataObj.getFullYear().toString();
-    if (!acc[ano]) acc[ano] = [];
-    acc[ano].push(item);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  const totalPorAno = Object.entries(proventosPorAno).map(([ano, items]) => ({
-    ano,
-    total: items.reduce((sum, item) => sum + item.valor, 0),
-    quantidade: items.length
-  })).sort((a, b) => parseInt(b.ano) - parseInt(a.ano));
-
-  return (
-    <Card>
-      <CardContent sx={{ p: 4 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            💰 Histórico de Proventos
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            {proventos.length > 0 && (
-              <Button 
-                variant="outlined" 
-                size="small" 
-                color="error"
-                onClick={limparProventos}
-                sx={{ mr: 1 }}
-              >
-                🗑️ Limpar
-              </Button>
-            )}
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleArquivoCSV(file);
-              }}
-              style={{ display: 'none' }}
-              id="upload-proventos-csv"
-            />
-            <label htmlFor="upload-proventos-csv">
-              <Button 
-                component="span" 
-                variant="outlined" 
-                size="small" 
-                startIcon={<UploadIcon />}
-                disabled={loading}
-              >
-                {loading ? 'Processando...' : 'Carregar CSV'}
-              </Button>
-            </label>
-          </Stack>
-        </Stack>
-
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <strong>Formato do CSV esperado:</strong>
-          </Typography>
-          <Typography variant="caption" component="div">
-            ticker,data,valor,tipo<br/>
-            ALOS3,15/03/2024,0.45,Dividendo<br/>
-            ALOS3,15/06/2024,0.52,JCP
-          </Typography>
-        </Alert>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {proventos.length === 0 && !loading ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="body2">
-              Nenhum provento carregado para {ticker}
-            </Typography>
-            <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-              📅 Data de entrada: {dataEntrada}
-            </Typography>
-            <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
-              Carregue um arquivo CSV com o histórico de proventos
-            </Typography>
-            <Typography variant="caption" sx={{ mt: 1, display: 'block', fontStyle: 'italic', color: '#22c55e' }}>
-              💾 Os dados serão salvos automaticamente e mantidos após recarregar a página
-            </Typography>
-          </Box>
-        ) : (
-          <>
-            {proventos.length > 0 && (
-              <Alert severity="success" sx={{ mb: 3 }}>
-                💾 <strong>{proventos.length} proventos carregados</strong> - Os dados estão salvos localmente e persistem entre as sessões.
-              </Alert>
-            )}
-
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                📊 Resumo dos Proventos
-              </Typography>
-              
-              <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ 
-                    textAlign: 'center', 
-                    p: 3, 
-                    backgroundColor: '#f0f9ff', 
-                    borderRadius: 2,
-                    border: '1px solid #0ea5e9',
-                    transition: 'transform 0.2s ease',
-                    '&:hover': { transform: 'translateY(-2px)' }
-                  }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#0ea5e9', mb: 1 }}>
-                      {proventos.length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      Pagamentos
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ 
-                    textAlign: 'center', 
-                    p: 3, 
-                    backgroundColor: '#f0fdf4', 
-                    borderRadius: 2,
-                    border: '1px solid #22c55e',
-                    transition: 'transform 0.2s ease',
-                    '&:hover': { transform: 'translateY(-2px)' }
-                  }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#22c55e', mb: 1 }}>
-                      {formatarValor(totalProventos).replace('R$ ', '')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      Total Recebido
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ 
-                    textAlign: 'center', 
-                    p: 3, 
-                    backgroundColor: '#fefce8', 
-                    borderRadius: 2,
-                    border: '1px solid #eab308',
-                    transition: 'transform 0.2s ease',
-                    '&:hover': { transform: 'translateY(-2px)' }
-                  }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#eab308', mb: 1 }}>
-                      {formatarValor(mediaProvento).replace('R$ ', '')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      Média por Pagamento
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ 
-                    textAlign: 'center', 
-                    p: 3, 
-                    backgroundColor: '#fdf4ff', 
-                    borderRadius: 2,
-                    border: '1px solid #a855f7',
-                    transition: 'transform 0.2s ease',
-                    '&:hover': { transform: 'translateY(-2px)' }
-                  }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#a855f7', mb: 1 }}>
-                      {ultimoProvento ? ultimoProvento.dataFormatada.replace(/\/\d{4}/, '') : 'N/A'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      Último Pagamento
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Box>
-
-            {totalPorAno.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600 }}>
-                  📈 Resumo por Ano
-                </Typography>
-                <Grid container spacing={2}>
-                  {totalPorAno.map((item) => (
-                    <Grid item xs={6} sm={4} md={3} key={item.ano}>
-                      <Card sx={{ 
-                        backgroundColor: '#f8fafc', 
-                        border: '1px solid #e2e8f0',
-                        transition: 'all 0.2s ease',
-                        '&:hover': { 
-                          transform: 'translateY(-2px)', 
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
-                        }
-                      }}>
-                        <CardContent sx={{ textAlign: 'center', p: 2.5 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1f2937' }}>
-                            {item.ano}
-                          </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 700, color: '#22c55e', my: 1 }}>
-                            {formatarValor(item.total)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {item.quantidade} pagamentos • Média: {formatarValor(item.total / item.quantidade)}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            <Box>
-              <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600 }}>
-                📋 Histórico Detalhado
-              </Typography>
-              <TableContainer sx={{ 
-                backgroundColor: 'white',
-                borderRadius: 2,
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                      <TableCell sx={{ fontWeight: 700, color: '#374151' }}>Data</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#374151' }}>Valor</TableCell>
-                      <TableCell align="center
