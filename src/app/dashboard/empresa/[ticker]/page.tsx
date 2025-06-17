@@ -784,21 +784,79 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
 };
 
 // Componente para gerenciar relatórios
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  Button,
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  Alert,
+  Tabs,
+  Tab,
+  CircularProgress
+} from '@mui/material';
+
+// Ícones mock
+const UploadIcon = () => <span>📤</span>;
+const DownloadIcon = () => <span>📥</span>;
+const DeleteIcon = () => <span>🗑</span>;
+const FileIcon = () => <span>📄</span>;
+const ViewIcon = () => <span>👁</span>;
+const LinkIcon = () => <span>🔗</span>;
+const CloseIcon = () => <span>✕</span>;
+
+interface Relatorio {
+  id: string;
+  nome: string;
+  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
+  dataUpload: string;
+  dataReferencia: string;
+  arquivo?: string;
+  linkCanva?: string;
+  linkExterno?: string;
+  tamanho?: string;
+  tipoVisualizacao: 'pdf' | 'iframe' | 'canva' | 'link';
+}
+
 const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
+  const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
+  const [loadingIframe, setLoadingIframe] = useState(false);
+  const [tabAtiva, setTabAtiva] = useState(1); // Começa na aba Iframe
+  
   const [novoRelatorio, setNovoRelatorio] = useState({
     nome: '',
     tipo: 'trimestral' as const,
     dataReferencia: '',
-    arquivo: null as File | null
+    arquivo: null as File | null,
+    linkCanva: '',
+    linkExterno: '',
+    tipoVisualizacao: 'iframe' as 'pdf' | 'iframe' | 'canva' | 'link'
   });
 
+  // Carregar relatórios salvos
   useEffect(() => {
     const chave = `relatorios_${ticker}`;
-    const relatoriosExistentes = typeof window !== 'undefined' 
-      ? localStorage.getItem(chave) 
-      : null;
+    const relatoriosExistentes = localStorage.getItem(chave);
     
     if (relatoriosExistentes) {
       try {
@@ -809,55 +867,258 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
     }
   }, [ticker]);
 
+  // Salvar relatório
   const salvarRelatorio = () => {
-    if (novoRelatorio.arquivo && novoRelatorio.nome) {
+    if (!novoRelatorio.nome) {
+      alert('Digite o nome do relatório');
+      return;
+    }
+
+    if (novoRelatorio.tipoVisualizacao === 'pdf' && !novoRelatorio.arquivo) {
+      alert('Selecione um arquivo PDF');
+      return;
+    }
+
+    if (novoRelatorio.tipoVisualizacao === 'iframe' && !novoRelatorio.linkExterno) {
+      alert('Insira a URL para iframe');
+      return;
+    }
+
+    if (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) {
+      alert('Insira o link do Canva');
+      return;
+    }
+
+    if (novoRelatorio.tipoVisualizacao === 'link' && !novoRelatorio.linkExterno) {
+      alert('Insira o link externo');
+      return;
+    }
+
+    const processarRelatorio = () => {
+      const relatorio: Relatorio = {
+        id: Date.now().toString(),
+        nome: novoRelatorio.nome,
+        tipo: novoRelatorio.tipo,
+        dataUpload: new Date().toISOString(),
+        dataReferencia: novoRelatorio.dataReferencia,
+        tipoVisualizacao: novoRelatorio.tipoVisualizacao,
+        linkCanva: novoRelatorio.linkCanva || undefined,
+        linkExterno: novoRelatorio.linkExterno || undefined,
+        tamanho: novoRelatorio.arquivo ? `${(novoRelatorio.arquivo.size / 1024 / 1024).toFixed(1)} MB` : undefined
+      };
+
+      const chave = `relatorios_${ticker}`;
+      const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+      relatoriosExistentes.push(relatorio);
+      localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+      
+      setRelatorios(relatoriosExistentes);
+      setDialogAberto(false);
+      resetForm();
+    };
+
+    if (novoRelatorio.tipoVisualizacao === 'pdf' && novoRelatorio.arquivo) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const relatorio: Relatorio = {
-          id: Date.now().toString(),
-          nome: novoRelatorio.nome,
-          tipo: novoRelatorio.tipo,
-          dataUpload: new Date().toISOString(),
-          dataReferencia: novoRelatorio.dataReferencia,
-          arquivo: e.target?.result as string,
-          tamanho: `${(novoRelatorio.arquivo!.size / 1024 / 1024).toFixed(1)} MB`
-        };
-
-        const chave = `relatorios_${ticker}`;
-        const relatoriosExistentes = typeof window !== 'undefined' 
-          ? JSON.parse(localStorage.getItem(chave) || '[]') 
-          : [];
-        
-        relatoriosExistentes.push(relatorio);
-        
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
-        }
-        
-        setRelatorios(relatoriosExistentes);
-        setDialogAberto(false);
-        setNovoRelatorio({ nome: '', tipo: 'trimestral', dataReferencia: '', arquivo: null });
+        processarRelatorio();
       };
       reader.readAsDataURL(novoRelatorio.arquivo);
+    } else {
+      processarRelatorio();
     }
+  };
+
+  const resetForm = () => {
+    setNovoRelatorio({
+      nome: '',
+      tipo: 'trimestral',
+      dataReferencia: '',
+      arquivo: null,
+      linkCanva: '',
+      linkExterno: '',
+      tipoVisualizacao: 'iframe'
+    });
+    setTabAtiva(1); // Volta para a aba iframe
   };
 
   const excluirRelatorio = (id: string) => {
-    const chave = `relatorios_${ticker}`;
-    const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
-    
-    if (typeof window !== 'undefined') {
+    if (confirm('Tem certeza que deseja excluir este relatório?')) {
+      const chave = `relatorios_${ticker}`;
+      const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
       localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
+      setRelatorios(relatoriosAtualizados);
     }
-    
-    setRelatorios(relatoriosAtualizados);
   };
 
-  const baixarRelatorio = (relatorio: Relatorio) => {
-    const link = document.createElement('a');
-    link.href = relatorio.arquivo;
-    link.download = `${relatorio.nome}.pdf`;
-    link.click();
+  const visualizarRelatorio = (relatorio: Relatorio) => {
+    setRelatorioSelecionado(relatorio);
+    setLoadingIframe(true);
+    setDialogVisualizacao(true);
+  };
+
+  const formatarLinkCanva = (link: string) => {
+    if (link.includes('canva.com') && !link.includes('/embed')) {
+      return link.replace('/design/', '/embed/') + '?embed';
+    }
+    return link;
+  };
+
+  const renderVisualizador = () => {
+    if (!relatorioSelecionado) return null;
+
+    const handleIframeLoad = () => {
+      setLoadingIframe(false);
+    };
+
+    switch (relatorioSelecionado.tipoVisualizacao) {
+      case 'iframe':
+        return (
+          <Box sx={{ position: 'relative', height: '80vh' }}>
+            {loadingIframe && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: 2,
+                p: 3
+              }}>
+                <CircularProgress />
+                <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+                  Carregando conteúdo...
+                </Typography>
+              </Box>
+            )}
+            <iframe
+              src={relatorioSelecionado.linkExterno}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '8px'
+              }}
+              allowFullScreen
+              onLoad={handleIframeLoad}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            />
+          </Box>
+        );
+
+      case 'canva':
+        return (
+          <Box sx={{ position: 'relative', height: '80vh' }}>
+            {loadingIframe && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: 2,
+                p: 3
+              }}>
+                <CircularProgress />
+                <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+                  Carregando apresentação do Canva...
+                </Typography>
+              </Box>
+            )}
+            <iframe
+              src={formatarLinkCanva(relatorioSelecionado.linkCanva!)}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '8px'
+              }}
+              allowFullScreen
+              onLoad={handleIframeLoad}
+            />
+          </Box>
+        );
+
+      case 'link':
+        return (
+          <Box sx={{ position: 'relative', height: '80vh' }}>
+            {loadingIframe && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: 2,
+                p: 3
+              }}>
+                <CircularProgress />
+                <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+                  Carregando conteúdo...
+                </Typography>
+              </Box>
+            )}
+            <iframe
+              src={relatorioSelecionado.linkExterno}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '8px'
+              }}
+              allowFullScreen
+              onLoad={handleIframeLoad}
+            />
+          </Box>
+        );
+
+      case 'pdf':
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <FileIcon style={{ fontSize: '4rem', opacity: 0.5 }} />
+            <Typography variant="h6" sx={{ mt: 2, mb: 2 }}>
+              Visualização de PDF
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Para uma melhor experiência, recomendamos baixar o arquivo
+            </Typography>
+            <Button variant="contained" startIcon={<DownloadIcon />}>
+              Baixar PDF
+            </Button>
+          </Box>
+        );
+
+      default:
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h6" color="error">
+              Tipo de visualização não suportado
+            </Typography>
+          </Box>
+        );
+    }
+  };
+
+  const getIconePorTipo = (tipo: string) => {
+    switch (tipo) {
+      case 'iframe': return '🖼️';
+      case 'canva': return '🎨';
+      case 'link': return '🔗';
+      case 'pdf': return '📄';
+      default: return '📄';
+    }
+  };
+
+  const getCorChipPorTipo = (tipo: string) => {
+    switch (tipo) {
+      case 'iframe': return 'primary';
+      case 'canva': return 'secondary';
+      case 'link': return 'info';
+      case 'pdf': return 'default';
+      default: return 'default';
+    }
   };
 
   return (
@@ -873,60 +1134,115 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
             variant="contained"
             size="small"
           >
-            Adicionar PDF
+            Adicionar Conteúdo
           </Button>
         </Stack>
 
         {relatorios.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <FileIcon />
-            <Typography>Nenhum relatório cadastrado ainda</Typography>
-            <Typography variant="caption">Clique em "Adicionar PDF" para começar</Typography>
+          <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
+            <FileIcon style={{ fontSize: '3rem', opacity: 0.3 }} />
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+              Nenhum relatório cadastrado ainda
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 3 }}>
+              Adicione relatórios, apresentações do Canva ou qualquer conteúdo via iframe
+            </Typography>
+            <Button 
+              variant="outlined" 
+              startIcon={<UploadIcon />}
+              onClick={() => setDialogAberto(true)}
+            >
+              Adicionar Primeiro Conteúdo
+            </Button>
           </Box>
         ) : (
           <List>
             {relatorios.map((relatorio) => (
-              <ListItem key={relatorio.id} divider sx={{ px: 0 }}>
+              <ListItem key={relatorio.id} divider sx={{ px: 0, py: 2 }}>
+                <Box sx={{ mr: 2, fontSize: '1.5rem' }}>
+                  {getIconePorTipo(relatorio.tipoVisualizacao)}
+                </Box>
                 <ListItemText
-                  primary={relatorio.nome}
+                  primary={
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {relatorio.nome}
+                    </Typography>
+                  }
                   secondary={
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
                       <Chip 
                         label={relatorio.tipo} 
                         size="small" 
                         variant="outlined"
                         sx={{ fontSize: '0.7rem' }}
                       />
-                      <Typography variant="caption">
-                        {relatorio.dataReferencia} • {relatorio.tamanho}
+                      <Chip 
+                        label={relatorio.tipoVisualizacao.toUpperCase()} 
+                        size="small" 
+                        color={getCorChipPorTipo(relatorio.tipoVisualizacao)}
+                        sx={{ fontSize: '0.7rem' }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {relatorio.dataReferencia}
+                        {relatorio.tamanho && ` • ${relatorio.tamanho}`}
                       </Typography>
                     </Stack>
                   }
                 />
                 <ListItemSecondaryAction>
-                  <IconButton 
-                    size="small" 
-                    color="primary"
-                    onClick={() => baixarRelatorio(relatorio)}
-                    sx={{ mr: 1 }}
-                  >
-                    <DownloadIcon />
-                  </IconButton>
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={() => excluirRelatorio(relatorio.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  <Stack direction="row" spacing={1}>
+                    <IconButton 
+                      size="small" 
+                      color="primary"
+                      onClick={() => visualizarRelatorio(relatorio)}
+                      title="Visualizar"
+                      sx={{
+                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                        '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.16)' }
+                      }}
+                    >
+                      <ViewIcon />
+                    </IconButton>
+                    {relatorio.tipoVisualizacao === 'pdf' && (
+                      <IconButton 
+                        size="small" 
+                        color="info"
+                        title="Baixar"
+                        sx={{
+                          backgroundColor: 'rgba(2, 136, 209, 0.08)',
+                          '&:hover': { backgroundColor: 'rgba(2, 136, 209, 0.16)' }
+                        }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                    )}
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => excluirRelatorio(relatorio.id)}
+                      title="Excluir"
+                      sx={{
+                        backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                        '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.16)' }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
                 </ListItemSecondaryAction>
               </ListItem>
             ))}
           </List>
         )}
 
+        {/* Dialog para adicionar novo relatório */}
         <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Adicionar Novo Relatório</DialogTitle>
+          <DialogTitle>
+            <Typography variant="h6">Adicionar Novo Conteúdo</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Adicione relatórios, apresentações ou qualquer conteúdo visualizável
+            </Typography>
+          </DialogTitle>
           <DialogContent>
             <Stack spacing={3} sx={{ mt: 1 }}>
               <TextField
@@ -934,11 +1250,12 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                 value={novoRelatorio.nome}
                 onChange={(e) => setNovoRelatorio({...novoRelatorio, nome: e.target.value})}
                 fullWidth
-                placeholder="Ex: Resultados 3T24"
+                placeholder="Ex: Resultados 3T24, Apresentação Investidores"
+                required
               />
               
               <FormControl fullWidth>
-                <InputLabel>Tipo</InputLabel>
+                <InputLabel>Tipo de Relatório</InputLabel>
                 <Select
                   value={novoRelatorio.tipo}
                   onChange={(e) => setNovoRelatorio({...novoRelatorio, tipo: e.target.value as any})}
@@ -959,43 +1276,190 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                 fullWidth
               />
 
+              {/* Tabs para tipo de conteúdo */}
               <Box>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => {
-                    const arquivo = e.target.files?.[0];
-                    if (arquivo) {
-                      setNovoRelatorio({...novoRelatorio, arquivo});
+                <Tabs 
+                  value={tabAtiva} 
+                  onChange={(e, newValue) => {
+                    setTabAtiva(newValue);
+                    const tipos = ['pdf', 'iframe', 'canva', 'link'];
+                    setNovoRelatorio({...novoRelatorio, tipoVisualizacao: tipos[newValue] as any});
+                  }}
+                  variant="fullWidth"
+                  sx={{ 
+                    '& .MuiTab-root': { 
+                      minWidth: 'auto',
+                      fontSize: '0.8rem',
+                      padding: '8px 12px'
                     }
                   }}
-                  style={{ display: 'none' }}
-                  id="upload-pdf"
-                />
-                <label htmlFor="upload-pdf">
-                  <Button component="span" variant="outlined" fullWidth startIcon={<UploadIcon />}>
-                    {novoRelatorio.arquivo ? novoRelatorio.arquivo.name : 'Selecionar PDF'}
-                  </Button>
-                </label>
+                >
+                  <Tab label="📄 PDF" />
+                  <Tab label="🖼️ Iframe" />
+                  <Tab label="🎨 Canva" />
+                  <Tab label="🔗 Link" />
+                </Tabs>
+
+                <Box sx={{ mt: 3 }}>
+                  {tabAtiva === 0 && (
+                    <Box>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const arquivo = e.target.files?.[0];
+                          if (arquivo) {
+                            setNovoRelatorio({...novoRelatorio, arquivo});
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="upload-pdf"
+                      />
+                      <label htmlFor="upload-pdf">
+                        <Button component="span" variant="outlined" fullWidth startIcon={<UploadIcon />}>
+                          {novoRelatorio.arquivo ? novoRelatorio.arquivo.name : 'Selecionar PDF'}
+                        </Button>
+                      </label>
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        Upload de PDF para armazenamento local
+                      </Alert>
+                    </Box>
+                  )}
+
+                  {tabAtiva === 1 && (
+                    <Box>
+                      <TextField
+                        label="URL para Iframe"
+                        value={novoRelatorio.linkExterno}
+                        onChange={(e) => setNovoRelatorio({...novoRelatorio, linkExterno: e.target.value})}
+                        fullWidth
+                        placeholder="https://exemplo.com/relatorio"
+                        multiline
+                        rows={3}
+                        helperText="Cole aqui qualquer URL que suporte iframe"
+                      />
+                      <Alert severity="success" sx={{ mt: 2 }}>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+                          🎯 Funciona com:
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          • <strong>Canva</strong> (links de incorporação)<br/>
+                          • <strong>Google Docs/Sheets</strong> (links públicos)<br/>
+                          • <strong>Google Drive</strong> (arquivos públicos)<br/>
+                          • <strong>Notion</strong> (páginas públicas)<br/>
+                          • <strong>YouTube, Vimeo</strong><br/>
+                          • <strong>Qualquer site</strong> que permita iframe
+                        </Typography>
+                      </Alert>
+                    </Box>
+                  )}
+
+                  {tabAtiva === 2 && (
+                    <Box>
+                      <TextField
+                        label="Link do Canva"
+                        value={novoRelatorio.linkCanva}
+                        onChange={(e) => setNovoRelatorio({...novoRelatorio, linkCanva: e.target.value})}
+                        fullWidth
+                        placeholder="https://www.canva.com/design/..."
+                        multiline
+                        rows={2}
+                      />
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+                          Como obter o link do Canva:
+                        </Typography>
+                        <Typography variant="caption" component="div">
+                          1. Abra sua apresentação no Canva<br/>
+                          2. Clique em "Compartilhar" no canto superior direito<br/>
+                          3. Selecione "Mais" e depois "Incorporar"<br/>
+                          4. Cole o link aqui
+                        </Typography>
+                      </Alert>
+                    </Box>
+                  )}
+
+                  {tabAtiva === 3 && (
+                    <Box>
+                      <TextField
+                        label="Link Direto"
+                        value={novoRelatorio.linkExterno}
+                        onChange={(e) => setNovoRelatorio({...novoRelatorio, linkExterno: e.target.value})}
+                        fullWidth
+                        placeholder="https://exemplo.com/relatorio"
+                        multiline
+                        rows={2}
+                      />
+                      <Alert severity="warning" sx={{ mt: 2 }}>
+                        Link direto abrirá em nova aba (não incorporado)
+                      </Alert>
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </Stack>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDialogAberto(false)}>Cancelar</Button>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setDialogAberto(false)}>
+              Cancelar
+            </Button>
             <Button 
               onClick={salvarRelatorio} 
               variant="contained" 
-              disabled={!novoRelatorio.arquivo || !novoRelatorio.nome}
+              disabled={!novoRelatorio.nome}
             >
-              Salvar
+              Salvar Conteúdo
             </Button>
           </DialogActions>
+        </Dialog>
+
+        {/* Dialog para visualização */}
+        <Dialog 
+          open={dialogVisualizacao} 
+          onClose={() => setDialogVisualizacao(false)} 
+          maxWidth="lg" 
+          fullWidth
+          PaperProps={{
+            sx: { height: '95vh', maxHeight: '95vh' }
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider'
+          }}>
+            <Box>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} 
+                {relatorioSelecionado?.nome}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {relatorioSelecionado?.tipo} • {relatorioSelecionado?.dataReferencia}
+              </Typography>
+            </Box>
+            <IconButton 
+              onClick={() => setDialogVisualizacao(false)}
+              sx={{ 
+                backgroundColor: 'rgba(0,0,0,0.04)',
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)' }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: 0, height: '100%' }}>
+            {renderVisualizador()}
+          </DialogContent>
         </Dialog>
       </CardContent>
     </Card>
   );
 };
 
+export default GerenciadorRelatorios;
 // Dados de fallback
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
   'ALOS3': {
