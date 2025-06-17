@@ -1,4 +1,5 @@
 // src/services/portfolioDataService.ts
+import React from 'react';
 
 export interface Ativo {
   id: string;
@@ -143,9 +144,18 @@ class PortfolioDataService {
     }
   ];
 
+  // Verificar se estamos em ambiente browser
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  }
+
   // Métodos para gerenciar ativos
   obterAtivos(): Ativo[] {
     try {
+      if (!this.isBrowser()) {
+        return this.dadosIniciais;
+      }
+
       const dados = localStorage.getItem(this.ATIVOS_KEY);
       if (dados) {
         return JSON.parse(dados);
@@ -166,6 +176,11 @@ class PortfolioDataService {
 
   salvarAtivos(ativos: Ativo[]): void {
     try {
+      if (!this.isBrowser()) {
+        console.warn('localStorage não disponível - executando em ambiente servidor');
+        return;
+      }
+
       localStorage.setItem(this.ATIVOS_KEY, JSON.stringify(ativos));
       this.notificarListeners();
     } catch (error) {
@@ -217,6 +232,10 @@ class PortfolioDataService {
   // Métodos para gerenciar configurações
   obterConfiguracoes(): Configuracao[] {
     try {
+      if (!this.isBrowser()) {
+        return this.configsIniciais;
+      }
+
       const dados = localStorage.getItem(this.CONFIGS_KEY);
       if (dados) {
         return JSON.parse(dados);
@@ -237,6 +256,11 @@ class PortfolioDataService {
 
   salvarConfiguracoes(configuracoes: Configuracao[]): void {
     try {
+      if (!this.isBrowser()) {
+        console.warn('localStorage não disponível - executando em ambiente servidor');
+        return;
+      }
+
       localStorage.setItem(this.CONFIGS_KEY, JSON.stringify(configuracoes));
       this.notificarListeners();
     } catch (error) {
@@ -259,6 +283,10 @@ class PortfolioDataService {
   // Métodos para gerenciar proventos
   obterProventos(ticker?: string): DadosProventos[] {
     try {
+      if (!this.isBrowser()) {
+        return [];
+      }
+
       const dados = localStorage.getItem(this.PROVENTOS_KEY);
       const proventos = dados ? JSON.parse(dados) : [];
       
@@ -275,6 +303,11 @@ class PortfolioDataService {
 
   salvarProventos(ticker: string, proventos: Omit<DadosProventos, 'ticker'>[]): void {
     try {
+      if (!this.isBrowser()) {
+        console.warn('localStorage não disponível - executando em ambiente servidor');
+        return;
+      }
+
       const todosProventos = this.obterProventos();
       
       // Remove proventos antigos do ticker
@@ -328,7 +361,7 @@ class PortfolioDataService {
         this.salvarConfiguracoes(dados.configuracoes);
       }
       
-      if (dados.proventos) {
+      if (dados.proventos && this.isBrowser()) {
         localStorage.setItem(this.PROVENTOS_KEY, JSON.stringify(dados.proventos));
       }
 
@@ -373,6 +406,11 @@ class PortfolioDataService {
   }
 
   limparDados(): void {
+    if (!this.isBrowser()) {
+      console.warn('localStorage não disponível - executando em ambiente servidor');
+      return;
+    }
+
     localStorage.removeItem(this.ATIVOS_KEY);
     localStorage.removeItem(this.CONFIGS_KEY);
     localStorage.removeItem(this.PROVENTOS_KEY);
