@@ -431,23 +431,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             const [csvTicker, data, valor, tipo] = partes;
             
             if (!csvTicker || !data || !valor || !tipo) return null;
-            
-            // Validação segura antes de usar toUpperCase()
-            if (!csvTicker || typeof csvTicker !== 'string' || csvTicker.trim() === '') {
-                return null;
-            }
-
-            if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
-                return null;
-            }
-
-            // Agora é seguro usar toUpperCase()
-            const tickerLimpo = csvTicker.trim().toUpperCase();
-            const tickerAtual = ticker.trim().toUpperCase();
-
-            if (tickerLimpo !== tickerAtual) {
-                return null;
-            }
+           if (!csvTicker || !ticker || csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
 
             const valorNum = parseFloat(valor.replace(',', '.'));
             if (isNaN(valorNum)) return null;
@@ -727,11 +711,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     
     if (relatoriosExistentes) {
       try {
-        const dadosSalvos = JSON.parse(relatoriosExistentes);
-        // Adiciona validação para garantir que os dados são um array
-        if(Array.isArray(dadosSalvos)) {
-            setRelatorios(dadosSalvos);
-        }
+        setRelatorios(JSON.parse(relatoriosExistentes));
       } catch (error) {
         console.error('Erro ao carregar relatórios:', error);
       }
@@ -891,14 +871,12 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                         variant="outlined"
                         sx={{ fontSize: '0.7rem' }}
                       />
-                      {/* ############# INÍCIO DA CORREÇÃO ############# */}
                       <Chip 
-                        label={relatorio.tipoVisualizacao?.toUpperCase() || 'N/D'} 
+                        label={relatorio.tipoVisualizacao.toUpperCase()} 
                         size="small" 
                         color="primary"
                         sx={{ fontSize: '0.7rem' }}
                       />
-                      {/* ############# FIM DA CORREÇÃO ############# */}
                       <Typography variant="caption" color="text.secondary">
                         {relatorio.dataReferencia}
                       </Typography>
@@ -950,7 +928,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                 <Select
                   value={novoRelatorio.tipo}
                   onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
-                  label="Tipo"
                 >
                   <MenuItem value="trimestral">Trimestral</MenuItem>
                   <MenuItem value="anual">Anual</MenuItem>
@@ -958,76 +935,478 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                   <MenuItem value="outros">Outros</MenuItem>
                 </Select>
               </FormControl>
-              
-              {/* Mais campos do formulário aqui... */}
-              
+
+              <TextField
+                label="Data de Referência"
+                type="date"
+                value={novoRelatorio.dataReferencia}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+
+              <Box>
+                <Tabs 
+                  value={tabAtiva} 
+                  onChange={(e, newValue) => {
+                    setTabAtiva(newValue);
+                    const tipos = ['pdf', 'iframe', 'canva', 'link'];
+                    setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: tipos[newValue] as any }));
+                  }}
+                  variant="fullWidth"
+                >
+                  <Tab label="📄 PDF" />
+                  <Tab label="🖼️ Iframe" />
+                  <Tab label="🎨 Canva" />
+                  <Tab label="🔗 Link" />
+                </Tabs>
+
+                <Box sx={{ mt: 3 }}>
+                  {tabAtiva === 1 && (
+                    <TextField
+                      label="URL para Iframe"
+                      value={novoRelatorio.linkExterno}
+                      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
+                      fullWidth
+                      placeholder="https://exemplo.com/relatorio"
+                      multiline
+                      rows={2}
+                      helperText="Funciona com Canva, Google Docs, Notion, YouTube, etc."
+                    />
+                  )}
+
+                  {tabAtiva === 2 && (
+                    <TextField
+                      label="Link do Canva"
+                      value={novoRelatorio.linkCanva}
+                      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkCanva: e.target.value }))}
+                      fullWidth
+                      placeholder="https://www.canva.com/design/..."
+                      multiline
+                      rows={2}
+                      helperText="Link de incorporação do Canva"
+                    />
+                  )}
+
+                  {tabAtiva === 3 && (
+                    <TextField
+                      label="Link Direto"
+                      value={novoRelatorio.linkExterno}
+                      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
+                      fullWidth
+                      placeholder="https://exemplo.com/relatorio"
+                      multiline
+                      rows={2}
+                    />
+                  )}
+                </Box>
+              </Box>
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDialogAberto(false)}>Cancelar</Button>
-            <Button onClick={salvarRelatorio} variant="contained">Salvar</Button>
+            <Button onClick={salvarRelatorio} variant="contained" disabled={!novoRelatorio.nome}>
+              Salvar
+            </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Dialog para visualizar */}
-        <Dialog open={dialogVisualizacao} onClose={() => setDialogVisualizacao(false)} maxWidth="lg" fullWidth>
-            <DialogTitle>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    {relatorioSelecionado?.nome || 'Visualizador'}
-                    <IconButton onClick={() => setDialogVisualizacao(false)}>
-                        <CloseIcon />
-                    </IconButton>
-                </Stack>
-            </DialogTitle>
-            <DialogContent>
-                {renderVisualizador}
-            </DialogContent>
+        {/* Dialog para visualização */}
+        <Dialog 
+          open={dialogVisualizacao} 
+          onClose={() => setDialogVisualizacao(false)} 
+          maxWidth="lg" 
+          fullWidth
+          PaperProps={{ sx: { height: '95vh' } }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2
+          }}>
+            <Typography variant="h6">
+              {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} {relatorioSelecionado?.nome}
+            </Typography>
+            <IconButton onClick={() => setDialogVisualizacao(false)}>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: 0, height: '100%' }}>
+            {renderVisualizador}
+          </DialogContent>
         </Dialog>
-
       </CardContent>
     </Card>
   );
 });
 
-// Mock do componente principal da página para o código funcionar
-export default function EmpresaPage() {
-    const params = useParams();
-    const ticker = Array.isArray(params.ticker) ? params.ticker[0] : params.ticker;
+// Dados de fallback
+const dadosFallback: { [key: string]: EmpresaCompleta } = {
+  'ALOS3': {
+    ticker: 'ALOS3',
+    nomeCompleto: 'Allos S.A.',
+    setor: 'Shoppings',
+    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
+    dataEntrada: '15/01/2021',
+    precoIniciou: 'R$ 26,68',
+    precoTeto: 'R$ 23,76',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '108.500',
+    percentualCarteira: '4.2%'
+  }
+};
 
-    // Dados mock para o exemplo
-    const empresa: EmpresaCompleta | null = ticker ? {
-        ticker: ticker,
-        nomeCompleto: 'Allos',
-        setor: 'Shoppings',
-        descricao: 'Descrição da empresa Allos...',
-        avatar: '',
-        dataEntrada: '01/01/2023',
-        precoIniciou: 'R$ 20,00',
-        precoTeto: 'R$ 30,00',
-        viesAtual: 'Compra',
-        ibovespaEpoca: '110.000',
-        percentualCarteira: '5%',
-    } : null;
-
-    const { dadosFinanceiros, loading: loadingFinanceiro, error: errorFinanceiro, refetch, ultimaAtualizacao } = useDadosFinanceiros(empresa?.ticker || '');
+export default function EmpresaDetalhes() {
+  const params = useParams();
+  const ticker = (params?.ticker as string) || '';
   
-    if (!empresa) {
-        return (
-            <Box sx={{ p: 3 }}>
-                <CircularProgress />
-            </Box>
-        );
+  const [empresa, setEmpresa] = useState<EmpresaCompleta | null>(null);
+  const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
+  
+  const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
+
+  useEffect(() => {
+    if (!ticker) return;
+
+    const carregarDados = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
+          
+          if (dadosAdmin) {
+            const ativos = JSON.parse(dadosAdmin);
+            const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
+            
+            if (ativoEncontrado) {
+              setEmpresa(ativoEncontrado);
+              setDataSource('admin');
+              return;
+            }
+          }
+        }
+
+        const ativoFallback = dadosFallback[ticker];
+        if (ativoFallback) {
+          setEmpresa(ativoFallback);
+          setDataSource('fallback');
+          return;
+        }
+
+        setDataSource('not_found');
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        setDataSource('not_found');
+      }
+    };
+
+    carregarDados();
+  }, [ticker]);
+
+  const empresaCompleta = React.useMemo(() => {
+    if (!empresa) return null;
+    
+    let empresaAtualizada = { ...empresa };
+    
+    if (dadosFinanceiros && dadosFinanceiros.precoAtual > 0) {
+      empresaAtualizada = {
+        ...empresaAtualizada,
+        dadosFinanceiros,
+        viesAtual: calcularViesInteligente(empresa.precoTeto, dadosFinanceiros.precoAtual),
+        statusApi: 'success',
+        ultimaAtualizacao
+      };
+    } else {
+      empresaAtualizada.statusApi = 'error';
     }
     
+    return empresaAtualizada;
+  }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
+
+  const calcularPerformance = useCallback(() => {
+    if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
+    
+    try {
+      const precoEntradaStr = empresaCompleta.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.');
+      const precoEntrada = parseFloat(precoEntradaStr);
+      const precoAtual = empresaCompleta.dadosFinanceiros.precoAtual;
+      
+      if (precoEntrada > 0 && precoAtual > 0) {
+        const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
+        return formatarValor(performance, 'percent');
+      }
+    } catch (error) {
+      console.error('Erro ao calcular performance:', error);
+    }
+    
+    return 'N/A';
+  }, [empresaCompleta]);
+
+  if (!empresaCompleta || dataSource === 'not_found') {
     return (
-        <Box sx={{ p: 3 }}>
-            <Stack spacing={4}>
-                {/* Aqui viriam os outros componentes como Header, MetricCards etc. */}
-                <Typography variant="h4">{empresa.nomeCompleto} ({empresa.ticker})</Typography>
-                
-                <HistoricoDividendos ticker={empresa.ticker} dataEntrada={empresa.dataEntrada} />
-                <GerenciadorRelatorios ticker={empresa.ticker} />
-            </Stack>
-        </Box>
+      <Box sx={{ 
+        p: 3, 
+        textAlign: 'center', 
+        minHeight: '60vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center' 
+      }}>
+        <Typography variant="h4" sx={{ mb: 2, fontWeight: 700 }}>
+          🔍 Empresa não encontrada
+        </Typography>
+        <Typography variant="body1" sx={{ mt: 2, mb: 4, maxWidth: 400, mx: 'auto' }}>
+          O ticker "<strong>{ticker}</strong>" não foi encontrado na nossa base de dados.
+        </Typography>
+        <Button 
+          startIcon={<ArrowLeftIcon />} 
+          onClick={() => window.history.back()}
+          variant="contained"
+          size="large"
+        >
+          Voltar à Lista
+        </Button>
+      </Box>
     );
+  }
+
+  const dados = empresaCompleta.dadosFinanceiros;
+  const precoAtualFormatado = dados?.precoAtual ? formatarValor(dados.precoAtual) : empresaCompleta.precoIniciou;
+  const tendencia = dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined;
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+      {/* Header */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+        <Button 
+          startIcon={<ArrowLeftIcon />} 
+          onClick={() => window.history.back()} 
+          variant="outlined"
+        >
+          Voltar
+        </Button>
+        
+        <Stack direction="row" spacing={2} alignItems="center">
+          {dadosLoading ? (
+            <Alert severity="info" sx={{ py: 0.5 }}>
+              <CircularProgress size={16} sx={{ mr: 1 }} />
+              Carregando...
+            </Alert>
+          ) : dadosError ? (
+            <Alert severity="warning" sx={{ py: 0.5 }}>
+              Erro na API
+            </Alert>
+          ) : dados && dados.precoAtual > 0 ? (
+            <Alert severity="success" sx={{ py: 0.5 }}>
+              Dados da API BRAPI
+            </Alert>
+          ) : (
+            <Alert severity="info" sx={{ py: 0.5 }}>
+              Dados estáticos
+            </Alert>
+          )}
+          
+          <IconButton onClick={refetch} disabled={dadosLoading}>
+            <RefreshIcon />
+          </IconButton>
+        </Stack>
+      </Stack>
+
+      {/* Card principal da empresa */}
+      <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' }}>
+        <CardContent sx={{ p: 4 }}>
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }} 
+            spacing={3} 
+            alignItems={{ xs: 'center', md: 'flex-start' }}
+          >
+            <Avatar 
+              src={empresaCompleta.avatar} 
+              alt={empresaCompleta.ticker} 
+              sx={{ 
+                width: { xs: 100, md: 120 }, 
+                height: { xs: 100, md: 120 },
+                backgroundColor: '#ffffff',
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                color: '#374151'
+              }}
+            >
+              {empresaCompleta.ticker.charAt(0)}
+            </Avatar>
+            <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+              <Stack 
+                direction="row" 
+                spacing={2} 
+                alignItems="center" 
+                justifyContent={{ xs: 'center', md: 'flex-start' }} 
+                sx={{ mb: 1 }}
+              >
+                <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                  {empresaCompleta.ticker}
+                </Typography>
+                {empresaCompleta.tipo === 'FII' && (
+                  <Chip label="FII" color="primary" />
+                )}
+              </Stack>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {empresaCompleta.nomeCompleto}
+              </Typography>
+              <Chip 
+                label={empresaCompleta.setor} 
+                variant="outlined"
+                sx={{ mb: 2 }}
+              />
+              <Typography variant="body1" sx={{ maxWidth: 600 }}>
+                {empresaCompleta.descricao}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
+              {dadosLoading ? (
+                <Skeleton variant="text" width={150} height={60} />
+              ) : (
+                <>
+                  <Typography variant="h2" sx={{ fontWeight: 700 }}>
+                    {precoAtualFormatado}
+                  </Typography>
+                  <Stack 
+                    direction="row" 
+                    spacing={1} 
+                    alignItems="center" 
+                    justifyContent={{ xs: 'center', md: 'flex-end' }}
+                  >
+                    {tendencia && (
+                      <>
+                        {tendencia === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
+                        <Typography sx={{ 
+                          color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
+                          fontWeight: 700, 
+                          fontSize: '1.2rem'
+                        }}>
+                          {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+                        </Typography>
+                      </>
+                    )}
+                  </Stack>
+                </>
+              )}
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* Cards de métricas */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={6} md={3}>
+          <MetricCard 
+            title="COTAÇÃO" 
+            value={precoAtualFormatado}
+            loading={dadosLoading}
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MetricCard 
+            title="VARIAÇÃO HOJE" 
+            value={dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+            loading={dadosLoading}
+            trend={dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined}
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MetricCard 
+            title="PERFORMANCE" 
+            value={calcularPerformance()}
+            trend={calcularPerformance().includes('-') ? 'down' : 'up'}
+            subtitle="desde entrada"
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MetricCard 
+            title="P/L" 
+            value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+            loading={dadosLoading}
+          />
+        </Grid>
+      </Grid>
+
+      {/* Histórico de Dividendos */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
+        </Grid>
+      </Grid>
+
+      {/* Seções secundárias */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <GerenciadorRelatorios ticker={ticker} />
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                📊 Dados da Posição
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.dataEntrada}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoIniciou}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: dados?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: dados?.precoAtual ? '#22c55e' : 'inherit' }}>
+                    {precoAtualFormatado}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Ações rápidas */}
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Card sx={{ backgroundColor: '#f8fafc' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                🚀 Ações Rápidas
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Button 
+                  startIcon={<RefreshIcon />} 
+                  onClick={refetch}
+                  variant="contained"
+                  size="small"
+                  disabled={dadosLoading}
+                >
+                  {dadosLoading ? 'Atualizando...' : 'Atualizar Dados'}
+                </Button>
+                <Button 
+                  onClick={() => window.open(`https://statusinvest.com.br/${empresaCompleta.tipo === 'FII' ? 'fundos-imobiliarios' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
+                  variant="outlined"
+                  size="small"
+                >
+                  📊 Status Invest
+                </Button>
+                <Button 
+                  onClick={() => window.open(`https://www.investidor10.com.br/${empresaCompleta.tipo === 'FII' ? 'fiis' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
+                  variant="outlined"
+                  size="small"
+                >
+                  📈 Investidor10
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
 }
