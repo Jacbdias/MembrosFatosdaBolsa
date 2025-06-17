@@ -783,8 +783,8 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
   );
 };
 
-// Componente para gerenciar relatórios
-import React, { useState, useEffect } from 'react';
+// Componente para gerenciar relatórios - VERSÃO OTIMIZADA
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -819,7 +819,6 @@ const DownloadIcon = () => <span>📥</span>;
 const DeleteIcon = () => <span>🗑</span>;
 const FileIcon = () => <span>📄</span>;
 const ViewIcon = () => <span>👁</span>;
-const LinkIcon = () => <span>🔗</span>;
 const CloseIcon = () => <span>✕</span>;
 
 interface Relatorio {
@@ -835,23 +834,34 @@ interface Relatorio {
   tipoVisualizacao: 'pdf' | 'iframe' | 'canva' | 'link';
 }
 
+interface NovoRelatorio {
+  nome: string;
+  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
+  dataReferencia: string;
+  arquivo: File | null;
+  linkCanva: string;
+  linkExterno: string;
+  tipoVisualizacao: 'pdf' | 'iframe' | 'canva' | 'link';
+}
+
+const INITIAL_FORM_STATE: NovoRelatorio = {
+  nome: '',
+  tipo: 'trimestral',
+  dataReferencia: '',
+  arquivo: null,
+  linkCanva: '',
+  linkExterno: '',
+  tipoVisualizacao: 'iframe'
+};
+
 const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
   const [loadingIframe, setLoadingIframe] = useState(false);
-  const [tabAtiva, setTabAtiva] = useState(1); // Começa na aba Iframe
-  
-  const [novoRelatorio, setNovoRelatorio] = useState({
-    nome: '',
-    tipo: 'trimestral' as const,
-    dataReferencia: '',
-    arquivo: null as File | null,
-    linkCanva: '',
-    linkExterno: '',
-    tipoVisualizacao: 'iframe' as 'pdf' | 'iframe' | 'canva' | 'link'
-  });
+  const [tabAtiva, setTabAtiva] = useState(1);
+  const [novoRelatorio, setNovoRelatorio] = useState<NovoRelatorio>(INITIAL_FORM_STATE);
 
   // Carregar relatórios salvos
   useEffect(() => {
@@ -867,32 +877,45 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
     }
   }, [ticker]);
 
-  // Salvar relatório
-  const salvarRelatorio = () => {
+  // Função para validar formulário
+  const validarFormulario = useCallback(() => {
     if (!novoRelatorio.nome) {
       alert('Digite o nome do relatório');
-      return;
+      return false;
     }
 
-    if (novoRelatorio.tipoVisualizacao === 'pdf' && !novoRelatorio.arquivo) {
-      alert('Selecione um arquivo PDF');
-      return;
+    switch (novoRelatorio.tipoVisualizacao) {
+      case 'pdf':
+        if (!novoRelatorio.arquivo) {
+          alert('Selecione um arquivo PDF');
+          return false;
+        }
+        break;
+      case 'iframe':
+        if (!novoRelatorio.linkExterno) {
+          alert('Insira a URL para iframe');
+          return false;
+        }
+        break;
+      case 'canva':
+        if (!novoRelatorio.linkCanva) {
+          alert('Insira o link do Canva');
+          return false;
+        }
+        break;
+      case 'link':
+        if (!novoRelatorio.linkExterno) {
+          alert('Insira o link externo');
+          return false;
+        }
+        break;
     }
+    return true;
+  }, [novoRelatorio]);
 
-    if (novoRelatorio.tipoVisualizacao === 'iframe' && !novoRelatorio.linkExterno) {
-      alert('Insira a URL para iframe');
-      return;
-    }
-
-    if (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) {
-      alert('Insira o link do Canva');
-      return;
-    }
-
-    if (novoRelatorio.tipoVisualizacao === 'link' && !novoRelatorio.linkExterno) {
-      alert('Insira o link externo');
-      return;
-    }
+  // Salvar relatório
+  const salvarRelatorio = useCallback(() => {
+    if (!validarFormulario()) return;
 
     const processarRelatorio = () => {
       const relatorio: Relatorio = {
@@ -914,93 +937,111 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
       
       setRelatorios(relatoriosExistentes);
       setDialogAberto(false);
-      resetForm();
+      setNovoRelatorio(INITIAL_FORM_STATE);
+      setTabAtiva(1);
     };
 
     if (novoRelatorio.tipoVisualizacao === 'pdf' && novoRelatorio.arquivo) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        processarRelatorio();
-      };
-      reader.readAsDataURL(novoRelatorio.arquivo);
+      // Para PDFs, processamos sem converter para base64 para evitar strings grandes
+      processarRelatorio();
     } else {
       processarRelatorio();
     }
-  };
+  }, [novoRelatorio, ticker, validarFormulario]);
 
-  const resetForm = () => {
-    setNovoRelatorio({
-      nome: '',
-      tipo: 'trimestral',
-      dataReferencia: '',
-      arquivo: null,
-      linkCanva: '',
-      linkExterno: '',
-      tipoVisualizacao: 'iframe'
-    });
-    setTabAtiva(1); // Volta para a aba iframe
-  };
-
-  const excluirRelatorio = (id: string) => {
+  const excluirRelatorio = useCallback((id: string) => {
     if (confirm('Tem certeza que deseja excluir este relatório?')) {
       const chave = `relatorios_${ticker}`;
       const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
       localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
       setRelatorios(relatoriosAtualizados);
     }
-  };
+  }, [relatorios, ticker]);
 
-  const visualizarRelatorio = (relatorio: Relatorio) => {
+  const visualizarRelatorio = useCallback((relatorio: Relatorio) => {
     setRelatorioSelecionado(relatorio);
     setLoadingIframe(true);
     setDialogVisualizacao(true);
-  };
+  }, []);
 
-  const formatarLinkCanva = (link: string) => {
+  const formatarLinkCanva = useCallback((link: string) => {
     if (link.includes('canva.com') && !link.includes('/embed')) {
       return link.replace('/design/', '/embed/') + '?embed';
     }
     return link;
-  };
+  }, []);
 
-  const renderVisualizador = () => {
+  const getIconePorTipo = useCallback((tipo: string) => {
+    switch (tipo) {
+      case 'iframe': return '🖼️';
+      case 'canva': return '🎨';
+      case 'link': return '🔗';
+      case 'pdf': return '📄';
+      default: return '📄';
+    }
+  }, []);
+
+  const getCorChipPorTipo = useCallback((tipo: string) => {
+    switch (tipo) {
+      case 'iframe': return 'primary' as const;
+      case 'canva': return 'secondary' as const;
+      case 'link': return 'info' as const;
+      case 'pdf': return 'default' as const;
+      default: return 'default' as const;
+    }
+  }, []);
+
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+    setTabAtiva(newValue);
+    const tipos: Array<'pdf' | 'iframe' | 'canva' | 'link'> = ['pdf', 'iframe', 'canva', 'link'];
+    setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: tipos[newValue] }));
+  }, []);
+
+  const handleIframeLoad = useCallback(() => {
+    setLoadingIframe(false);
+  }, []);
+
+  // Renderizar visualizador
+  const renderVisualizador = useMemo(() => {
     if (!relatorioSelecionado) return null;
 
-    const handleIframeLoad = () => {
-      setLoadingIframe(false);
+    const commonIframeProps = {
+      style: {
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        borderRadius: '8px'
+      },
+      allowFullScreen: true,
+      onLoad: handleIframeLoad
     };
+
+    const loadingComponent = (
+      <Box sx={{ 
+        position: 'absolute', 
+        top: '50%', 
+        left: '50%', 
+        transform: 'translate(-50%, -50%)',
+        zIndex: 1,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: 2,
+        p: 3
+      }}>
+        <CircularProgress />
+        <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+          Carregando conteúdo...
+        </Typography>
+      </Box>
+    );
 
     switch (relatorioSelecionado.tipoVisualizacao) {
       case 'iframe':
         return (
           <Box sx={{ position: 'relative', height: '80vh' }}>
-            {loadingIframe && (
-              <Box sx={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)',
-                zIndex: 1,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: 2,
-                p: 3
-              }}>
-                <CircularProgress />
-                <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-                  Carregando conteúdo...
-                </Typography>
-              </Box>
-            )}
+            {loadingIframe && loadingComponent}
             <iframe
               src={relatorioSelecionado.linkExterno}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: '8px'
-              }}
-              allowFullScreen
-              onLoad={handleIframeLoad}
+              {...commonIframeProps}
               sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
             />
           </Box>
@@ -1009,33 +1050,10 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
       case 'canva':
         return (
           <Box sx={{ position: 'relative', height: '80vh' }}>
-            {loadingIframe && (
-              <Box sx={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)',
-                zIndex: 1,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: 2,
-                p: 3
-              }}>
-                <CircularProgress />
-                <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-                  Carregando apresentação do Canva...
-                </Typography>
-              </Box>
-            )}
+            {loadingIframe && loadingComponent}
             <iframe
               src={formatarLinkCanva(relatorioSelecionado.linkCanva!)}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: '8px'
-              }}
-              allowFullScreen
-              onLoad={handleIframeLoad}
+              {...commonIframeProps}
             />
           </Box>
         );
@@ -1043,33 +1061,10 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
       case 'link':
         return (
           <Box sx={{ position: 'relative', height: '80vh' }}>
-            {loadingIframe && (
-              <Box sx={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)',
-                zIndex: 1,
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: 2,
-                p: 3
-              }}>
-                <CircularProgress />
-                <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-                  Carregando conteúdo...
-                </Typography>
-              </Box>
-            )}
+            {loadingIframe && loadingComponent}
             <iframe
               src={relatorioSelecionado.linkExterno}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: '8px'
-              }}
-              allowFullScreen
-              onLoad={handleIframeLoad}
+              {...commonIframeProps}
             />
           </Box>
         );
@@ -1099,27 +1094,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
           </Box>
         );
     }
-  };
-
-  const getIconePorTipo = (tipo: string) => {
-    switch (tipo) {
-      case 'iframe': return '🖼️';
-      case 'canva': return '🎨';
-      case 'link': return '🔗';
-      case 'pdf': return '📄';
-      default: return '📄';
-    }
-  };
-
-  const getCorChipPorTipo = (tipo: string) => {
-    switch (tipo) {
-      case 'iframe': return 'primary';
-      case 'canva': return 'secondary';
-      case 'link': return 'info';
-      case 'pdf': return 'default';
-      default: return 'default';
-    }
-  };
+  }, [relatorioSelecionado, loadingIframe, formatarLinkCanva, handleIframeLoad]);
 
   return (
     <Card>
@@ -1196,10 +1171,6 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                       color="primary"
                       onClick={() => visualizarRelatorio(relatorio)}
                       title="Visualizar"
-                      sx={{
-                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                        '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.16)' }
-                      }}
                     >
                       <ViewIcon />
                     </IconButton>
@@ -1208,10 +1179,6 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                         size="small" 
                         color="info"
                         title="Baixar"
-                        sx={{
-                          backgroundColor: 'rgba(2, 136, 209, 0.08)',
-                          '&:hover': { backgroundColor: 'rgba(2, 136, 209, 0.16)' }
-                        }}
                       >
                         <DownloadIcon />
                       </IconButton>
@@ -1221,10 +1188,6 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                       color="error"
                       onClick={() => excluirRelatorio(relatorio.id)}
                       title="Excluir"
-                      sx={{
-                        backgroundColor: 'rgba(211, 47, 47, 0.08)',
-                        '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.16)' }
-                      }}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -1248,9 +1211,9 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
               <TextField
                 label="Nome do Relatório"
                 value={novoRelatorio.nome}
-                onChange={(e) => setNovoRelatorio({...novoRelatorio, nome: e.target.value})}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
                 fullWidth
-                placeholder="Ex: Resultados 3T24, Apresentação Investidores"
+                placeholder="Ex: Resultados 3T24"
                 required
               />
               
@@ -1258,7 +1221,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                 <InputLabel>Tipo de Relatório</InputLabel>
                 <Select
                   value={novoRelatorio.tipo}
-                  onChange={(e) => setNovoRelatorio({...novoRelatorio, tipo: e.target.value as any})}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
                 >
                   <MenuItem value="trimestral">Resultado Trimestral</MenuItem>
                   <MenuItem value="anual">Resultado Anual</MenuItem>
@@ -1271,28 +1234,16 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                 label="Data de Referência"
                 type="date"
                 value={novoRelatorio.dataReferencia}
-                onChange={(e) => setNovoRelatorio({...novoRelatorio, dataReferencia: e.target.value})}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
                 InputLabelProps={{ shrink: true }}
                 fullWidth
               />
 
-              {/* Tabs para tipo de conteúdo */}
               <Box>
                 <Tabs 
                   value={tabAtiva} 
-                  onChange={(e, newValue) => {
-                    setTabAtiva(newValue);
-                    const tipos = ['pdf', 'iframe', 'canva', 'link'];
-                    setNovoRelatorio({...novoRelatorio, tipoVisualizacao: tipos[newValue] as any});
-                  }}
+                  onChange={handleTabChange}
                   variant="fullWidth"
-                  sx={{ 
-                    '& .MuiTab-root': { 
-                      minWidth: 'auto',
-                      fontSize: '0.8rem',
-                      padding: '8px 12px'
-                    }
-                  }}
                 >
                   <Tab label="📄 PDF" />
                   <Tab label="🖼️ Iframe" />
@@ -1309,7 +1260,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                         onChange={(e) => {
                           const arquivo = e.target.files?.[0];
                           if (arquivo) {
-                            setNovoRelatorio({...novoRelatorio, arquivo});
+                            setNovoRelatorio(prev => ({ ...prev, arquivo }));
                           }
                         }}
                         style={{ display: 'none' }}
@@ -1331,7 +1282,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                       <TextField
                         label="URL para Iframe"
                         value={novoRelatorio.linkExterno}
-                        onChange={(e) => setNovoRelatorio({...novoRelatorio, linkExterno: e.target.value})}
+                        onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
                         fullWidth
                         placeholder="https://exemplo.com/relatorio"
                         multiline
@@ -1343,12 +1294,9 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                           🎯 Funciona com:
                         </Typography>
                         <Typography variant="caption" component="div">
-                          • <strong>Canva</strong> (links de incorporação)<br/>
-                          • <strong>Google Docs/Sheets</strong> (links públicos)<br/>
-                          • <strong>Google Drive</strong> (arquivos públicos)<br/>
-                          • <strong>Notion</strong> (páginas públicas)<br/>
-                          • <strong>YouTube, Vimeo</strong><br/>
-                          • <strong>Qualquer site</strong> que permita iframe
+                          • Canva, Google Docs/Sheets, Google Drive<br/>
+                          • Notion, YouTube, Vimeo<br/>
+                          • Qualquer site que permita iframe
                         </Typography>
                       </Alert>
                     </Box>
@@ -1359,7 +1307,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                       <TextField
                         label="Link do Canva"
                         value={novoRelatorio.linkCanva}
-                        onChange={(e) => setNovoRelatorio({...novoRelatorio, linkCanva: e.target.value})}
+                        onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkCanva: e.target.value }))}
                         fullWidth
                         placeholder="https://www.canva.com/design/..."
                         multiline
@@ -1371,9 +1319,8 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                         </Typography>
                         <Typography variant="caption" component="div">
                           1. Abra sua apresentação no Canva<br/>
-                          2. Clique em "Compartilhar" no canto superior direito<br/>
-                          3. Selecione "Mais" e depois "Incorporar"<br/>
-                          4. Cole o link aqui
+                          2. Clique em "Compartilhar" → "Mais" → "Incorporar"<br/>
+                          3. Cole o link aqui
                         </Typography>
                       </Alert>
                     </Box>
@@ -1384,7 +1331,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
                       <TextField
                         label="Link Direto"
                         value={novoRelatorio.linkExterno}
-                        onChange={(e) => setNovoRelatorio({...novoRelatorio, linkExterno: e.target.value})}
+                        onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
                         fullWidth
                         placeholder="https://exemplo.com/relatorio"
                         multiline
@@ -1442,16 +1389,12 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
             </Box>
             <IconButton 
               onClick={() => setDialogVisualizacao(false)}
-              sx={{ 
-                backgroundColor: 'rgba(0,0,0,0.04)',
-                '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)' }
-              }}
             >
               <CloseIcon />
             </IconButton>
           </DialogTitle>
           <DialogContent sx={{ p: 0, height: '100%' }}>
-            {renderVisualizador()}
+            {renderVisualizador}
           </DialogContent>
         </Dialog>
       </CardContent>
@@ -1460,6 +1403,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
 };
 
 export default GerenciadorRelatorios;
+
 // Dados de fallback
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
   'ALOS3': {
