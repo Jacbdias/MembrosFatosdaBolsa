@@ -355,6 +355,48 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Carregar dados salvos ao inicializar o componente
+  useEffect(() => {
+    if (ticker && typeof window !== 'undefined') {
+      const chaveStorage = `proventos_${ticker}`;
+      const dadosSalvos = localStorage.getItem(chaveStorage);
+      
+      if (dadosSalvos) {
+        try {
+          const proventosSalvos = JSON.parse(dadosSalvos);
+          
+          // Recriar objetos Date que são perdidos na serialização
+          const proventosComData = proventosSalvos.map((item: any) => ({
+            ...item,
+            dataObj: new Date(item.dataObj)
+          }));
+          
+          setProventos(proventosComData);
+        } catch (err) {
+          console.error('Erro ao carregar proventos salvos:', err);
+          // Limpar dados corrompidos
+          localStorage.removeItem(chaveStorage);
+        }
+      }
+    }
+  }, [ticker]);
+
+  const salvarProventos = (novosProventos: any[]) => {
+    if (ticker && typeof window !== 'undefined') {
+      const chaveStorage = `proventos_${ticker}`;
+      localStorage.setItem(chaveStorage, JSON.stringify(novosProventos));
+    }
+  };
+
+  const limparProventos = () => {
+    if (ticker && typeof window !== 'undefined') {
+      const chaveStorage = `proventos_${ticker}`;
+      localStorage.removeItem(chaveStorage);
+      setProventos([]);
+      setError(null);
+    }
+  };
+
   const handleArquivoCSV = (file: File) => {
     setLoading(true);
     setError(null);
@@ -443,8 +485,13 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
 
         setProventos(dadosFiltrados);
         
+        // SALVAR NO LOCALSTORAGE
+        salvarProventos(dadosFiltrados);
+        
         if (dadosFiltrados.length === 0) {
           setError(`Nenhum provento encontrado para ${ticker} após ${dataEntrada || 'a data de entrada'}`);
+        } else {
+          setError(null); // Limpar erro se dados foram carregados com sucesso
         }
 
       } catch (err) {
@@ -489,7 +536,18 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             💰 Histórico de Proventos
           </Typography>
-          <Box>
+          <Stack direction="row" spacing={1}>
+            {proventos.length > 0 && (
+              <Button 
+                variant="outlined" 
+                size="small" 
+                color="error"
+                onClick={limparProventos}
+                sx={{ mr: 1 }}
+              >
+                🗑️ Limpar
+              </Button>
+            )}
             <input
               type="file"
               accept=".csv"
@@ -511,7 +569,7 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
                 {loading ? 'Processando...' : 'Carregar CSV'}
               </Button>
             </label>
-          </Box>
+          </Stack>
         </Stack>
 
         {/* Instruções do formato CSV */}
@@ -549,9 +607,19 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
             <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
               Carregue um arquivo CSV com o histórico de proventos
             </Typography>
+            <Typography variant="caption" sx={{ mt: 1, display: 'block', fontStyle: 'italic', color: '#22c55e' }}>
+              💾 Os dados serão salvos automaticamente e mantidos após recarregar a página
+            </Typography>
           </Box>
         ) : (
           <>
+            {/* Indicador de dados persistidos */}
+            {proventos.length > 0 && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                💾 <strong>{proventos.length} proventos carregados</strong> - Os dados estão salvos localmente e persistem entre as sessões.
+              </Alert>
+            )}
+
             {/* Resumo dos proventos - LAYOUT HORIZONTAL OTIMIZADO */}
             <Box sx={{ mb: 4 }}>
               <Typography variant="subtitle1" sx={{ mb: 3, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
