@@ -1143,12 +1143,23 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   );
 };
 
-// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS CORRIGIDO
-'use client';
-
-import * as React from 'react';
-import { useState } from 'react';
-import { Card, CardContent, Typography, Stack, Box, Button, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@mui/material';
+// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS - VERSÃO SIMPLIFICADA
+import React, { useState } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Stack, 
+  Box, 
+  Button, 
+  TableContainer, 
+  Table, 
+  TableHead, 
+  TableRow, 
+  TableCell, 
+  TableBody, 
+  Chip 
+} from '@mui/material';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 
 interface DividendoDetalhado {
@@ -1159,7 +1170,12 @@ interface DividendoDetalhado {
   valorFormatado: string;
 }
 
-const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
+interface Props {
+  ticker: string;
+  dataEntrada: string;
+}
+
+const HistoricoDividendos: React.FC<Props> = ({ ticker, dataEntrada }) => {
   const [proventos, setProventos] = useState<DividendoDetalhado[]>([]);
 
   const handleArquivo = (file: File) => {
@@ -1169,48 +1185,24 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
         const text = e.target?.result as string;
         let dados: DividendoDetalhado[] = [];
 
-        if (file.name.endsWith('.json')) {
-          dados = JSON.parse(text);
-        } else if (file.name.endsWith('.csv')) {
-          // Parse do CSV linha por linha
+        if (file.name.toLowerCase().endsWith('.csv')) {
+          // Parse do CSV
           const linhas = text.split('\n').filter(linha => linha.trim());
-          const header = linhas[0];
           
-          console.log('📊 Header encontrado:', header);
-          console.log('📊 Total de linhas:', linhas.length);
-          
-          // Processar cada linha (pular header)
           dados = linhas
             .slice(1) // Pular header
-            .map((linha, index) => {
+            .map((linha) => {
               const partes = linha.split(',').map(p => p.trim());
-              console.log(`📊 Linha ${index + 2}:`, partes);
               
-              if (partes.length < 4) {
-                console.log(`⚠️ Linha ${index + 2} tem menos de 4 colunas:`, partes);
-                return null;
-              }
+              if (partes.length < 4) return null;
 
               const [csvTicker, date, value, type] = partes;
               
-              // Validações básicas
-              if (!csvTicker || !date || !value || !type) {
-                console.log(`⚠️ Linha ${index + 2} tem campos vazios:`, { csvTicker, date, value, type });
-                return null;
-              }
-              
-              // Verificar se é o ticker correto
-              if (csvTicker.toUpperCase() !== ticker.toUpperCase()) {
-                console.log(`⚠️ Ticker diferente: ${csvTicker} !== ${ticker}`);
-                return null;
-              }
+              if (!csvTicker || !date || !value || !type) return null;
+              if (csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
 
               const numValue = parseFloat(value.replace(',', '.'));
-              
-              if (isNaN(numValue)) {
-                console.log(`⚠️ Valor inválido na linha ${index + 2}:`, value);
-                return null;
-              }
+              if (isNaN(numValue)) return null;
 
               return {
                 date: date,
@@ -1223,47 +1215,29 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
             .filter((item): item is DividendoDetalhado => item !== null);
         }
 
-        console.log('📊 Dados processados:', dados);
-        console.log('📊 Data de entrada para filtro:', dataEntrada);
-
-        // 🔍 FILTRAR POR DATA DE ENTRADA (CORRIGIDO)
+        // Filtrar por data de entrada
         const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
         dataEntradaDate.setHours(0, 0, 0, 0);
-        
-        console.log('📊 Data de entrada convertida:', dataEntradaDate);
 
         const dadosFiltrados = dados
           .filter((div) => {
             const dataDiv = new Date(div.date);
             dataDiv.setHours(0, 0, 0, 0);
-            
-            const isAfterEntry = dataDiv >= dataEntradaDate;
-            
-            console.log(`📅 ${div.date} (${div.dataFormatada}) - Após entrada: ${isAfterEntry}`);
-            
-            return isAfterEntry;
+            return dataDiv >= dataEntradaDate;
           })
-          // 🔄 ORDENAR DO MAIS RECENTE PARA O MAIS ANTIGO (CORRIGIDO)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        console.log('📊 Dados filtrados e ordenados:', dadosFiltrados);
-        console.log(`✅ Total de proventos válidos: ${dadosFiltrados.length}`);
 
         setProventos(dadosFiltrados);
 
-        if (dadosFiltrados.length === 0) {
-          alert(`⚠️ Nenhum provento encontrado para ${ticker} após a data de entrada (${dataEntrada})`);
-        } else {
-          alert(`✅ ${dadosFiltrados.length} proventos carregados com sucesso!`);
-        }
-
       } catch (err) {
-        console.error('❌ Erro ao processar arquivo:', err);
-        alert('❌ Erro ao carregar arquivo: ' + err);
+        console.error('Erro ao processar arquivo:', err);
       }
     };
     reader.readAsText(file);
   };
+
+  const totalProventos = proventos.reduce((sum, div) => sum + div.value, 0);
+  const mediaProvento = proventos.length > 0 ? totalProventos / proventos.length : 0;
 
   return (
     <Card>
@@ -1275,7 +1249,7 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
           <Box>
             <input
               type="file"
-              accept=".csv,.json"
+              accept=".csv"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleArquivo(file);
@@ -1285,7 +1259,7 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
             />
             <label htmlFor="upload-proventos">
               <Button component="span" variant="outlined" size="small" startIcon={<UploadIcon />}>
-                Carregar Proventos
+                Carregar CSV
               </Button>
             </label>
           </Box>
@@ -1294,15 +1268,15 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
         {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
-              Nenhum provento carregado para {ticker}. Selecione um arquivo CSV ou JSON.
+              Nenhum provento carregado para {ticker}
             </Typography>
             <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-              📅 Data de entrada: {dataEntrada} - Apenas proventos após esta data serão exibidos
+              📅 Data de entrada: {dataEntrada}
             </Typography>
           </Box>
         ) : (
           <>
-            {/* 📊 RESUMO DOS PROVENTOS */}
+            {/* Resumo */}
             <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
               <Stack direction="row" spacing={4} justifyContent="center">
                 <Box sx={{ textAlign: 'center' }}>
@@ -1310,28 +1284,29 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
                     {proventos.length}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Total de Pagamentos
+                    Pagamentos
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
-                    R$ {proventos.reduce((sum, div) => sum + div.value, 0).toFixed(2).replace('.', ',')}
+                    R$ {totalProventos.toFixed(2).replace('.', ',')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Valor Total
+                    Total
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
-                    R$ {(proventos.reduce((sum, div) => sum + div.value, 0) / proventos.length).toFixed(2).replace('.', ',')}
+                    R$ {mediaProvento.toFixed(2).replace('.', ',')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Média por Pagamento
+                    Média
                   </Typography>
                 </Box>
               </Stack>
             </Box>
 
+            {/* Tabela */}
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -1343,7 +1318,7 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
                 </TableHead>
                 <TableBody>
                   {proventos.map((div, index) => (
-                    <TableRow key={index} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9fafb' } }}>
+                    <TableRow key={`${div.date}-${index}`}>
                       <TableCell>{div.dataFormatada}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
                         {div.valorFormatado}
