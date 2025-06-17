@@ -1143,7 +1143,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   );
 };
 
-// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS MELHORADO
+// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS CORRIGIDO
 'use client';
 
 import * as React from 'react';
@@ -1172,18 +1172,45 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
         if (file.name.endsWith('.json')) {
           dados = JSON.parse(text);
         } else if (file.name.endsWith('.csv')) {
-          dados = text
-            .split('\n')
-            .slice(1)
-            .map((linha) => {
-              const partes = linha.split(',');
-              if (partes.length < 4) return null;
+          // Parse do CSV linha por linha
+          const linhas = text.split('\n').filter(linha => linha.trim());
+          const header = linhas[0];
+          
+          console.log('📊 Header encontrado:', header);
+          console.log('📊 Total de linhas:', linhas.length);
+          
+          // Processar cada linha (pular header)
+          dados = linhas
+            .slice(1) // Pular header
+            .map((linha, index) => {
+              const partes = linha.split(',').map(p => p.trim());
+              console.log(`📊 Linha ${index + 2}:`, partes);
+              
+              if (partes.length < 4) {
+                console.log(`⚠️ Linha ${index + 2} tem menos de 4 colunas:`, partes);
+                return null;
+              }
 
-              const [csvTicker, date, value, type] = partes.map((p) => p?.trim());
-              if (!csvTicker || !date || !value || !type) return null;
-              if (csvTicker !== ticker) return null;
+              const [csvTicker, date, value, type] = partes;
+              
+              // Validações básicas
+              if (!csvTicker || !date || !value || !type) {
+                console.log(`⚠️ Linha ${index + 2} tem campos vazios:`, { csvTicker, date, value, type });
+                return null;
+              }
+              
+              // Verificar se é o ticker correto
+              if (csvTicker.toUpperCase() !== ticker.toUpperCase()) {
+                console.log(`⚠️ Ticker diferente: ${csvTicker} !== ${ticker}`);
+                return null;
+              }
 
               const numValue = parseFloat(value.replace(',', '.'));
+              
+              if (isNaN(numValue)) {
+                console.log(`⚠️ Valor inválido na linha ${index + 2}:`, value);
+                return null;
+              }
 
               return {
                 date: date,
@@ -1196,20 +1223,43 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
             .filter((item): item is DividendoDetalhado => item !== null);
         }
 
+        console.log('📊 Dados processados:', dados);
+        console.log('📊 Data de entrada para filtro:', dataEntrada);
+
+        // 🔍 FILTRAR POR DATA DE ENTRADA (CORRIGIDO)
         const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
         dataEntradaDate.setHours(0, 0, 0, 0);
+        
+        console.log('📊 Data de entrada convertida:', dataEntradaDate);
 
         const dadosFiltrados = dados
           .filter((div) => {
             const dataDiv = new Date(div.date);
             dataDiv.setHours(0, 0, 0, 0);
-            return dataDiv >= dataEntradaDate;
+            
+            const isAfterEntry = dataDiv >= dataEntradaDate;
+            
+            console.log(`📅 ${div.date} (${div.dataFormatada}) - Após entrada: ${isAfterEntry}`);
+            
+            return isAfterEntry;
           })
+          // 🔄 ORDENAR DO MAIS RECENTE PARA O MAIS ANTIGO (CORRIGIDO)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+        console.log('📊 Dados filtrados e ordenados:', dadosFiltrados);
+        console.log(`✅ Total de proventos válidos: ${dadosFiltrados.length}`);
+
         setProventos(dadosFiltrados);
+
+        if (dadosFiltrados.length === 0) {
+          alert(`⚠️ Nenhum provento encontrado para ${ticker} após a data de entrada (${dataEntrada})`);
+        } else {
+          alert(`✅ ${dadosFiltrados.length} proventos carregados com sucesso!`);
+        }
+
       } catch (err) {
-        alert('Erro ao carregar arquivo: ' + err);
+        console.error('❌ Erro ao processar arquivo:', err);
+        alert('❌ Erro ao carregar arquivo: ' + err);
       }
     };
     reader.readAsText(file);
@@ -1246,37 +1296,73 @@ const HistoricoDividendos = ({ ticker, dataEntrada }: { ticker: string; dataEntr
             <Typography variant="body2">
               Nenhum provento carregado para {ticker}. Selecione um arquivo CSV ou JSON.
             </Typography>
+            <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+              📅 Data de entrada: {dataEntrada} - Apenas proventos após esta data serão exibidos
+            </Typography>
           </Box>
         ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Data</TableCell>
-                  <TableCell align="right">Valor</TableCell>
-                  <TableCell align="right">Tipo</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {proventos.map((div, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{div.dataFormatada}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
-                      {div.valorFormatado}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Chip
-                        label={div.type}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                    </TableCell>
+          <>
+            {/* 📊 RESUMO DOS PROVENTOS */}
+            <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+              <Stack direction="row" spacing={4} justifyContent="center">
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
+                    {proventos.length}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total de Pagamentos
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
+                    R$ {proventos.reduce((sum, div) => sum + div.value, 0).toFixed(2).replace('.', ',')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Valor Total
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
+                    R$ {(proventos.reduce((sum, div) => sum + div.value, 0) / proventos.length).toFixed(2).replace('.', ',')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Média por Pagamento
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Valor</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Tipo</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {proventos.map((div, index) => (
+                    <TableRow key={index} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9fafb' } }}>
+                      <TableCell>{div.dataFormatada}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
+                        {div.valorFormatado}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={div.type}
+                          size="small"
+                          variant="outlined"
+                          color={div.type === 'JCP' ? 'secondary' : 'primary'}
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
         )}
       </CardContent>
     </Card>
