@@ -431,7 +431,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             const [csvTicker, data, valor, tipo] = partes;
             
             if (!csvTicker || !data || !valor || !tipo) return null;
-            if (csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
+           if (!csvTicker || !ticker || csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
 
             const valorNum = parseFloat(valor.replace(',', '.'));
             if (isNaN(valorNum)) return null;
