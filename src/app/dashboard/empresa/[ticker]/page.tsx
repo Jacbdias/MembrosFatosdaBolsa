@@ -431,7 +431,22 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             const [csvTicker, data, valor, tipo] = partes;
             
             if (!csvTicker || !data || !valor || !tipo) return null;
-           if (!csvTicker || !ticker || csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
+// Validação segura antes de usar toUpperCase()
+if (!csvTicker || typeof csvTicker !== 'string' || csvTicker.trim() === '') {
+  return null;
+}
+
+if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
+  return null;
+}
+
+// Agora é seguro usar toUpperCase()
+const tickerLimpo = csvTicker.trim().toUpperCase();
+const tickerAtual = ticker.trim().toUpperCase();
+
+if (tickerLimpo !== tickerAtual) {
+  return null;
+}
 
             const valorNum = parseFloat(valor.replace(',', '.'));
             if (isNaN(valorNum)) return null;
