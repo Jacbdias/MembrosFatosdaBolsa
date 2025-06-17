@@ -38,177 +38,125 @@ export interface DadosProventos {
   tipo: string;
 }
 
-export interface UsePortfolioDataReturn {
-  ativos: Ativo[];
-  configuracoes: Configuracao[];
-  loading: boolean;
-  service: PortfolioDataService;
-  refetch: () => void;
-}
-
-export interface UseAtivoReturn {
-  ativo: Ativo | null;
-  loading: boolean;
-  refetch: () => void;
-}
-
-// Constantes para as chaves
-const STORAGE_KEYS = {
-  ATIVOS: 'portfolioDataAdmin',
-  CONFIGS: 'configuracoesAdmin',
-  PROVENTOS: 'proventosData'
-} as const;
-
-// Dados iniciais mais compactos
-const DADOS_INICIAIS: Ativo[] = [
-  {
-    id: '1',
-    ticker: 'ALOS3',
-    nomeCompleto: 'Allos S.A.',
-    setor: 'Shoppings',
-    tipo: 'ACAO',
-    descricao: 'Empresa de shopping centers de alto padrão.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
-    dataEntrada: '15/01/2021',
-    precoIniciou: 'R$ 26,68',
-    precoTeto: 'R$ 23,76',
-    viesAtual: 'Aguardar',
-    ibovespaEpoca: '108.500',
-    percentualCarteira: '4.2%',
-    dy: '5,95%',
-    ativo: true,
-    observacoes: 'Potencial de recuperação',
-    criadoEm: '2024-01-15T10:00:00Z',
-    atualizadoEm: '2024-06-16T15:30:00Z'
-  },
-  {
-    id: '2',
-    ticker: 'PETR4',
-    nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
-    setor: 'Petróleo',
-    tipo: 'ACAO',
-    descricao: 'Empresa brasileira de energia e petróleo.',
-    avatar: 'https://www.fundamentus.com.br/logos/PETR4.png',
-    dataEntrada: '10/03/2022',
-    precoIniciou: 'R$ 28,50',
-    precoTeto: 'R$ 35,00',
-    viesAtual: 'Compra',
-    ibovespaEpoca: '112.500',
-    percentualCarteira: '6.8%',
-    dy: '12,45%',
-    ativo: true,
-    observacoes: 'Dividendos consistentes',
-    criadoEm: '2024-01-15T10:00:00Z',
-    atualizadoEm: '2024-06-16T15:30:00Z'
-  },
-  {
-    id: '3',
-    ticker: 'HGLG11',
-    nomeCompleto: 'CSHG Logística FII',
-    setor: 'Fundos Logísticos',
-    tipo: 'FII',
-    descricao: 'FII focado em ativos logísticos.',
-    avatar: 'https://fundamentus.com.br/logos/HGLG11.png',
-    dataEntrada: '20/02/2023',
-    precoIniciou: 'R$ 165,00',
-    precoTeto: 'R$ 180,00',
-    viesAtual: 'Compra Forte',
-    ibovespaEpoca: '115.200',
-    percentualCarteira: '8.5%',
-    dy: '9,80%',
-    gestora: 'CSHG Asset Management',
-    ativo: true,
-    observacoes: 'Boa distribuição',
-    criadoEm: '2024-01-15T10:00:00Z',
-    atualizadoEm: '2024-06-16T15:30:00Z'
-  }
-];
-
-const CONFIGS_INICIAIS: Configuracao[] = [
-  {
-    id: '1',
-    chave: 'BRAPI_TOKEN',
-    valor: 'jJrMYVy9MATGEicx3GxBp8',
-    descricao: 'Token de acesso à API BRAPI',
-    tipo: 'text'
-  },
-  {
-    id: '2',
-    chave: 'ATUALIZACAO_AUTOMATICA',
-    valor: 'true',
-    descricao: 'Atualização automática de preços',
-    tipo: 'boolean'
-  },
-  {
-    id: '3',
-    chave: 'INTERVALO_ATUALIZACAO',
-    valor: '300000',
-    descricao: 'Intervalo de atualização (ms)',
-    tipo: 'number'
-  },
-  {
-    id: '4',
-    chave: 'TEMA_INTERFACE',
-    valor: 'claro',
-    descricao: 'Tema da interface',
-    tipo: 'select',
-    opcoes: ['claro', 'escuro', 'auto']
-  }
-];
-
 class PortfolioDataService {
-  private listeners: (() => void)[] = [];
+  private readonly ATIVOS_KEY = 'portfolioDataAdmin';
+  private readonly CONFIGS_KEY = 'configuracoesAdmin';
+  private readonly PROVENTOS_KEY = 'proventosData';
+  
+  private listeners: Array<() => void> = [];
 
-  // Storage helper com lazy evaluation
-  private getStorage(): Storage | null {
+  private getDefaultAtivos(): Ativo[] {
+    return [
+      {
+        id: '1',
+        ticker: 'ALOS3',
+        nomeCompleto: 'Allos S.A.',
+        setor: 'Shoppings',
+        tipo: 'ACAO',
+        descricao: 'Empresa de shopping centers.',
+        avatar: '',
+        dataEntrada: '15/01/2021',
+        precoIniciou: 'R$ 26,68',
+        precoTeto: 'R$ 23,76',
+        viesAtual: 'Aguardar',
+        ibovespaEpoca: '108.500',
+        percentualCarteira: '4.2%',
+        dy: '5,95%',
+        ativo: true,
+        observacoes: '',
+        criadoEm: '2024-01-15T10:00:00Z',
+        atualizadoEm: '2024-06-16T15:30:00Z'
+      },
+      {
+        id: '2',
+        ticker: 'PETR4',
+        nomeCompleto: 'Petróleo Brasileiro S.A.',
+        setor: 'Petróleo',
+        tipo: 'ACAO',
+        descricao: 'Empresa de energia.',
+        avatar: '',
+        dataEntrada: '10/03/2022',
+        precoIniciou: 'R$ 28,50',
+        precoTeto: 'R$ 35,00',
+        viesAtual: 'Compra',
+        ibovespaEpoca: '112.500',
+        percentualCarteira: '6.8%',
+        dy: '12,45%',
+        ativo: true,
+        observacoes: '',
+        criadoEm: '2024-01-15T10:00:00Z',
+        atualizadoEm: '2024-06-16T15:30:00Z'
+      }
+    ];
+  }
+
+  private getDefaultConfigs(): Configuracao[] {
+    return [
+      {
+        id: '1',
+        chave: 'BRAPI_TOKEN',
+        valor: 'jJrMYVy9MATGEicx3GxBp8',
+        descricao: 'Token API',
+        tipo: 'text'
+      },
+      {
+        id: '2',
+        chave: 'TEMA_INTERFACE',
+        valor: 'claro',
+        descricao: 'Tema',
+        tipo: 'select',
+        opcoes: ['claro', 'escuro']
+      }
+    ];
+  }
+
+  private isClient(): boolean {
+    return typeof window !== 'undefined';
+  }
+
+  private getFromStorage(key: string): any {
+    if (!this.isClient()) return null;
+    
     try {
-      if (typeof window === 'undefined' || !window.localStorage) return null;
-      
-      // Teste rápido
-      const test = '__test__';
-      window.localStorage.setItem(test, '1');
-      window.localStorage.removeItem(test);
-      return window.localStorage;
-    } catch {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Erro ao ler storage:', error);
       return null;
     }
   }
 
-  // Métodos de ativo otimizados
-  obterAtivos(): Ativo[] {
-    const storage = this.getStorage();
-    if (!storage) return [...DADOS_INICIAIS];
-
+  private setToStorage(key: string, value: any): void {
+    if (!this.isClient()) return;
+    
     try {
-      const data = storage.getItem(STORAGE_KEYS.ATIVOS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DADOS_INICIAIS];
-      }
-      
-      this.salvarAtivos(DADOS_INICIAIS);
-      return [...DADOS_INICIAIS];
-    } catch {
-      return [...DADOS_INICIAIS];
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Erro ao salvar storage:', error);
     }
   }
 
+  obterAtivos(): Ativo[] {
+    const stored = this.getFromStorage(this.ATIVOS_KEY);
+    if (stored && Array.isArray(stored)) {
+      return stored;
+    }
+    
+    const defaults = this.getDefaultAtivos();
+    this.salvarAtivos(defaults);
+    return defaults;
+  }
+
   obterAtivoPorTicker(ticker: string): Ativo | null {
-    return this.obterAtivos().find(a => 
-      a.ticker?.toLowerCase() === ticker.toLowerCase()
+    const ativos = this.obterAtivos();
+    return ativos.find(ativo => 
+      ativo.ticker.toLowerCase() === ticker.toLowerCase()
     ) || null;
   }
 
   salvarAtivos(ativos: Ativo[]): void {
-    const storage = this.getStorage();
-    if (!storage || !Array.isArray(ativos)) return;
-
-    try {
-      storage.setItem(STORAGE_KEYS.ATIVOS, JSON.stringify(ativos));
-      this.notificarListeners();
-    } catch (error) {
-      console.error('Erro ao salvar ativos:', error);
-    }
+    this.setToStorage(this.ATIVOS_KEY, ativos);
+    this.notificarListeners();
   }
 
   adicionarAtivo(ativo: Omit<Ativo, 'id' | 'criadoEm' | 'atualizadoEm'>): Ativo {
@@ -225,184 +173,127 @@ class PortfolioDataService {
     return novoAtivo;
   }
 
-  atualizarAtivo(id: string, dados: Partial<Ativo>): Ativo | null {
+  atualizarAtivo(id: string, dadosAtualizados: Partial<Ativo>): Ativo | null {
     const ativos = this.obterAtivos();
-    const index = ativos.findIndex(a => a.id === id);
+    const indice = ativos.findIndex(ativo => ativo.id === id);
     
-    if (index === -1) return null;
+    if (indice === -1) return null;
     
-    ativos[index] = {
-      ...ativos[index],
-      ...dados,
+    ativos[indice] = {
+      ...ativos[indice],
+      ...dadosAtualizados,
       atualizadoEm: new Date().toISOString()
     };
     
     this.salvarAtivos(ativos);
-    return ativos[index];
+    return ativos[indice];
   }
 
   excluirAtivo(id: string): boolean {
     const ativos = this.obterAtivos();
-    const filtrados = ativos.filter(a => a.id !== id);
+    const novosAtivos = ativos.filter(ativo => ativo.id !== id);
     
-    if (filtrados.length === ativos.length) return false;
+    if (novosAtivos.length === ativos.length) return false;
     
-    this.salvarAtivos(filtrados);
+    this.salvarAtivos(novosAtivos);
     return true;
   }
 
-  // Métodos de configuração otimizados
   obterConfiguracoes(): Configuracao[] {
-    const storage = this.getStorage();
-    if (!storage) return [...CONFIGS_INICIAIS];
-
-    try {
-      const data = storage.getItem(STORAGE_KEYS.CONFIGS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) ? parsed : [...CONFIGS_INICIAIS];
-      }
-      
-      this.salvarConfiguracoes(CONFIGS_INICIAIS);
-      return [...CONFIGS_INICIAIS];
-    } catch {
-      return [...CONFIGS_INICIAIS];
+    const stored = this.getFromStorage(this.CONFIGS_KEY);
+    if (stored && Array.isArray(stored)) {
+      return stored;
     }
+    
+    const defaults = this.getDefaultConfigs();
+    this.salvarConfiguracoes(defaults);
+    return defaults;
   }
 
   obterConfiguracao(chave: string): string | null {
-    return this.obterConfiguracoes().find(c => c.chave === chave)?.valor || null;
+    const configs = this.obterConfiguracoes();
+    const config = configs.find(c => c.chave === chave);
+    return config ? config.valor : null;
   }
 
-  salvarConfiguracoes(configs: Configuracao[]): void {
-    const storage = this.getStorage();
-    if (!storage || !Array.isArray(configs)) return;
-
-    try {
-      storage.setItem(STORAGE_KEYS.CONFIGS, JSON.stringify(configs));
-      this.notificarListeners();
-    } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
-    }
+  salvarConfiguracoes(configuracoes: Configuracao[]): void {
+    this.setToStorage(this.CONFIGS_KEY, configuracoes);
+    this.notificarListeners();
   }
 
   atualizarConfiguracao(chave: string, valor: string): boolean {
     const configs = this.obterConfiguracoes();
-    const index = configs.findIndex(c => c.chave === chave);
+    const indice = configs.findIndex(c => c.chave === chave);
     
-    if (index === -1) return false;
+    if (indice === -1) return false;
     
-    configs[index].valor = valor;
+    configs[indice].valor = valor;
     this.salvarConfiguracoes(configs);
     return true;
   }
 
-  // Métodos de proventos
   obterProventos(ticker?: string): DadosProventos[] {
-    const storage = this.getStorage();
-    if (!storage) return [];
-
-    try {
-      const data = storage.getItem(STORAGE_KEYS.PROVENTOS);
-      const proventos = data ? JSON.parse(data) : [];
-      
-      if (!Array.isArray(proventos)) return [];
-      
-      return ticker ? proventos.filter(p => p.ticker === ticker) : proventos;
-    } catch {
-      return [];
+    const stored = this.getFromStorage(this.PROVENTOS_KEY);
+    const proventos = stored && Array.isArray(stored) ? stored : [];
+    
+    if (ticker) {
+      return proventos.filter((p: DadosProventos) => p.ticker === ticker);
     }
+    
+    return proventos;
   }
 
   salvarProventos(ticker: string, proventos: Omit<DadosProventos, 'ticker'>[]): void {
-    const storage = this.getStorage();
-    if (!storage) return;
-
-    try {
-      const todos = this.obterProventos();
-      const filtrados = todos.filter(p => p.ticker !== ticker);
-      const novos = proventos.map(p => ({ ...p, ticker }));
-      
-      storage.setItem(STORAGE_KEYS.PROVENTOS, JSON.stringify([...filtrados, ...novos]));
-      this.notificarListeners();
-    } catch (error) {
-      console.error('Erro ao salvar proventos:', error);
-    }
+    const todosProventos = this.obterProventos();
+    const proventosFiltrados = todosProventos.filter(p => p.ticker !== ticker);
+    const novosProventos = proventos.map(p => ({ ...p, ticker }));
+    const proventosFinais = [...proventosFiltrados, ...novosProventos];
+    
+    this.setToStorage(this.PROVENTOS_KEY, proventosFinais);
+    this.notificarListeners();
   }
 
-  // Utilitários
   exportarDados(): string {
-    return JSON.stringify({
+    const dados = {
       ativos: this.obterAtivos(),
       configuracoes: this.obterConfiguracoes(),
       proventos: this.obterProventos(),
       exportadoEm: new Date().toISOString(),
       versao: '1.0'
-    }, null, 2);
+    };
+    return JSON.stringify(dados, null, 2);
   }
 
-  importarDados(json: string): { sucesso: boolean; mensagem: string } {
+  importarDados(dadosJson: string): { sucesso: boolean; mensagem: string } {
     try {
-      const dados = JSON.parse(json);
+      const dados = JSON.parse(dadosJson);
       
-      if (!Array.isArray(dados.ativos)) {
-        return { sucesso: false, mensagem: 'Dados de ativos inválidos' };
-      }
-
-      if (!dados.ativos.every((a: any) => a.ticker && a.nomeCompleto && a.setor)) {
-        return { sucesso: false, mensagem: 'Estrutura de ativos inválida' };
+      if (!dados.ativos || !Array.isArray(dados.ativos)) {
+        return { sucesso: false, mensagem: 'Dados inválidos' };
       }
 
       this.salvarAtivos(dados.ativos);
       
-      if (Array.isArray(dados.configuracoes)) {
+      if (dados.configuracoes && Array.isArray(dados.configuracoes)) {
         this.salvarConfiguracoes(dados.configuracoes);
       }
       
-      if (Array.isArray(dados.proventos)) {
-        const storage = this.getStorage();
-        storage?.setItem(STORAGE_KEYS.PROVENTOS, JSON.stringify(dados.proventos));
+      if (dados.proventos && Array.isArray(dados.proventos)) {
+        this.setToStorage(this.PROVENTOS_KEY, dados.proventos);
       }
 
-      return { sucesso: true, mensagem: 'Dados importados com sucesso' };
-    } catch {
-      return { sucesso: false, mensagem: 'Erro ao processar JSON' };
-    }
-  }
-
-  obterEstatisticas() {
-    const ativos = this.obterAtivos();
-    return {
-      totalAtivos: ativos.length,
-      ativosAtivos: ativos.filter(a => a.ativo).length,
-      totalAcoes: ativos.filter(a => a.tipo === 'ACAO').length,
-      totalFIIs: ativos.filter(a => a.tipo === 'FII').length,
-      setoresUnicos: new Set(ativos.map(a => a.setor)).size,
-      ultimaAtualizacao: new Date().toISOString()
-    };
-  }
-
-  limparDados(): void {
-    const storage = this.getStorage();
-    if (!storage) return;
-
-    try {
-      Object.values(STORAGE_KEYS).forEach(key => storage.removeItem(key));
-      this.notificarListeners();
+      return { sucesso: true, mensagem: 'Importado com sucesso' };
     } catch (error) {
-      console.error('Erro ao limpar dados:', error);
+      return { sucesso: false, mensagem: 'Erro no JSON' };
     }
   }
 
-  // Sistema de listeners
   adicionarListener(callback: () => void): void {
-    if (typeof callback === 'function') {
-      this.listeners.push(callback);
-    }
+    this.listeners.push(callback);
   }
 
   removerListener(callback: () => void): void {
-    this.listeners = this.listeners.filter(l => l !== callback);
+    this.listeners = this.listeners.filter(listener => listener !== callback);
   }
 
   private notificarListeners(): void {
@@ -414,7 +305,31 @@ class PortfolioDataService {
       }
     });
   }
+
+  obterEstatisticas() {
+    const ativos = this.obterAtivos();
+    return {
+      totalAtivos: ativos.length,
+      ativosAtivos: ativos.filter(a => a.ativo).length,
+      totalAcoes: ativos.filter(a => a.tipo === 'ACAO').length,
+      totalFIIs: ativos.filter(a => a.tipo === 'FII').length,
+      setoresUnicos: [...new Set(ativos.map(a => a.setor))].length,
+      ultimaAtualizacao: new Date().toISOString()
+    };
+  }
+
+  limparDados(): void {
+    if (!this.isClient()) return;
+    
+    try {
+      localStorage.removeItem(this.ATIVOS_KEY);
+      localStorage.removeItem(this.CONFIGS_KEY);
+      localStorage.removeItem(this.PROVENTOS_KEY);
+      this.notificarListeners();
+    } catch (error) {
+      console.error('Erro ao limpar dados:', error);
+    }
+  }
 }
 
-// Singleton
 export const portfolioDataService = new PortfolioDataService();
