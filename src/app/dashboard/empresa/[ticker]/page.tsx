@@ -18,7 +18,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
@@ -41,20 +40,22 @@ import InputLabel from '@mui/material/InputLabel';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
-import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
-import { TrendDown as TrendDownIcon } from '@phosphor-icons/react/dist/ssr/TrendDown';
-import { Gear as SettingsIcon } from '@phosphor-icons/react/dist/ssr/Gear';
-import { ArrowClockwise as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise';
-import { WarningCircle as WarningIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle';
-import { CheckCircle as CheckIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Trash as DeleteIcon } from '@phosphor-icons/react/dist/ssr/Trash';
-import { FileText as FileIcon } from '@phosphor-icons/react/dist/ssr/FileText';
-import { CaretDown as ExpandMoreIcon } from '@phosphor-icons/react/dist/ssr/CaretDown';
 
-// 🔑 TOKEN BRAPI VALIDADO
+// Ícones mock (substituir pelos ícones reais do projeto)
+const ArrowLeftIcon = () => <span>←</span>;
+const TrendUpIcon = () => <span style={{ color: '#22c55e' }}>↗</span>;
+const TrendDownIcon = () => <span style={{ color: '#ef4444' }}>↘</span>;
+const SettingsIcon = () => <span>⚙</span>;
+const RefreshIcon = () => <span>🔄</span>;
+const WarningIcon = () => <span>⚠</span>;
+const CheckIcon = () => <span>✓</span>;
+const UploadIcon = () => <span>📤</span>;
+const DownloadIcon = () => <span>📥</span>;
+const DeleteIcon = () => <span>🗑</span>;
+const FileIcon = () => <span>📄</span>;
+const ExpandMoreIcon = () => <span>▼</span>;
+
+// Token da API
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
 interface DadosFinanceiros {
@@ -94,280 +95,11 @@ interface Relatorio {
   tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
   dataUpload: string;
   dataReferencia: string;
-  arquivo: string; // Base64 ou URL
+  arquivo: string;
   tamanho: string;
 }
 
-// 🔍 COMPONENTE DEBUG PARA VERIFICAR DIVIDENDOS
-const DebugDividendos = ({ ticker }: { ticker: string }) => {
-  const [resultados, setResultados] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const testarTodasEstrategias = async () => {
-    setLoading(true);
-    setResultados([]);
-
-    const estrategias = [
-      {
-        nome: '1. Endpoint Básico com Dividendos',
-        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&dividends=true`,
-        extrair: (data: any) => {
-          console.log('📊 Estrutura completa da resposta:', data);
-          return {
-            results: data.results,
-            dividendsData: data.results?.[0]?.dividendsData,
-            cashDividends: data.results?.[0]?.dividendsData?.cashDividends,
-            stockDividends: data.results?.[0]?.dividendsData?.stockDividends
-          };
-        }
-      },
-      {
-        nome: '2. Endpoint Fundamental + Dividends',
-        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`,
-        extrair: (data: any) => {
-          return {
-            results: data.results,
-            fundamentals: data.results?.[0]?.summaryProfile,
-            dividendsData: data.results?.[0]?.dividendsData
-          };
-        }
-      },
-      {
-        nome: '3. Endpoint Direto de Dividendos',
-        url: `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}`,
-        extrair: (data: any) => {
-          return {
-            dividends: data.dividends,
-            cashDividends: data.cashDividends,
-            stockDividends: data.stockDividends
-          };
-        }
-      },
-      {
-        nome: '4. Com Módulos Específicos',
-        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&modules=dividends`,
-        extrair: (data: any) => {
-          return {
-            results: data.results,
-            dividends: data.results?.[0]?.dividends,
-            modules: data.results?.[0]
-          };
-        }
-      },
-      {
-        nome: '5. Range 5 Anos',
-        url: `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=5y&dividends=true`,
-        extrair: (data: any) => {
-          return {
-            results: data.results,
-            dividendsData: data.results?.[0]?.dividendsData,
-            historicalData: data.results?.[0]?.historicalDataPrice?.length || 0
-          };
-        }
-      },
-      {
-        nome: '6. Ticker com .SA',
-        url: `https://brapi.dev/api/quote/${ticker}.SA?token=${BRAPI_TOKEN}&dividends=true`,
-        extrair: (data: any) => {
-          return {
-            results: data.results,
-            dividendsData: data.results?.[0]?.dividendsData
-          };
-        }
-      }
-    ];
-
-    const resultadosCompletos = [];
-
-    for (const estrategia of estrategias) {
-      try {
-        console.log(`🔍 Testando: ${estrategia.nome}`);
-        console.log(`📡 URL: ${estrategia.url}`);
-
-        const response = await fetch(estrategia.url);
-        const data = await response.json();
-        
-        const dadosExtraidos = estrategia.extrair(data);
-        
-        resultadosCompletos.push({
-          estrategia: estrategia.nome,
-          url: estrategia.url,
-          status: response.status,
-          success: response.ok,
-          dataCompleta: data,
-          dadosExtraidos,
-          dividendosEncontrados: contarDividendos(dadosExtraidos),
-          timestamp: new Date().toISOString()
-        });
-
-      } catch (error) {
-        resultadosCompletos.push({
-          estrategia: estrategia.nome,
-          url: estrategia.url,
-          success: false,
-          error: error instanceof Error ? error.message : 'Erro desconhecido',
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-
-    setResultados(resultadosCompletos);
-    setLoading(false);
-  };
-
-  const contarDividendos = (dados: any): number => {
-    let total = 0;
-    
-    if (dados.cashDividends && Array.isArray(dados.cashDividends)) {
-      total += dados.cashDividends.length;
-    }
-    if (dados.stockDividends && Array.isArray(dados.stockDividends)) {
-      total += dados.stockDividends.length;
-    }
-    if (dados.dividends && Array.isArray(dados.dividends)) {
-      total += dados.dividends.length;
-    }
-    
-    return total;
-  };
-
-  const testarPETR4 = () => {
-    // Teste com PETR4 que sabemos que tem dividendos
-    window.open(`/dashboard/empresa/PETR4`, '_blank');
-  };
-
-  return (
-    <Card sx={{ mt: 3, border: '2px solid #3b82f6' }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom sx={{ color: '#3b82f6' }}>
-          🔍 Debug Completo - Dividendos {ticker}
-        </Typography>
-        
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Este componente testa todas as estratégias possíveis para buscar dividendos na BRAPI.
-        </Alert>
-
-        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-          <Button 
-            variant="contained" 
-            onClick={testarTodasEstrategias}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : null}
-          >
-            {loading ? 'Testando...' : 'Testar Todas Estratégias'}
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            onClick={testarPETR4}
-          >
-            Testar com PETR4
-          </Button>
-        </Stack>
-
-        {resultados.length > 0 && (
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>
-              Resultados dos Testes:
-            </Typography>
-
-            {resultados.map((resultado, index) => (
-              <Accordion key={index}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                    <Typography variant="subtitle2">
-                      {resultado.estrategia}
-                    </Typography>
-                    <Chip 
-                      label={resultado.success ? `${resultado.status} ✓` : 'ERRO'}
-                      color={resultado.success ? 'success' : 'error'}
-                      size="small"
-                    />
-                    {resultado.dividendosEncontrados > 0 && (
-                      <Chip 
-                        label={`${resultado.dividendosEncontrados} dividendos`}
-                        color="primary"
-                        size="small"
-                      />
-                    )}
-                  </Box>
-                </AccordionSummary>
-                
-                <AccordionDetails>
-                  <Stack spacing={2}>
-                    <Typography variant="body2">
-                      <strong>URL:</strong> {resultado.url}
-                    </Typography>
-                    
-                    {resultado.error && (
-                      <Alert severity="error">
-                        <strong>Erro:</strong> {resultado.error}
-                      </Alert>
-                    )}
-                    
-                    {resultado.success && (
-                      <>
-                        <Typography variant="subtitle2">
-                          Dividendos Encontrados: {resultado.dividendosEncontrados}
-                        </Typography>
-                        
-                        {resultado.dividendosEncontrados > 0 ? (
-                          <Alert severity="success">
-                            🎉 <strong>DIVIDENDOS ENCONTRADOS!</strong> Esta estratégia funcionou.
-                          </Alert>
-                        ) : (
-                          <Alert severity="warning">
-                            📭 Nenhum dividendo encontrado nesta estratégia.
-                          </Alert>
-                        )}
-                        
-                        <Box>
-                          <Typography variant="subtitle2" gutterBottom>
-                            Estrutura da Resposta:
-                          </Typography>
-                          <Box component="pre" sx={{ 
-                            fontSize: '0.7rem', 
-                            backgroundColor: '#f5f5f5', 
-                            p: 2, 
-                            borderRadius: 1,
-                            overflow: 'auto',
-                            maxHeight: 300
-                          }}>
-                            {JSON.stringify(resultado.dadosExtraidos, null, 2)}
-                          </Box>
-                        </Box>
-
-                        {resultado.dataCompleta && (
-                          <Box>
-                            <Typography variant="subtitle2" gutterBottom>
-                              Resposta Completa da API:
-                            </Typography>
-                            <Box component="pre" sx={{ 
-                              fontSize: '0.6rem', 
-                              backgroundColor: '#f0f0f0', 
-                              p: 2, 
-                              borderRadius: 1,
-                              overflow: 'auto',
-                              maxHeight: 200
-                            }}>
-                              {JSON.stringify(resultado.dataCompleta, null, 2)}
-                            </Box>
-                          </Box>
-                        )}
-                      </>
-                    )}
-                  </Stack>
-                </AccordionDetails>
-              </Accordion>
-            ))}
-          </Box>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-// 🚀 HOOK PARA BUSCAR DADOS FINANCEIROS
+// Hook para buscar dados financeiros
 function useDadosFinanceiros(ticker: string) {
   const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
   const [loading, setLoading] = useState(true);
@@ -381,7 +113,7 @@ function useDadosFinanceiros(ticker: string) {
       setLoading(true);
       setError(null);
 
-      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`;
+      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`;
       
       const response = await fetch(quoteUrl, {
         method: 'GET',
@@ -399,18 +131,7 @@ function useDadosFinanceiros(ticker: string) {
           const quote = data.results[0];
           
           const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
-          
-          let dividendYield = 0;
-          if (quote.dividendYield) {
-            dividendYield = quote.dividendYield;
-          } else if (quote.dividendsData?.yield) {
-            dividendYield = quote.dividendsData.yield;
-          }
-
-          const pl = quote.priceEarnings || quote.pe;
-          const pvp = quote.priceToBook;
-          const roe = quote.returnOnEquity ? quote.returnOnEquity * 100 : undefined;
-          const marketCap = quote.marketCap;
+          const dividendYield = quote.dividendYield || 0;
 
           const dadosProcessados: DadosFinanceiros = {
             precoAtual: precoAtual,
@@ -418,10 +139,10 @@ function useDadosFinanceiros(ticker: string) {
             variacaoPercent: quote.regularMarketChangePercent || 0,
             volume: quote.regularMarketVolume || quote.volume || 0,
             dy: dividendYield,
-            marketCap: marketCap,
-            pl: pl,
-            pvp: pvp,
-            roe: roe
+            marketCap: quote.marketCap,
+            pl: quote.priceEarnings || quote.pe,
+            pvp: quote.priceToBook,
+            roe: quote.returnOnEquity ? quote.returnOnEquity * 100 : undefined
           };
 
           setDadosFinanceiros(dadosProcessados);
@@ -444,358 +165,41 @@ function useDadosFinanceiros(ticker: string) {
 
   useEffect(() => {
     buscarDados();
-    const interval = setInterval(buscarDados, 5 * 60 * 1000);
+    const interval = setInterval(buscarDados, 5 * 60 * 1000); // 5 minutos
     return () => clearInterval(interval);
   }, [buscarDados]);
 
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
 }
 
-// 🎯 HOOK PARA DIVIDENDOS (usando seu hook customizado)
-interface DividendoDetalhado {
-  date: string;
-  value: number;
-  type: string;
-  dataFormatada: string;
-  valorFormatado: string;
-}
-
-interface PerformanceDetalhada {
-  performanceCapital: number;
-  dividendosTotal: number;
-  dividendosPercentual: number;
-  performanceTotal: number;
-  quantidadeDividendos: number;
-  ultimoDividendo: string;
-  dividendosPorAno: { [ano: string]: number };
-  mediaAnual: number;
-  status: 'success' | 'partial' | 'error';
-}
-
-function useDividendosAtivo(
-  ticker: string, 
-  dataEntrada: string, 
-  precoEntrada: string, 
-  precoAtual: string
-) {
-  const [dividendos, setDividendos] = React.useState<DividendoDetalhado[]>([]);
-  const [performance, setPerformance] = React.useState<PerformanceDetalhada | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const buscarDividendos = React.useCallback(async () => {
-    if (!ticker || !dataEntrada || !precoEntrada) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log(`🔍 === BUSCA COMPLETA DE PROVENTOS PARA ${ticker} ===`);
-
-      // 🔍 TODAS AS ESTRATÉGIAS POSSÍVEIS
-      const estrategias = [
-        {
-          nome: 'Dividendos Direto',
-          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}/dividends?token=${BRAPI_TOKEN}`,
-          extrair: (data: any) => data.dividends || []
-        },
-        {
-          nome: 'Quote com Dividends Module',
-          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&modules=dividends`,
-          extrair: (data: any) => data.results?.[0]?.dividends || []
-        },
-        {
-          nome: 'Quote Fundamental Completo',
-          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&fundamental=true`,
-          extrair: (data: any) => {
-            const result = data.results?.[0];
-            return [
-              ...(result?.dividends || []),
-              ...(result?.splits || []),
-              ...(result?.earnings || [])
-            ];
-          }
-        },
-        {
-          nome: 'Histórico 5 Anos',
-          getUrl: (t: string) => `https://brapi.dev/api/quote/${t}?token=${BRAPI_TOKEN}&range=5y&fundamental=true&modules=dividends,splits,earnings`,
-          extrair: (data: any) => {
-            const result = data.results?.[0];
-            return [
-              ...(result?.dividends || []),
-              ...(result?.stockSplits || []),
-              ...(result?.capitalGains || [])
-            ];
-          }
-        }
-      ];
-
-      // 🔍 VARIAÇÕES DO TICKER
-      const tickerVariacoes = [
-        ticker,
-        ticker.replace(/[34]$/, ''),
-        ticker + '.SA',
-        ticker.replace(/[34]$/, '') + '.SA',
-        ticker.toUpperCase(),
-        ticker.toLowerCase()
-      ];
-
-      let todosResultados: any[] = [];
-      let melhorEstrategia = '';
-
-      // 🔄 TESTAR CADA COMBINAÇÃO
-      for (const tickerTeste of tickerVariacoes) {
-        console.log(`\n🎯 === TESTANDO TICKER: ${tickerTeste} ===`);
-        
-        for (const estrategia of estrategias) {
-          try {
-            const url = estrategia.getUrl(tickerTeste);
-            console.log(`📡 ${estrategia.nome}: Buscando...`);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-            const response = await fetch(url, {
-              method: 'GET',
-              headers: { 
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; DividendSearcher/1.0)'
-              },
-              signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-              console.log(`❌ HTTP ${response.status}`);
-              continue;
-            }
-
-            const contentType = response.headers.get('content-type') || '';
-            if (!contentType.includes('application/json')) {
-              console.log(`⚠️ Não é JSON: ${contentType}`);
-              continue;
-            }
-
-            let responseText;
-            try {
-              responseText = await response.text();
-            } catch (textError) {
-              console.log(`❌ Erro ao ler texto:`, textError);
-              continue;
-            }
-
-            if (responseText.trim().startsWith('<')) {
-              console.log(`⚠️ Resposta é HTML`);
-              continue;
-            }
-
-            let data;
-            try {
-              data = JSON.parse(responseText);
-            } catch (parseError) {
-              console.log(`❌ JSON inválido:`, parseError);
-              continue;
-            }
-
-            const resultados = estrategia.extrair(data);
-            
-            if (resultados && resultados.length > 0) {
-              console.log(`✅ ${estrategia.nome} (${tickerTeste}): ${resultados.length} resultados!`);
-              
-              resultados.forEach((item: any, i: number) => {
-                console.log(`  ${i + 1}. ${item.date || 'sem data'} - ${item.type || item.eventType || 'sem tipo'} - ${item.value || item.amount || 'sem valor'}`);
-              });
-
-              todosResultados = [...todosResultados, ...resultados];
-              melhorEstrategia = `${estrategia.nome} (${tickerTeste})`;
-              
-              if (resultados.length >= 5) {
-                console.log(`🎉 Muitos resultados encontrados, usando: ${melhorEstrategia}`);
-                break;
-              }
-            } else {
-              console.log(`📭 ${estrategia.nome} (${tickerTeste}): Sem resultados`);
-            }
-
-          } catch (err) {
-            console.log(`❌ ${estrategia.nome} (${tickerTeste}): ${err}`);
-          }
-        }
-
-        if (todosResultados.length >= 5) break;
-      }
-
-      // 🔄 PROCESSAR RESULTADOS
-      console.log(`\n📊 === PROCESSAMENTO FINAL ===`);
-      console.log(`Total bruto encontrado: ${todosResultados.length}`);
-      console.log(`Melhor estratégia: ${melhorEstrategia}`);
-
-      if (todosResultados.length > 0) {
-        const resultadosUnicos = removeDuplicatas(todosResultados);
-        console.log(`Após remoção de duplicatas: ${resultadosUnicos.length}`);
-
-        const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
-        console.log(`Data de entrada: ${dataEntradaDate.toISOString()}`);
-        
-        const dividendosProcessados = resultadosUnicos
-          .filter((item: any) => {
-            if (!item.date) return false;
-            
-            const valor = item.value || item.amount || item.rate || 0;
-            if (valor <= 0) return false;
-            
-            try {
-              const dataItem = new Date(item.date);
-              const isAfterEntry = dataItem >= dataEntradaDate;
-              
-              console.log(`📅 ${item.date} (${item.type || 'N/A'}) - R$ ${valor} - Após entrada: ${isAfterEntry}`);
-              return isAfterEntry;
-            } catch {
-              return false;
-            }
-          })
-          .map((item: any) => ({
-            date: item.date,
-            value: item.value || item.amount || item.rate || 0,
-            type: item.type || item.eventType || 'Provento',
-            dataFormatada: new Date(item.date).toLocaleDateString('pt-BR'),
-            valorFormatado: `R$ ${(item.value || item.amount || item.rate || 0).toFixed(2).replace('.', ',')}`
-          }))
-          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        console.log(`✅ FINAL: ${dividendosProcessados.length} proventos válidos desde ${dataEntrada}`);
-        
-        setDividendos(dividendosProcessados);
-        setPerformance(calcularPerformance(precoEntrada, precoAtual, dividendosProcessados));
-
-        if (dividendosProcessados.length === 0) {
-          setError(`Encontrados ${todosResultados.length} proventos, mas todos anteriores à entrada (${dataEntrada})`);
-        }
-
-      } else {
-        console.log(`📭 NENHUM resultado encontrado em todas as estratégias`);
-        setDividendos([]);
-        setPerformance(calcularPerformance(precoEntrada, precoAtual, []));
-        setError('Nenhum provento encontrado em nenhuma fonte. Pode não estar disponível na API.');
-      }
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error(`❌ Erro geral:`, err);
-      setError(errorMessage);
-      
-      setDividendos([]);
-      const performanceFallback = calcularPerformance(precoEntrada, precoAtual, []);
-      performanceFallback.status = 'error';
-      setPerformance(performanceFallback);
-      
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker, dataEntrada, precoEntrada, precoAtual]);
-
-  React.useEffect(() => {
-    if (ticker && dataEntrada && precoEntrada) {
-      const timer = setTimeout(buscarDividendos, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [buscarDividendos]);
-
-  return {
-    dividendos,
-    performance,
-    loading,
-    error,
-    refetch: buscarDividendos
-  };
-}
-
-// 🔄 FUNÇÃO PARA REMOVER DUPLICATAS
-function removeDuplicatas(items: any[]): any[] {
-  const vistos = new Set();
-  return items.filter(item => {
-    const chave = `${item.date}_${item.type || 'default'}_${item.value || item.amount || 0}`;
-    if (vistos.has(chave)) return false;
-    vistos.add(chave);
-    return true;
-  });
-}
-
-// 📊 FUNÇÃO DE CÁLCULO
-function calcularPerformance(
-  precoEntrada: string,
-  precoAtual: string,
-  dividendos: DividendoDetalhado[]
-): PerformanceDetalhada {
-  const precoEntradaNum = parseFloat(precoEntrada.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-  const precoAtualNum = parseFloat(precoAtual.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-
-  const performanceCapital = precoEntradaNum > 0 
-    ? ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100 
-    : 0;
-
-  const dividendosTotal = dividendos.reduce((sum, div) => sum + (div.value || 0), 0);
-  const dividendosPercentual = precoEntradaNum > 0 ? (dividendosTotal / precoEntradaNum) * 100 : 0;
-  const performanceTotal = performanceCapital + dividendosPercentual;
-
-  const ultimoDividendo = dividendos.length > 0 ? dividendos[0].dataFormatada : 'Nenhum';
-
-  const dividendosPorAno: { [ano: string]: number } = {};
-  dividendos.forEach(div => {
-    try {
-      const ano = new Date(div.date).getFullYear().toString();
-      dividendosPorAno[ano] = (dividendosPorAno[ano] || 0) + (div.value || 0);
-    } catch {
-      // Ignorar datas inválidas
-    }
-  });
-
-  const anos = Object.keys(dividendosPorAno);
-  const mediaAnual = anos.length > 0 
-    ? Object.values(dividendosPorAno).reduce((sum, valor) => sum + valor, 0) / anos.length
-    : 0;
-
-  return {
-    performanceCapital,
-    dividendosTotal,
-    dividendosPercentual,
-    performanceTotal,
-    quantidadeDividendos: dividendos.length,
-    ultimoDividendo,
-    dividendosPorAno,
-    mediaAnual,
-    status: dividendos.length > 0 ? 'success' : 'partial'
-  };
-}
-
-// 🎯 FUNÇÃO PARA CALCULAR VIÉS
+// Função para calcular viés
 function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
-  const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
-  
-  if (isNaN(precoTetoNum) || precoAtual <= 0) {
+  try {
+    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    
+    if (isNaN(precoTetoNum) || precoAtual <= 0) {
+      return 'Aguardar';
+    }
+    
+    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
+    
+    if (percentualDoTeto <= 80) {
+      return 'Compra Forte';
+    } else if (percentualDoTeto <= 95) {
+      return 'Compra';
+    } else if (percentualDoTeto <= 105) {
+      return 'Neutro';
+    } else if (percentualDoTeto <= 120) {
+      return 'Aguardar';
+    } else {
+      return 'Venda';
+    }
+  } catch {
     return 'Aguardar';
-  }
-  
-  const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
-  
-  if (percentualDoTeto <= 80) {
-    return 'Compra Forte';
-  } else if (percentualDoTeto <= 95) {
-    return 'Compra';
-  } else if (percentualDoTeto <= 105) {
-    return 'Neutro';
-  } else if (percentualDoTeto <= 120) {
-    return 'Aguardar';
-  } else {
-    return 'Venda';
   }
 }
 
-// 🔥 FUNÇÃO PARA FORMATAR VALORES
+// Função para formatar valores
 function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
   if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
   
@@ -831,7 +235,7 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
   }
 }
 
-// 📊 COMPONENTE DE MÉTRICA NO ESTILO MODERNO
+// Componente de métrica
 const MetricCard = ({ 
   title, 
   value, 
@@ -862,7 +266,6 @@ const MetricCard = ({
       boxShadow: '0 4px 16px rgba(0,0,0,0.15)' 
     }
   }}>
-    {/* Header com título */}
     <Box sx={{ 
       backgroundColor: '#374151',
       color: 'white',
@@ -897,7 +300,6 @@ const MetricCard = ({
       </Stack>
     </Box>
 
-    {/* Conteúdo principal */}
     <CardContent sx={{ 
       backgroundColor: 'white',
       p: 2.5,
@@ -919,11 +321,7 @@ const MetricCard = ({
             </Typography>
             {trend && (
               <Box sx={{ ml: 0.5 }}>
-                {trend === 'up' ? (
-                  <TrendUpIcon size={16} style={{ color: '#10b981' }} />
-                ) : (
-                  <TrendDownIcon size={16} style={{ color: '#ef4444' }} />
-                )}
+                {trend === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
               </Box>
             )}
           </Stack>
@@ -945,7 +343,7 @@ const MetricCard = ({
   </Card>
 );
 
-// 📄 COMPONENTE PARA UPLOAD DE RELATÓRIOS PDF
+// Componente para gerenciar relatórios
 const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
@@ -956,12 +354,19 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
     arquivo: null as File | null
   });
 
-  // Carregar relatórios do localStorage
+  // Carregar relatórios do armazenamento local
   useEffect(() => {
     const chave = `relatorios_${ticker}`;
-    const relatoriosExistentes = localStorage.getItem(chave);
+    const relatoriosExistentes = typeof window !== 'undefined' 
+      ? localStorage.getItem(chave) 
+      : null;
+    
     if (relatoriosExistentes) {
-      setRelatorios(JSON.parse(relatoriosExistentes));
+      try {
+        setRelatorios(JSON.parse(relatoriosExistentes));
+      } catch (error) {
+        console.error('Erro ao carregar relatórios:', error);
+      }
     }
   }, [ticker]);
 
@@ -975,14 +380,20 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
           tipo: novoRelatorio.tipo,
           dataUpload: new Date().toISOString(),
           dataReferencia: novoRelatorio.dataReferencia,
-          arquivo: e.target?.result as string, // Base64
+          arquivo: e.target?.result as string,
           tamanho: `${(novoRelatorio.arquivo!.size / 1024 / 1024).toFixed(1)} MB`
         };
 
         const chave = `relatorios_${ticker}`;
-        const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+        const relatoriosExistentes = typeof window !== 'undefined' 
+          ? JSON.parse(localStorage.getItem(chave) || '[]') 
+          : [];
+        
         relatoriosExistentes.push(relatorio);
-        localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+        }
         
         setRelatorios(relatoriosExistentes);
         setDialogAberto(false);
@@ -995,7 +406,11 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   const excluirRelatorio = (id: string) => {
     const chave = `relatorios_${ticker}`;
     const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
-    localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
+    }
+    
     setRelatorios(relatoriosAtualizados);
   };
 
@@ -1025,7 +440,7 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
 
         {relatorios.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <FileIcon size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+            <FileIcon />
             <Typography>Nenhum relatório cadastrado ainda</Typography>
             <Typography variant="caption">Clique em "Adicionar PDF" para começar</Typography>
           </Box>
@@ -1071,7 +486,6 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
           </List>
         )}
 
-        {/* Dialog para upload */}
         <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Adicionar Novo Relatório</DialogTitle>
           <DialogContent>
@@ -1143,315 +557,14 @@ const GerenciadorRelatorios = ({ ticker }: { ticker: string }) => {
   );
 };
 
-// 💰 COMPONENTE DE HISTÓRICO DE DIVIDENDOS - VERSÃO SIMPLIFICADA
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Stack, 
-  Box, 
-  Button, 
-  TableContainer, 
-  Table, 
-  TableHead, 
-  TableRow, 
-  TableCell, 
-  TableBody, 
-  Chip 
-} from '@mui/material';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-
-interface DividendoDetalhado {
-  date: string;
-  value: number;
-  type: string;
-  dataFormatada: string;
-  valorFormatado: string;
-}
-
-interface Props {
-  ticker: string;
-  dataEntrada: string;
-}
-
-const HistoricoDividendos: React.FC<Props> = ({ ticker, dataEntrada }) => {
-  const [proventos, setProventos] = useState<DividendoDetalhado[]>([]);
-
-  const handleArquivo = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        let dados: DividendoDetalhado[] = [];
-
-        if (file.name.toLowerCase().endsWith('.csv')) {
-          // Parse do CSV
-          const linhas = text.split('\n').filter(linha => linha.trim());
-          
-          dados = linhas
-            .slice(1) // Pular header
-            .map((linha) => {
-              const partes = linha.split(',').map(p => p.trim());
-              
-              if (partes.length < 4) return null;
-
-              const [csvTicker, date, value, type] = partes;
-              
-              if (!csvTicker || !date || !value || !type) return null;
-              if (csvTicker.toUpperCase() !== ticker.toUpperCase()) return null;
-
-              const numValue = parseFloat(value.replace(',', '.'));
-              if (isNaN(numValue)) return null;
-
-              return {
-                date: date,
-                value: numValue,
-                type: type,
-                dataFormatada: new Date(date).toLocaleDateString('pt-BR'),
-                valorFormatado: `R$ ${numValue.toFixed(2).replace('.', ',')}`,
-              };
-            })
-            .filter((item): item is DividendoDetalhado => item !== null);
-        }
-
-        // Filtrar por data de entrada
-        const dataEntradaDate = new Date(dataEntrada.split('/').reverse().join('-'));
-        dataEntradaDate.setHours(0, 0, 0, 0);
-
-        const dadosFiltrados = dados
-          .filter((div) => {
-            const dataDiv = new Date(div.date);
-            dataDiv.setHours(0, 0, 0, 0);
-            return dataDiv >= dataEntradaDate;
-          })
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        setProventos(dadosFiltrados);
-
-      } catch (err) {
-        console.error('Erro ao processar arquivo:', err);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const totalProventos = proventos.reduce((sum, div) => sum + div.value, 0);
-  const mediaProvento = proventos.length > 0 ? totalProventos / proventos.length : 0;
-
-  return (
-    <Card>
-      <CardContent sx={{ p: 4 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            💰 Proventos Carregados
-          </Typography>
-          <Box>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleArquivo(file);
-              }}
-              style={{ display: 'none' }}
-              id="upload-proventos"
-            />
-            <label htmlFor="upload-proventos">
-              <Button component="span" variant="outlined" size="small" startIcon={<UploadIcon />}>
-                Carregar CSV
-              </Button>
-            </label>
-          </Box>
-        </Stack>
-
-        {proventos.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="body2">
-              Nenhum provento carregado para {ticker}
-            </Typography>
-            <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-              📅 Data de entrada: {dataEntrada}
-            </Typography>
-          </Box>
-        ) : (
-          <>
-            {/* Resumo */}
-            <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-              <Stack direction="row" spacing={4} justifyContent="center">
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
-                    {proventos.length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Pagamentos
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
-                    R$ {totalProventos.toFixed(2).replace('.', ',')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Total
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#16a34a' }}>
-                    R$ {mediaProvento.toFixed(2).replace('.', ',')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Média
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-
-            {/* Tabela */}
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Valor</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {proventos.map((div, index) => (
-                    <TableRow key={`${div.date}-${index}`}>
-                      <TableCell>{div.dataFormatada}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, color: '#16a34a' }}>
-                        {div.valorFormatado}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          label={div.type}
-                          size="small"
-                          variant="outlined"
-                          color={div.type === 'JCP' ? 'secondary' : 'primary'}
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-export default HistoricoDividendos;
-
-// 📈 COMPONENTE DE RESUMO EXECUTIVO
-const ResumoExecutivo = ({ empresa, dados }: { empresa: EmpresaCompleta; dados: DadosFinanceiros | null }) => {
-  const calcularResumo = () => {
-    const precoEntrada = parseFloat(empresa.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    const precoTeto = parseFloat(empresa.precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    const precoAtual = dados?.precoAtual || precoEntrada;
-    
-    const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
-    const potencialTeto = ((precoTeto - precoAtual) / precoAtual) * 100;
-    
-    return {
-      performance,
-      potencialTeto,
-      statusInvestimento: performance > 0 ? 'Lucro' : 'Prejuízo',
-      recomendacao: potencialTeto > 20 ? 'Oportunidade' : potencialTeto > 0 ? 'Neutro' : 'Atenção'
-    };
-  };
-
-  const resumo = calcularResumo();
-
-  return (
-    <Card sx={{ 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      mb: 4
-    }}>
-      <CardContent sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-          📈 Resumo Executivo
-        </Typography>
-
-        <Grid container spacing={3}>
-          <Grid item xs={6} md={3}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {formatarValor(resumo.performance, 'percent')}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Performance Total
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                {formatarValor(resumo.potencialTeto, 'percent')}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Potencial até Teto
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Chip 
-                label={resumo.statusInvestimento}
-                sx={{ 
-                  backgroundColor: resumo.performance > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                  color: 'white',
-                  fontWeight: 600
-                }}
-              />
-              <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
-                Status Atual
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Chip 
-                label={resumo.recomendacao}
-                sx={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  fontWeight: 600
-                }}
-              />
-              <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
-                Recomendação
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
-  );
-};
-
-// 🔥 DADOS BASE
-const ativosBase = [
-  {
-    ticker: 'ALOS3',
-    dy: '5,95%',
-    precoTeto: 'R$ 23,76',
-    setor: 'Shoppings'
-  }
-];
-
-// Dados de fallback
+// Dados de fallback para exemplo
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
   'ALOS3': {
     ticker: 'ALOS3',
     nomeCompleto: 'Allos S.A.',
     setor: 'Shoppings',
     descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
+    avatar: 'https://logoeps.com/wp-content/uploads/2013/03/apple-vector-logo.png',
     dataEntrada: '15/01/2021',
     precoIniciou: 'R$ 26,68',
     precoTeto: 'R$ 23,76',
@@ -1463,58 +576,35 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
 
 export default function EmpresaDetalhes() {
   const params = useParams();
-  const ticker = params?.ticker as string;
+  const ticker = (params?.ticker as string) || '';
   
   const [empresa, setEmpresa] = useState<EmpresaCompleta | null>(null);
   const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
   
   const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
 
-  // 📊 BUSCAR DY DOS DADOS DA TABELA PRINCIPAL
-  const buscarDYDaTabela = (ticker: string): string => {
-    try {
-      const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
-      
-      if (dadosAdmin) {
-        const ativos = JSON.parse(dadosAdmin);
-        const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
-        
-        if (ativoEncontrado && ativoEncontrado.dy) {
-          return ativoEncontrado.dy;
-        }
-      }
-
-      const ativoBase = ativosBase?.find(a => a.ticker === ticker);
-      if (ativoBase && ativoBase.dy) {
-        return ativoBase.dy;
-      }
-
-      if (ticker === 'ALOS3') return '5,95%';
-      
-      return 'N/A';
-    } catch (err) {
-      return 'N/A';
-    }
-  };
-
   useEffect(() => {
     if (!ticker) return;
 
     const carregarDados = () => {
       try {
-        const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
-        
-        if (dadosAdmin) {
-          const ativos = JSON.parse(dadosAdmin);
-          const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
+        // Tentar carregar dados do localStorage primeiro
+        if (typeof window !== 'undefined') {
+          const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
           
-          if (ativoEncontrado) {
-            setEmpresa(ativoEncontrado);
-            setDataSource('admin');
-            return;
+          if (dadosAdmin) {
+            const ativos = JSON.parse(dadosAdmin);
+            const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
+            
+            if (ativoEncontrado) {
+              setEmpresa(ativoEncontrado);
+              setDataSource('admin');
+              return;
+            }
           }
         }
 
+        // Fallback para dados estáticos
         const ativoFallback = dadosFallback[ticker];
         if (ativoFallback) {
           setEmpresa(ativoFallback);
@@ -1524,6 +614,7 @@ export default function EmpresaDetalhes() {
 
         setDataSource('not_found');
       } catch (err) {
+        console.error('Erro ao carregar dados:', err);
         setDataSource('not_found');
       }
     };
@@ -1531,7 +622,7 @@ export default function EmpresaDetalhes() {
     carregarDados();
   }, [ticker]);
 
-  // 🔥 COMBINAR DADOS
+  // Combinar dados
   const empresaCompleta = React.useMemo(() => {
     if (!empresa) return null;
     
@@ -1552,23 +643,25 @@ export default function EmpresaDetalhes() {
     return empresaAtualizada;
   }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
 
-  // 📊 CALCULAR PERFORMANCE
+  // Calcular performance
   const calcularPerformance = () => {
     if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
     
-    const precoEntradaStr = empresaCompleta.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.');
-    const precoEntrada = parseFloat(precoEntradaStr);
-    const precoAtual = empresaCompleta.dadosFinanceiros.precoAtual;
-    
-    if (precoEntrada > 0 && precoAtual > 0) {
-      const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
-      return formatarValor(performance, 'percent');
+    try {
+      const precoEntradaStr = empresaCompleta.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.');
+      const precoEntrada = parseFloat(precoEntradaStr);
+      const precoAtual = empresaCompleta.dadosFinanceiros.precoAtual;
+      
+      if (precoEntrada > 0 && precoAtual > 0) {
+        const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
+        return formatarValor(performance, 'percent');
+      }
+    } catch (error) {
+      console.error('Erro ao calcular performance:', error);
     }
     
     return 'N/A';
   };
-
-  const dyDaTabela = buscarDYDaTabela(ticker);
 
   if (!empresaCompleta || dataSource === 'not_found') {
     return (
@@ -1600,14 +693,13 @@ export default function EmpresaDetalhes() {
     );
   }
 
-  const isFII = empresaCompleta.tipo === 'FII';
   const dados = empresaCompleta.dadosFinanceiros;
   const precoAtualFormatado = dados?.precoAtual ? formatarValor(dados.precoAtual) : empresaCompleta.precoIniciou;
-  const tendencia = dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : 'up';
+  const tendencia = dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      {/* Header com navegação */}
+      {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button 
           startIcon={<ArrowLeftIcon />} 
@@ -1621,17 +713,17 @@ export default function EmpresaDetalhes() {
           {dadosLoading ? (
             <Alert severity="info" sx={{ py: 0.5 }}>
               <CircularProgress size={16} sx={{ mr: 1 }} />
-              Carregando dados da API...
+              Carregando dados...
             </Alert>
           ) : dadosError ? (
             <Alert severity="warning" sx={{ py: 0.5 }}>
-              <WarningIcon size={16} />
+              <WarningIcon />
               Erro na API: {dadosError}
             </Alert>
           ) : dados && dados.precoAtual > 0 ? (
             <Alert severity="success" sx={{ py: 0.5 }}>
-              <CheckIcon size={16} />
-              Dados atualizados via API BRAPI
+              <CheckIcon />
+              Dados atualizados via API
             </Alert>
           ) : (
             <Alert severity="info" sx={{ py: 0.5 }}>
@@ -1641,26 +733,16 @@ export default function EmpresaDetalhes() {
           
           <Tooltip title="Atualizar dados">
             <IconButton onClick={refetch} disabled={dadosLoading}>
-              <RefreshIcon size={20} />
+              <RefreshIcon />
             </IconButton>
           </Tooltip>
-          
-          <Button 
-            startIcon={<SettingsIcon />} 
-            onClick={() => window.open('/admin', '_blank')}
-            variant="outlined"
-            size="small"
-          >
-            Gerenciar
-          </Button>
         </Stack>
       </Stack>
 
       {/* Card principal da empresa */}
       <Card sx={{ 
         mb: 4, 
-        background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', 
-        color: 'black' 
+        background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' 
       }}>
         <CardContent sx={{ p: 4 }}>
           <Stack 
@@ -1688,34 +770,26 @@ export default function EmpresaDetalhes() {
                 <Typography variant="h3" sx={{ fontWeight: 700 }}>
                   {empresaCompleta.ticker}
                 </Typography>
-                {isFII && (
+                {empresaCompleta.tipo === 'FII' && (
                   <Chip 
                     label="FII" 
-                    sx={{ 
-                      backgroundColor: 'rgba(255,255,255,0.2)', 
-                      color: 'white',
-                      fontWeight: 600
-                    }} 
+                    color="primary"
                   />
                 )}
               </Stack>
-              <Typography variant="h6" sx={{ mb: 2, opacity: 0.9 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
                 {empresaCompleta.nomeCompleto}
               </Typography>
               <Chip 
                 label={empresaCompleta.setor} 
-                sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.2)', 
-                  color: 'black',
-                  mb: 2,
-                  fontWeight: 600
-                }} 
+                variant="outlined"
+                sx={{ mb: 2 }}
               />
-              <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 600 }}>
+              <Typography variant="body1" sx={{ maxWidth: 600 }}>
                 {empresaCompleta.descricao}
               </Typography>
               {ultimaAtualizacao && (
-                <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 1 }}>
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
                   Última atualização: {ultimaAtualizacao}
                 </Typography>
               )}
@@ -1725,7 +799,7 @@ export default function EmpresaDetalhes() {
                 <Skeleton variant="text" width={150} height={60} />
               ) : (
                 <>
-                  <Typography variant="h2" sx={{ fontWeight: 700, color: 'black' }}>
+                  <Typography variant="h2" sx={{ fontWeight: 700 }}>
                     {precoAtualFormatado}
                   </Typography>
                   <Stack 
@@ -1734,29 +808,29 @@ export default function EmpresaDetalhes() {
                     alignItems="center" 
                     justifyContent={{ xs: 'center', md: 'flex-end' }}
                   >
-                    {tendencia === 'up' ? (
-                      <TrendUpIcon size={24} style={{ color: '#22c55e' }} />
-                    ) : (
-                      <TrendDownIcon size={24} style={{ color: '#ef4444' }} />
+                    {tendencia && (
+                      <>
+                        {tendencia === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
+                        <Box>
+                          <Typography sx={{ 
+                            color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
+                            fontWeight: 700, 
+                            fontSize: '1.2rem',
+                            lineHeight: 1
+                          }}>
+                            {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ 
+                            color: '#6b7280',
+                            fontSize: '0.75rem',
+                            display: 'block',
+                            textAlign: { xs: 'center', md: 'right' }
+                          }}>
+                            variação hoje
+                          </Typography>
+                        </Box>
+                      </>
                     )}
-                    <Box>
-                      <Typography sx={{ 
-                        color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
-                        fontWeight: 700, 
-                        fontSize: '1.2rem',
-                        lineHeight: 1
-                      }}>
-                        {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
-                      </Typography>
-                      <Typography variant="caption" sx={{ 
-                        color: '#6b7280',
-                        fontSize: '0.75rem',
-                        display: 'block',
-                        textAlign: { xs: 'center', md: 'right' }
-                      }}>
-                        variação hoje
-                      </Typography>
-                    </Box>
                   </Stack>
                 </>
               )}
@@ -1765,10 +839,7 @@ export default function EmpresaDetalhes() {
         </CardContent>
       </Card>
 
-      {/* NOVO: Resumo Executivo */}
-      <ResumoExecutivo empresa={empresaCompleta} dados={dados} />
-
-      {/* Cards de métricas - ESTILO MODERNO */}
+      {/* Cards de métricas */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={6} md={2}>
           <MetricCard 
@@ -1790,7 +861,7 @@ export default function EmpresaDetalhes() {
         </Grid>
         <Grid item xs={6} md={2}>
           <MetricCard 
-            title="VARIAÇÃO (12M)" 
+            title="PERFORMANCE" 
             value={calcularPerformance()}
             loading={dadosLoading}
             trend={calcularPerformance().includes('-') ? 'down' : 'up'}
@@ -1816,7 +887,7 @@ export default function EmpresaDetalhes() {
         <Grid item xs={6} md={2}>
           <MetricCard 
             title="DY" 
-            value={dyDaTabela}
+            value={dados?.dy ? formatarValor(dados.dy, 'percent') : 'N/A'}
             loading={dadosLoading}
             showInfo={true}
           />
@@ -1829,10 +900,6 @@ export default function EmpresaDetalhes() {
           <MetricCard 
             title="VIÉS ATUAL" 
             value={empresaCompleta.viesAtual}
-            color={
-              empresaCompleta.viesAtual.includes('Compra') ? 'success' : 
-              empresaCompleta.viesAtual === 'Venda' ? 'error' : 'primary'
-            }
             loading={dadosLoading}
             subtitle="Automático"
           />
@@ -1861,24 +928,14 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* COMPONENTE DEBUG ADICIONADO AQUI */}
-      <DebugDividendos ticker={ticker} />
-
-      {/* NOVAS SEÇÕES EM GRID */}
+      {/* Seções principais */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Upload de Relatórios */}
         <Grid item xs={12} md={6}>
           <GerenciadorRelatorios ticker={ticker} />
         </Grid>
         
-        {/* Histórico de Dividendos */}
-        <Grid item xs={12} md={6}>
-          <HistoricoDividendos ticker={ticker} empresa={empresaCompleta} />
-        </Grid>
-      </Grid>
-      
-      {/* Dados da posição */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Dados da posição */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent sx={{ p: 4 }}>
@@ -1935,74 +992,83 @@ export default function EmpresaDetalhes() {
             </CardContent>
           </Card>
         </Grid>
+      </Grid>
 
-        <Grid item xs={12} md={6}>
+      {/* Dados fundamentalistas */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
           <Card>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                📈 {isFII ? 'Dados do Fundo' : 'Dados Fundamentalistas'}
+                📈 Dados Fundamentalistas
               </Typography>
               
               {dadosLoading ? (
-                <Stack spacing={2}>
+                <Grid container spacing={2}>
                   {[...Array(4)].map((_, index) => (
-                    <Skeleton key={index} variant="rectangular" height={50} />
+                    <Grid item xs={6} md={3} key={index}>
+                      <Skeleton variant="rectangular" height={80} />
+                    </Grid>
                   ))}
-                </Stack>
+                </Grid>
               ) : (
-                <Stack spacing={2}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 2, 
-                    backgroundColor: dados?.marketCap ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
-                  }}>
-                    <Typography variant="body2" color="text.secondary">Market Cap</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dados?.marketCap ? formatarValor(dados.marketCap, 'millions') : 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 2, 
-                    backgroundColor: dados?.pl ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
-                  }}>
-                    <Typography variant="body2" color="text.secondary">P/L</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 2, 
-                    backgroundColor: dados?.pvp ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
-                  }}>
-                    <Typography variant="body2" color="text.secondary">P/VPA</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    p: 2, 
-                    backgroundColor: dados?.roe ? '#e8f5e8' : '#f8fafc', 
-                    borderRadius: 1 
-                  }}>
-                    <Typography variant="body2" color="text.secondary">ROE</Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600, 
-                      color: dados?.roe ? '#22c55e' : 'inherit'
+                <Grid container spacing={2}>
+                  <Grid item xs={6} md={3}>
+                    <Box sx={{ 
+                      p: 2, 
+                      backgroundColor: dados?.marketCap ? '#e8f5e8' : '#f8fafc', 
+                      borderRadius: 1,
+                      textAlign: 'center'
                     }}>
-                      {dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
-                    </Typography>
-                  </Box>
-                </Stack>
+                      <Typography variant="body2" color="text.secondary">Market Cap</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {dados?.marketCap ? formatarValor(dados.marketCap, 'millions') : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Box sx={{ 
+                      p: 2, 
+                      backgroundColor: dados?.pl ? '#e8f5e8' : '#f8fafc', 
+                      borderRadius: 1,
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="body2" color="text.secondary">P/L</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Box sx={{ 
+                      p: 2, 
+                      backgroundColor: dados?.pvp ? '#e8f5e8' : '#f8fafc', 
+                      borderRadius: 1,
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="body2" color="text.secondary">P/VPA</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {dados?.pvp ? formatarValor(dados.pvp, 'number') : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Box sx={{ 
+                      p: 2, 
+                      backgroundColor: dados?.roe ? '#e8f5e8' : '#f8fafc', 
+                      borderRadius: 1,
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="body2" color="text.secondary">ROE</Typography>
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 600, 
+                        color: dados?.roe ? '#22c55e' : 'inherit'
+                      }}>
+                        {dados?.roe ? formatarValor(dados.roe, 'percent') : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
               )}
             </CardContent>
           </Card>
@@ -2021,7 +1087,7 @@ export default function EmpresaDetalhes() {
                   display: 'flex', 
                   alignItems: 'center' 
                 }}>
-                  🎯 Análise de Performance com Dados Reais
+                  🎯 Análise de Performance
                 </Typography>
                 
                 <Grid container spacing={3}>
@@ -2111,9 +1177,9 @@ export default function EmpresaDetalhes() {
                           />
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="body2" color="text.secondary">DY da tabela:</Typography>
+                          <Typography variant="body2" color="text.secondary">DY estimado:</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                            {dyDaTabela}
+                            {dados?.dy ? formatarValor(dados.dy, 'percent') : 'N/A'}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -2162,14 +1228,6 @@ export default function EmpresaDetalhes() {
                   {dadosLoading ? 'Atualizando...' : 'Atualizar Dados'}
                 </Button>
                 <Button 
-                  startIcon={<SettingsIcon />} 
-                  onClick={() => window.open('/admin', '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  Editar no Admin
-                </Button>
-                <Button 
                   onClick={() => window.open(`https://www.google.com/search?q=${empresaCompleta.ticker}+dividendos+${new Date().getFullYear()}`, '_blank')}
                   variant="outlined"
                   size="small"
@@ -2177,14 +1235,14 @@ export default function EmpresaDetalhes() {
                   🔍 Pesquisar Dividendos
                 </Button>
                 <Button 
-                  onClick={() => window.open(`https://statusinvest.com.br/${isFII ? 'fundos-imobiliarios' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
+                  onClick={() => window.open(`https://statusinvest.com.br/${empresaCompleta.tipo === 'FII' ? 'fundos-imobiliarios' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
                   variant="outlined"
                   size="small"
                 >
                   📊 Ver no Status Invest
                 </Button>
                 <Button 
-                  onClick={() => window.open(`https://www.investidor10.com.br/${isFII ? 'fiis' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
+                  onClick={() => window.open(`https://www.investidor10.com.br/${empresaCompleta.tipo === 'FII' ? 'fiis' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
                   variant="outlined"
                   size="small"
                 >
