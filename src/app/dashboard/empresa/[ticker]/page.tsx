@@ -921,7 +921,7 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     nomeCompleto: 'Allos S.A.',
     setor: 'Shoppings',
     descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
-    avatar: 'https://logoeps.com/wp-content/uploads/2013/03/apple-vector-logo.png',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
     dataEntrada: '15/01/2021',
     precoIniciou: 'R$ 26,68',
     precoTeto: 'R$ 23,76',
@@ -1113,9 +1113,31 @@ export default function EmpresaDetalhes() {
               sx={{ 
                 width: { xs: 100, md: 120 }, 
                 height: { xs: 100, md: 120 },
-                border: '4px solid rgba(255,255,255,0.2)'
-              }} 
-            />
+                border: '4px solid rgba(255,255,255,0.2)',
+                backgroundColor: '#ffffff',
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                color: '#374151'
+              }}
+              onError={(e) => {
+                // Se a imagem falhar, tentar URLs alternativas
+                const target = e.target as HTMLImageElement;
+                const ticker = empresaCompleta.ticker;
+                
+                if (!target.dataset.fallbackAttempt) {
+                  target.dataset.fallbackAttempt = '1';
+                  target.src = `https://raw.githubusercontent.com/thefintz/b3-assets/main/assets/${ticker}/${ticker}.png`;
+                } else if (target.dataset.fallbackAttempt === '1') {
+                  target.dataset.fallbackAttempt = '2';
+                  target.src = `https://investidor10.com.br/img/acoes/${ticker.toLowerCase()}.png`;
+                } else if (target.dataset.fallbackAttempt === '2') {
+                  target.dataset.fallbackAttempt = '3';
+                  target.src = `https://statusinvest.com.br/Content/img/empresa/${ticker.toLowerCase()}.png`;
+                }
+              }}
+            >
+              {empresaCompleta.ticker.charAt(0)}
+            </Avatar>
             <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
               <Stack 
                 direction="row" 
