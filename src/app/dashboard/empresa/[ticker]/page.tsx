@@ -2353,11 +2353,6 @@ export default function EmpresaDetalhes() {
     <AgendaCorporativa ticker={ticker} />
   </Grid>
 </Grid>
-        
-        <Grid item xs={12} lg={6}>
-          <AgendaCorporativa ticker={ticker} />
-        </Grid>
-      </Grid>
 
       {/* Dados da Posição - Agora em linha separada */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -2428,15 +2423,6 @@ export default function EmpresaDetalhes() {
 // ========================================
 
 // Se quiser adicionar um ícone especial para eventos próximos nas ações rápidas:
-      {/* Ações rápidas - Versão melhorada */}
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card sx={{ backgroundColor: '#f8fafc' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  🚀 Ações Rápidas
-                </Typography>
                 
                 {/* Indicador de eventos próximos */}
                 {eventos.some(e => calcularDiasAteEvento(new Date(e.data)) <= 7) && (
