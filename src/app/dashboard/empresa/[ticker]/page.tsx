@@ -1004,6 +1004,89 @@ const handleIframeError = () => {
     }
 
     // ✅ Renderizar com base no tipo
+    // ✅ PDF NÃO TEM VISUALIZAÇÃO - Só download
+if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
+  return (
+    <Box sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      bgcolor: 'grey.50',
+      borderRadius: 1,
+      p: 4
+    }}>
+      <PictureAsPdfIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+      
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
+        📄 {relatorioSelecionado.nome}
+      </Typography>
+      
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+        {relatorioSelecionado.tipo} • {relatorioSelecionado.dataReferencia}
+      </Typography>
+      
+      <Box sx={{ 
+        bgcolor: 'background.paper', 
+        p: 2, 
+        borderRadius: 1, 
+        border: 1, 
+        borderColor: 'divider',
+        mb: 3,
+        minWidth: 300
+      }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          📋 Informações do Arquivo:
+        </Typography>
+        <Typography variant="body2">
+          <strong>📄 Nome:</strong> {relatorioSelecionado.nomeArquivoPdf || 'Arquivo PDF'}<br/>
+          {relatorioSelecionado.tamanhoArquivo && (
+            <>
+              <strong>📊 Tamanho:</strong> {(relatorioSelecionado.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB<br/>
+            </>
+          )}
+          {relatorioSelecionado.dataUploadPdf && (
+            <>
+              <strong>📅 Upload:</strong> {new Date(relatorioSelecionado.dataUploadPdf).toLocaleDateString('pt-BR')}<br/>
+            </>
+          )}
+        </Typography>
+      </Box>
+      
+      <Button 
+        variant="contained"
+        color="success"
+        size="large"
+        startIcon={<DownloadIcon />}
+        onClick={() => {
+          console.log('⬇️ Baixando PDF...');
+          
+          if (!relatorioSelecionado.arquivoPdf) {
+            alert('Arquivo não encontrado');
+            return;
+          }
+          
+          const link = document.createElement('a');
+          link.href = relatorioSelecionado.arquivoPdf;
+          link.download = relatorioSelecionado.nomeArquivoPdf || `${relatorioSelecionado.nome}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          console.log('✅ Download iniciado');
+        }}
+        sx={{ py: 1.5, px: 4 }}
+      >
+        ⬇️ Baixar PDF
+      </Button>
+      
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
+        💡 Clique no botão acima para fazer o download do arquivo
+      </Typography>
+    </Box>
+  );
+}
     switch (relatorioSelecionado.tipoVisualizacao) {
       case 'iframe':
       case 'canva':
