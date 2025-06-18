@@ -39,9 +39,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DownloadIcon from '@mui/icons-material/Download';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+// Removidos imports de ícones não disponíveis
 
 // Ícones mock
 const ArrowLeftIcon = () => <span>←</span>;
@@ -56,6 +54,8 @@ const DeleteIcon = () => <span>🗑</span>;
 const FileIcon = () => <span>📄</span>;
 const ViewIcon = () => <span>👁</span>;
 const CloseIcon = () => <span>✕</span>;
+const CloudUploadIconCustom = () => <span>☁️</span>;
+const PictureAsPdfIconCustom = () => <span>📄</span>;
 
 // Token da API
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
@@ -976,7 +976,9 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           borderRadius: 1,
           p: 4
         }}>
-          <PictureAsPdfIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+          <Box sx={{ fontSize: 80, color: '#ef4444', mb: 2, textAlign: 'center' }}>
+            <PictureAsPdfIconCustom />
+          </Box>
           
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
             📄 {relatorioSelecionado.nome}
@@ -1017,7 +1019,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
             variant="contained"
             color="success"
             size="large"
-            startIcon={<DownloadIcon />}
+            startIcon={<DownloadIconCustom />}
             onClick={() => {
               console.log('⬇️ Baixando PDF...');
               
@@ -1372,7 +1374,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                       <Button 
                         variant="outlined" 
                         component="span"
-                        startIcon={<CloudUploadIcon />}
+                        startIcon={<CloudUploadIconCustom />}
                         fullWidth
                         sx={{ mb: 2, py: 2 }}
                       >
