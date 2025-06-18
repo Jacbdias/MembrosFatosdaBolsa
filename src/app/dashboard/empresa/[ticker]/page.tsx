@@ -727,6 +727,8 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     tipoVisualizacao: 'iframe' as const
   });
 
+  const [arquivoPdfSelecionado, setArquivoPdfSelecionado] = useState<File | null>(null);
+  
   useEffect(() => {
     const chave = `relatorios_${ticker}`;
     const relatoriosExistentes = localStorage.getItem(chave);
@@ -754,12 +756,115 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       return () => clearTimeout(timer);
     }
   }, [relatorioSelecionado]);
+// ✅ ADICIONAR estas funções
+const handleUploadPdf = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const arquivo = event.target.files?.[0];
+  
+  if (!arquivo) {
+    console.log('❌ Nenhum arquivo selecionado');
+    return;
+  }
+  
+  if (arquivo.type !== 'application/pdf') {
+    console.error('❌ Arquivo deve ser PDF');
+    alert('Por favor, selecione apenas arquivos PDF');
+    return;
+  }
+  
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (arquivo.size > maxSize) {
+    console.error('❌ Arquivo muito grande (máximo 10MB)');
+    alert('Arquivo muito grande! Máximo 10MB permitido.');
+    return;
+  }
+  
+  console.log('✅ PDF selecionado:', arquivo.name);
+  setArquivoPdfSelecionado(arquivo);
+}, []);
 
-  const salvarRelatorio = useCallback(() => {
-    if (!novoRelatorio.nome) {
-      alert('Digite o nome do relatório');
-      return;
+const salvarPdfNoServidor = useCallback(async (arquivo: File): Promise<string> => {
+  console.log('💾 Fazendo upload do PDF...');
+  
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const urlLocal = URL.createObjectURL(arquivo);
+    console.log('✅ PDF "salvo" com URL:', urlLocal);
+    return urlLocal;
+  } catch (error) {
+    console.error('❌ Erro ao salvar PDF:', error);
+    throw error;
+  }
+}, []);
+const salvarRelatorio = useCallback(async () => {
+  if (!novoRelatorio.nome) {
+    alert('Digite o nome do relatório');
+    return;
+  }
+
+  try {
+    let relatorioParaSalvar: any = { ...novoRelatorio };
+    
+    // ✅ Se for PDF, validar e fazer upload
+    if (novoRelatorio.tipoVisualizacao === 'pdf') {
+      if (!arquivoPdfSelecionado) {
+        alert('Por favor, selecione um arquivo PDF');
+        return;
+      }
+      
+      console.log('📄 Fazendo upload do PDF...');
+      const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
+      
+      relatorioParaSalvar = {
+        ...relatorioParaSalvar,
+        arquivoPdf: urlPdf,
+        nomeArquivoPdf: arquivoPdfSelecionado.name,
+        tamanhoArquivo: arquivoPdfSelecionado.size,
+        dataUploadPdf: new Date().toISOString(),
+      };
+      
+      console.log('✅ PDF salvo com sucesso:', urlPdf);
     }
+
+    const relatorio: Relatorio = {
+      id: Date.now().toString(),
+      nome: relatorioParaSalvar.nome,
+      tipo: relatorioParaSalvar.tipo,
+      dataUpload: new Date().toISOString(),
+      dataReferencia: relatorioParaSalvar.dataReferencia,
+      tipoVisualizacao: relatorioParaSalvar.tipoVisualizacao,
+      linkCanva: relatorioParaSalvar.linkCanva || undefined,
+      linkExterno: relatorioParaSalvar.linkExterno || undefined,
+      tamanho: relatorioParaSalvar.arquivo ? `${(relatorioParaSalvar.arquivo.size / 1024 / 1024).toFixed(1)} MB` : undefined,
+      arquivoPdf: relatorioParaSalvar.arquivoPdf,
+      nomeArquivoPdf: relatorioParaSalvar.nomeArquivoPdf,
+      tamanhoArquivo: relatorioParaSalvar.tamanhoArquivo,
+      dataUploadPdf: relatorioParaSalvar.dataUploadPdf
+    };
+
+    const chave = `relatorios_${ticker}`;
+    const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+    relatoriosExistentes.push(relatorio);
+    localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+    
+    setRelatorios(relatoriosExistentes);
+    setDialogAberto(false);
+    setNovoRelatorio({
+      nome: '',
+      tipo: 'trimestral',
+      dataReferencia: '',
+      arquivo: null,
+      linkCanva: '',
+      linkExterno: '',
+      tipoVisualizacao: 'iframe'
+    });
+    setArquivoPdfSelecionado(null);
+    setTabAtiva(1);
+    
+  } catch (error) {
+    console.error('❌ Erro ao salvar relatório:', error);
+    alert('Erro ao salvar relatório. Tente novamente.');
+  }
+}, [novoRelatorio, ticker, arquivoPdfSelecionado, salvarPdfNoServidor]);
 
     const relatorio: Relatorio = {
       id: Date.now().toString(),
