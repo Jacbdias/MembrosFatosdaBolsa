@@ -858,10 +858,12 @@ const processarUrl = (url: string, tipo: string): string => {
   }
 };
 
-    const handleIframeLoad = () => {
-      setLoadingIframe(false);
-      setTimeoutError(false);
-    };
+const handleIframeLoad = () => {
+  console.log('✅ Iframe carregou com sucesso!');
+  console.log('URL carregada:', src);
+  setLoadingIframe(false);
+  setTimeoutError(false);
+};
 
     const handleIframeError = () => {
       setLoadingIframe(false);
