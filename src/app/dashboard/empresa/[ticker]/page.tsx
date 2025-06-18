@@ -905,7 +905,30 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         }
       />
       <ListItemSecondaryAction>
-        {/* ... (ícones de ação) ... */}
+<ListItemSecondaryAction>
+  <Stack direction="row" spacing={1}>
+    <IconButton 
+      size="small" 
+      color="primary"
+      onClick={() => {
+        setRelatorioSelecionado(relatorio);
+        setLoadingIframe(true);
+        setDialogVisualizacao(true);
+      }}
+      title="Visualizar relatório"
+    >
+      <ViewIcon />
+    </IconButton>
+    <IconButton 
+      size="small" 
+      color="error"
+      onClick={() => excluirRelatorio(relatorio.id)}
+      title="Excluir relatório"
+    >
+      <DeleteIcon />
+    </IconButton>
+  </Stack>
+</ListItemSecondaryAction>
       </ListItemSecondaryAction>
     </ListItem>
   ))}
