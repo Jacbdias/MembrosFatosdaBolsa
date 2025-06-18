@@ -198,6 +198,90 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
 }
 
 // ========================================
+// HOOK PARA CALCULAR DIVIDEND YIELD - NOVO!
+// ========================================
+function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string) {
+  const [dyData, setDyData] = useState({
+    dy12Meses: 0,
+    dyDesdeEntrada: 0
+  });
+
+  // Função para converter preço string em número
+  const parsePreco = useCallback((precoStr: string): number => {
+    try {
+      return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  // Função para calcular DY
+  const calcularDY = useCallback(() => {
+    if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+      return;
+    }
+
+    try {
+      // Carregar proventos do localStorage
+      const chaveStorage = `proventos_${ticker}`;
+      const dadosSalvos = localStorage.getItem(chaveStorage);
+      
+      if (!dadosSalvos) {
+        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+        return;
+      }
+
+      const proventos = JSON.parse(dadosSalvos).map((item: any) => ({
+        ...item,
+        dataObj: new Date(item.dataObj)
+      }));
+
+      const hoje = new Date();
+      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
+      const data12MesesAtras = new Date();
+      data12MesesAtras.setFullYear(hoje.getFullYear() - 1);
+
+      // Filtrar proventos dos últimos 12 meses
+      const proventos12Meses = proventos.filter((provento: any) => 
+        provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje
+      );
+
+      // Filtrar proventos desde a entrada
+      const proventosDesdeEntrada = proventos.filter((provento: any) => 
+        provento.dataObj >= dataEntradaObj && provento.dataObj <= hoje
+      );
+
+      // Calcular totais
+      const totalProventos12Meses = proventos12Meses.reduce((sum: number, p: any) => sum + p.valor, 0);
+      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum: number, p: any) => sum + p.valor, 0);
+
+      // Calcular DY dos últimos 12 meses
+      const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
+
+      // Calcular DY desde a entrada
+      const precoEntrada = parsePreco(precoIniciou);
+      const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
+
+      setDyData({
+        dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
+        dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
+      });
+
+    } catch (error) {
+      console.error('Erro ao calcular DY:', error);
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+    }
+  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
+
+  useEffect(() => {
+    calcularDY();
+  }, [calcularDY]);
+
+  return dyData;
+}
+
+// ========================================
 // HOOK PERSONALIZADO - DADOS FINANCEIROS
 // ========================================
 function useDadosFinanceiros(ticker: string) {
@@ -891,24 +975,24 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     try {
       let relatorioParaSalvar: any = { ...novoRelatorio };
       
-// Salvar PDF se foi selecionado (independente do tipo de visualização)
-if (arquivoPdfSelecionado) {
-  console.log('📄 Fazendo upload do PDF...');
-  const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
-  
-  relatorioParaSalvar = {
-    ...relatorioParaSalvar,
-    arquivoPdf: urlPdf,
-    nomeArquivoPdf: arquivoPdfSelecionado.name,
-    tamanhoArquivo: arquivoPdfSelecionado.size,
-    dataUploadPdf: new Date().toISOString(),
-  };
-  
-  console.log('✅ PDF salvo com sucesso:', urlPdf);
-} else if (novoRelatorio.tipoVisualizacao === 'pdf') {
-  alert('Por favor, selecione um arquivo PDF');
-  return;
-}
+      // Salvar PDF se foi selecionado (independente do tipo de visualização)
+      if (arquivoPdfSelecionado) {
+        console.log('📄 Fazendo upload do PDF...');
+        const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
+        
+        relatorioParaSalvar = {
+          ...relatorioParaSalvar,
+          arquivoPdf: urlPdf,
+          nomeArquivoPdf: arquivoPdfSelecionado.name,
+          tamanhoArquivo: arquivoPdfSelecionado.size,
+          dataUploadPdf: new Date().toISOString(),
+        };
+        
+        console.log('✅ PDF salvo com sucesso:', urlPdf);
+      } else if (novoRelatorio.tipoVisualizacao === 'pdf') {
+        alert('Por favor, selecione um arquivo PDF');
+        return;
+      }
 
       const relatorio: Relatorio = {
         id: Date.now().toString(),
@@ -1380,68 +1464,68 @@ if (arquivoPdfSelecionado) {
                     </Stack>
                   }
                 />
-<ListItemSecondaryAction>
-  <Stack direction="row" spacing={1}>
-    {/* Botão de visualização para iframe/canva/link */}
-    {(relatorio.tipoVisualizacao === 'iframe' || relatorio.tipoVisualizacao === 'canva' || relatorio.tipoVisualizacao === 'link') && (
-      <IconButton
-        size="small"
-        onClick={() => {
-          setRelatorioSelecionado(relatorio);
-          setDialogVisualizacao(true);
-        }}
-        sx={{ 
-          backgroundColor: '#e3f2fd',
-          '&:hover': { backgroundColor: '#bbdefb' }
-        }}
-        title="Visualizar conteúdo"
-      >
-        <ViewIcon />
-      </IconButton>
-    )}
-    
-    {/* Botão de download PDF - sempre disponível se tiver PDF */}
-    {relatorio.arquivoPdf && (
-      <Button
-        variant="contained"
-        color="success"
-        size="small"
-        onClick={() => baixarPdf(relatorio)}
-        startIcon={<DownloadIconCustom />}
-        sx={{ minWidth: 'auto', px: 2 }}
-        title="Baixar PDF"
-      >
-        PDF
-      </Button>
-    )}
-    
-    {/* Se for tipo PDF puro (sem iframe), só mostra download */}
-    {relatorio.tipoVisualizacao === 'pdf' && !relatorio.linkExterno && !relatorio.linkCanva && (
-      <Button
-        variant="contained"
-        color="success"
-        size="small"
-        onClick={() => baixarPdf(relatorio)}
-        startIcon={<DownloadIconCustom />}
-        sx={{ minWidth: 'auto', px: 2 }}
-      >
-        Download
-      </Button>
-    )}
-    
-    <IconButton
-      size="small"
-      onClick={() => excluirRelatorio(relatorio.id)}
-      color="error"
-      sx={{ 
-        backgroundColor: '#ffebee',
-        '&:hover': { backgroundColor: '#ffcdd2' }
-      }}
-    >
-      <DeleteIcon />
-    </IconButton>
-  </Stack>
-</ListItemSecondaryAction>
+                <ListItemSecondaryAction>
+                  <Stack direction="row" spacing={1}>
+                    {/* Botão de visualização para iframe/canva/link */}
+                    {(relatorio.tipoVisualizacao === 'iframe' || relatorio.tipoVisualizacao === 'canva' || relatorio.tipoVisualizacao === 'link') && (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setRelatorioSelecionado(relatorio);
+                          setDialogVisualizacao(true);
+                        }}
+                        sx={{ 
+                          backgroundColor: '#e3f2fd',
+                          '&:hover': { backgroundColor: '#bbdefb' }
+                        }}
+                        title="Visualizar conteúdo"
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                    )}
+                    
+                    {/* Botão de download PDF - sempre disponível se tiver PDF */}
+                    {relatorio.arquivoPdf && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={() => baixarPdf(relatorio)}
+                        startIcon={<DownloadIconCustom />}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                        title="Baixar PDF"
+                      >
+                        PDF
+                      </Button>
+                    )}
+                    
+                    {/* Se for tipo PDF puro (sem iframe), só mostra download */}
+                    {relatorio.tipoVisualizacao === 'pdf' && !relatorio.linkExterno && !relatorio.linkCanva && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={() => baixarPdf(relatorio)}
+                        startIcon={<DownloadIconCustom />}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        Download
+                      </Button>
+                    )}
+                    
+                    <IconButton
+                      size="small"
+                      onClick={() => excluirRelatorio(relatorio.id)}
+                      color="error"
+                      sx={{ 
+                        backgroundColor: '#ffebee',
+                        '&:hover': { backgroundColor: '#ffcdd2' }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                </ListItemSecondaryAction>
               </ListItem>
             ))}
           </List>
@@ -1523,19 +1607,19 @@ if (arquivoPdfSelecionado) {
                   />
                 )}
                 
-{novoRelatorio.tipoVisualizacao !== 'canva' && (
-  <Box sx={{ mt: 2 }}>
-    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#d32f2f' }}>
-      📄 Upload de Arquivo PDF (Opcional)
-    </Typography>
+                {novoRelatorio.tipoVisualizacao !== 'canva' && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#d32f2f' }}>
+                      📄 Upload de Arquivo PDF (Opcional)
+                    </Typography>
                     
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
                         <strong>📋 Instruções:</strong><br/>
-- {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Arquivo PDF obrigatório para este tipo' : 'Arquivo PDF opcional - complementa a visualização'}<br/>
-- Selecione arquivos PDF até 10MB<br/>
-- {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Só download disponível' : 'Visualização + download disponíveis'}<br/>
-- Formatos aceitos: .pdf apenas
+                        - {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Arquivo PDF obrigatório para este tipo' : 'Arquivo PDF opcional - complementa a visualização'}<br/>
+                        - Selecione arquivos PDF até 10MB<br/>
+                        - {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Só download disponível' : 'Visualização + download disponíveis'}<br/>
+                        - Formatos aceitos: .pdf apenas
                       </Typography>
                     </Alert>
                     
@@ -1612,12 +1696,12 @@ if (arquivoPdfSelecionado) {
             <Button 
               onClick={salvarRelatorio} 
               variant="contained"
-disabled={
-  !novoRelatorio.nome || 
-  (novoRelatorio.tipoVisualizacao === 'pdf' && !arquivoPdfSelecionado) ||
-  (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) ||
-  ((novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && !novoRelatorio.linkExterno && !arquivoPdfSelecionado)
-}
+              disabled={
+                !novoRelatorio.nome || 
+                (novoRelatorio.tipoVisualizacao === 'pdf' && !arquivoPdfSelecionado) ||
+                (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) ||
+                ((novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && !novoRelatorio.linkExterno && !arquivoPdfSelecionado)
+              }
             >
               💾 Salvar Relatório
             </Button>
@@ -1695,6 +1779,10 @@ disabled={
     </Card>
   );
 });
+
+// ========================================
+// COMPONENTE AGENDA CORPORATIVA
+// ========================================
 const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2061,6 +2149,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
     </Card>
   );
 });
+
 // ========================================
 // COMPONENTE PRINCIPAL - DETALHES DA EMPRESA
 // ========================================
@@ -2072,6 +2161,14 @@ export default function EmpresaDetalhes() {
   const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
   
   const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
+
+  // 🆕 NOVO: Hook para calcular DY
+  const { dy12Meses, dyDesdeEntrada } = useDividendYield(
+    ticker, 
+    empresa?.dataEntrada || '', 
+    dadosFinanceiros?.precoAtual, 
+    empresa?.precoIniciou || ''
+  );
 
   useEffect(() => {
     if (!ticker) return;
@@ -2302,16 +2399,16 @@ export default function EmpresaDetalhes() {
         </CardContent>
       </Card>
 
-      {/* Cards de métricas */}
+      {/* 🆕 MODIFICADO: Cards de métricas com DY - AGORA 6 CARDS */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="COTAÇÃO" 
             value={precoAtualFormatado}
             loading={dadosLoading}
           />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="VARIAÇÃO HOJE" 
             value={dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
@@ -2319,7 +2416,7 @@ export default function EmpresaDetalhes() {
             trend={dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined}
           />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="PERFORMANCE" 
             value={calcularPerformance()}
@@ -2327,10 +2424,26 @@ export default function EmpresaDetalhes() {
             subtitle="desde entrada"
           />
         </Grid>
-        <Grid item xs={6} md={3}>
+        <Grid item xs={6} md={2}>
           <MetricCard 
             title="P/L" 
             value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+            loading={dadosLoading}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="DY 12 MESES" 
+            value={dy12Meses > 0 ? `${dy12Meses.toFixed(2)}%` : 'N/A'}
+            subtitle="últimos 12m"
+            loading={dadosLoading}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="DY ENTRADA" 
+            value={dyDesdeEntrada > 0 ? `${dyDesdeEntrada.toFixed(2)}%` : 'N/A'}
+            subtitle="desde entrada"
             loading={dadosLoading}
           />
         </Grid>
