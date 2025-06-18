@@ -1409,6 +1409,7 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
                     <MenuItem value="iframe">🖼️ Iframe Genérico</MenuItem>
                     <MenuItem value="canva">🎨 Canva</MenuItem>
                     <MenuItem value="link">🔗 Link Externo</MenuItem>
+                    <MenuItem value="pdf">📄 PDF para Download</MenuItem>
                   </Select>
                 </FormControl>
 
