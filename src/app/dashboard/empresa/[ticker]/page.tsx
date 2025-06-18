@@ -1512,9 +1512,10 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
                         <strong>📋 Instruções:</strong><br/>
-                        • Selecione arquivos PDF até 10MB<br/>
-                        • O arquivo ficará disponível para download<br/>
-                        • Formatos aceitos: .pdf apenas
+- {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Arquivo PDF obrigatório para este tipo' : 'Arquivo PDF opcional - complementa a visualização'}<br/>
+- Selecione arquivos PDF até 10MB<br/>
+- {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Só download disponível' : 'Visualização + download disponíveis'}<br/>
+- Formatos aceitos: .pdf apenas
                       </Typography>
                     </Alert>
                     
