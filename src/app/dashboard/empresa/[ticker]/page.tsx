@@ -865,10 +865,12 @@ const handleIframeLoad = () => {
   setTimeoutError(false);
 };
 
-    const handleIframeError = () => {
-      setLoadingIframe(false);
-      setTimeoutError(true);
-    };
+const handleIframeError = () => {
+  console.log('❌ Erro no iframe detectado');
+  console.log('URL que falhou:', src);
+  setLoadingIframe(false);
+  setTimeoutError(true);
+};
 
     // ✅ Obter URL processada
     const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
