@@ -742,7 +742,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       const timer = setTimeout(() => {
         setLoadingIframe(false);
         setTimeoutError(true);
-      }, 15000);
+      }, 60000);
       
       return () => clearTimeout(timer);
     }
