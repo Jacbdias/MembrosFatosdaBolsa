@@ -971,23 +971,29 @@ const handleIframeError = () => {
             )}
 
             {/* ✅ Iframe com configurações robustas */}
-            <iframe
-              data-report-src={src}
-              src={src}
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                border: 'none', 
-                borderRadius: '8px',
-                opacity: timeoutError ? 0.3 : 1
-              }}
-              allowFullScreen
-              onLoad={handleIframeLoad}
-              onError={handleIframeError}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
-              referrerPolicy="no-referrer-when-downgrade"
-              loading="lazy"
-            />
+<iframe
+  data-report-src={src}
+  src={src}
+  style={{ 
+    width: '100%', 
+    height: '100%', 
+    border: 'none', 
+    borderRadius: '8px',
+    opacity: timeoutError ? 0.3 : 1
+  }}
+  allowFullScreen
+  onLoad={() => {
+    console.log('🎯 Iframe onLoad disparado');
+    handleIframeLoad();
+  }}
+  onError={() => {
+    console.log('🚨 Iframe onError disparado');
+    handleIframeError();
+  }}
+  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+  referrerPolicy="no-referrer-when-downgrade"
+  loading="lazy"
+/>
             
             {/* ✅ Overlay com link direto */}
             {!loadingIframe && !timeoutError && (
