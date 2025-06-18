@@ -1503,11 +1503,11 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                   />
                 )}
                 
-                {novoRelatorio.tipoVisualizacao === 'pdf' && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#d32f2f' }}>
-                      📄 Upload de Arquivo PDF
-                    </Typography>
+{novoRelatorio.tipoVisualizacao !== 'canva' && (
+  <Box sx={{ mt: 2 }}>
+    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#d32f2f' }}>
+      📄 Upload de Arquivo PDF (Opcional)
+    </Typography>
                     
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
