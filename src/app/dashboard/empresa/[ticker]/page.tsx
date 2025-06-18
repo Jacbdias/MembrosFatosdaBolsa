@@ -2049,120 +2049,141 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
             </Typography>
           </Box>
         ) : (
-          <Grid container spacing={2}>
-            {eventos.slice(0, 6).map((evento, index) => {
+          <Stack spacing={3}>
+            {eventos.slice(0, 4).map((evento, index) => {
               const diasAteEvento = calcularDiasAteEvento(evento.data);
               const proximidade = formatarProximidade(diasAteEvento);
               
               return (
-                <Grid item xs={12} sm={6} md={4} key={evento.id}>
-                  <Card sx={{ 
-                    border: '1px solid #e2e8f0', 
-                    borderRadius: 2,
-                    backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
-                    '&:hover': { 
-                      backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                    },
-                    height: '100%',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <CardContent sx={{ p: 3 }}>
-                      {/* Ícone e título */}
-                      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                        <Box sx={{ 
-                          fontSize: '1.5rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 40,
-                          height: 40,
-                          borderRadius: '50%',
-                          backgroundColor: evento.cor + '20',
-                          color: evento.cor,
-                          flexShrink: 0
-                        }}>
-                          {evento.icone}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="subtitle1" sx={{ 
-                            fontWeight: 600,
-                            fontSize: '0.95rem',
-                            lineHeight: 1.2,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {evento.titulo}
-                          </Typography>
-                        </Box>
-                      </Stack>
-
-                      {/* Data e proximidade */}
-                      <Stack spacing={1} sx={{ mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ 
-                          fontSize: '0.85rem',
-                          fontWeight: 500
-                        }}>
-                          📅 {evento.data.toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </Typography>
-                        
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Chip 
-                            label={proximidade}
-                            size="small"
-                            sx={{ 
-                              backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
-                              color: 'white',
-                              fontSize: '0.7rem',
-                              height: 20,
-                              fontWeight: 500
-                            }}
-                          />
-                          {evento.estimado && (
-                            <Chip 
-                              label="Estimado"
-                              size="small"
-                              variant="outlined"
-                              sx={{ 
-                                fontSize: '0.7rem', 
-                                height: 20,
-                                borderColor: '#d1d5db',
-                                color: '#6b7280'
-                              }}
-                            />
-                          )}
-                        </Stack>
-                      </Stack>
-
-                      {/* Descrição */}
-                      <Typography variant="body2" color="text.secondary" sx={{ 
-                        fontSize: '0.8rem',
-                        lineHeight: 1.4,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                <Card key={evento.id} sx={{ 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: 2,
+                  backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
+                  '&:hover': { 
+                    backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Stack direction="row" alignItems="center" spacing={4}>
+                      {/* Ícone */}
+                      <Box sx={{ 
+                        fontSize: '2.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 60,
+                        height: 60,
+                        borderRadius: 2,
+                        backgroundColor: evento.cor + '20',
+                        color: evento.cor,
+                        flexShrink: 0
                       }}>
-                        {evento.descricao}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                        {evento.icone}
+                      </Box>
+
+                      {/* Conteúdo Principal */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
+                          {/* Título e Descrição */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="h6" sx={{ 
+                              fontWeight: 600,
+                              fontSize: '1.1rem',
+                              mb: 1,
+                              color: '#1e293b'
+                            }}>
+                              {evento.titulo}
+                            </Typography>
+                            
+                            <Typography variant="body2" color="text.secondary" sx={{ 
+                              fontSize: '0.9rem',
+                              lineHeight: 1.5,
+                              mb: 2
+                            }}>
+                              {evento.descricao}
+                            </Typography>
+
+                            {/* Chips */}
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip 
+                                label={proximidade}
+                                size="medium"
+                                sx={{ 
+                                  backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
+                                  color: 'white',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 500,
+                                  px: 1
+                                }}
+                              />
+                              {evento.estimado && (
+                                <Chip 
+                                  label="Estimado"
+                                  size="medium"
+                                  variant="outlined"
+                                  sx={{ 
+                                    fontSize: '0.8rem',
+                                    borderColor: '#d1d5db',
+                                    color: '#6b7280'
+                                  }}
+                                />
+                              )}
+                            </Stack>
+                          </Box>
+
+                          {/* Data */}
+                          <Box sx={{ 
+                            textAlign: 'right',
+                            minWidth: 140,
+                            flexShrink: 0
+                          }}>
+                            <Typography variant="h5" sx={{ 
+                              fontWeight: 700,
+                              color: evento.cor,
+                              fontSize: '1.3rem',
+                              lineHeight: 1
+                            }}>
+                              {evento.data.getDate()}
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              fontWeight: 600,
+                              color: '#64748b',
+                              fontSize: '0.9rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              {evento.data.toLocaleDateString('pt-BR', {
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ 
+                              fontSize: '0.75rem',
+                              display: 'block',
+                              mt: 0.5
+                            }}>
+                              {evento.data.toLocaleDateString('pt-BR', {
+                                weekday: 'long'
+                              })}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
               );
             })}
-          </Grid>
+          </Stack>
         )}
 
-        {eventos.length > 6 && (
+        {eventos.length > 4 && (
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="caption" color="text.secondary">
-              Mostrando os próximos 6 eventos • Total: {eventos.length}
+              Mostrando os próximos 4 eventos • Total: {eventos.length}
             </Typography>
           </Box>
         )}
