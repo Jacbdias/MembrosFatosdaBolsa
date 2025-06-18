@@ -2464,3 +2464,4 @@ export default function EmpresaDetalhes() {
       </Grid>
     </Box>
   );
+}
