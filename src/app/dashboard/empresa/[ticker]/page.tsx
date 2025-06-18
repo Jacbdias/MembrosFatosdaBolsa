@@ -99,7 +99,7 @@ interface Relatorio {
   linkCanva?: string;
   linkExterno?: string;
   tamanho?: string;
-  tipoVisualizacao: 'pdf' | 'iframe' | 'canva' | 'link';
+  export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf';
 }
 
 // Hook para buscar dados financeiros
