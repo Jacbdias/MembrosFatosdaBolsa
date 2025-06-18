@@ -39,9 +39,10 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-// Removidos imports de ícones não disponíveis
 
-// Ícones mock
+// ========================================
+// ÍCONES MOCK
+// ========================================
 const ArrowLeftIcon = () => <span>←</span>;
 const TrendUpIcon = () => <span style={{ color: '#22c55e' }}>↗</span>;
 const TrendDownIcon = () => <span style={{ color: '#ef4444' }}>↘</span>;
@@ -57,9 +58,14 @@ const CloseIcon = () => <span>✕</span>;
 const CloudUploadIconCustom = () => <span>☁️</span>;
 const PictureAsPdfIconCustom = () => <span>📄</span>;
 
-// Token da API
+// ========================================
+// CONSTANTES E CONFIGURAÇÕES
+// ========================================
 const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
 
+// ========================================
+// INTERFACES E TIPOS
+// ========================================
 interface DadosFinanceiros {
   precoAtual: number;
   variacao: number;
@@ -89,7 +95,7 @@ interface EmpresaCompleta {
   ultimaAtualizacao?: string;
 }
 
-export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf' | 'iframe';
+export type TipoVisualizacao = 'iframe' | 'canva' | 'link' | 'pdf';
 
 interface Relatorio {
   id: string;
@@ -108,7 +114,92 @@ interface Relatorio {
   dataUploadPdf?: string;
 }
 
-// Hook para buscar dados financeiros
+// ========================================
+// DADOS DE FALLBACK
+// ========================================
+const dadosFallback: { [key: string]: EmpresaCompleta } = {
+  'ALOS3': {
+    ticker: 'ALOS3',
+    nomeCompleto: 'Allos S.A.',
+    setor: 'Shoppings',
+    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
+    dataEntrada: '15/01/2021',
+    precoIniciou: 'R$ 26,68',
+    precoTeto: 'R$ 23,76',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '108.500',
+    percentualCarteira: '4.2%'
+  }
+};
+
+// ========================================
+// FUNÇÕES UTILITÁRIAS
+// ========================================
+function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
+  try {
+    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    
+    if (isNaN(precoTetoNum) || precoAtual <= 0) {
+      return 'Aguardar';
+    }
+    
+    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
+    
+    if (percentualDoTeto <= 80) {
+      return 'Compra Forte';
+    } else if (percentualDoTeto <= 95) {
+      return 'Compra';
+    } else if (percentualDoTeto <= 105) {
+      return 'Neutro';
+    } else if (percentualDoTeto <= 120) {
+      return 'Aguardar';
+    } else {
+      return 'Venda';
+    }
+  } catch {
+    return 'Aguardar';
+  }
+}
+
+function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
+  if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
+  
+  switch (tipo) {
+    case 'currency':
+      return new Intl.NumberFormat('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(valor);
+    
+    case 'percent':
+      return `${valor.toFixed(2).replace('.', ',')}%`;
+    
+    case 'millions':
+      if (valor >= 1000000000) {
+        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
+      } else if (valor >= 1000000) {
+        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
+      } else {
+        return formatarValor(valor, 'currency');
+      }
+    
+    case 'number':
+      return valor.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2 
+      });
+    
+    default:
+      return valor.toString();
+  }
+}
+
+// ========================================
+// HOOK PERSONALIZADO - DADOS FINANCEIROS
+// ========================================
 function useDadosFinanceiros(ticker: string) {
   const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros | null>(null);
   const [loading, setLoading] = useState(true);
@@ -179,70 +270,9 @@ function useDadosFinanceiros(ticker: string) {
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
 }
 
-// Função para calcular viés
-function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
-  try {
-    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    
-    if (isNaN(precoTetoNum) || precoAtual <= 0) {
-      return 'Aguardar';
-    }
-    
-    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
-    
-    if (percentualDoTeto <= 80) {
-      return 'Compra Forte';
-    } else if (percentualDoTeto <= 95) {
-      return 'Compra';
-    } else if (percentualDoTeto <= 105) {
-      return 'Neutro';
-    } else if (percentualDoTeto <= 120) {
-      return 'Aguardar';
-    } else {
-      return 'Venda';
-    }
-  } catch {
-    return 'Aguardar';
-  }
-}
-
-// Função para formatar valores
-function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
-  if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
-  
-  switch (tipo) {
-    case 'currency':
-      return new Intl.NumberFormat('pt-BR', { 
-        style: 'currency', 
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(valor);
-    
-    case 'percent':
-      return `${valor.toFixed(2).replace('.', ',')}%`;
-    
-    case 'millions':
-      if (valor >= 1000000000) {
-        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
-      } else if (valor >= 1000000) {
-        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
-      } else {
-        return formatarValor(valor, 'currency');
-      }
-    
-    case 'number':
-      return valor.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2 
-      });
-    
-    default:
-      return valor.toString();
-  }
-}
-
-// Componente de métrica
+// ========================================
+// COMPONENTE DE MÉTRICA
+// ========================================
 const MetricCard = React.memo(({ 
   title, 
   value, 
@@ -350,7 +380,9 @@ const MetricCard = React.memo(({
   </Card>
 ));
 
-// Componente para histórico de dividendos - OTIMIZADO
+// ========================================
+// COMPONENTE HISTÓRICO DE DIVIDENDOS
+// ========================================
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
   const [proventos, setProventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -364,7 +396,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
       if (dadosSalvos) {
         try {
           const proventosSalvos = JSON.parse(dadosSalvos);
-          // Otimização: Limitar dados carregados
           const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
             ...item,
             dataObj: new Date(item.dataObj)
@@ -381,7 +412,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
   const salvarProventos = useCallback((novosProventos: any[]) => {
     if (ticker && typeof window !== 'undefined') {
       const chaveStorage = `proventos_${ticker}`;
-      // Otimização: Salvar apenas dados essenciais
       const dadosMinimos = novosProventos.slice(0, 500).map(item => ({
         ticker: item.ticker,
         data: item.data,
@@ -405,8 +435,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
   }, [ticker]);
 
   const handleArquivoCSV = useCallback((file: File) => {
-    // Otimização: Limite de tamanho
-    if (file.size > 5 * 1024 * 1024) { // 5MB
+    if (file.size > 5 * 1024 * 1024) {
       alert('Arquivo muito grande. Máximo 5MB.');
       return;
     }
@@ -431,7 +460,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
 
         const dados = linhas
           .slice(1)
-          .slice(0, 1000) // Limitar a 1000 registros
+          .slice(0, 1000)
           .map((linha, index) => {
             const partes = linha.split(',').map(p => p.trim().replace(/"/g, ''));
             
@@ -441,7 +470,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             
             if (!csvTicker || !data || !valor || !tipo) return null;
            
-            // Validação segura antes de usar toUpperCase()
             if (!csvTicker || typeof csvTicker !== 'string' || csvTicker.trim() === '') {
               return null;
             }
@@ -450,7 +478,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               return null;
             }
 
-            // Agora é seguro usar toUpperCase()
             const tickerLimpo = csvTicker.trim().toUpperCase();
             const tickerAtual = ticker.trim().toUpperCase();
 
@@ -523,7 +550,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
     reader.readAsText(file, 'UTF-8');
   }, [ticker, dataEntrada, salvarProventos]);
 
-  // Cálculos memoizados
   const { totalProventos, mediaProvento, ultimoProvento, totalPorAno } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + item.valor, 0);
     const media = proventos.length > 0 ? total / proventos.length : 0;
@@ -631,7 +657,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               </Alert>
             )}
 
-            {/* Resumo compacto */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={3}>
                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f0f9ff', borderRadius: 1 }}>
@@ -667,7 +692,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               </Grid>
             </Grid>
 
-            {/* Histórico simplificado */}
             <TableContainer sx={{ backgroundColor: 'white', borderRadius: 1 }}>
               <Table size="small">
                 <TableHead>
@@ -712,7 +736,9 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
   );
 });
 
-// Componente para gerenciar relatórios - CORRIGIDO
+// ========================================
+// COMPONENTE GERENCIADOR DE RELATÓRIOS
+// ========================================
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
@@ -732,6 +758,58 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   });
 
   const [arquivoPdfSelecionado, setArquivoPdfSelecionado] = useState<File | null>(null);
+
+  // FUNÇÃO PARA DOWNLOAD DE PDF
+  const baixarPdf = useCallback((relatorio: Relatorio) => {
+    console.log('⬇️ Iniciando download do PDF...');
+    console.log('Relatório:', relatorio.nome);
+    
+    if (!relatorio.arquivoPdf) {
+      alert('❌ Arquivo PDF não encontrado!');
+      console.error('❌ URL do PDF não existe');
+      return;
+    }
+    
+    try {
+      const link = document.createElement('a');
+      link.href = relatorio.arquivoPdf;
+      link.download = relatorio.nomeArquivoPdf || `${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      link.target = '_blank';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('✅ Download iniciado com sucesso');
+      
+      // Feedback visual
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      `;
+      toast.textContent = '📥 Download iniciado!';
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Erro no download:', error);
+      alert('❌ Erro ao baixar o arquivo. Tente novamente.');
+    }
+  }, []);
   
   useEffect(() => {
     const chave = `relatorios_${ticker}`;
@@ -771,6 +849,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     if (arquivo.type !== 'application/pdf') {
       console.error('❌ Arquivo deve ser PDF');
       alert('Por favor, selecione apenas arquivos PDF');
+      event.target.value = '';
       return;
     }
     
@@ -778,24 +857,28 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     if (arquivo.size > maxSize) {
       console.error('❌ Arquivo muito grande (máximo 10MB)');
       alert('Arquivo muito grande! Máximo 10MB permitido.');
+      event.target.value = '';
       return;
     }
     
     console.log('✅ PDF selecionado:', arquivo.name);
+    console.log('📊 Tamanho:', (arquivo.size / 1024 / 1024).toFixed(2), 'MB');
     setArquivoPdfSelecionado(arquivo);
   }, []);
 
   const salvarPdfNoServidor = useCallback(async (arquivo: File): Promise<string> => {
-    console.log('💾 Fazendo upload do PDF...');
+    console.log('💾 Processando PDF para armazenamento local...');
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const urlLocal = URL.createObjectURL(arquivo);
-      console.log('✅ PDF "salvo" com URL:', urlLocal);
+      console.log('✅ PDF processado com URL local:', urlLocal);
+      
       return urlLocal;
     } catch (error) {
-      console.error('❌ Erro ao salvar PDF:', error);
-      throw error;
+      console.error('❌ Erro ao processar PDF:', error);
+      throw new Error('Erro ao processar arquivo PDF');
     }
   }, []);
 
@@ -1021,21 +1104,8 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
             size="large"
             startIcon={<DownloadIconCustom />}
             onClick={() => {
-              console.log('⬇️ Baixando PDF...');
-              
-              if (!relatorioSelecionado.arquivoPdf) {
-                alert('Arquivo não encontrado');
-                return;
-              }
-              
-              const link = document.createElement('a');
-              link.href = relatorioSelecionado.arquivoPdf;
-              link.download = relatorioSelecionado.nomeArquivoPdf || `${relatorioSelecionado.nome}.pdf`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              
-              console.log('✅ Download iniciado');
+              console.log('⬇️ Botão de download clicado');
+              baixarPdf(relatorioSelecionado);
             }}
             sx={{ py: 1.5, px: 4 }}
           >
@@ -1224,7 +1294,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           </Box>
         );
     }
-  }, [relatorioSelecionado, loadingIframe, timeoutError]);
+  }, [relatorioSelecionado, loadingIframe, timeoutError, baixarPdf]);
 
   return (
     <Card>
@@ -1233,13 +1303,35 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             📋 Relatórios da Empresa
           </Typography>
-          <Button 
-            variant="contained" 
-            onClick={() => setDialogAberto(true)}
-            size="small"
-          >
-            + Adicionar Relatório
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={() => {
+                alert(`💡 FUNCIONALIDADES DISPONÍVEIS:
+
+🖼️ Iframe Genérico - Para sites que permitem iframe
+🎨 Canva - Para designs do Canva
+🔗 Link Externo - Abre em nova aba
+📄 PDF - Upload e download de arquivos PDF
+
+📄 SISTEMA PDF:
+• Faça upload de PDFs até 10MB
+• Download direto do arquivo
+• Armazenamento local no navegador
+• Feedback visual do processo`);
+              }}
+            >
+              💡 Como Funciona
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={() => setDialogAberto(true)}
+              size="small"
+            >
+              + Adicionar Relatório
+            </Button>
+          </Stack>
         </Stack>
 
         {relatorios.length === 0 ? (
@@ -1251,26 +1343,80 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         ) : (
           <List>
             {relatorios.map((relatorio) => (
-              <ListItem key={relatorio.id}>
+              <ListItem key={relatorio.id} sx={{ 
+                border: '1px solid #e2e8f0', 
+                borderRadius: 2, 
+                mb: 1,
+                backgroundColor: 'white',
+                '&:hover': { backgroundColor: '#f8fafc' }
+              }}>
                 <ListItemText
-                  primary={`${getIconePorTipo(relatorio.tipoVisualizacao)} ${relatorio.nome}`}
-                  secondary={`${relatorio.tipo} • ${relatorio.dataReferencia}`}
+                  primary={
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {relatorio.nome}
+                      </Typography>
+                      {relatorio.tipoVisualizacao === 'pdf' && (
+                        <Chip 
+                          label="PDF" 
+                          size="small" 
+                          color="error" 
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      )}
+                    </Stack>
+                  }
+                  secondary={
+                    <Stack spacing={0.5}>
+                      <Typography variant="body2" color="text.secondary">
+                        {relatorio.tipo} • {relatorio.dataReferencia}
+                      </Typography>
+                      {relatorio.tipoVisualizacao === 'pdf' && relatorio.tamanhoArquivo && (
+                        <Typography variant="caption" color="text.secondary">
+                          📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
+                        </Typography>
+                      )}
+                    </Stack>
+                  }
                 />
                 <ListItemSecondaryAction>
                   <Stack direction="row" spacing={1}>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setRelatorioSelecionado(relatorio);
-                        setDialogVisualizacao(true);
-                      }}
-                    >
-                      <ViewIcon />
-                    </IconButton>
+                    {relatorio.tipoVisualizacao === 'pdf' ? (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={() => baixarPdf(relatorio)}
+                        startIcon={<DownloadIconCustom />}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        Download
+                      </Button>
+                    ) : (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setRelatorioSelecionado(relatorio);
+                          setDialogVisualizacao(true);
+                        }}
+                        sx={{ 
+                          backgroundColor: '#e3f2fd',
+                          '&:hover': { backgroundColor: '#bbdefb' }
+                        }}
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                    )}
                     <IconButton
                       size="small"
                       onClick={() => excluirRelatorio(relatorio.id)}
                       color="error"
+                      sx={{ 
+                        backgroundColor: '#ffebee',
+                        '&:hover': { backgroundColor: '#ffcdd2' }
+                      }}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -1359,24 +1505,42 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                 
                 {novoRelatorio.tipoVisualizacao === 'pdf' && (
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                      📄 Arquivo PDF
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#d32f2f' }}>
+                      📄 Upload de Arquivo PDF
                     </Typography>
+                    
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        <strong>📋 Instruções:</strong><br/>
+                        • Selecione arquivos PDF até 10MB<br/>
+                        • O arquivo ficará disponível para download<br/>
+                        • Formatos aceitos: .pdf apenas
+                      </Typography>
+                    </Alert>
                     
                     <input
                       accept="application/pdf"
                       style={{ display: 'none' }}
-                      id="upload-pdf"
+                      id="upload-pdf-input"
                       type="file"
                       onChange={handleUploadPdf}
                     />
-                    <label htmlFor="upload-pdf">
+                    <label htmlFor="upload-pdf-input">
                       <Button 
-                        variant="outlined" 
+                        variant={arquivoPdfSelecionado ? 'outlined' : 'contained'}
                         component="span"
                         startIcon={<CloudUploadIconCustom />}
                         fullWidth
-                        sx={{ mb: 2, py: 2 }}
+                        sx={{ 
+                          mb: 2, 
+                          py: 2,
+                          backgroundColor: arquivoPdfSelecionado ? '#e8f5e8' : undefined,
+                          borderColor: arquivoPdfSelecionado ? '#22c55e' : undefined,
+                          color: arquivoPdfSelecionado ? '#22c55e' : undefined,
+                          '&:hover': {
+                            backgroundColor: arquivoPdfSelecionado ? '#d4edda' : undefined
+                          }
+                        }}
                       >
                         {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
                       </Button>
@@ -1385,15 +1549,31 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                     {arquivoPdfSelecionado && (
                       <Alert severity="success" sx={{ mb: 2 }}>
                         <Typography variant="body2">
-                          <strong>📄 Arquivo:</strong> {arquivoPdfSelecionado.name}<br/>
-                          <strong>📊 Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB<br/>
-                          <strong>📅 Selecionado:</strong> {new Date().toLocaleString('pt-BR')}
+                          <strong>📄 Arquivo Selecionado:</strong><br/>
+                          <strong>Nome:</strong> {arquivoPdfSelecionado.name}<br/>
+                          <strong>Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB<br/>
+                          <strong>Tipo:</strong> {arquivoPdfSelecionado.type}<br/>
+                          <strong>Selecionado em:</strong> {new Date().toLocaleString('pt-BR')}
                         </Typography>
+                        
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            setArquivoPdfSelecionado(null);
+                            const input = document.getElementById('upload-pdf-input') as HTMLInputElement;
+                            if (input) input.value = '';
+                          }}
+                          sx={{ mt: 1 }}
+                        >
+                          🗑️ Remover Arquivo
+                        </Button>
                       </Alert>
                     )}
                     
-                    <Typography variant="caption" color="text.secondary">
-                      ℹ️ Arquivos PDF até 10MB. O arquivo ficará disponível para download.
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
+                      ℹ️ O arquivo PDF será armazenado localmente e ficará disponível para download pelos usuários
                     </Typography>
                   </Box>
                 )}
@@ -1401,9 +1581,24 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDialogAberto(false)}>Cancelar</Button>
-            <Button onClick={salvarRelatorio} variant="contained">
-              Salvar
+            <Button onClick={() => {
+              setDialogAberto(false);
+              setArquivoPdfSelecionado(null);
+              setTabAtiva(1);
+            }}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={salvarRelatorio} 
+              variant="contained"
+              disabled={
+                !novoRelatorio.nome || 
+                (novoRelatorio.tipoVisualizacao === 'pdf' && !arquivoPdfSelecionado) ||
+                (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) ||
+                ((novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && !novoRelatorio.linkExterno)
+              }
+            >
+              💾 Salvar Relatório
             </Button>
           </DialogActions>
         </Dialog>
@@ -1480,23 +1675,9 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   );
 });
 
-// Dados de fallback
-const dadosFallback: { [key: string]: EmpresaCompleta } = {
-  'ALOS3': {
-    ticker: 'ALOS3',
-    nomeCompleto: 'Allos S.A.',
-    setor: 'Shoppings',
-    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
-    dataEntrada: '15/01/2021',
-    precoIniciou: 'R$ 26,68',
-    precoTeto: 'R$ 23,76',
-    viesAtual: 'Aguardar',
-    ibovespaEpoca: '108.500',
-    percentualCarteira: '4.2%'
-  }
-};
-
+// ========================================
+// COMPONENTE PRINCIPAL - DETALHES DA EMPRESA
+// ========================================
 export default function EmpresaDetalhes() {
   const params = useParams();
   const ticker = (params?.ticker as string) || '';
