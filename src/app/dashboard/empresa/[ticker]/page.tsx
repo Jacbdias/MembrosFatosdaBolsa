@@ -51,7 +51,7 @@ const RefreshIcon = () => <span>🔄</span>;
 const WarningIcon = () => <span>⚠</span>;
 const CheckIcon = () => <span>✓</span>;
 const UploadIcon = () => <span>📤</span>;
-const DownloadIcon = () => <span>📥</span>;
+const DownloadIconCustom = () => <span>📥</span>;
 const DeleteIcon = () => <span>🗑</span>;
 const FileIcon = () => <span>📄</span>;
 const ViewIcon = () => <span>👁</span>;
@@ -89,7 +89,7 @@ interface EmpresaCompleta {
   ultimaAtualizacao?: string;
 }
 
-export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf';
+export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf' | 'iframe';
 
 interface Relatorio {
   id: string;
@@ -101,11 +101,11 @@ interface Relatorio {
   linkCanva?: string;
   linkExterno?: string;
   tamanho?: string;
-  tipoVisualizacao: TipoVisualizacao; // ✅ ADICIONAR esta linha
-  arquivoPdf?: string;       // ✅ ADICIONAR
-  nomeArquivoPdf?: string;   // ✅ ADICIONAR
-  tamanhoArquivo?: number;   // ✅ ADICIONAR
-  dataUploadPdf?: string;    // ✅ ADICIONAR
+  tipoVisualizacao: TipoVisualizacao;
+  arquivoPdf?: string;
+  nomeArquivoPdf?: string;
+  tamanhoArquivo?: number;
+  dataUploadPdf?: string;
 }
 
 // Hook para buscar dados financeiros
@@ -440,22 +440,24 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             const [csvTicker, data, valor, tipo] = partes;
             
             if (!csvTicker || !data || !valor || !tipo) return null;
-           // Validação segura antes de usar toUpperCase()
-if (!csvTicker || typeof csvTicker !== 'string' || csvTicker.trim() === '') {
-  return null;
-}
+           
+            // Validação segura antes de usar toUpperCase()
+            if (!csvTicker || typeof csvTicker !== 'string' || csvTicker.trim() === '') {
+              return null;
+            }
 
-if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
-  return null;
-}
+            if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
+              return null;
+            }
 
-// Agora é seguro usar toUpperCase()
-const tickerLimpo = csvTicker.trim().toUpperCase();
-const tickerAtual = ticker.trim().toUpperCase();
+            // Agora é seguro usar toUpperCase()
+            const tickerLimpo = csvTicker.trim().toUpperCase();
+            const tickerAtual = ticker.trim().toUpperCase();
 
-if (tickerLimpo !== tickerAtual) {
-  return null;
-}
+            if (tickerLimpo !== tickerAtual) {
+              return null;
+            }
+            
             const valorNum = parseFloat(valor.replace(',', '.'));
             if (isNaN(valorNum)) return null;
 
@@ -710,14 +712,14 @@ if (tickerLimpo !== tickerAtual) {
   );
 });
 
-// Componente para gerenciar relatórios - OTIMIZADO
+// Componente para gerenciar relatórios - CORRIGIDO
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
   const [loadingIframe, setLoadingIframe] = useState(false);
-  const [timeoutError, setTimeoutError] = useState(false); // ✅ Estado movido para fora do useMemo
+  const [timeoutError, setTimeoutError] = useState(false);
   const [tabAtiva, setTabAtiva] = useState(1);
   const [novoRelatorio, setNovoRelatorio] = useState({
     nome: '',
@@ -744,7 +746,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   }, [ticker]);
 
-  // ✅ useEffect para gerenciar timeout movido para fora do useMemo
   useEffect(() => {
     if (relatorioSelecionado) {
       setTimeoutError(false);
@@ -758,146 +759,115 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       return () => clearTimeout(timer);
     }
   }, [relatorioSelecionado]);
-// ✅ ADICIONAR estas funções
-const handleUploadPdf = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-  const arquivo = event.target.files?.[0];
-  
-  if (!arquivo) {
-    console.log('❌ Nenhum arquivo selecionado');
-    return;
-  }
-  
-  if (arquivo.type !== 'application/pdf') {
-    console.error('❌ Arquivo deve ser PDF');
-    alert('Por favor, selecione apenas arquivos PDF');
-    return;
-  }
-  
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  if (arquivo.size > maxSize) {
-    console.error('❌ Arquivo muito grande (máximo 10MB)');
-    alert('Arquivo muito grande! Máximo 10MB permitido.');
-    return;
-  }
-  
-  console.log('✅ PDF selecionado:', arquivo.name);
-  setArquivoPdfSelecionado(arquivo);
-}, []);
 
-const salvarPdfNoServidor = useCallback(async (arquivo: File): Promise<string> => {
-  console.log('💾 Fazendo upload do PDF...');
-  
-  try {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const urlLocal = URL.createObjectURL(arquivo);
-    console.log('✅ PDF "salvo" com URL:', urlLocal);
-    return urlLocal;
-  } catch (error) {
-    console.error('❌ Erro ao salvar PDF:', error);
-    throw error;
-  }
-}, []);
-const salvarRelatorio = useCallback(async () => {
-  if (!novoRelatorio.nome) {
-    alert('Digite o nome do relatório');
-    return;
-  }
-
-  try {
-    let relatorioParaSalvar: any = { ...novoRelatorio };
+  const handleUploadPdf = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = event.target.files?.[0];
     
-    // ✅ Se for PDF, validar e fazer upload
-    if (novoRelatorio.tipoVisualizacao === 'pdf') {
-      if (!arquivoPdfSelecionado) {
-        alert('Por favor, selecione um arquivo PDF');
-        return;
-      }
-      
-      console.log('📄 Fazendo upload do PDF...');
-      const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
-      
-      relatorioParaSalvar = {
-        ...relatorioParaSalvar,
-        arquivoPdf: urlPdf,
-        nomeArquivoPdf: arquivoPdfSelecionado.name,
-        tamanhoArquivo: arquivoPdfSelecionado.size,
-        dataUploadPdf: new Date().toISOString(),
-      };
-      
-      console.log('✅ PDF salvo com sucesso:', urlPdf);
+    if (!arquivo) {
+      console.log('❌ Nenhum arquivo selecionado');
+      return;
+    }
+    
+    if (arquivo.type !== 'application/pdf') {
+      console.error('❌ Arquivo deve ser PDF');
+      alert('Por favor, selecione apenas arquivos PDF');
+      return;
+    }
+    
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (arquivo.size > maxSize) {
+      console.error('❌ Arquivo muito grande (máximo 10MB)');
+      alert('Arquivo muito grande! Máximo 10MB permitido.');
+      return;
+    }
+    
+    console.log('✅ PDF selecionado:', arquivo.name);
+    setArquivoPdfSelecionado(arquivo);
+  }, []);
+
+  const salvarPdfNoServidor = useCallback(async (arquivo: File): Promise<string> => {
+    console.log('💾 Fazendo upload do PDF...');
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const urlLocal = URL.createObjectURL(arquivo);
+      console.log('✅ PDF "salvo" com URL:', urlLocal);
+      return urlLocal;
+    } catch (error) {
+      console.error('❌ Erro ao salvar PDF:', error);
+      throw error;
+    }
+  }, []);
+
+  const salvarRelatorio = useCallback(async () => {
+    if (!novoRelatorio.nome) {
+      alert('Digite o nome do relatório');
+      return;
     }
 
-    const relatorio: Relatorio = {
-      id: Date.now().toString(),
-      nome: relatorioParaSalvar.nome,
-      tipo: relatorioParaSalvar.tipo,
-      dataUpload: new Date().toISOString(),
-      dataReferencia: relatorioParaSalvar.dataReferencia,
-      tipoVisualizacao: relatorioParaSalvar.tipoVisualizacao,
-      linkCanva: relatorioParaSalvar.linkCanva || undefined,
-      linkExterno: relatorioParaSalvar.linkExterno || undefined,
-      tamanho: relatorioParaSalvar.arquivo ? `${(relatorioParaSalvar.arquivo.size / 1024 / 1024).toFixed(1)} MB` : undefined,
-      arquivoPdf: relatorioParaSalvar.arquivoPdf,
-      nomeArquivoPdf: relatorioParaSalvar.nomeArquivoPdf,
-      tamanhoArquivo: relatorioParaSalvar.tamanhoArquivo,
-      dataUploadPdf: relatorioParaSalvar.dataUploadPdf
-    };
+    try {
+      let relatorioParaSalvar: any = { ...novoRelatorio };
+      
+      if (novoRelatorio.tipoVisualizacao === 'pdf') {
+        if (!arquivoPdfSelecionado) {
+          alert('Por favor, selecione um arquivo PDF');
+          return;
+        }
+        
+        console.log('📄 Fazendo upload do PDF...');
+        const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
+        
+        relatorioParaSalvar = {
+          ...relatorioParaSalvar,
+          arquivoPdf: urlPdf,
+          nomeArquivoPdf: arquivoPdfSelecionado.name,
+          tamanhoArquivo: arquivoPdfSelecionado.size,
+          dataUploadPdf: new Date().toISOString(),
+        };
+        
+        console.log('✅ PDF salvo com sucesso:', urlPdf);
+      }
 
-    const chave = `relatorios_${ticker}`;
-    const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
-    relatoriosExistentes.push(relatorio);
-    localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
-    
-    setRelatorios(relatoriosExistentes);
-    setDialogAberto(false);
-    setNovoRelatorio({
-      nome: '',
-      tipo: 'trimestral',
-      dataReferencia: '',
-      arquivo: null,
-      linkCanva: '',
-      linkExterno: '',
-      tipoVisualizacao: 'iframe'
-    });
-    setArquivoPdfSelecionado(null);
-    setTabAtiva(1);
-    
-  } catch (error) {
-    console.error('❌ Erro ao salvar relatório:', error);
-    alert('Erro ao salvar relatório. Tente novamente.');
-  }
-}, [novoRelatorio, ticker, arquivoPdfSelecionado, salvarPdfNoServidor]);
+      const relatorio: Relatorio = {
+        id: Date.now().toString(),
+        nome: relatorioParaSalvar.nome,
+        tipo: relatorioParaSalvar.tipo,
+        dataUpload: new Date().toISOString(),
+        dataReferencia: relatorioParaSalvar.dataReferencia,
+        tipoVisualizacao: relatorioParaSalvar.tipoVisualizacao,
+        linkCanva: relatorioParaSalvar.linkCanva || undefined,
+        linkExterno: relatorioParaSalvar.linkExterno || undefined,
+        tamanho: relatorioParaSalvar.arquivo ? `${(relatorioParaSalvar.arquivo.size / 1024 / 1024).toFixed(1)} MB` : undefined,
+        arquivoPdf: relatorioParaSalvar.arquivoPdf,
+        nomeArquivoPdf: relatorioParaSalvar.nomeArquivoPdf,
+        tamanhoArquivo: relatorioParaSalvar.tamanhoArquivo,
+        dataUploadPdf: relatorioParaSalvar.dataUploadPdf
+      };
 
-    const relatorio: Relatorio = {
-      id: Date.now().toString(),
-      nome: novoRelatorio.nome,
-      tipo: novoRelatorio.tipo,
-      dataUpload: new Date().toISOString(),
-      dataReferencia: novoRelatorio.dataReferencia,
-      tipoVisualizacao: novoRelatorio.tipoVisualizacao,
-      linkCanva: novoRelatorio.linkCanva || undefined,
-      linkExterno: novoRelatorio.linkExterno || undefined,
-      tamanho: novoRelatorio.arquivo ? `${(novoRelatorio.arquivo.size / 1024 / 1024).toFixed(1)} MB` : undefined
-    };
-
-    const chave = `relatorios_${ticker}`;
-    const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
-    relatoriosExistentes.push(relatorio);
-    localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
-    
-    setRelatorios(relatoriosExistentes);
-    setDialogAberto(false);
-    setNovoRelatorio({
-      nome: '',
-      tipo: 'trimestral',
-      dataReferencia: '',
-      arquivo: null,
-      linkCanva: '',
-      linkExterno: '',
-      tipoVisualizacao: 'iframe'
-    });
-    setTabAtiva(1);
-  }, [novoRelatorio, ticker]);
+      const chave = `relatorios_${ticker}`;
+      const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+      relatoriosExistentes.push(relatorio);
+      localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+      
+      setRelatorios(relatoriosExistentes);
+      setDialogAberto(false);
+      setNovoRelatorio({
+        nome: '',
+        tipo: 'trimestral',
+        dataReferencia: '',
+        arquivo: null,
+        linkCanva: '',
+        linkExterno: '',
+        tipoVisualizacao: 'iframe'
+      });
+      setArquivoPdfSelecionado(null);
+      setTabAtiva(1);
+      
+    } catch (error) {
+      console.error('❌ Erro ao salvar relatório:', error);
+      alert('Erro ao salvar relatório. Tente novamente.');
+    }
+  }, [novoRelatorio, ticker, arquivoPdfSelecionado, salvarPdfNoServidor]);
 
   const excluirRelatorio = useCallback((id: string) => {
     if (confirm('Excluir relatório?')) {
@@ -918,80 +888,69 @@ const salvarRelatorio = useCallback(async () => {
     }
   }, []);
 
-  // ✅ renderVisualizador corrigido sem hooks dentro
   const renderVisualizador = useMemo(() => {
     if (!relatorioSelecionado) return null;
 
-    // ✅ Função para processar URLs problemáticas
-const processarUrl = (url: string, tipo: string): string => {
-  console.log('🔍 DEBUG - processarUrl chamada');
-  console.log('URL original:', url);
-  console.log('Tipo:', tipo);
-  
-  if (!url) {
-    console.log('❌ URL vazia!');
-    return '';
-  }
-  
-  try {
-    // ✅ CORREÇÃO: Para Canva, NÃO processar a URL se já tem ?embed
-    if (tipo === 'canva' || url.includes('canva.com')) {
-      console.log('🎨 Processando URL do Canva...');
+    const processarUrl = (url: string, tipo: string): string => {
+      console.log('🔍 DEBUG - processarUrl chamada');
+      console.log('URL original:', url);
+      console.log('Tipo:', tipo);
       
-      // Se a URL já tem ?embed, usar diretamente
-      if (url.includes('?embed')) {
-        console.log('✅ URL já tem ?embed, usando diretamente:', url);
+      if (!url) {
+        console.log('❌ URL vazia!');
+        return '';
+      }
+      
+      try {
+        if (tipo === 'canva' || url.includes('canva.com')) {
+          console.log('🎨 Processando URL do Canva...');
+          
+          if (url.includes('?embed')) {
+            console.log('✅ URL já tem ?embed, usando diretamente:', url);
+            return url;
+          }
+          
+          if (url.includes('/view')) {
+            const urlComEmbed = url + '?embed';
+            console.log('✅ Adicionando ?embed à URL /view:', urlComEmbed);
+            return urlComEmbed;
+          }
+          
+          if (url.includes('/design/') && !url.includes('/view')) {
+            const urlView = url.replace(/\/(edit|preview).*$/, '/view?embed');
+            console.log('✅ Convertendo para /view?embed:', urlView);
+            return urlView;
+          }
+          
+          console.log('⚠️ URL do Canva não reconhecida, usando original:', url);
+          return url;
+        }
+        
+        console.log('🔗 Processando URL genérica...');
+        return url;
+        
+      } catch (error) {
+        console.error('❌ Erro ao processar URL:', error);
         return url;
       }
-      
-      // Se a URL tem /view, adicionar ?embed
-      if (url.includes('/view')) {
-        const urlComEmbed = url + '?embed';
-        console.log('✅ Adicionando ?embed à URL /view:', urlComEmbed);
-        return urlComEmbed;
-      }
-      
-      // Se é uma URL /design/ normal, converter para /view?embed
-      if (url.includes('/design/') && !url.includes('/view')) {
-        const urlView = url.replace(/\/(edit|preview).*$/, '/view?embed');
-        console.log('✅ Convertendo para /view?embed:', urlView);
-        return urlView;
-      }
-      
-      console.log('⚠️ URL do Canva não reconhecida, usando original:', url);
-      return url;
-    }
-    
-    // Processar outras URLs (Google Docs, etc.)
-    console.log('🔗 Processando URL genérica...');
-    return url;
-    
-  } catch (error) {
-    console.error('❌ Erro ao processar URL:', error);
-    return url;
-  }
-};
+    };
 
-const handleIframeLoad = () => {
-  console.log('✅ Iframe carregou com sucesso!');
-  console.log('URL carregada:', src);
-  setLoadingIframe(false);
-  setTimeoutError(false);
-};
+    const handleIframeLoad = () => {
+      console.log('✅ Iframe carregou com sucesso!');
+      setLoadingIframe(false);
+      setTimeoutError(false);
+    };
 
-const handleIframeError = () => {
-  console.log('❌ Erro no iframe detectado');
-  console.log('URL que falhou:', src);
-  setLoadingIframe(false);
-  setTimeoutError(true);
-};
+    const handleIframeError = () => {
+      console.log('❌ Erro no iframe detectado');
+      setLoadingIframe(false);
+      setTimeoutError(true);
+    };
 
-    // ✅ Obter URL processada
     const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
       ? processarUrl(relatorioSelecionado.linkCanva || '', 'canva')
       : processarUrl(relatorioSelecionado.linkExterno || '', relatorioSelecionado.tipoVisualizacao);
 
-    // ✅ Validar URL
     if (!src) {
       return (
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -1005,90 +964,89 @@ const handleIframeError = () => {
       );
     }
 
-    // ✅ Renderizar com base no tipo
-    // ✅ PDF NÃO TEM VISUALIZAÇÃO - Só download
-if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
-  return (
-    <Box sx={{ 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      bgcolor: 'grey.50',
-      borderRadius: 1,
-      p: 4
-    }}>
-      <PictureAsPdfIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
-      
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
-        📄 {relatorioSelecionado.nome}
-      </Typography>
-      
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-        {relatorioSelecionado.tipo} • {relatorioSelecionado.dataReferencia}
-      </Typography>
-      
-      <Box sx={{ 
-        bgcolor: 'background.paper', 
-        p: 2, 
-        borderRadius: 1, 
-        border: 1, 
-        borderColor: 'divider',
-        mb: 3,
-        minWidth: 300
-      }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-          📋 Informações do Arquivo:
-        </Typography>
-        <Typography variant="body2">
-          <strong>📄 Nome:</strong> {relatorioSelecionado.nomeArquivoPdf || 'Arquivo PDF'}<br/>
-          {relatorioSelecionado.tamanhoArquivo && (
-            <>
-              <strong>📊 Tamanho:</strong> {(relatorioSelecionado.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB<br/>
-            </>
-          )}
-          {relatorioSelecionado.dataUploadPdf && (
-            <>
-              <strong>📅 Upload:</strong> {new Date(relatorioSelecionado.dataUploadPdf).toLocaleDateString('pt-BR')}<br/>
-            </>
-          )}
-        </Typography>
-      </Box>
-      
-      <Button 
-        variant="contained"
-        color="success"
-        size="large"
-        startIcon={<DownloadIcon />}
-        onClick={() => {
-          console.log('⬇️ Baixando PDF...');
+    if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
+      return (
+        <Box sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          bgcolor: 'grey.50',
+          borderRadius: 1,
+          p: 4
+        }}>
+          <PictureAsPdfIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
           
-          if (!relatorioSelecionado.arquivoPdf) {
-            alert('Arquivo não encontrado');
-            return;
-          }
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
+            📄 {relatorioSelecionado.nome}
+          </Typography>
           
-          const link = document.createElement('a');
-          link.href = relatorioSelecionado.arquivoPdf;
-          link.download = relatorioSelecionado.nomeArquivoPdf || `${relatorioSelecionado.nome}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+            {relatorioSelecionado.tipo} • {relatorioSelecionado.dataReferencia}
+          </Typography>
           
-          console.log('✅ Download iniciado');
-        }}
-        sx={{ py: 1.5, px: 4 }}
-      >
-        ⬇️ Baixar PDF
-      </Button>
-      
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
-        💡 Clique no botão acima para fazer o download do arquivo
-      </Typography>
-    </Box>
-  );
-}
+          <Box sx={{ 
+            bgcolor: 'background.paper', 
+            p: 2, 
+            borderRadius: 1, 
+            border: 1, 
+            borderColor: 'divider',
+            mb: 3,
+            minWidth: 300
+          }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              📋 Informações do Arquivo:
+            </Typography>
+            <Typography variant="body2">
+              <strong>📄 Nome:</strong> {relatorioSelecionado.nomeArquivoPdf || 'Arquivo PDF'}<br/>
+              {relatorioSelecionado.tamanhoArquivo && (
+                <>
+                  <strong>📊 Tamanho:</strong> {(relatorioSelecionado.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB<br/>
+                </>
+              )}
+              {relatorioSelecionado.dataUploadPdf && (
+                <>
+                  <strong>📅 Upload:</strong> {new Date(relatorioSelecionado.dataUploadPdf).toLocaleDateString('pt-BR')}<br/>
+                </>
+              )}
+            </Typography>
+          </Box>
+          
+          <Button 
+            variant="contained"
+            color="success"
+            size="large"
+            startIcon={<DownloadIcon />}
+            onClick={() => {
+              console.log('⬇️ Baixando PDF...');
+              
+              if (!relatorioSelecionado.arquivoPdf) {
+                alert('Arquivo não encontrado');
+                return;
+              }
+              
+              const link = document.createElement('a');
+              link.href = relatorioSelecionado.arquivoPdf;
+              link.download = relatorioSelecionado.nomeArquivoPdf || `${relatorioSelecionado.nome}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              console.log('✅ Download iniciado');
+            }}
+            sx={{ py: 1.5, px: 4 }}
+          >
+            ⬇️ Baixar PDF
+          </Button>
+          
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
+            💡 Clique no botão acima para fazer o download do arquivo
+          </Typography>
+        </Box>
+      );
+    }
+
     switch (relatorioSelecionado.tipoVisualizacao) {
       case 'iframe':
       case 'canva':
@@ -1096,7 +1054,6 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
         return (
           <Box sx={{ position: 'relative', height: '80vh' }}>
             
-            {/* ✅ Loading com timeout */}
             {loadingIframe && !timeoutError && (
               <Box sx={{ 
                 position: 'absolute', 
@@ -1116,7 +1073,6 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
               </Box>
             )}
 
-            {/* ✅ Erro de timeout ou carregamento */}
             {timeoutError && (
               <Box sx={{ 
                 position: 'absolute', 
@@ -1156,76 +1112,72 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
                   >
                     🔄 Tentar Novamente
                   </Button>
-<Button 
-  variant="contained"
-  onClick={() => {
-    console.log('🔗 Clique no botão Nova Aba');
-    console.log('relatorioSelecionado:', relatorioSelecionado);
-    console.log('src calculado:', src);
-    
-    // ✅ CORREÇÃO: Use a URL original, não a processada
-    let urlParaAbrir = '';
-    
-    if (relatorioSelecionado.tipoVisualizacao === 'canva') {
-      urlParaAbrir = relatorioSelecionado.linkCanva || '';
-      console.log('URL do Canva (original):', urlParaAbrir);
-      
-      // ✅ Para nova aba, remover ?embed se existir
-      if (urlParaAbrir.includes('?embed')) {
-        urlParaAbrir = urlParaAbrir.replace('?embed', '');
-        console.log('URL sem ?embed para nova aba:', urlParaAbrir);
-      }
-    } else {
-      urlParaAbrir = relatorioSelecionado.linkExterno || '';
-    }
-    
-    console.log('URL final para nova aba:', urlParaAbrir);
-    
-    if (urlParaAbrir) {
-      try {
-        window.open(urlParaAbrir, '_blank', 'noopener,noreferrer');
-        console.log('✅ Nova aba aberta');
-      } catch (error) {
-        console.error('❌ Erro ao abrir nova aba:', error);
-      }
-    } else {
-      console.error('❌ URL vazia para nova aba');
-    }
-  }}
-  size="small"
->
-  🔗 Abrir em Nova Aba
-</Button>
+                  <Button 
+                    variant="contained"
+                    onClick={() => {
+                      console.log('🔗 Clique no botão Nova Aba');
+                      console.log('relatorioSelecionado:', relatorioSelecionado);
+                      console.log('src calculado:', src);
+                      
+                      let urlParaAbrir = '';
+                      
+                      if (relatorioSelecionado.tipoVisualizacao === 'canva') {
+                        urlParaAbrir = relatorioSelecionado.linkCanva || '';
+                        console.log('URL do Canva (original):', urlParaAbrir);
+                        
+                        if (urlParaAbrir.includes('?embed')) {
+                          urlParaAbrir = urlParaAbrir.replace('?embed', '');
+                          console.log('URL sem ?embed para nova aba:', urlParaAbrir);
+                        }
+                      } else {
+                        urlParaAbrir = relatorioSelecionado.linkExterno || '';
+                      }
+                      
+                      console.log('URL final para nova aba:', urlParaAbrir);
+                      
+                      if (urlParaAbrir) {
+                        try {
+                          window.open(urlParaAbrir, '_blank', 'noopener,noreferrer');
+                          console.log('✅ Nova aba aberta');
+                        } catch (error) {
+                          console.error('❌ Erro ao abrir nova aba:', error);
+                        }
+                      } else {
+                        console.error('❌ URL vazia para nova aba');
+                      }
+                    }}
+                    size="small"
+                  >
+                    🔗 Abrir em Nova Aba
+                  </Button>
                 </Stack>
               </Box>
             )}
 
-            {/* ✅ Iframe com configurações robustas */}
-<iframe
-  data-report-src={src}
-  src={src}
-  style={{ 
-    width: '100%', 
-    height: '100%', 
-    border: 'none', 
-    borderRadius: '8px',
-    opacity: timeoutError ? 0.3 : 1
-  }}
-  allowFullScreen
-  onLoad={() => {
-    console.log('🎯 Iframe onLoad disparado');
-    handleIframeLoad();
-  }}
-  onError={() => {
-    console.log('🚨 Iframe onError disparado');
-    handleIframeError();
-  }}
-  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
-  referrerPolicy="no-referrer-when-downgrade"
-  loading="lazy"
-/>
+            <iframe
+              data-report-src={src}
+              src={src}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                border: 'none', 
+                borderRadius: '8px',
+                opacity: timeoutError ? 0.3 : 1
+              }}
+              allowFullScreen
+              onLoad={() => {
+                console.log('🎯 Iframe onLoad disparado');
+                handleIframeLoad();
+              }}
+              onError={() => {
+                console.log('🚨 Iframe onError disparado');
+                handleIframeError();
+              }}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+              referrerPolicy="no-referrer-when-downgrade"
+              loading="lazy"
+            />
             
-            {/* ✅ Overlay com link direto */}
             {!loadingIframe && !timeoutError && (
               <Box sx={{ 
                 position: 'absolute', 
@@ -1270,7 +1222,7 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
           </Box>
         );
     }
-  }, [relatorioSelecionado, loadingIframe, timeoutError]); // ✅ Dependências corretas
+  }, [relatorioSelecionado, loadingIframe, timeoutError]);
 
   return (
     <Card>
@@ -1287,40 +1239,6 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
             + Adicionar Relatório
           </Button>
         </Stack>
-        {/* 🧪 BOTÃO DE TESTE TEMPORÁRIO */}
-      <Button 
-        onClick={() => {
-          console.log('🧪 Teste direto com URL que funciona');
-          const urlTeste = "https://www.canva.com/design/DAGkGYQu52k/z1Yh6Hmqkr1E20GatRMJPw/view?embed";
-          
-          // Criar iframe temporário para teste
-          const iframe = document.createElement('iframe');
-          iframe.src = urlTeste;
-          iframe.style.width = '800px';
-          iframe.style.height = '600px';
-          iframe.style.border = '2px solid red';
-          iframe.style.position = 'fixed';
-          iframe.style.top = '50px';
-          iframe.style.left = '50px';
-          iframe.style.zIndex = '9999';
-          iframe.style.backgroundColor = 'white';
-          
-          iframe.onload = () => console.log('✅ Teste iframe carregou!');
-          iframe.onerror = () => console.log('❌ Teste iframe erro!');
-          
-          document.body.appendChild(iframe);
-          
-          // Remover após 10 segundos
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-          }, 10000);
-        }}
-        variant="outlined"
-        color="secondary"
-        sx={{ mb: 2 }}
-      >
-        🧪 Teste Iframe Direto
-      </Button>
 
         {relatorios.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
@@ -1436,46 +1354,47 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
                     helperText="URL do documento ou apresentação"
                   />
                 )}
+                
                 {novoRelatorio.tipoVisualizacao === 'pdf' && (
-  <Box sx={{ mt: 2 }}>
-    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-      📄 Arquivo PDF
-    </Typography>
-    
-    <input
-      accept="application/pdf"
-      style={{ display: 'none' }}
-      id="upload-pdf"
-      type="file"
-      onChange={handleUploadPdf}
-    />
-    <label htmlFor="upload-pdf">
-      <Button 
-        variant="outlined" 
-        component="span"
-        startIcon={<CloudUploadIcon />}
-        fullWidth
-        sx={{ mb: 2, py: 2 }}
-      >
-        {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
-      </Button>
-    </label>
-    
-    {arquivoPdfSelecionado && (
-      <Alert severity="success" sx={{ mb: 2 }}>
-        <Typography variant="body2">
-          <strong>📄 Arquivo:</strong> {arquivoPdfSelecionado.name}<br/>
-          <strong>📊 Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB<br/>
-          <strong>📅 Selecionado:</strong> {new Date().toLocaleString('pt-BR')}
-        </Typography>
-      </Alert>
-    )}
-    
-    <Typography variant="caption" color="text.secondary">
-      ℹ️ Arquivos PDF até 10MB. O arquivo ficará disponível para download.
-    </Typography>
-  </Box>
-)}
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                      📄 Arquivo PDF
+                    </Typography>
+                    
+                    <input
+                      accept="application/pdf"
+                      style={{ display: 'none' }}
+                      id="upload-pdf"
+                      type="file"
+                      onChange={handleUploadPdf}
+                    />
+                    <label htmlFor="upload-pdf">
+                      <Button 
+                        variant="outlined" 
+                        component="span"
+                        startIcon={<CloudUploadIcon />}
+                        fullWidth
+                        sx={{ mb: 2, py: 2 }}
+                      >
+                        {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
+                      </Button>
+                    </label>
+                    
+                    {arquivoPdfSelecionado && (
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        <Typography variant="body2">
+                          <strong>📄 Arquivo:</strong> {arquivoPdfSelecionado.name}<br/>
+                          <strong>📊 Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB<br/>
+                          <strong>📅 Selecionado:</strong> {new Date().toLocaleString('pt-BR')}
+                        </Typography>
+                      </Alert>
+                    )}
+                    
+                    <Typography variant="caption" color="text.secondary">
+                      ℹ️ Arquivos PDF até 10MB. O arquivo ficará disponível para download.
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             )}
           </DialogContent>
@@ -1487,7 +1406,7 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
           </DialogActions>
         </Dialog>
 
-        {/* ✅ Dialog de visualização corrigido */}
+        {/* Dialog de visualização */}
         <Dialog 
           open={dialogVisualizacao} 
           onClose={() => {
