@@ -2068,22 +2068,6 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
                 }}>
                   <CardContent sx={{ p: 4 }}>
                     <Stack direction="row" alignItems="center" spacing={4}>
-                      {/* Ícone */}
-                      <Box sx={{ 
-                        fontSize: '2.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 60,
-                        height: 60,
-                        borderRadius: 2,
-                        backgroundColor: evento.cor + '20',
-                        color: evento.cor,
-                        flexShrink: 0
-                      }}>
-                        {evento.icone}
-                      </Box>
-
                       {/* Conteúdo Principal */}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
