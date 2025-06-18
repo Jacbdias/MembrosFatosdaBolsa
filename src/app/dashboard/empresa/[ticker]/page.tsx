@@ -100,6 +100,10 @@ interface Relatorio {
   linkExterno?: string;
   tamanho?: string;
   export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf';
+  arquivoPdf?: string;       // ✅ ADICIONAR
+  nomeArquivoPdf?: string;   // ✅ ADICIONAR
+  tamanhoArquivo?: number;   // ✅ ADICIONAR
+  dataUploadPdf?: string;    // ✅ ADICIONAR
 }
 
 // Hook para buscar dados financeiros
