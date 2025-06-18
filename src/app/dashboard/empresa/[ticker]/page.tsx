@@ -809,41 +809,54 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     if (!relatorioSelecionado) return null;
 
     // ✅ Função para processar URLs problemáticas
-    const processarUrl = (url: string, tipo: string): string => {
-      if (!url) return '';
+const processarUrl = (url: string, tipo: string): string => {
+  console.log('🔍 DEBUG - processarUrl chamada');
+  console.log('URL original:', url);
+  console.log('Tipo:', tipo);
+  
+  if (!url) {
+    console.log('❌ URL vazia!');
+    return '';
+  }
+  
+  try {
+    // ✅ CORREÇÃO: Para Canva, NÃO processar a URL se já tem ?embed
+    if (tipo === 'canva' || url.includes('canva.com')) {
+      console.log('🎨 Processando URL do Canva...');
       
-      try {
-        // Processar URLs do Canva
-        if (tipo === 'canva' || url.includes('canva.com')) {
-          if (url.includes('/embed')) {
-            return url.includes('?embed') ? url : `${url}?embed`;
-          }
-          if (url.includes('/design/')) {
-            const embedUrl = url.replace('/design/', '/embed/');
-            return embedUrl.includes('?embed') ? embedUrl : `${embedUrl}?embed`;
-          }
-          return url;
-        }
-        
-        // Processar Google Docs/Sheets
-        if (url.includes('docs.google.com') || url.includes('sheets.google.com')) {
-          if (!url.includes('/preview') && !url.includes('/embed')) {
-            const baseUrl = url.split('/edit')[0];
-            return `${baseUrl}/preview`;
-          }
-        }
-        
-        // Processar Notion
-        if (url.includes('notion.so') || url.includes('notion.site')) {
-          return url;
-        }
-        
-        return url;
-      } catch (error) {
-        console.error('Erro ao processar URL:', error);
+      // Se a URL já tem ?embed, usar diretamente
+      if (url.includes('?embed')) {
+        console.log('✅ URL já tem ?embed, usando diretamente:', url);
         return url;
       }
-    };
+      
+      // Se a URL tem /view, adicionar ?embed
+      if (url.includes('/view')) {
+        const urlComEmbed = url + '?embed';
+        console.log('✅ Adicionando ?embed à URL /view:', urlComEmbed);
+        return urlComEmbed;
+      }
+      
+      // Se é uma URL /design/ normal, converter para /view?embed
+      if (url.includes('/design/') && !url.includes('/view')) {
+        const urlView = url.replace(/\/(edit|preview).*$/, '/view?embed');
+        console.log('✅ Convertendo para /view?embed:', urlView);
+        return urlView;
+      }
+      
+      console.log('⚠️ URL do Canva não reconhecida, usando original:', url);
+      return url;
+    }
+    
+    // Processar outras URLs (Google Docs, etc.)
+    console.log('🔗 Processando URL genérica...');
+    return url;
+    
+  } catch (error) {
+    console.error('❌ Erro ao processar URL:', error);
+    return url;
+  }
+};
 
     const handleIframeLoad = () => {
       setLoadingIframe(false);
