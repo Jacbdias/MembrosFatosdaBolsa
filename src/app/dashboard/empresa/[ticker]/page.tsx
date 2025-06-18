@@ -1434,6 +1434,46 @@ if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
                     helperText="URL do documento ou apresentação"
                   />
                 )}
+                {novoRelatorio.tipoVisualizacao === 'pdf' && (
+  <Box sx={{ mt: 2 }}>
+    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+      📄 Arquivo PDF
+    </Typography>
+    
+    <input
+      accept="application/pdf"
+      style={{ display: 'none' }}
+      id="upload-pdf"
+      type="file"
+      onChange={handleUploadPdf}
+    />
+    <label htmlFor="upload-pdf">
+      <Button 
+        variant="outlined" 
+        component="span"
+        startIcon={<CloudUploadIcon />}
+        fullWidth
+        sx={{ mb: 2, py: 2 }}
+      >
+        {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
+      </Button>
+    </label>
+    
+    {arquivoPdfSelecionado && (
+      <Alert severity="success" sx={{ mb: 2 }}>
+        <Typography variant="body2">
+          <strong>📄 Arquivo:</strong> {arquivoPdfSelecionado.name}<br/>
+          <strong>📊 Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB<br/>
+          <strong>📅 Selecionado:</strong> {new Date().toLocaleString('pt-BR')}
+        </Typography>
+      </Alert>
+    )}
+    
+    <Typography variant="caption" color="text.secondary">
+      ℹ️ Arquivos PDF até 10MB. O arquivo ficará disponível para download.
+    </Typography>
+  </Box>
+)}
               </Stack>
             )}
           </DialogContent>
