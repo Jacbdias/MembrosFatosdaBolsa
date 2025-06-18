@@ -2580,51 +2580,6 @@ export default function EmpresaDetalhes() {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Ações rápidas */}
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card sx={{ backgroundColor: '#f8fafc' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                🚀 Ações Rápidas
-              </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <Button 
-                  startIcon={<RefreshIcon />} 
-                  onClick={refetch}
-                  variant="contained"
-                  size="small"
-                  disabled={dadosLoading}
-                >
-                  {dadosLoading ? 'Atualizando...' : 'Atualizar Dados'}
-                </Button>
-                <Button 
-                  onClick={() => window.open(`https://statusinvest.com.br/${empresaCompleta.tipo === 'FII' ? 'fundos-imobiliarios' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  📊 Status Invest
-                </Button>
-                <Button 
-                  onClick={() => window.open(`https://www.investidor10.com.br/${empresaCompleta.tipo === 'FII' ? 'fiis' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  📈 Investidor10
-                </Button>
-                <Button 
-                  onClick={() => window.open(`https://ri.${empresaCompleta.ticker.toLowerCase()}.com.br`, '_blank')}
-                  variant="outlined"
-                  size="small"
-                >
-                  📅 RI Oficial
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
     </Box>
   );
 }
