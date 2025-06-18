@@ -2343,10 +2343,6 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-// ========================================
-// SUBSTITUA A SEÇÃO FINAL DO SEU CÓDIGO (a partir da linha "Seções secundárias")
-// ========================================
-
       {/* Seções secundárias */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} lg={6}>
@@ -2358,7 +2354,7 @@ export default function EmpresaDetalhes() {
         </Grid>
       </Grid>
 
-      {/* Dados da Posição - Agora em linha separada */}
+      {/* Dados da Posição */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -2386,7 +2382,7 @@ export default function EmpresaDetalhes() {
           </Card>
         </Grid>
 
-        {/* Métricas Adicionais */}
+        {/* Análise de Viés */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent sx={{ p: 4 }}>
@@ -2468,4 +2464,3 @@ export default function EmpresaDetalhes() {
       </Grid>
     </Box>
   );
-}
