@@ -1695,7 +1695,372 @@ disabled={
     </Card>
   );
 });
+const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
 
+  // Função para calcular dias até o evento
+  const calcularDiasAteEvento = useCallback((dataEvento: Date) => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const evento = new Date(dataEvento);
+    evento.setHours(0, 0, 0, 0);
+    
+    const diffTime = evento.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  }, []);
+
+  // Função para formatar a proximidade do evento
+  const formatarProximidade = useCallback((dias: number) => {
+    if (dias < 0) return 'Passou';
+    if (dias === 0) return 'Hoje';
+    if (dias === 1) return 'Amanhã';
+    if (dias <= 7) return `Em ${dias} dias`;
+    if (dias <= 30) return `Em ${Math.ceil(dias / 7)} semanas`;
+    return `Em ${Math.ceil(dias / 30)} meses`;
+  }, []);
+
+  // Criar eventos estimados quando não há dados da API
+  const criarEventosEstimados = useCallback((ticker: string) => {
+    const eventos: any[] = [];
+    const hoje = new Date();
+    
+    // Próximo resultado trimestral - estimar baseado no trimestre atual
+    const mesAtual = hoje.getMonth(); // 0-11
+    const anoAtual = hoje.getFullYear();
+    
+    // Determinar próxima data de resultado (final de cada trimestre + 45 dias)
+    let proximoResultado: Date;
+    
+    if (mesAtual <= 1) { // Jan-Fev: Resultado Q4 do ano anterior
+      proximoResultado = new Date(anoAtual, 3, 15); // 15 de abril
+    } else if (mesAtual <= 4) { // Mar-Mai: Resultado Q1
+      proximoResultado = new Date(anoAtual, 5, 15); // 15 de junho
+    } else if (mesAtual <= 7) { // Jun-Ago: Resultado Q2
+      proximoResultado = new Date(anoAtual, 8, 15); // 15 de setembro
+    } else { // Set-Dez: Resultado Q3
+      proximoResultado = new Date(anoAtual, 11, 15); // 15 de dezembro
+    }
+    
+    // Se a data já passou, pegar o próximo trimestre
+    if (proximoResultado <= hoje) {
+      proximoResultado.setMonth(proximoResultado.getMonth() + 3);
+      if (proximoResultado.getFullYear() > anoAtual) {
+        proximoResultado = new Date(anoAtual + 1, 2, 15); // 15 de março do próximo ano
+      }
+    }
+    
+    eventos.push({
+      id: 'resultado-estimado',
+      tipo: 'resultado',
+      titulo: 'Próximos Resultados',
+      data: proximoResultado,
+      descricao: 'Data estimada para divulgação de resultados trimestrais',
+      estimado: true,
+      icone: '📊',
+      cor: '#3b82f6'
+    });
+
+    // Estimativa de dividendos (geralmente 2-3 meses após resultados)
+    const proximoDividendo = new Date(proximoResultado);
+    proximoDividendo.setMonth(proximoDividendo.getMonth() + 2);
+    
+    eventos.push({
+      id: 'dividendo-estimado',
+      tipo: 'dividendo',
+      titulo: 'Possível Data Ex-Dividendos',
+      data: proximoDividendo,
+      descricao: 'Estimativa baseada em padrões típicos do mercado brasileiro',
+      estimado: true,
+      icone: '💰',
+      cor: '#22c55e'
+    });
+
+    // Assembleia Geral (sempre em abril/maio no Brasil)
+    const dataAssembleia = new Date(anoAtual, 3, 30); // 30 de abril
+    if (dataAssembleia <= hoje) {
+      dataAssembleia.setFullYear(anoAtual + 1); // Próximo ano
+    }
+    
+    eventos.push({
+      id: 'assembleia-geral',
+      tipo: 'assembleia',
+      titulo: 'Assembleia Geral Ordinária',
+      data: dataAssembleia,
+      descricao: 'Data típica para aprovação das contas e eleição do conselho',
+      estimado: true,
+      icone: '🏛️',
+      cor: '#8b5cf6'
+    });
+
+    return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
+  }, []);
+
+  // Processar dados reais da API para criar agenda
+  const processarEventos = useCallback((dividendos: any[], ticker: string) => {
+    const eventos: any[] = [];
+    const hoje = new Date();
+    
+    // Analisar padrão de dividendos
+    if (dividendos && dividendos.length > 0) {
+      const dividendosOrdenados = dividendos
+        .map(div => ({
+          ...div,
+          dataObj: new Date(div.date)
+        }))
+        .sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+
+      // Pegar os últimos 4 dividendos para calcular média de intervalo
+      const ultimosDividendos = dividendosOrdenados.slice(0, 4);
+      
+      if (ultimosDividendos.length >= 2) {
+        const intervalos = [];
+        for (let i = 0; i < ultimosDividendos.length - 1; i++) {
+          const diff = ultimosDividendos[i].dataObj.getTime() - ultimosDividendos[i + 1].dataObj.getTime();
+          const meses = diff / (1000 * 60 * 60 * 24 * 30);
+          intervalos.push(meses);
+        }
+        
+        const mediaIntervalo = intervalos.reduce((a, b) => a + b, 0) / intervalos.length;
+        const ultimaData = ultimosDividendos[0].dataObj;
+        
+        // Estimar próximo dividendo
+        const proximaData = new Date(ultimaData);
+        proximaData.setMonth(proximaData.getMonth() + Math.round(mediaIntervalo));
+        
+        if (proximaData > hoje) {
+          eventos.push({
+            id: 'proximo-dividendo',
+            tipo: 'dividendo',
+            titulo: 'Provável Data Ex-Dividendos',
+            data: proximaData,
+            descricao: `Estimativa baseada no histórico (último: ${ultimaData.toLocaleDateString('pt-BR')})`,
+            estimado: true,
+            icone: '💰',
+            cor: '#22c55e'
+          });
+        }
+      }
+    }
+
+    // Adicionar eventos estimados padrão
+    const eventosEstimados = criarEventosEstimados(ticker);
+    eventos.push(...eventosEstimados);
+
+    // Remover duplicatas e ordenar
+    const eventosUnicos = eventos.filter((evento, index, self) => 
+      index === self.findIndex(e => e.tipo === evento.tipo && 
+        Math.abs(e.data.getTime() - evento.data.getTime()) < 7 * 24 * 60 * 60 * 1000)
+    );
+
+    return eventosUnicos.sort((a, b) => a.data.getTime() - b.data.getTime());
+  }, [criarEventosEstimados]);
+
+  // Função para buscar eventos da API BRAPI
+  const buscarEventos = useCallback(async () => {
+    if (!ticker) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Buscar dividendos históricos
+      const dividendsUrl = `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}&limit=20`;
+      
+      const response = await fetch(dividendsUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Portfolio-Details-App',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          const eventosProcessados = processarEventos(data.results, ticker);
+          setEventos(eventosProcessados);
+        } else {
+          // Se não há dados, criar eventos estimados
+          const eventosEstimados = criarEventosEstimados(ticker);
+          setEventos(eventosEstimados);
+        }
+        
+        setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
+      } else {
+        throw new Error(`Erro HTTP ${response.status}`);
+      }
+
+    } catch (err) {
+      console.error('Erro ao buscar eventos:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      
+      // Em caso de erro, mostrar eventos estimados
+      const eventosEstimados = criarEventosEstimados(ticker);
+      setEventos(eventosEstimados);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker, processarEventos, criarEventosEstimados]);
+
+  useEffect(() => {
+    buscarEventos();
+    
+    // Atualizar dados a cada 6 horas
+    const interval = setInterval(buscarEventos, 6 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [buscarEventos]);
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            📅 Agenda Corporativa
+          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {ultimaAtualizacao && (
+              <Typography variant="caption" color="text.secondary">
+                {ultimaAtualizacao}
+              </Typography>
+            )}
+            <IconButton 
+              size="small" 
+              onClick={buscarEventos} 
+              disabled={loading}
+              title="Atualizar eventos"
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Stack>
+        </Stack>
+
+        {error && !loading && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              ⚠️ Usando estimativas padrão. {error}
+            </Typography>
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : eventos.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              📭 Nenhum evento encontrado para {ticker}
+            </Typography>
+          </Box>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {eventos.slice(0, 6).map((evento, index) => {
+              const diasAteEvento = calcularDiasAteEvento(evento.data);
+              const proximidade = formatarProximidade(diasAteEvento);
+              
+              return (
+                <ListItem 
+                  key={evento.id}
+                  sx={{ 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: 2, 
+                    mb: 2,
+                    backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
+                    '&:hover': { backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc' },
+                    p: 3
+                  }}
+                >
+                  <ListItemText
+                    primary={
+                      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
+                        <Box sx={{ 
+                          fontSize: '1.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          backgroundColor: evento.cor + '20',
+                          color: evento.cor
+                        }}>
+                          {evento.icone}
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {evento.titulo}
+                          </Typography>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography variant="body2" color="text.secondary">
+                              📅 {evento.data.toLocaleDateString('pt-BR', {
+                                weekday: 'short',
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </Typography>
+                            <Chip 
+                              label={proximidade}
+                              size="small"
+                              sx={{ 
+                                backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
+                                color: 'white',
+                                fontSize: '0.7rem',
+                                height: 20
+                              }}
+                            />
+                            {evento.estimado && (
+                              <Chip 
+                                label="Estimado"
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem', height: 20 }}
+                              />
+                            )}
+                          </Stack>
+                        </Box>
+                      </Stack>
+                    }
+                    secondary={
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {evento.descricao}
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              );
+            })}
+          </List>
+        )}
+
+        {eventos.length > 6 && (
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              Mostrando os próximos 6 eventos • Total: {eventos.length}
+            </Typography>
+          </Box>
+        )}
+
+        <Alert severity="info" sx={{ mt: 3 }}>
+          <Typography variant="body2">
+            <strong>ℹ️ Sobre as datas:</strong><br/>
+            • 🎯 <strong>Dados históricos:</strong> Baseados em dividendos reais da API BRAPI<br/>
+            • 📊 <strong>Estimativas:</strong> Calculadas com padrões do mercado brasileiro<br/>
+            • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo
+          </Typography>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
+});
 // ========================================
 // COMPONENTE PRINCIPAL - DETALHES DA EMPRESA
 // ========================================
