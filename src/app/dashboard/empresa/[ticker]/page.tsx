@@ -39,6 +39,9 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DownloadIcon from '@mui/icons-material/Download';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 // Ícones mock
 const ArrowLeftIcon = () => <span>←</span>;
