@@ -891,25 +891,24 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     try {
       let relatorioParaSalvar: any = { ...novoRelatorio };
       
-      if (novoRelatorio.tipoVisualizacao === 'pdf') {
-        if (!arquivoPdfSelecionado) {
-          alert('Por favor, selecione um arquivo PDF');
-          return;
-        }
-        
-        console.log('📄 Fazendo upload do PDF...');
-        const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
-        
-        relatorioParaSalvar = {
-          ...relatorioParaSalvar,
-          arquivoPdf: urlPdf,
-          nomeArquivoPdf: arquivoPdfSelecionado.name,
-          tamanhoArquivo: arquivoPdfSelecionado.size,
-          dataUploadPdf: new Date().toISOString(),
-        };
-        
-        console.log('✅ PDF salvo com sucesso:', urlPdf);
-      }
+// Salvar PDF se foi selecionado (independente do tipo de visualização)
+if (arquivoPdfSelecionado) {
+  console.log('📄 Fazendo upload do PDF...');
+  const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
+  
+  relatorioParaSalvar = {
+    ...relatorioParaSalvar,
+    arquivoPdf: urlPdf,
+    nomeArquivoPdf: arquivoPdfSelecionado.name,
+    tamanhoArquivo: arquivoPdfSelecionado.size,
+    dataUploadPdf: new Date().toISOString(),
+  };
+  
+  console.log('✅ PDF salvo com sucesso:', urlPdf);
+} else if (novoRelatorio.tipoVisualizacao === 'pdf') {
+  alert('Por favor, selecione um arquivo PDF');
+  return;
+}
 
       const relatorio: Relatorio = {
         id: Date.now().toString(),
