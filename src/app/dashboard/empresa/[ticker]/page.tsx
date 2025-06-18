@@ -2420,7 +2420,6 @@ export default function EmpresaDetalhes() {
           <MetricCard 
             title="PERFORMANCE" 
             value={calcularPerformance()}
-            trend={calcularPerformance().includes('-') ? 'down' : 'up'}
             subtitle="desde entrada"
           />
         </Grid>
