@@ -1592,12 +1592,12 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
             <Button 
               onClick={salvarRelatorio} 
               variant="contained"
-              disabled={
-                !novoRelatorio.nome || 
-                (novoRelatorio.tipoVisualizacao === 'pdf' && !arquivoPdfSelecionado) ||
-                (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) ||
-                ((novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && !novoRelatorio.linkExterno)
-              }
+disabled={
+  !novoRelatorio.nome || 
+  (novoRelatorio.tipoVisualizacao === 'pdf' && !arquivoPdfSelecionado) ||
+  (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) ||
+  ((novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && !novoRelatorio.linkExterno && !arquivoPdfSelecionado)
+}
             >
               💾 Salvar Relatório
             </Button>
