@@ -89,6 +89,8 @@ interface EmpresaCompleta {
   ultimaAtualizacao?: string;
 }
 
+export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf';
+
 interface Relatorio {
   id: string;
   nome: string;
@@ -99,7 +101,7 @@ interface Relatorio {
   linkCanva?: string;
   linkExterno?: string;
   tamanho?: string;
-  export type TipoVisualizacao = 'link' | 'gdocs' | 'canva' | 'pdf';
+  tipoVisualizacao: TipoVisualizacao; // ✅ ADICIONAR esta linha
   arquivoPdf?: string;       // ✅ ADICIONAR
   nomeArquivoPdf?: string;   // ✅ ADICIONAR
   tamanhoArquivo?: number;   // ✅ ADICIONAR
