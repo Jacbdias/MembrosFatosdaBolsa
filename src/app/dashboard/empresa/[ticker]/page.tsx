@@ -708,6 +708,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
   const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
   const [loadingIframe, setLoadingIframe] = useState(false);
+  const [timeoutError, setTimeoutError] = useState(false); // ✅ Estado movido para fora do useMemo
   const [tabAtiva, setTabAtiva] = useState(1);
   const [novoRelatorio, setNovoRelatorio] = useState({
     nome: '',
@@ -731,6 +732,21 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       }
     }
   }, [ticker]);
+
+  // ✅ useEffect para gerenciar timeout movido para fora do useMemo
+  useEffect(() => {
+    if (relatorioSelecionado) {
+      setTimeoutError(false);
+      setLoadingIframe(true);
+      
+      const timer = setTimeout(() => {
+        setLoadingIframe(false);
+        setTimeoutError(true);
+      }, 15000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [relatorioSelecionado]);
 
   const salvarRelatorio = useCallback(() => {
     if (!novoRelatorio.nome) {
@@ -788,313 +804,432 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   }, []);
 
-const renderVisualizador = useMemo(() => {
-  if (!relatorioSelecionado) return null;
+  // ✅ renderVisualizador corrigido sem hooks dentro
+  const renderVisualizador = useMemo(() => {
+    if (!relatorioSelecionado) return null;
 
-  // ✅ Função para processar URLs problemáticas
-  const processarUrl = (url: string, tipo: string): string => {
-    if (!url) return '';
-    
-    try {
-      // Processar URLs do Canva
-      if (tipo === 'canva' || url.includes('canva.com')) {
-        // Se já é um link de embed, usar diretamente
-        if (url.includes('/embed')) {
-          return url.includes('?embed') ? url : `${url}?embed`;
+    // ✅ Função para processar URLs problemáticas
+    const processarUrl = (url: string, tipo: string): string => {
+      if (!url) return '';
+      
+      try {
+        // Processar URLs do Canva
+        if (tipo === 'canva' || url.includes('canva.com')) {
+          if (url.includes('/embed')) {
+            return url.includes('?embed') ? url : `${url}?embed`;
+          }
+          if (url.includes('/design/')) {
+            const embedUrl = url.replace('/design/', '/embed/');
+            return embedUrl.includes('?embed') ? embedUrl : `${embedUrl}?embed`;
+          }
+          return url;
         }
         
-        // Converter URL normal do Canva para embed
-        if (url.includes('/design/')) {
-          const embedUrl = url.replace('/design/', '/embed/');
-          return embedUrl.includes('?embed') ? embedUrl : `${embedUrl}?embed`;
+        // Processar Google Docs/Sheets
+        if (url.includes('docs.google.com') || url.includes('sheets.google.com')) {
+          if (!url.includes('/preview') && !url.includes('/embed')) {
+            const baseUrl = url.split('/edit')[0];
+            return `${baseUrl}/preview`;
+          }
+        }
+        
+        // Processar Notion
+        if (url.includes('notion.so') || url.includes('notion.site')) {
+          return url;
         }
         
         return url;
+      } catch (error) {
+        console.error('Erro ao processar URL:', error);
+        return url;
       }
-      
-      // Processar Google Docs/Sheets
-      if (url.includes('docs.google.com') || url.includes('sheets.google.com')) {
-        if (!url.includes('/preview') && !url.includes('/embed')) {
-          // Tentar converter para modo preview
-          const baseUrl = url.split('/edit')[0];
-          return `${baseUrl}/preview`;
-        }
-      }
-      
-      // Processar Notion
-      if (url.includes('notion.so') || url.includes('notion.site')) {
-        return url; // Notion geralmente funciona direto
-      }
-      
-      // URLs genéricas
-      return url;
-      
-    } catch (error) {
-      console.error('Erro ao processar URL:', error);
-      return url;
-    }
-  };
+    };
 
-  // ✅ Sistema de timeout para evitar loading infinito
-  const [timeoutError, setTimeoutError] = useState(false);
-  
-  useEffect(() => {
-    setTimeoutError(false);
-    setLoadingIframe(true);
-    
-    // Timeout de 15 segundos
-    const timer = setTimeout(() => {
+    const handleIframeLoad = () => {
+      setLoadingIframe(false);
+      setTimeoutError(false);
+    };
+
+    const handleIframeError = () => {
       setLoadingIframe(false);
       setTimeoutError(true);
-    }, 15000);
-    
-    return () => clearTimeout(timer);
-  }, [relatorioSelecionado]);
+    };
 
-  const handleIframeLoad = () => {
-    setLoadingIframe(false);
-    setTimeoutError(false);
-  };
+    // ✅ Obter URL processada
+    const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+      ? processarUrl(relatorioSelecionado.linkCanva || '', 'canva')
+      : processarUrl(relatorioSelecionado.linkExterno || '', relatorioSelecionado.tipoVisualizacao);
 
-  const handleIframeError = () => {
-    setLoadingIframe(false);
-    setTimeoutError(true);
-  };
-
-  // ✅ Obter URL processada
-  const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
-    ? processarUrl(relatorioSelecionado.linkCanva || '', 'canva')
-    : processarUrl(relatorioSelecionado.linkExterno || '', relatorioSelecionado.tipoVisualizacao);
-
-  // ✅ Validar URL
-  if (!src) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 8 }}>
-        <Typography variant="h6" color="error" sx={{ mb: 2 }}>
-          ⚠️ URL não encontrada
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Nenhuma URL foi configurada para este relatório.
-        </Typography>
-      </Box>
-    );
-  }
-
-  // ✅ Renderizar com base no tipo
-  switch (relatorioSelecionado.tipoVisualizacao) {
-    case 'iframe':
-    case 'canva':
-    case 'link':
-      return (
-        <Box sx={{ position: 'relative', height: '80vh' }}>
-          
-          {/* ✅ Loading com timeout */}
-          {loadingIframe && !timeoutError && (
-            <Box sx={{ 
-              position: 'absolute', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)',
-              zIndex: 2,
-              textAlign: 'center'
-            }}>
-              <CircularProgress size={40} />
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                Carregando conteúdo...
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                {relatorioSelecionado.tipoVisualizacao.toUpperCase()}
-              </Typography>
-            </Box>
-          )}
-
-          {/* ✅ Erro de timeout ou carregamento */}
-          {timeoutError && (
-            <Box sx={{ 
-              position: 'absolute', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)',
-              zIndex: 2,
-              textAlign: 'center',
-              maxWidth: 400,
-              p: 3
-            }}>
-              <Typography variant="h6" color="error" sx={{ mb: 2 }}>
-                ⚠️ Erro ao Carregar
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 3 }}>
-                O conteúdo não pôde ser carregado. Isso pode acontecer se:
-              </Typography>
-              <ul style={{ textAlign: 'left', fontSize: '0.875rem', color: '#666' }}>
-                <li>A URL não permite incorporação (iframe)</li>
-                <li>O site tem restrições de segurança</li>
-                <li>A conexão está lenta</li>
-                <li>A URL está incorreta</li>
-              </ul>
-              
-              <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
-                <Button 
-                  variant="outlined"
-                  onClick={() => {
-                    setTimeoutError(false);
-                    setLoadingIframe(true);
-                    // Força reload do iframe
-                    const iframe = document.querySelector('iframe[data-report-src]') as HTMLIFrameElement;
-                    if (iframe) {
-                      iframe.src = iframe.src;
-                    }
-                  }}
-                  size="small"
-                >
-                  🔄 Tentar Novamente
-                </Button>
-                <Button 
-                  variant="contained"
-                  onClick={() => window.open(src, '_blank')}
-                  size="small"
-                >
-                  🔗 Abrir em Nova Aba
-                </Button>
-              </Stack>
-            </Box>
-          )}
-
-          {/* ✅ Iframe com configurações robustas */}
-          <iframe
-            data-report-src={src}
-            src={src}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              border: 'none', 
-              borderRadius: '8px',
-              opacity: timeoutError ? 0.3 : 1
-            }}
-            allowFullScreen
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
-            referrerPolicy="no-referrer-when-downgrade"
-            loading="lazy"
-          />
-          
-          {/* ✅ Overlay com link direto */}
-          {!loadingIframe && !timeoutError && (
-            <Box sx={{ 
-              position: 'absolute', 
-              top: 16, 
-              right: 16,
-              zIndex: 1
-            }}>
-              <IconButton
-                size="small"
-                onClick={() => window.open(src, '_blank')}
-                sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                }}
-                title="Abrir em nova aba"
-              >
-                🔗
-              </IconButton>
-            </Box>
-          )}
-        </Box>
-      );
-
-    default:
+    // ✅ Validar URL
+    if (!src) {
       return (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <FileIcon style={{ fontSize: '4rem', opacity: 0.5 }} />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            Tipo não suportado
+          <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+            ⚠️ URL não encontrada
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Tipo: {relatorioSelecionado.tipoVisualizacao}
+          <Typography variant="body2" color="text.secondary">
+            Nenhuma URL foi configurada para este relatório.
           </Typography>
-          <Button 
-            variant="outlined"
-            onClick={() => window.open(src, '_blank')}
-            sx={{ mt: 2 }}
-            size="small"
-          >
-            🔗 Abrir Link Direto
-          </Button>
         </Box>
       );
-  }
-}, [relatorioSelecionado, loadingIframe]);
+    }
 
-// ========================================
-// MELHORIAS ADICIONAIS PARA O DIALOG:
-// ========================================
+    // ✅ Renderizar com base no tipo
+    switch (relatorioSelecionado.tipoVisualizacao) {
+      case 'iframe':
+      case 'canva':
+      case 'link':
+        return (
+          <Box sx={{ position: 'relative', height: '80vh' }}>
+            
+            {/* ✅ Loading com timeout */}
+            {loadingIframe && !timeoutError && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2,
+                textAlign: 'center'
+              }}>
+                <CircularProgress size={40} />
+                <Typography variant="body2" sx={{ mt: 2 }}>
+                  Carregando conteúdo...
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {relatorioSelecionado.tipoVisualizacao.toUpperCase()}
+                </Typography>
+              </Box>
+            )}
 
-// ✅ Dialog otimizado com melhor UX
-<Dialog 
-  open={dialogVisualizacao} 
-  onClose={() => {
-    setDialogVisualizacao(false);
-    setLoadingIframe(false);
-    setRelatorioSelecionado(null);
-  }} 
-  maxWidth="lg" 
-  fullWidth
-  PaperProps={{ 
-    sx: { 
-      height: '95vh',
-      backgroundColor: '#f8fafc'
-    } 
-  }}
->
-  <DialogTitle sx={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    pb: 2,
-    backgroundColor: 'white',
-    borderBottom: '1px solid #e2e8f0'
-  }}>
-    <Box>
-      <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} 
-        {relatorioSelecionado?.nome}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {relatorioSelecionado?.tipo} • {relatorioSelecionado?.dataReferencia}
-      </Typography>
-    </Box>
-    
-    <Stack direction="row" spacing={1}>
-      {relatorioSelecionado && (
-        <IconButton 
-          onClick={() => {
-            const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
-              ? relatorioSelecionado.linkCanva 
-              : relatorioSelecionado.linkExterno;
-            if (src) window.open(src, '_blank');
+            {/* ✅ Erro de timeout ou carregamento */}
+            {timeoutError && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2,
+                textAlign: 'center',
+                maxWidth: 400,
+                p: 3
+              }}>
+                <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+                  ⚠️ Erro ao Carregar
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 3 }}>
+                  O conteúdo não pôde ser carregado. Isso pode acontecer se:
+                </Typography>
+                <ul style={{ textAlign: 'left', fontSize: '0.875rem', color: '#666' }}>
+                  <li>A URL não permite incorporação (iframe)</li>
+                  <li>O site tem restrições de segurança</li>
+                  <li>A conexão está lenta</li>
+                  <li>A URL está incorreta</li>
+                </ul>
+                
+                <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
+                  <Button 
+                    variant="outlined"
+                    onClick={() => {
+                      setTimeoutError(false);
+                      setLoadingIframe(true);
+                      const iframe = document.querySelector('iframe[data-report-src]') as HTMLIFrameElement;
+                      if (iframe) {
+                        iframe.src = iframe.src;
+                      }
+                    }}
+                    size="small"
+                  >
+                    🔄 Tentar Novamente
+                  </Button>
+                  <Button 
+                    variant="contained"
+                    onClick={() => window.open(src, '_blank')}
+                    size="small"
+                  >
+                    🔗 Abrir em Nova Aba
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+
+            {/* ✅ Iframe com configurações robustas */}
+            <iframe
+              data-report-src={src}
+              src={src}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                border: 'none', 
+                borderRadius: '8px',
+                opacity: timeoutError ? 0.3 : 1
+              }}
+              allowFullScreen
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+              referrerPolicy="no-referrer-when-downgrade"
+              loading="lazy"
+            />
+            
+            {/* ✅ Overlay com link direto */}
+            {!loadingIframe && !timeoutError && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 16, 
+                right: 16,
+                zIndex: 1
+              }}>
+                <IconButton
+                  size="small"
+                  onClick={() => window.open(src, '_blank')}
+                  sx={{ 
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
+                  }}
+                  title="Abrir em nova aba"
+                >
+                  🔗
+                </IconButton>
+              </Box>
+            )}
+          </Box>
+        );
+
+      default:
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <FileIcon style={{ fontSize: '4rem', opacity: 0.5 }} />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Tipo não suportado
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Tipo: {relatorioSelecionado.tipoVisualizacao}
+            </Typography>
+            <Button 
+              variant="outlined"
+              onClick={() => window.open(src, '_blank')}
+              sx={{ mt: 2 }}
+              size="small"
+            >
+              🔗 Abrir Link Direto
+            </Button>
+          </Box>
+        );
+    }
+  }, [relatorioSelecionado, loadingIframe, timeoutError]); // ✅ Dependências corretas
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            📋 Relatórios da Empresa
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => setDialogAberto(true)}
+            size="small"
+          >
+            + Adicionar Relatório
+          </Button>
+        </Stack>
+
+        {relatorios.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              Nenhum relatório cadastrado para {ticker}
+            </Typography>
+          </Box>
+        ) : (
+          <List>
+            {relatorios.map((relatorio) => (
+              <ListItem key={relatorio.id}>
+                <ListItemText
+                  primary={`${getIconePorTipo(relatorio.tipoVisualizacao)} ${relatorio.nome}`}
+                  secondary={`${relatorio.tipo} • ${relatorio.dataReferencia}`}
+                />
+                <ListItemSecondaryAction>
+                  <Stack direction="row" spacing={1}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setRelatorioSelecionado(relatorio);
+                        setDialogVisualizacao(true);
+                      }}
+                    >
+                      <ViewIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => excluirRelatorio(relatorio.id)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        )}
+
+        {/* Dialog para adicionar relatório */}
+        <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Adicionar Relatório</DialogTitle>
+          <DialogContent>
+            <Tabs value={tabAtiva} onChange={(_, newValue) => setTabAtiva(newValue)} sx={{ mb: 3 }}>
+              <Tab label="Informações Básicas" />
+              <Tab label="Link/URL" />
+            </Tabs>
+
+            {tabAtiva === 0 && (
+              <Stack spacing={3}>
+                <TextField
+                  fullWidth
+                  label="Nome do Relatório"
+                  value={novoRelatorio.nome}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Tipo</InputLabel>
+                  <Select
+                    value={novoRelatorio.tipo}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+                  >
+                    <MenuItem value="trimestral">Trimestral</MenuItem>
+                    <MenuItem value="anual">Anual</MenuItem>
+                    <MenuItem value="apresentacao">Apresentação</MenuItem>
+                    <MenuItem value="outros">Outros</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label="Data de Referência"
+                  value={novoRelatorio.dataReferencia}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
+                  placeholder="Ex: Q1 2024"
+                />
+              </Stack>
+            )}
+
+            {tabAtiva === 1 && (
+              <Stack spacing={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Tipo de Visualização</InputLabel>
+                  <Select
+                    value={novoRelatorio.tipoVisualizacao}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
+                  >
+                    <MenuItem value="iframe">🖼️ Iframe Genérico</MenuItem>
+                    <MenuItem value="canva">🎨 Canva</MenuItem>
+                    <MenuItem value="link">🔗 Link Externo</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {novoRelatorio.tipoVisualizacao === 'canva' && (
+                  <TextField
+                    fullWidth
+                    label="Link do Canva"
+                    value={novoRelatorio.linkCanva}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkCanva: e.target.value }))}
+                    placeholder="https://www.canva.com/design/..."
+                    helperText="Cole o link do seu design no Canva"
+                  />
+                )}
+
+                {(novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && (
+                  <TextField
+                    fullWidth
+                    label="Link Externo"
+                    value={novoRelatorio.linkExterno}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
+                    placeholder="https://..."
+                    helperText="URL do documento ou apresentação"
+                  />
+                )}
+              </Stack>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogAberto(false)}>Cancelar</Button>
+            <Button onClick={salvarRelatorio} variant="contained">
+              Salvar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ✅ Dialog de visualização corrigido */}
+        <Dialog 
+          open={dialogVisualizacao} 
+          onClose={() => {
+            setDialogVisualizacao(false);
+            setLoadingIframe(false);
+            setTimeoutError(false);
+            setRelatorioSelecionado(null);
+          }} 
+          maxWidth="lg" 
+          fullWidth
+          PaperProps={{ 
+            sx: { 
+              height: '95vh',
+              backgroundColor: '#f8fafc'
+            } 
           }}
-          title="Abrir em nova aba"
         >
-          🔗
-        </IconButton>
-      )}
-      <IconButton 
-        onClick={() => {
-          setDialogVisualizacao(false);
-          setLoadingIframe(false);
-          setRelatorioSelecionado(null);
-        }}
-      >
-        <CloseIcon />
-      </IconButton>
-    </Stack>
-  </DialogTitle>
-  
-  <DialogContent sx={{ p: 0, height: '100%', backgroundColor: '#f8fafc' }}>
-    {renderVisualizador}
-  </DialogContent>
-</Dialog>
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2,
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e2e8f0'
+          }}>
+            <Box>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} 
+                {relatorioSelecionado?.nome}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {relatorioSelecionado?.tipo} • {relatorioSelecionado?.dataReferencia}
+              </Typography>
+            </Box>
+            
+            <Stack direction="row" spacing={1}>
+              {relatorioSelecionado && (
+                <IconButton 
+                  onClick={() => {
+                    const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                      ? relatorioSelecionado.linkCanva 
+                      : relatorioSelecionado.linkExterno;
+                    if (src) window.open(src, '_blank');
+                  }}
+                  title="Abrir em nova aba"
+                >
+                  🔗
+                </IconButton>
+              )}
+              <IconButton 
+                onClick={() => {
+                  setDialogVisualizacao(false);
+                  setLoadingIframe(false);
+                  setTimeoutError(false);
+                  setRelatorioSelecionado(null);
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 0, height: '100%', backgroundColor: '#f8fafc' }}>
+            {renderVisualizador}
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+});
 
 // Dados de fallback
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
