@@ -1090,6 +1090,40 @@ const handleIframeError = () => {
             + Adicionar Relatório
           </Button>
         </Stack>
+        {/* 🧪 BOTÃO DE TESTE TEMPORÁRIO */}
+      <Button 
+        onClick={() => {
+          console.log('🧪 Teste direto com URL que funciona');
+          const urlTeste = "https://www.canva.com/design/DAGkGYQu52k/z1Yh6Hmqkr1E20GatRMJPw/view?embed";
+          
+          // Criar iframe temporário para teste
+          const iframe = document.createElement('iframe');
+          iframe.src = urlTeste;
+          iframe.style.width = '800px';
+          iframe.style.height = '600px';
+          iframe.style.border = '2px solid red';
+          iframe.style.position = 'fixed';
+          iframe.style.top = '50px';
+          iframe.style.left = '50px';
+          iframe.style.zIndex = '9999';
+          iframe.style.backgroundColor = 'white';
+          
+          iframe.onload = () => console.log('✅ Teste iframe carregou!');
+          iframe.onerror = () => console.log('❌ Teste iframe erro!');
+          
+          document.body.appendChild(iframe);
+          
+          // Remover após 10 segundos
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 10000);
+        }}
+        variant="outlined"
+        color="secondary"
+        sx={{ mb: 2 }}
+      >
+        🧪 Teste Iframe Direto
+      </Button>
 
         {relatorios.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
