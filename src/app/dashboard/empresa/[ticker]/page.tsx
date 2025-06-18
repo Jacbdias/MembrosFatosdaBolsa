@@ -1381,47 +1381,68 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                     </Stack>
                   }
                 />
-                <ListItemSecondaryAction>
-                  <Stack direction="row" spacing={1}>
-                    {relatorio.tipoVisualizacao === 'pdf' ? (
-                      <Button
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        onClick={() => baixarPdf(relatorio)}
-                        startIcon={<DownloadIconCustom />}
-                        sx={{ minWidth: 'auto', px: 2 }}
-                      >
-                        Download
-                      </Button>
-                    ) : (
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setRelatorioSelecionado(relatorio);
-                          setDialogVisualizacao(true);
-                        }}
-                        sx={{ 
-                          backgroundColor: '#e3f2fd',
-                          '&:hover': { backgroundColor: '#bbdefb' }
-                        }}
-                      >
-                        <ViewIcon />
-                      </IconButton>
-                    )}
-                    <IconButton
-                      size="small"
-                      onClick={() => excluirRelatorio(relatorio.id)}
-                      color="error"
-                      sx={{ 
-                        backgroundColor: '#ffebee',
-                        '&:hover': { backgroundColor: '#ffcdd2' }
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Stack>
-                </ListItemSecondaryAction>
+<ListItemSecondaryAction>
+  <Stack direction="row" spacing={1}>
+    {/* Botão de visualização para iframe/canva/link */}
+    {(relatorio.tipoVisualizacao === 'iframe' || relatorio.tipoVisualizacao === 'canva' || relatorio.tipoVisualizacao === 'link') && (
+      <IconButton
+        size="small"
+        onClick={() => {
+          setRelatorioSelecionado(relatorio);
+          setDialogVisualizacao(true);
+        }}
+        sx={{ 
+          backgroundColor: '#e3f2fd',
+          '&:hover': { backgroundColor: '#bbdefb' }
+        }}
+        title="Visualizar conteúdo"
+      >
+        <ViewIcon />
+      </IconButton>
+    )}
+    
+    {/* Botão de download PDF - sempre disponível se tiver PDF */}
+    {relatorio.arquivoPdf && (
+      <Button
+        variant="contained"
+        color="success"
+        size="small"
+        onClick={() => baixarPdf(relatorio)}
+        startIcon={<DownloadIconCustom />}
+        sx={{ minWidth: 'auto', px: 2 }}
+        title="Baixar PDF"
+      >
+        PDF
+      </Button>
+    )}
+    
+    {/* Se for tipo PDF puro (sem iframe), só mostra download */}
+    {relatorio.tipoVisualizacao === 'pdf' && !relatorio.linkExterno && !relatorio.linkCanva && (
+      <Button
+        variant="contained"
+        color="success"
+        size="small"
+        onClick={() => baixarPdf(relatorio)}
+        startIcon={<DownloadIconCustom />}
+        sx={{ minWidth: 'auto', px: 2 }}
+      >
+        Download
+      </Button>
+    )}
+    
+    <IconButton
+      size="small"
+      onClick={() => excluirRelatorio(relatorio.id)}
+      color="error"
+      sx={{ 
+        backgroundColor: '#ffebee',
+        '&:hover': { backgroundColor: '#ffcdd2' }
+      }}
+    >
+      <DeleteIcon />
+    </IconButton>
+  </Stack>
+</ListItemSecondaryAction>
               </ListItem>
             ))}
           </List>
