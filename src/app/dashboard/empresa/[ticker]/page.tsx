@@ -959,13 +959,46 @@ const handleIframeError = () => {
                   >
                     🔄 Tentar Novamente
                   </Button>
-                  <Button 
-                    variant="contained"
-                    onClick={() => window.open(src, '_blank')}
-                    size="small"
-                  >
-                    🔗 Abrir em Nova Aba
-                  </Button>
+<Button 
+  variant="contained"
+  onClick={() => {
+    console.log('🔗 Clique no botão Nova Aba');
+    console.log('relatorioSelecionado:', relatorioSelecionado);
+    console.log('src calculado:', src);
+    
+    // ✅ CORREÇÃO: Use a URL original, não a processada
+    let urlParaAbrir = '';
+    
+    if (relatorioSelecionado.tipoVisualizacao === 'canva') {
+      urlParaAbrir = relatorioSelecionado.linkCanva || '';
+      console.log('URL do Canva (original):', urlParaAbrir);
+      
+      // ✅ Para nova aba, remover ?embed se existir
+      if (urlParaAbrir.includes('?embed')) {
+        urlParaAbrir = urlParaAbrir.replace('?embed', '');
+        console.log('URL sem ?embed para nova aba:', urlParaAbrir);
+      }
+    } else {
+      urlParaAbrir = relatorioSelecionado.linkExterno || '';
+    }
+    
+    console.log('URL final para nova aba:', urlParaAbrir);
+    
+    if (urlParaAbrir) {
+      try {
+        window.open(urlParaAbrir, '_blank', 'noopener,noreferrer');
+        console.log('✅ Nova aba aberta');
+      } catch (error) {
+        console.error('❌ Erro ao abrir nova aba:', error);
+      }
+    } else {
+      console.error('❌ URL vazia para nova aba');
+    }
+  }}
+  size="small"
+>
+  🔗 Abrir em Nova Aba
+</Button>
                 </Stack>
               </Box>
             )}
