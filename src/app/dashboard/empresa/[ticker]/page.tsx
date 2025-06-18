@@ -1980,10 +1980,17 @@ export default function EmpresaDetalhes() {
 
       {/* Seções secundárias */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} lg={6}>
           <GerenciadorRelatorios ticker={ticker} />
         </Grid>
         
+        <Grid item xs={12} lg={6}>
+          <AgendaCorporativa ticker={ticker} />
+        </Grid>
+      </Grid>
+
+      {/* Dados da Posição - Agora em linha separada */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent sx={{ p: 4 }}>
@@ -2005,6 +2012,106 @@ export default function EmpresaDetalhes() {
                     {precoAtualFormatado}
                   </Typography>
                 </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Métricas Adicionais */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                🎯 Análise de Viés
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Teto</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoTeto}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Viés Atual</Typography>
+                  <Chip 
+                    label={empresaCompleta.viesAtual}
+                    size="small"
+                    color={
+                      empresaCompleta.viesAtual === 'Compra Forte' ? 'success' :
+                      empresaCompleta.viesAtual === 'Compra' ? 'info' :
+                      empresaCompleta.viesAtual === 'Neutro' ? 'warning' :
+                      empresaCompleta.viesAtual === 'Venda' ? 'error' : 'default'
+                    }
+                    sx={{ fontWeight: 600 }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">% da Carteira</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.percentualCarteira}</Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+// ========================================
+// 2. MELHORIAS OPCIONAIS
+// ========================================
+
+// Se quiser adicionar um ícone especial para eventos próximos nas ações rápidas:
+      {/* Ações rápidas - Versão melhorada */}
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Card sx={{ backgroundColor: '#f8fafc' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  🚀 Ações Rápidas
+                </Typography>
+                
+                {/* Indicador de eventos próximos */}
+                {eventos.some(e => calcularDiasAteEvento(new Date(e.data)) <= 7) && (
+                  <Chip 
+                    label="⚠️ Eventos Próximos!"
+                    size="small"
+                    color="warning"
+                    sx={{ fontWeight: 600 }}
+                  />
+                )}
+              </Stack>
+              
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Button 
+                  startIcon={<RefreshIcon />} 
+                  onClick={refetch}
+                  variant="contained"
+                  size="small"
+                  disabled={dadosLoading}
+                >
+                  {dadosLoading ? 'Atualizando...' : 'Atualizar Dados'}
+                </Button>
+                <Button 
+                  onClick={() => window.open(`https://statusinvest.com.br/${empresaCompleta.tipo === 'FII' ? 'fundos-imobiliarios' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
+                  variant="outlined"
+                  size="small"
+                >
+                  📊 Status Invest
+                </Button>
+                <Button 
+                  onClick={() => window.open(`https://www.investidor10.com.br/${empresaCompleta.tipo === 'FII' ? 'fiis' : 'acoes'}/${empresaCompleta.ticker.toLowerCase()}`, '_blank')}
+                  variant="outlined"
+                  size="small"
+                >
+                  📈 Investidor10
+                </Button>
+                
+                {/* Novo botão para agenda corporativa externa */}
+                <Button 
+                  onClick={() => window.open(`https://ri.${empresaCompleta.ticker.toLowerCase()}.com.br`, '_blank')}
+                  variant="outlined"
+                  size="small"
+                >
+                  📅 RI Oficial
+                </Button>
               </Stack>
             </CardContent>
           </Card>
