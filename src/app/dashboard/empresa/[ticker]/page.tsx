@@ -2508,11 +2508,11 @@ export default function EmpresaDetalhes() {
 
       {/* Seções secundárias */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={12}>
           <GerenciadorRelatorios ticker={ticker} />
         </Grid>
         
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={12}>
           <AgendaCorporativa ticker={ticker} />
         </Grid>
       </Grid>
