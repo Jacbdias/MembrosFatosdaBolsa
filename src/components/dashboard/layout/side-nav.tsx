@@ -15,7 +15,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 import { CaretDown } from '@phosphor-icons/react/dist/ssr/CaretDown';
-import { useAuthAccess } from '@/hooks/use-auth-access'; // ✅ DESCOMENTADO
+import { authClient } from '@/lib/auth/client'; // ✅ IMPORT DIRETO
 
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
@@ -23,7 +23,39 @@ import { navIcons } from './nav-icons';
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = React.useState<Record<string, boolean>>({});
-  const { planInfo, hasAccessSync } = useAuthAccess(); // ✅ DESCOMENTADO - usando hook real
+  
+  // ✅ Estado para o plano do usuário
+  const [planInfo, setPlanInfo] = React.useState<{ displayName: string; pages: string[] } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  // ✅ Carregar informações do plano
+  React.useEffect(() => {
+    const loadPlanInfo = async () => {
+      try {
+        const info = await authClient.getPlanInfo();
+        setPlanInfo(info || {
+          displayName: 'Close Friends VIP',
+          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+        });
+      } catch (error) {
+        console.error('Error loading plan info:', error);
+        setPlanInfo({
+          displayName: 'Close Friends VIP',
+          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPlanInfo();
+  }, []);
+
+  // ✅ Função para verificar acesso
+  const hasAccessSync = (page: string): boolean => {
+    if (!planInfo) return true; // Se não carregou ainda, mostra tudo
+    return planInfo.pages.includes(page);
+  };
 
   const toggleExpanded = (key: string) => {
     setExpandedItems(prev => ({
@@ -113,7 +145,7 @@ export function SideNav(): React.JSX.Element {
               Plano
             </Typography>
             <Typography color="inherit" variant="subtitle1">
-              {planInfo?.displayName || 'Close Friends VIP'}
+              {planInfo?.displayName || 'Carregando...'}
             </Typography>
           </Box>
         </Box>
@@ -122,12 +154,18 @@ export function SideNav(): React.JSX.Element {
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
 
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {renderNavItems({ 
-          pathname, 
-          items: filteredNavItems,
-          expandedItems, 
-          toggleExpanded 
-        })}
+        {loading ? (
+          <Typography color="var(--mui-palette-neutral-400)" variant="body2" sx={{ p: 2 }}>
+            Carregando menu...
+          </Typography>
+        ) : (
+          renderNavItems({ 
+            pathname, 
+            items: filteredNavItems,
+            expandedItems, 
+            toggleExpanded 
+          })
+        )}
       </Box>
     </Box>
   );
