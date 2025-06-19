@@ -1,5 +1,4 @@
-// ✅ LÓGICA SUPER SIMPLES - APENAS FILTRAR PELA PÁGINA
-  const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[]'use client';
+'use client';
 
 import * as React from 'react';
 import RouterLink from 'next/link';
@@ -63,11 +62,10 @@ export function SideNav(): React.JSX.Element {
 
   const hasAccessSync = (page: string): boolean => {
     if (!planInfo) {
-      console.log('⚠️ planInfo não carregado ainda');
-      return true;
+      return true; // Se não carregou ainda, mostra tudo
     }
     const hasAccess = planInfo.pages.includes(page);
-    console.log(`🔑 Acesso para "${page}": ${hasAccess} (disponíveis: ${planInfo.pages.length} páginas)`);
+    console.log(`🔑 Verificando "${page}": ${hasAccess}`);
     return hasAccess;
   };
 
@@ -78,39 +76,51 @@ export function SideNav(): React.JSX.Element {
     }));
   };
 
-  // ✅ NOVA LÓGICA MAIS SIMPLES E DIRETA
+  // ✅ LÓGICA SIMPLIFICADA E FUNCIONAL
   const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
-    return items.map(item => {
-      // Fazer uma cópia do item para não modificar o original
-      const itemCopy = { ...item };
+    return items.filter(item => {
+      console.log(`📋 Processando item: ${item.title}`);
       
-      // Se tem subitens, filtrar os subitens
-      if (itemCopy.items) {
-        const filteredSubItems = itemCopy.items.filter(subItem => {
-          // Se não tem página definida, mostrar sempre
+      // Se tem subitens
+      if (item.items && item.items.length > 0) {
+        console.log(`📁 ${item.title} tem ${item.items.length} subitens`);
+        
+        // Filtrar subitens
+        const filteredSubItems = item.items.filter(subItem => {
           if (!subItem.page) return true;
-          // Se tem página, verificar acesso
           return hasAccessSync(subItem.page);
         });
         
-        itemCopy.items = filteredSubItems;
+        console.log(`📁 ${item.title} subitens filtrados: ${filteredSubItems.length}`);
         
-        // Sempre mostrar o item principal se:
-        // 1. Não tem página definida OU
-        // 2. Tem acesso à página principal OU  
-        // 3. Tem pelo menos um subitem
-        return !itemCopy.page || hasAccessSync(itemCopy.page) || filteredSubItems.length > 0;
+        // Verificar se deve mostrar o item principal
+        const showMainItem = !item.page || hasAccessSync(item.page) || filteredSubItems.length > 0;
+        
+        if (showMainItem) {
+          // Atualizar os subitens filtrados
+          item.items = filteredSubItems;
+          console.log(`✅ ${item.title} INCLUÍDO`);
+          return true;
+        } else {
+          console.log(`❌ ${item.title} REMOVIDO`);
+          return false;
+        }
       }
       
       // Para itens sem subitens
-      // Se não tem página definida, mostrar sempre
-      if (!itemCopy.page) return true;
-      // Se tem página, verificar acesso
-      return hasAccessSync(itemCopy.page);
-    }).filter(Boolean);
+      if (!item.page) {
+        console.log(`✅ ${item.title} sem página - sempre visível`);
+        return true;
+      }
+      
+      const hasAccess = hasAccessSync(item.page);
+      console.log(`🔍 ${item.title} acesso: ${hasAccess}`);
+      return hasAccess;
+    });
   };
 
   const filteredNavItems = getFilteredNavItems([...navItems]);
+  console.log('🎯 Itens finais:', filteredNavItems.map(item => item.title));
 
   return (
     <Box
