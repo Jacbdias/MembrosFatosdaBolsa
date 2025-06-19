@@ -53,8 +53,15 @@ export function SideNav(): React.JSX.Element {
 
   // ✅ Função para verificar acesso
   const hasAccessSync = (page: string): boolean => {
-    if (!planInfo) return true; // Se não carregou ainda, mostra tudo
-    return planInfo.pages.includes(page);
+    if (!planInfo) {
+      console.log(`⚠️ planInfo não carregado ainda`);
+      return true; // Se não carregou ainda, mostra tudo
+    }
+    console.log(`🔍 Verificando acesso para: ${page}`);
+    console.log(`📋 Páginas disponíveis:`, planInfo.pages);
+    const hasAccess = planInfo.pages.includes(page);
+    console.log(`🔑 Acesso para ${page}: ${hasAccess}`);
+    return hasAccess;
   };
 
   const toggleExpanded = (key: string) => {
@@ -67,24 +74,35 @@ export function SideNav(): React.JSX.Element {
   // ✅ Filtrar itens baseado no acesso
   const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
     return items.filter(item => {
+      console.log(`🔍 Verificando item: ${item.title}, page: ${item.page}`);
+      
       // Se tem subitens, filtrar os subitens primeiro
       if (item.items) {
+        console.log(`📁 ${item.title} tem ${item.items.length} subitens`);
         const filteredSubItems = getFilteredNavItems(item.items);
+        console.log(`📁 ${item.title} após filtro: ${filteredSubItems.length} subitens`);
         
         // Se tem acesso ao item principal OU tem pelo menos um subitem
-        if (hasAccessSync(item.page || '') || filteredSubItems.length > 0) {
+        const hasMainAccess = hasAccessSync(item.page || '');
+        console.log(`🔑 ${item.title} acesso principal: ${hasMainAccess}`);
+        
+        if (hasMainAccess || filteredSubItems.length > 0) {
           // Atualizar com os subitens filtrados
           item.items = filteredSubItems;
+          console.log(`✅ ${item.title} INCLUÍDO`);
           return true;
         }
+        console.log(`❌ ${item.title} REMOVIDO`);
         return false;
       }
 
       // Para itens sem subitens, verificar acesso normalmente
       if (item.page && !hasAccessSync(item.page)) {
+        console.log(`❌ ${item.title} sem acesso`);
         return false;
       }
 
+      console.log(`✅ ${item.title} incluído`);
       return true;
     });
   };
