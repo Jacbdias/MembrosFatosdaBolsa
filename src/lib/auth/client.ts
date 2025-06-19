@@ -7,31 +7,31 @@ function generateToken(): string {
   return Array.from(arr, (v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-// ✅ MODIFICADO: Novos nomes dos planos
+// ✅ MODIFICADO: Novas permissões conforme especificado
 const planPermissions = {
   'VIP': {
     displayName: 'Close Friends VIP',
     pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
   },
   'LITE': {
-    displayName: 'Close Friends LITE', 
-    pages: ['small-caps', 'micro-caps', 'dividendos', 'rentabilidades']
+    displayName: 'Close Friends LITE',
+    pages: ['small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
   },
   'RENDA_PASSIVA': {
     displayName: 'Projeto Renda Passiva',
-    pages: ['dividendos', 'fundos-imobiliarios', 'rentabilidades']
+    pages: ['dividendos', 'fundos-imobiliarios', 'rentabilidades', 'recursos-exclusivos']
   },
   'FIIS': {
     displayName: 'Projeto FIIs',
-    pages: ['fundos-imobiliarios', 'rentabilidades']
+    pages: ['fundos-imobiliarios', 'rentabilidades', 'recursos-exclusivos']
   },
   'AMERICA': {
     displayName: 'Projeto América',
-    pages: ['internacional', 'small-caps', 'recursos-exclusivos']
+    pages: ['internacional', 'recursos-exclusivos']
   }
 } as const;
 
-// ✅ MODIFICADO: Usuários com os novos planos
+// ✅ Usuários permanecem os mesmos
 const users = {
   'sofia@devias.io': {
     id: 'USR-000',
