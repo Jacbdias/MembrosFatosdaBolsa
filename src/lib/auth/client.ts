@@ -7,13 +7,16 @@ function generateToken(): string {
   return Array.from(arr, (v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-// ✅ PERMISSÕES DETALHADAS conforme especificado
+// ✅ PERMISSÕES CORRIGIDAS conforme especificado
 const planPermissions = {
   'VIP': {
     displayName: 'Close Friends VIP',
     pages: [
+      // Páginas principais
       'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 
+      // Internacional completo
       'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos',
+      // Recursos Exclusivos completo
       'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks', 
       'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram'
     ]
@@ -21,32 +24,39 @@ const planPermissions = {
   'LITE': {
     displayName: 'Close Friends LITE',
     pages: [
+      // Páginas principais (SEM micro-caps)
       'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-      'internacional', 'internacional-etfs', 'internacional-stocks', // SEM internacional-dividendos
+      // Internacional apenas ETFs e Stocks (SEM dividendos)
+      'internacional', 'internacional-etfs', 'internacional-stocks',
+      // Recursos Exclusivos limitado (SEM analise, imposto, lives, milhas)
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
-      // SEM recursos-analise, recursos-imposto, recursos-lives, recursos-milhas
     ]
   },
   'RENDA_PASSIVA': {
     displayName: 'Projeto Renda Passiva',
     pages: [
+      // Apenas dividendos, FIIs e rentabilidades
       'dividendos', 'fundos-imobiliarios', 'rentabilidades',
+      // Recursos Exclusivos limitado
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
     ]
   },
   'FIIS': {
     displayName: 'Projeto FIIs',
     pages: [
+      // Apenas FIIs e rentabilidades
       'fundos-imobiliarios', 'rentabilidades',
+      // Recursos Exclusivos limitado
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
     ]
   },
   'AMERICA': {
     displayName: 'Projeto América',
     pages: [
+      // Internacional completo
       'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos',
+      // Recursos Exclusivos com Lives (SEM analise, imposto, milhas)
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram'
-      // SEM recursos-analise, recursos-imposto, recursos-milhas
     ]
   }
 } as const;
@@ -168,7 +178,7 @@ class AuthClient {
     return {};
   }
 
-  // ✅ ADICIONAR: Função para verificar acesso a uma página
+  // ✅ Função para verificar acesso a uma página
   async hasAccess(page: string): Promise<boolean> {
     const { data: user } = await this.getUser();
     if (!user || !('plan' in user)) return false;
@@ -177,7 +187,7 @@ class AuthClient {
     return planPermissions[userPlan]?.pages.includes(page) || false;
   }
 
-  // ✅ ADICIONAR: Função para obter informações do plano
+  // ✅ Função para obter informações do plano
   async getPlanInfo(): Promise<{ displayName: string; pages: string[] } | null> {
     const { data: user } = await this.getUser();
     if (!user || !('plan' in user)) return null;
