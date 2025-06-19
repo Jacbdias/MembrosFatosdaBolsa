@@ -24,27 +24,55 @@ export interface UserPopoverProps {
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
   const { checkSession } = useUser();
   const router = useRouter();
+  
+  // ✅ ADICIONAR: Estado para dados do usuário
+  const [userData, setUserData] = React.useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  } | null>(null);
+
+  // ✅ ADICIONAR: Carregar dados do usuário
+  React.useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const { data: user } = await authClient.getUser();
+        if (user) {
+          setUserData(user);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    };
+
+    if (open) { // Só carregar quando o popover abrir
+      loadUserData();
+    }
+  }, [open]);
 
   const handleSignOut = React.useCallback(async (): Promise<void> => {
     try {
       const { error } = await authClient.signOut();
-
       if (error) {
         logger.error('Sign out error', error);
         return;
       }
-
       // Refresh the auth state
       await checkSession?.();
-
       // UserProvider, for this case, will not refresh the router and we need to do it manually
       router.refresh();
-
       // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);
     }
   }, [checkSession, router]);
+
+  // ✅ ADICIONAR: Calcular nome e email dinâmicos
+  const displayName = userData 
+    ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim()
+    : 'Carregando...';
+  
+  const displayEmail = userData?.email || 'carregando...';
 
   return (
     <Popover
@@ -55,9 +83,10 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">Sofia Rivers</Typography>
+        {/* ✅ MODIFICADO: Usar dados dinâmicos */}
+        <Typography variant="subtitle1">{displayName}</Typography>
         <Typography color="text.secondary" variant="body2">
-          sofia.rivers@devias.io
+          {displayEmail}
         </Typography>
       </Box>
       <Divider />
