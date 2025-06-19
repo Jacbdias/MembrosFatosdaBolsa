@@ -26,19 +26,20 @@ export default function LoginPage() {
           component="img"
           src="/assets/logo.svg"
           alt="Fatos da Bolsa"
-          sx={{ width: 120, height: 120, margin: '0 auto', mb: 2 }}
+          sx={{ width: 120, height: 120, margin: '0 auto', mb: 1 }} // reduz mb para subir a logo
         />
 
         <Stack spacing={2}>
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="Username"
+            placeholder="E-mail"
             InputProps={{
               sx: {
                 backgroundColor: '#111',
                 color: '#fff',
                 borderRadius: '30px',
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
               },
             }}
           />
@@ -46,12 +47,13 @@ export default function LoginPage() {
             fullWidth
             type="password"
             variant="outlined"
-            placeholder="Password"
+            placeholder="Senha"
             InputProps={{
               sx: {
                 backgroundColor: '#111',
                 color: '#fff',
                 borderRadius: '30px',
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
               },
             }}
           />
