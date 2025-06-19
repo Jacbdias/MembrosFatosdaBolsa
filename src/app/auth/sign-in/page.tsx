@@ -30,7 +30,7 @@ export default function LoginPage() {
           sx={{ width: 120, height: 120, margin: '0 auto', mb: 1 }}
         />
 
-        {/* Aqui você usa o SignInForm que já contém toda a lógica de login */}
+        {/* Renderiza o SignInForm com o botão e a lógica funcionando */}
         <SignInForm />
       </Box>
     </Box>
