@@ -61,11 +61,29 @@ export function SideNav(): React.JSX.Element {
   }, []);
 
   const hasAccessSync = (page: string): boolean => {
+    if (!page) {
+      console.log('⚠️ Página vazia fornecida');
+      return true;
+    }
+    
     if (!planInfo) {
+      console.log('⚠️ planInfo não carregado ainda');
       return true; // Se não carregou ainda, mostra tudo
     }
+    
     const hasAccess = planInfo.pages.includes(page);
     console.log(`🔑 Verificando "${page}": ${hasAccess}`);
+    
+    // Debug específico para internacional-dividendos
+    if (page === 'internacional-dividendos') {
+      console.log('🚨 DEBUG internacional-dividendos:', {
+        page,
+        hasAccess,
+        planPages: planInfo.pages,
+        includes: planInfo.pages.includes('internacional-dividendos')
+      });
+    }
+    
     return hasAccess;
   };
 
@@ -76,30 +94,39 @@ export function SideNav(): React.JSX.Element {
     }));
   };
 
-  // ✅ LÓGICA SIMPLIFICADA E FUNCIONAL
+  // ✅ LÓGICA SIMPLIFICADA E MAIS ROBUSTA
   const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
     return items.filter(item => {
-      console.log(`📋 Processando item: ${item.title}`);
+      console.log(`📋 Processando item: ${item.title} (key: ${item.key})`);
       
       // Se tem subitens
       if (item.items && item.items.length > 0) {
         console.log(`📁 ${item.title} tem ${item.items.length} subitens`);
         
-        // Filtrar subitens
+        // Filtrar subitens - criar nova lista para não modificar o original
         const filteredSubItems = item.items.filter(subItem => {
-          if (!subItem.page) return true;
-          return hasAccessSync(subItem.page);
+          if (!subItem.page) {
+            console.log(`📄 ${subItem.title} sem página - sempre visível`);
+            return true;
+          }
+          const subItemAccess = hasAccessSync(subItem.page);
+          console.log(`📄 ${subItem.title} (${subItem.page}): ${subItemAccess}`);
+          return subItemAccess;
         });
         
-        console.log(`📁 ${item.title} subitens filtrados: ${filteredSubItems.length}`);
+        console.log(`📁 ${item.title} subitens após filtro: ${filteredSubItems.length}`);
         
         // Verificar se deve mostrar o item principal
-        const showMainItem = !item.page || hasAccessSync(item.page) || filteredSubItems.length > 0;
+        const hasMainAccess = !item.page || hasAccessSync(item.page);
+        const hasSubItems = filteredSubItems.length > 0;
+        const shouldShow = hasMainAccess || hasSubItems;
         
-        if (showMainItem) {
-          // Atualizar os subitens filtrados
+        console.log(`🔍 ${item.title} - MainAccess: ${hasMainAccess}, SubItems: ${hasSubItems}, Show: ${shouldShow}`);
+        
+        if (shouldShow) {
+          // IMPORTANTE: Modificar uma cópia, não o original
           item.items = filteredSubItems;
-          console.log(`✅ ${item.title} INCLUÍDO`);
+          console.log(`✅ ${item.title} INCLUÍDO com ${filteredSubItems.length} subitens`);
           return true;
         } else {
           console.log(`❌ ${item.title} REMOVIDO`);
@@ -113,9 +140,9 @@ export function SideNav(): React.JSX.Element {
         return true;
       }
       
-      const hasAccess = hasAccessSync(item.page);
-      console.log(`🔍 ${item.title} acesso: ${hasAccess}`);
-      return hasAccess;
+      const itemAccess = hasAccessSync(item.page);
+      console.log(`🔍 ${item.title} (${item.page}): ${itemAccess}`);
+      return itemAccess;
     });
   };
 
