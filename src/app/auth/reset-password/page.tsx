@@ -10,7 +10,7 @@ export default function Page(): React.JSX.Element {
     <GuestGuard>
       <Box
         sx={{
-          backgroundColor: '#00FF00',
+          backgroundColor: '#000',
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
