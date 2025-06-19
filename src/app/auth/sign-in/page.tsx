@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Box, Button, TextField, Typography, Stack } from '@mui/material';
+import { Box } from '@mui/material';
+import { SignInForm } from '@/components/auth/sign-in-form';
 
 export default function LoginPage() {
   return (
@@ -26,70 +27,11 @@ export default function LoginPage() {
           component="img"
           src="/assets/logo.svg"
           alt="Fatos da Bolsa"
-          sx={{ width: 120, height: 120, margin: '0 auto', mb: 1 }} // reduz mb para subir a logo
+          sx={{ width: 120, height: 120, margin: '0 auto', mb: 1 }}
         />
 
-        <Stack spacing={2}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="E-mail"
-            InputProps={{
-              sx: {
-                backgroundColor: '#111',
-                color: '#fff',
-                borderRadius: '30px',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
-              },
-            }}
-          />
-          <TextField
-            fullWidth
-            type="password"
-            variant="outlined"
-            placeholder="Senha"
-            InputProps={{
-              sx: {
-                backgroundColor: '#111',
-                color: '#fff',
-                borderRadius: '30px',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
-              },
-            }}
-          />
-          <Button
-            fullWidth
-            sx={{
-              backgroundColor: '#00FF00',
-              color: '#000',
-              fontWeight: 'bold',
-              borderRadius: '30px',
-              paddingY: 1.5,
-              '&:hover': {
-                backgroundColor: '#00e600',
-              },
-            }}
-          >
-            Entrar
-          </Button>
-        </Stack>
-
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mt: 2,
-            color: '#fff',
-            fontSize: 14,
-          }}
-        >
-          <Typography variant="body2" component="a" href="#" sx={{ cursor: 'pointer' }}>
-            Create Account
-          </Typography>
-          <Typography variant="body2" component="a" href="#" sx={{ cursor: 'pointer' }}>
-            Need Help?
-          </Typography>
-        </Box>
+        {/* Aqui você usa o SignInForm que já contém toda a lógica de login */}
+        <SignInForm />
       </Box>
     </Box>
   );
