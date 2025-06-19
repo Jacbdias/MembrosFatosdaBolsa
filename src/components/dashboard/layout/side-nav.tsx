@@ -67,20 +67,22 @@ export function SideNav(): React.JSX.Element {
   // ✅ Filtrar itens baseado no acesso
   const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
     return items.filter(item => {
-      // Se o item tem uma página associada, verificar acesso
-      if (item.page && !hasAccessSync(item.page)) {
+      // Se tem subitens, filtrar os subitens primeiro
+      if (item.items) {
+        const filteredSubItems = getFilteredNavItems(item.items);
+        
+        // Se tem acesso ao item principal OU tem pelo menos um subitem
+        if (hasAccessSync(item.page || '') || filteredSubItems.length > 0) {
+          // Atualizar com os subitens filtrados
+          item.items = filteredSubItems;
+          return true;
+        }
         return false;
       }
 
-      // Se tem subitens, filtrar os subitens também
-      if (item.items) {
-        const filteredSubItems = getFilteredNavItems(item.items);
-        // Se não há subitens após filtrar, remover o item pai também
-        if (filteredSubItems.length === 0) {
-          return false;
-        }
-        // Atualizar com os subitens filtrados
-        item.items = filteredSubItems;
+      // Para itens sem subitens, verificar acesso normalmente
+      if (item.page && !hasAccessSync(item.page)) {
+        return false;
       }
 
       return true;
