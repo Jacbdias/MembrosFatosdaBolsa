@@ -1,4 +1,5 @@
-'use client';
+// ✅ LÓGICA SUPER SIMPLES - APENAS FILTRAR PELA PÁGINA
+  const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[]'use client';
 
 import * as React from 'react';
 import RouterLink from 'next/link';
