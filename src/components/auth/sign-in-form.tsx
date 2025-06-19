@@ -45,19 +45,34 @@ export function SignInForm(): React.JSX.Element {
     formState: { errors },
   } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
 
+  // ✅ FUNÇÃO CORRIGIDA
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       setIsPending(true);
-      const { error } = await authClient.signInWithPassword(values);
+      console.log('🚀 Tentando login com:', values);
 
-      if (error) {
-        setError('root', { type: 'server', message: error });
+      try {
+        const { error } = await authClient.signInWithPassword(values);
+        console.log('📝 Resultado do signInWithPassword:', { error });
+
+        if (error) {
+          console.log('❌ Erro no login:', error);
+          setError('root', { type: 'server', message: error });
+          setIsPending(false);
+          return;
+        }
+
+        console.log('✅ Login bem-sucedido, verificando sessão...');
+        await checkSession?.();
+        
+        console.log('🚀 Redirecionando para dashboard...');
+        router.push('/dashboard');
+        
+      } catch (err) {
+        console.error('💥 Erro inesperado no login:', err);
+        setError('root', { type: 'server', message: 'Erro inesperado. Tente novamente.' });
         setIsPending(false);
-        return;
       }
-
-      await checkSession?.();
-      router.refresh();
     },
     [checkSession, router, setError]
   );
