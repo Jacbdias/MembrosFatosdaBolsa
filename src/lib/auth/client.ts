@@ -198,3 +198,8 @@ class AuthClient {
 }
 
 export const authClient = new AuthClient();
+
+// ✅ ADICIONAR: Exportar globalmente para debug
+if (typeof window !== 'undefined') {
+  (window as any).authClient = authClient;
+}
