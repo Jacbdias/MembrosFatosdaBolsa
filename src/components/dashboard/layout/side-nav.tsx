@@ -15,7 +15,7 @@ import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
 import { CaretDown } from '@phosphor-icons/react/dist/ssr/CaretDown';
-import { authClient } from '@/lib/auth/client'; // ✅ IMPORT DIRETO
+import { authClient } from '@/lib/auth/client';
 
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
@@ -24,44 +24,45 @@ export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = React.useState<Record<string, boolean>>({});
   
-  // ✅ Estado para o plano do usuário
   const [planInfo, setPlanInfo] = React.useState<{ displayName: string; pages: string[] } | null>(null);
   const [loading, setLoading] = React.useState(true);
 
-  // ✅ Carregar informações do plano
   React.useEffect(() => {
     const loadPlanInfo = async () => {
       try {
+        console.log('🔄 Carregando planInfo...');
         const info = await authClient.getPlanInfo();
-        setPlanInfo(info || {
-          displayName: 'Close Friends VIP',
-          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
-        });
+        console.log('📋 PlanInfo recebido:', info);
+        
+        if (info) {
+          setPlanInfo(info);
+          console.log('✅ PlanInfo definido:', info);
+        } else {
+          console.log('⚠️ PlanInfo é null, usando fallback VIP');
+          setPlanInfo({
+            displayName: 'Close Friends VIP',
+            pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+          });
+        }
       } catch (error) {
-        console.error('Error loading plan info:', error);
+        console.error('❌ Error loading plan info:', error);
+        console.log('🔄 Usando fallback VIP devido ao erro');
         setPlanInfo({
           displayName: 'Close Friends VIP',
           pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
         });
       } finally {
         setLoading(false);
+        console.log('✅ Loading finalizado');
       }
     };
 
     loadPlanInfo();
   }, []);
 
-  // ✅ Função para verificar acesso
   const hasAccessSync = (page: string): boolean => {
-    if (!planInfo) {
-      console.log(`⚠️ planInfo não carregado ainda`);
-      return true; // Se não carregou ainda, mostra tudo
-    }
-    console.log(`🔍 Verificando acesso para: ${page}`);
-    console.log(`📋 Páginas disponíveis:`, planInfo.pages);
-    const hasAccess = planInfo.pages.includes(page);
-    console.log(`🔑 Acesso para ${page}: ${hasAccess}`);
-    return hasAccess;
+    if (!planInfo) return true;
+    return planInfo.pages.includes(page);
   };
 
   const toggleExpanded = (key: string) => {
@@ -71,38 +72,41 @@ export function SideNav(): React.JSX.Element {
     }));
   };
 
-  // ✅ Filtrar itens baseado no acesso
+  // ✅ NOVA LÓGICA MAIS ROBUSTA
   const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
     return items.filter(item => {
-      console.log(`🔍 Verificando item: ${item.title}, page: ${item.page}`);
-      
-      // Se tem subitens, filtrar os subitens primeiro
+      // Para Internacional e Recursos Exclusivos, lógica especial
+      if (item.key === 'internacional' || item.key === 'recursos-exclusivos') {
+        if (item.items) {
+          // Filtrar subitens
+          const filteredSubItems = getFilteredNavItems(item.items);
+          
+          // Se tem pelo menos um subitem OU acesso ao item principal, mostrar
+          if (filteredSubItems.length > 0 || hasAccessSync(item.page || '')) {
+            item.items = filteredSubItems;
+            return true;
+          }
+          return false;
+        }
+        // Se não tem subitens, verificar acesso normal
+        return hasAccessSync(item.page || '');
+      }
+
+      // Para outros itens com subitens
       if (item.items) {
-        console.log(`📁 ${item.title} tem ${item.items.length} subitens`);
         const filteredSubItems = getFilteredNavItems(item.items);
-        console.log(`📁 ${item.title} após filtro: ${filteredSubItems.length} subitens`);
-        
-        // Se tem acesso ao item principal OU tem pelo menos um subitem
-        const hasMainAccess = hasAccessSync(item.page || '');
-        console.log(`🔑 ${item.title} acesso principal: ${hasMainAccess}`);
-        
-        if (hasMainAccess || filteredSubItems.length > 0) {
-          // Atualizar com os subitens filtrados
+        if (hasAccessSync(item.page || '') || filteredSubItems.length > 0) {
           item.items = filteredSubItems;
-          console.log(`✅ ${item.title} INCLUÍDO`);
           return true;
         }
-        console.log(`❌ ${item.title} REMOVIDO`);
         return false;
       }
 
-      // Para itens sem subitens, verificar acesso normalmente
+      // Para itens simples sem subitens
       if (item.page && !hasAccessSync(item.page)) {
-        console.log(`❌ ${item.title} sem acesso`);
         return false;
       }
 
-      console.log(`✅ ${item.title} incluído`);
       return true;
     });
   };
@@ -252,12 +256,10 @@ function NavItem({
   const hasChildren = items && items.length > 0;
   const isExpanded = expandedItems[itemKey] || false;
 
-  // Se tem href E items, renderiza de forma especial
   if (href && hasChildren) {
     return (
       <li>
         <Box sx={{ position: 'relative' }}>
-          {/* Link principal clicável */}
           <Box
             component={external ? 'a' : RouterLink}
             href={href}
@@ -272,7 +274,7 @@ function NavItem({
               flex: '0 0 auto',
               gap: 1,
               p: '6px 16px',
-              pr: '40px', // Espaço para o botão de expansão
+              pr: '40px',
               position: 'relative',
               textDecoration: 'none',
               whiteSpace: 'nowrap',
@@ -321,7 +323,6 @@ function NavItem({
             </Box>
           </Box>
 
-          {/* Botão de expansão */}
           <IconButton
             onClick={(e) => {
               e.preventDefault();
@@ -351,7 +352,6 @@ function NavItem({
           </IconButton>
         </Box>
 
-        {/* Subitems colapsáveis */}
         <Collapse in={isExpanded}>
           <Box sx={{ pl: 2, mt: 1 }}>
             {renderNavItems({ 
@@ -366,7 +366,6 @@ function NavItem({
     );
   }
 
-  // Renderização normal para itens simples
   return (
     <li>
       <Box
