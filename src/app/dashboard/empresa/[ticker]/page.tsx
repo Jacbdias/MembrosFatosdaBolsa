@@ -877,8 +877,6 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
   }
 };
 
-export default dadosFallback;
-
 // ========================================
 // FUNÇÕES UTILITÁRIAS
 // ========================================
