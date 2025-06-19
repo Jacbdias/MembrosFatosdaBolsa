@@ -23,21 +23,19 @@ import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
 const schema = zod.object({
-  email: zod.string().min(1, { message: 'Email is required' }).email(),
-  password: zod.string().min(1, { message: 'Password is required' }),
+  email: zod.string().min(1, { message: 'Email é obrigatório' }).email(),
+  password: zod.string().min(1, { message: 'Senha é obrigatória' }),
 });
 
 type Values = zod.infer<typeof schema>;
 
-const defaultValues = { email: 'sofia@devias.io', password: 'Secret1' } satisfies Values;
+const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
   const router = useRouter();
-
   const { checkSession } = useUser();
 
-  const [showPassword, setShowPassword] = React.useState<boolean>();
-
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
 
   const {
@@ -50,7 +48,6 @@ export function SignInForm(): React.JSX.Element {
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       setIsPending(true);
-
       const { error } = await authClient.signInWithPassword(values);
 
       if (error) {
@@ -59,11 +56,7 @@ export function SignInForm(): React.JSX.Element {
         return;
       }
 
-      // Refresh the auth state
       await checkSession?.();
-
-      // UserProvider, for this case, will not refresh the router
-      // After refresh, GuestGuard will handle the redirect
       router.refresh();
     },
     [checkSession, router, setError]
@@ -71,15 +64,6 @@ export function SignInForm(): React.JSX.Element {
 
   return (
     <Stack spacing={4}>
-      <Stack spacing={1}>
-        <Typography variant="h4">Sign in</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Don&apos;t have an account?{' '}
-          <Link component={RouterLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
-            Sign up
-          </Link>
-        </Typography>
-      </Stack>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
           <Controller
@@ -87,18 +71,29 @@ export function SignInForm(): React.JSX.Element {
             name="email"
             render={({ field }) => (
               <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Email address</InputLabel>
-                <OutlinedInput {...field} label="Email address" type="email" />
+                <InputLabel sx={{ color: '#ccc' }}>E-mail</InputLabel>
+                <OutlinedInput
+                  {...field}
+                  label="E-mail"
+                  type="email"
+                  sx={{
+                    backgroundColor: '#111',
+                    color: '#fff',
+                    borderRadius: '30px',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
+                  }}
+                />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
             )}
           />
+
           <Controller
             control={control}
             name="password"
             render={({ field }) => (
               <FormControl error={Boolean(errors.password)}>
-                <InputLabel>Password</InputLabel>
+                <InputLabel sx={{ color: '#ccc' }}>Senha</InputLabel>
                 <OutlinedInput
                   {...field}
                   endAdornment={
@@ -106,48 +101,56 @@ export function SignInForm(): React.JSX.Element {
                       <EyeIcon
                         cursor="pointer"
                         fontSize="var(--icon-fontSize-md)"
-                        onClick={(): void => {
-                          setShowPassword(false);
-                        }}
+                        onClick={(): void => setShowPassword(false)}
                       />
                     ) : (
                       <EyeSlashIcon
                         cursor="pointer"
                         fontSize="var(--icon-fontSize-md)"
-                        onClick={(): void => {
-                          setShowPassword(true);
-                        }}
+                        onClick={(): void => setShowPassword(true)}
                       />
                     )
                   }
-                  label="Password"
+                  label="Senha"
                   type={showPassword ? 'text' : 'password'}
+                  sx={{
+                    backgroundColor: '#111',
+                    color: '#fff',
+                    borderRadius: '30px',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
+                  }}
                 />
                 {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
               </FormControl>
             )}
           />
+
           <div>
-            <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2">
-              Forgot password?
+            <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2" sx={{ color: '#00FF00' }}>
+              Esqueceu a senha?
             </Link>
           </div>
+
           {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
-          <Button disabled={isPending} type="submit" variant="contained">
-            Sign in
+
+          <Button
+            disabled={isPending}
+            type="submit"
+            sx={{
+              backgroundColor: '#00FF00',
+              color: '#000',
+              fontWeight: 'bold',
+              borderRadius: '30px',
+              paddingY: 1.5,
+              '&:hover': {
+                backgroundColor: '#00e600',
+              },
+            }}
+          >
+            Entrar
           </Button>
         </Stack>
       </form>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          sofia@devias.io
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          Secret1
-        </Typography>
-      </Alert>
     </Stack>
   );
 }
