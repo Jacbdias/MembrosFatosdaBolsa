@@ -8,63 +8,63 @@ export const navItems = [
     title: 'Small Caps', 
     href: paths.dashboard.overview,
     icon: 'chart-pie',
-    page: 'small-caps' // ✅ ADICIONE
+    page: 'small-caps'
   },
   { 
     key: 'customers', 
     title: 'Micro Caps', 
     href: paths.dashboard.customers, 
     icon: 'chart-bar',
-    page: 'micro-caps' // ✅ ADICIONE
+    page: 'micro-caps'
   },
   { 
     key: 'integrations', 
     title: 'Dividendos', 
     href: paths.dashboard.integrations, 
     icon: 'chart-line-up',
-    page: 'dividendos' // ✅ ADICIONE
+    page: 'dividendos'
   },
   { 
     key: 'settings', 
     title: 'Fundos Imobiliários', 
     href: paths.dashboard.settings, 
     icon: 'buildings',
-    page: 'fundos-imobiliarios' // ✅ ADICIONE
+    page: 'fundos-imobiliarios'
   },
   { 
     key: 'rentabilidades', 
     title: 'Rentabilidades', 
     href: paths.dashboard.rentabilidades, 
     icon: 'chart-line',
-    page: 'rentabilidades' // ✅ ADICIONE
+    page: 'rentabilidades'
   },
   {
     key: 'internacional',
     title: 'Internacional',
     href: paths.dashboard.internacional,
     icon: 'globe',
-    page: 'internacional', // ✅ ADICIONE
+    page: 'internacional',
     items: [
       {
         key: 'internacional-etfs',
         title: 'ETFs',
         href: paths.dashboard.internacional + '/etfs',
         icon: 'chart-bar',
-        page: 'internacional' // ✅ ADICIONE
+        page: 'internacional-etfs' // ✅ NOVO: página específica
       },
       {
         key: 'internacional-stocks',
         title: 'Stocks',
         href: paths.dashboard.internacional + '/stocks',
         icon: 'chart-line-up',
-        page: 'internacional' // ✅ ADICIONE
+        page: 'internacional-stocks' // ✅ NOVO: página específica
       },
       {
         key: 'internacional-dividendos',
         title: 'Dividendos',
         href: paths.dashboard.internacional + '/dividendos',
         icon: 'chart-pie',
-        page: 'internacional' // ✅ ADICIONE
+        page: 'internacional-dividendos' // ✅ NOVO: página específica
       },
     ],
   },
@@ -73,63 +73,63 @@ export const navItems = [
     title: 'Recursos Exclusivos',
     href: paths.dashboard.recursosExclusivos,
     icon: 'package',
-    page: 'recursos-exclusivos', // ✅ ADICIONE
+    page: 'recursos-exclusivos',
     items: [
       {
         key: 'recursos-dicas',
         title: 'Dicas de Investimentos',
         href: paths.dashboard.recursosExclusivos + '/dicas-de-investimentos',
         icon: 'lightbulb',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-dicas' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-analise',
         title: 'Análise de Carteira',
         href: paths.dashboard.recursosExclusivos + '/analise-de-carteira',
         icon: 'chart-line',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-analise' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-ebooks',
         title: 'eBooks',
         href: paths.dashboard.recursosExclusivos + '/ebooks',
         icon: 'book',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-ebooks' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-imposto',
         title: 'Imposto de Renda',
         href: paths.dashboard.recursosExclusivos + '/imposto-de-renda',
         icon: 'receipt',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-imposto' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-lives',
         title: 'Lives e Aulas',
         href: paths.dashboard.recursosExclusivos + '/lives-e-aulas',
         icon: 'video',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-lives' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-milhas',
         title: 'Milhas Aéreas',
         href: paths.dashboard.recursosExclusivos + '/milhas-aereas',
         icon: 'airplane',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-milhas' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-planilhas',
         title: 'Planilhas',
         href: paths.dashboard.recursosExclusivos + '/planilhas',
         icon: 'table',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-planilhas' // ✅ NOVO: página específica
       },
       {
         key: 'recursos-telegram',
         title: 'Telegram',
         href: paths.dashboard.recursosExclusivos + '/telegram',
         icon: 'chat',
-        page: 'recursos-exclusivos' // ✅ ADICIONE
+        page: 'recursos-telegram' // ✅ NOVO: página específica
       },
     ],
   },
@@ -138,6 +138,6 @@ export const navItems = [
     title: 'Error', 
     href: paths.errors.notFound, 
     icon: 'x-square'
-    // ✅ NÃO ADICIONE 'page' aqui - Error deve aparecer para todos
+    // Sem 'page' - Error aparece para todos
   },
 ] satisfies NavItemConfig[];
