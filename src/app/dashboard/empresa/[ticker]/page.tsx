@@ -118,6 +118,750 @@ interface Relatorio {
 // DADOS DE FALLBACK
 // ========================================
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
+  // ========================================
+  // AGRICULTURA (2 ativos)
+  // ========================================
+  'KEPL3': {
+    ticker: 'KEPL3',
+    nomeCompleto: 'Kepler Weber S.A.',
+    setor: 'Agricultura',
+    descricao: 'A Kepler Weber é uma empresa brasileira especializada em soluções para armazenagem e movimentação de grãos, líquidos e gases.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KEPL.png',
+    dataEntrada: '21/03/2021',
+    precoIniciou: 'R$ 7,30',
+    precoTeto: 'R$ 12,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '115.000',
+    percentualCarteira: '2.1%'
+  },
+  
+  'AGRO3': {
+    ticker: 'AGRO3',
+    nomeCompleto: 'BrasilAgro S.A.',
+    setor: 'Agricultura',
+    descricao: 'A BrasilAgro é uma empresa do agronegócio com foco na produção de commodities agrícolas como soja, milho, algodão e açúcar.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/AGRO.png',
+    dataEntrada: '15/08/2021',
+    precoIniciou: 'R$ 24,80',
+    precoTeto: 'R$ 35,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '125.000',
+    percentualCarteira: '3.2%'
+  },
+
+  // ========================================
+  // AUTOMOTIVO (1 ativo)
+  // ========================================
+  'LEVE3': {
+    ticker: 'LEVE3',
+    nomeCompleto: 'Metal Leve S.A.',
+    setor: 'Automotivo',
+    descricao: 'A Metal Leve é uma empresa brasileira líder na fabricação de autopeças, principalmente para motores e sistemas de transmissão.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/LEVE.png',
+    dataEntrada: '10/09/2021',
+    precoIniciou: 'R$ 18,75',
+    precoTeto: 'R$ 28,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '118.500',
+    percentualCarteira: '2.8%'
+  },
+
+  // ========================================
+  // BANCOS (4 ativos)
+  // ========================================
+  'BBAS3': {
+    ticker: 'BBAS3',
+    nomeCompleto: 'Banco do Brasil S.A.',
+    setor: 'Bancos',
+    descricao: 'O Banco do Brasil é um dos maiores bancos do país, oferecendo serviços bancários completos para pessoas físicas, jurídicas e governo.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBAS.png',
+    dataEntrada: '12/04/2020',
+    precoIniciou: 'R$ 28,50',
+    precoTeto: 'R$ 45,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '85.000',
+    percentualCarteira: '5.5%'
+  },
+
+  'BRSR6': {
+    ticker: 'BRSR6',
+    nomeCompleto: 'Banrisul S.A.',
+    setor: 'Bancos',
+    descricao: 'O Banrisul é um banco brasileiro com forte presença no Rio Grande do Sul, oferecendo serviços bancários tradicionais e digitais.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BRSR.png',
+    dataEntrada: '08/06/2020',
+    precoIniciou: 'R$ 4,85',
+    precoTeto: 'R$ 8,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '95.000',
+    percentualCarteira: '2.3%'
+  },
+
+  'ABCB4': {
+    ticker: 'ABCB4',
+    nomeCompleto: 'Banco ABC Brasil S.A.',
+    setor: 'Bancos',
+    descricao: 'O Banco ABC Brasil é uma instituição financeira focada em corporate banking e financiamento de projetos de infraestrutura.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ABCB.png',
+    dataEntrada: '25/11/2020',
+    precoIniciou: 'R$ 11,20',
+    precoTeto: 'R$ 18,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '110.000',
+    percentualCarteira: '1.8%'
+  },
+
+  'SANB11': {
+    ticker: 'SANB11',
+    nomeCompleto: 'Banco Santander Brasil S.A.',
+    setor: 'Bancos',
+    descricao: 'O Santander Brasil é um dos principais bancos do país, oferecendo serviços bancários completos com foco em inovação digital.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SANB.png',
+    dataEntrada: '14/07/2020',
+    precoIniciou: 'R$ 25,80',
+    precoTeto: 'R$ 42,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '102.000',
+    percentualCarteira: '4.7%'
+  },
+
+  // ========================================
+  // BENS INDUSTRIAIS (2 ativos)
+  // ========================================
+  'TASA4': {
+    ticker: 'TASA4',
+    nomeCompleto: 'Taurus Armas S.A.',
+    setor: 'Bens Industriais',
+    descricao: 'A Taurus é uma empresa brasileira fabricante de armas de fogo, munições e equipamentos de segurança.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TASA.png',
+    dataEntrada: '19/02/2021',
+    precoIniciou: 'R$ 12,45',
+    precoTeto: 'R$ 22,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '120.000',
+    percentualCarteira: '2.4%'
+  },
+
+  'ROMI3': {
+    ticker: 'ROMI3',
+    nomeCompleto: 'Indústrias Romi S.A.',
+    setor: 'Bens Industriais',
+    descricao: 'A Romi é uma empresa brasileira fabricante de máquinas-ferramenta, equipamentos de fundição e sistemas de automação industrial.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ROMI.png',
+    dataEntrada: '03/05/2021',
+    precoIniciou: 'R$ 14,90',
+    precoTeto: 'R$ 25,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '125.500',
+    percentualCarteira: '2.6%'
+  },
+
+  // ========================================
+  // CONSTRUÇÃO CIVIL (3 ativos)
+  // ========================================
+  'EZTC3': {
+    ticker: 'EZTC3',
+    nomeCompleto: 'EZ Tec Empreendimentos e Participações S.A.',
+    setor: 'Construção Civil',
+    descricao: 'A EZ Tec é uma incorporadora imobiliária brasileira focada no desenvolvimento de empreendimentos residenciais de alto padrão.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/EZTC.png',
+    dataEntrada: '28/01/2022',
+    precoIniciou: 'R$ 32,80',
+    precoTeto: 'R$ 45,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '112.000',
+    percentualCarteira: '3.8%'
+  },
+
+  'EVEN3': {
+    ticker: 'EVEN3',
+    nomeCompleto: 'Even Construtora e Incorporadora S.A.',
+    setor: 'Construção Civil',
+    descricao: 'A Even é uma das principais incorporadoras do Brasil, focada em empreendimentos residenciais de médio e alto padrão.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/EVEN.png',
+    dataEntrada: '16/06/2021',
+    precoIniciou: 'R$ 8,95',
+    precoTeto: 'R$ 15,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '130.000',
+    percentualCarteira: '2.9%'
+  },
+
+  'TRIS3': {
+    ticker: 'TRIS3',
+    nomeCompleto: 'Trisul S.A.',
+    setor: 'Construção Civil',
+    descricao: 'A Trisul é uma incorporadora imobiliária brasileira com foco em empreendimentos residenciais e comerciais em São Paulo.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TRIS.png',
+    dataEntrada: '22/09/2021',
+    precoIniciou: 'R$ 5,12',
+    precoTeto: 'R$ 9,80',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '115.500',
+    percentualCarteira: '1.7%'
+  },
+
+  // ========================================
+  // COMMODITIES (1 ativo)
+  // ========================================
+  'FESA4': {
+    ticker: 'FESA4',
+    nomeCompleto: 'Ferbasa S.A.',
+    setor: 'Commodities',
+    descricao: 'A Ferbasa é uma empresa brasileira líder na produção de ferroligas, especialmente ferro-silício e ferro-silício-manganês.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/FESA.png',
+    dataEntrada: '11/12/2020',
+    precoIniciou: 'R$ 4,49',
+    precoTeto: 'R$ 14,07',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '119.000',
+    percentualCarteira: '2.1%'
+  },
+
+  // ========================================
+  // CONSUMO CÍCLICO (1 ativo)
+  // ========================================
+  'CEAB3': {
+    ticker: 'CEAB3',
+    nomeCompleto: 'C&A Modas S.A.',
+    setor: 'Consumo Cíclico',
+    descricao: 'A C&A é uma das maiores redes de varejo de moda do Brasil, oferecendo roupas e acessórios para toda a família.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CEAB.png',
+    dataEntrada: '07/04/2021',
+    precoIniciou: 'R$ 18,20',
+    precoTeto: 'R$ 28,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '122.000',
+    percentualCarteira: '2.7%'
+  },
+
+  // ========================================
+  // EDUCAÇÃO (2 ativos)
+  // ========================================
+  'CSED3': {
+    ticker: 'CSED3',
+    nomeCompleto: 'Cruzeiro do Sul Educacional S.A.',
+    setor: 'Educação',
+    descricao: 'A Cruzeiro do Sul Educacional é uma das maiores organizações educacionais do Brasil, oferecendo ensino superior e técnico.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CSED.png',
+    dataEntrada: '10/12/2023',
+    precoIniciou: 'R$ 4,49',
+    precoTeto: 'R$ 8,35',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '135.000',
+    percentualCarteira: '1.9%'
+  },
+
+  'YDUQ3': {
+    ticker: 'YDUQ3',
+    nomeCompleto: 'Yduqs Participações S.A.',
+    setor: 'Educação',
+    descricao: 'A Yduqs é uma das maiores organizações educacionais privadas do Brasil, com foco em ensino superior presencial e a distância.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/YDUQ.png',
+    dataEntrada: '30/05/2022',
+    precoIniciou: 'R$ 15,80',
+    precoTeto: 'R$ 25,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '118.000',
+    percentualCarteira: '3.1%'
+  },
+
+  // ========================================
+  // ENERGIA (6 ativos)
+  // ========================================
+  'ALUP11': {
+    ticker: 'ALUP11',
+    nomeCompleto: 'Alupar Investimento S.A.',
+    setor: 'Energia',
+    descricao: 'A Alupar é uma empresa brasileira de energia elétrica com foco em transmissão e geração de energia renovável.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALUP.png',
+    dataEntrada: '18/03/2022',
+    precoIniciou: 'R$ 20,25',
+    precoTeto: 'R$ 32,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '115.500',
+    percentualCarteira: '3.6%'
+  },
+
+  'NEOE3': {
+    ticker: 'NEOE3',
+    nomeCompleto: 'Neoenergia S.A.',
+    setor: 'Energia',
+    descricao: 'A Neoenergia é uma das maiores empresas do setor elétrico brasileiro, atuando em distribuição, transmissão e geração de energia.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/NEOE.png',
+    dataEntrada: '25/04/2022',
+    precoIniciou: 'R$ 12,80',
+    precoTeto: 'R$ 18,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '112.000',
+    percentualCarteira: '2.9%'
+  },
+
+  'EGIE3': {
+    ticker: 'EGIE3',
+    nomeCompleto: 'Engie Brasil Energia S.A.',
+    setor: 'Energia',
+    descricao: 'A Engie Brasil é uma empresa de energia elétrica focada em geração renovável, especialmente hidrelétrica e eólica.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/EGIE.png',
+    dataEntrada: '12/11/2021',
+    precoIniciou: 'R$ 38,90',
+    precoTeto: 'R$ 55,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '108.000',
+    percentualCarteira: '4.2%'
+  },
+
+  'ELET3': {
+    ticker: 'ELET3',
+    nomeCompleto: 'Centrais Elétricas Brasileiras S.A. - Eletrobras',
+    setor: 'Energia',
+    descricao: 'A Eletrobras é a maior empresa de energia elétrica da América Latina, atuando em geração, transmissão e distribuição.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ELET.png',
+    dataEntrada: '08/07/2022',
+    precoIniciou: 'R$ 35,20',
+    precoTeto: 'R$ 52,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '98.000',
+    percentualCarteira: '4.8%'
+  },
+
+  'ISAE4': {
+    ticker: 'ISAE4',
+    nomeCompleto: 'ISA CTEEP S.A.',
+    setor: 'Energia',
+    descricao: 'A ISA CTEEP é uma empresa de transmissão de energia elétrica com uma das maiores redes de transmissão do Brasil.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ISAE.png',
+    dataEntrada: '14/01/2023',
+    precoIniciou: 'R$ 8,45',
+    precoTeto: 'R$ 12,80',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '110.500',
+    percentualCarteira: '2.2%'
+  },
+
+  'CPLE6': {
+    ticker: 'CPLE6',
+    nomeCompleto: 'Copel S.A.',
+    setor: 'Energia',
+    descricao: 'A Copel é uma empresa paranaense de energia elétrica que atua em geração, transmissão, distribuição e comercialização.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CPLE.png',
+    dataEntrada: '20/03/2023',
+    precoIniciou: 'R$ 6,48',
+    precoTeto: 'R$ 9,85',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '105.000',
+    percentualCarteira: '1.8%'
+  },
+
+  // ========================================
+  // FINANCEIRO (2 ativos)
+  // ========================================
+  'BBSE3': {
+    ticker: 'BBSE3',
+    nomeCompleto: 'BB Seguridade Participações S.A.',
+    setor: 'Financeiro',
+    descricao: 'A BB Seguridade é uma holding que atua nos segmentos de seguros, previdência complementar e capitalização.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/BBSE.png',
+    dataEntrada: '05/02/2023',
+    precoIniciou: 'R$ 28,50',
+    precoTeto: 'R$ 42,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '113.000',
+    percentualCarteira: '3.9%'
+  },
+
+  'B3SA3': {
+    ticker: 'B3SA3',
+    nomeCompleto: 'B3 S.A. - Brasil, Bolsa, Balcão',
+    setor: 'Financeiro',
+    descricao: 'A B3 é a principal bolsa de valores do Brasil, operando mercados de ações, derivativos, commodities e balcão organizado.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/B3SA.png',
+    dataEntrada: '16/08/2022',
+    precoIniciou: 'R$ 11,25',
+    precoTeto: 'R$ 18,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '107.500',
+    percentualCarteira: '3.4%'
+  },
+
+  // ========================================
+  // INDUSTRIAL (3 ativos)
+  // ========================================
+  'TUPY3': {
+    ticker: 'TUPY3',
+    nomeCompleto: 'Tupy S.A.',
+    setor: 'Industrial',
+    descricao: 'A Tupy é uma empresa brasileira líder na produção de blocos e cabeçotes de motores automotivos em ferro fundido.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/TUPY.png',
+    dataEntrada: '04/11/2020',
+    precoIniciou: 'R$ 20,36',
+    precoTeto: 'R$ 31,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '103.000',
+    percentualCarteira: '3.7%'
+  },
+
+  'RAPT4': {
+    ticker: 'RAPT4',
+    nomeCompleto: 'Randon S.A. Implementos e Participações',
+    setor: 'Industrial',
+    descricao: 'A Randon é uma empresa brasileira fabricante de implementos rodoviários, autopeças e equipamentos para o agronegócio.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RAPT.png',
+    dataEntrada: '16/09/2021',
+    precoIniciou: 'R$ 10,69',
+    precoTeto: 'R$ 14,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '114.000',
+    percentualCarteira: '2.3%'
+  },
+
+  'SHUL4': {
+    ticker: 'SHUL4',
+    nomeCompleto: 'Schulz S.A.',
+    setor: 'Industrial',
+    descricao: 'A Schulz é uma empresa brasileira fabricante de compressores de ar, equipamentos pneumáticos e soluções em ar comprimido.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SHUL.png',
+    dataEntrada: '29/07/2021',
+    precoIniciou: 'R$ 8,90',
+    precoTeto: 'R$ 14,20',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '128.000',
+    percentualCarteira: '2.1%'
+  },
+
+  // ========================================
+  // LOGÍSTICA (2 ativos)
+  // ========================================
+  'SIMH3': {
+    ticker: 'SIMH3',
+    nomeCompleto: 'SIMPAR S.A.',
+    setor: 'Logística',
+    descricao: 'A SIMPAR é uma holding que atua nos segmentos de logística, locação de veículos e soluções de mobilidade.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SIMH.png',
+    dataEntrada: '02/08/2022',
+    precoIniciou: 'R$ 7,85',
+    precoTeto: 'R$ 12,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '116.000',
+    percentualCarteira: '2.4%'
+  },
+
+  'LOGG3': {
+    ticker: 'LOGG3',
+    nomeCompleto: 'Log Commercial Properties e Participações S.A.',
+    setor: 'Logística',
+    descricao: 'A LOG é uma empresa brasileira especializada no desenvolvimento e locação de condomínios logísticos.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/LOGG.png',
+    dataEntrada: '18/05/2021',
+    precoIniciou: 'R$ 22,40',
+    precoTeto: 'R$ 35,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '125.000',
+    percentualCarteira: '3.5%'
+  },
+
+  // ========================================
+  // MINERAÇÃO (1 ativo)
+  // ========================================
+  'VALE3': {
+    ticker: 'VALE3',
+    nomeCompleto: 'Vale S.A.',
+    setor: 'Mineração',
+    descricao: 'A Vale é uma das maiores empresas de mineração do mundo, líder na produção de minério de ferro e pelotas.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/VALE.png',
+    dataEntrada: '15/04/2020',
+    precoIniciou: 'R$ 45,80',
+    precoTeto: 'R$ 75,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '87.000',
+    percentualCarteira: '6.2%'
+  },
+
+  // ========================================
+  // NANOCAPS (3 ativos)
+  // ========================================
+  'CGRA4': {
+    ticker: 'CGRA4',
+    nomeCompleto: 'Grazziotin S.A.',
+    setor: 'Nanocap/Consumo Cíclico',
+    descricao: 'A Grazziotin é uma rede de varejo de moda e casa, com foco em cidades do interior do Brasil.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CGRA.png',
+    dataEntrada: '12/10/2021',
+    precoIniciou: 'R$ 3,85',
+    precoTeto: 'R$ 7,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '109.000',
+    percentualCarteira: '1.2%'
+  },
+
+  'RSUL4': {
+    ticker: 'RSUL4',
+    nomeCompleto: 'Riograndense S.A.',
+    setor: 'Nanocap/Industrial',
+    descricao: 'A Riograndense é uma empresa brasileira produtora de óleos vegetais, farelos e biodiesel.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RSUL.png',
+    dataEntrada: '08/09/2021',
+    precoIniciou: 'R$ 12,30',
+    precoTeto: 'R$ 20,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '117.500',
+    percentualCarteira: '1.9%'
+  },
+
+  'DEXP3': {
+    ticker: 'DEXP3',
+    nomeCompleto: 'Dexco S.A.',
+    setor: 'Nanocap/Químico',
+    descricao: 'A Dexco é uma empresa brasileira líder em soluções para banheiros, metais e acessórios.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/DEXP.png',
+    dataEntrada: '14/06/2022',
+    precoIniciou: 'R$ 8,75',
+    precoTeto: 'R$ 15,20',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '105.500',
+    percentualCarteira: '2.1%'
+  },
+
+  // ========================================
+  // PAPEL E CELULOSE (2 ativos)
+  // ========================================
+  'RANI3': {
+    ticker: 'RANI3',
+    nomeCompleto: 'Irani Papel e Embalagem S.A.',
+    setor: 'Papel',
+    descricao: 'A Irani é uma empresa brasileira produtora de papéis para embalagem, papelão ondulado e pisos laminados.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RANI.png',
+    dataEntrada: '23/08/2021',
+    precoIniciou: 'R$ 6,45',
+    precoTeto: 'R$ 12,80',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '119.000',
+    percentualCarteira: '2.0%'
+  },
+
+  'KLBN11': {
+    ticker: 'KLBN11',
+    nomeCompleto: 'Klabin S.A.',
+    setor: 'Papel e Celulose',
+    descricao: 'A Klabin é a maior produtora e exportadora de papéis do Brasil, líder nos mercados de papéis e cartões para embalagens.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KLBN.png',
+    dataEntrada: '27/01/2023',
+    precoIniciou: 'R$ 18,90',
+    precoTeto: 'R$ 28,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '112.000',
+    percentualCarteira: '3.8%'
+  },
+
+  // ========================================
+  // PETRÓLEO (3 ativos)
+  // ========================================
+  'RECV3': {
+    ticker: 'RECV3',
+    nomeCompleto: 'PetroRecôncavo S.A.',
+    setor: 'Petróleo',
+    descricao: 'A PetroRecôncavo é uma empresa brasileira de exploração e produção de petróleo e gás natural.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/RECV.png',
+    dataEntrada: '23/07/2023',
+    precoIniciou: 'R$ 22,29',
+    precoTeto: 'R$ 31,37',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '125.000',
+    percentualCarteira: '3.1%'
+  },
+
+  'PRIO3': {
+    ticker: 'PRIO3',
+    nomeCompleto: 'PetroRio S.A.',
+    setor: 'Petróleo',
+    descricao: 'A PetroRio é uma empresa brasileira independente de petróleo e gás, focada na Bacia de Campos.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/PRIO.png',
+    dataEntrada: '04/08/2022',
+    precoIniciou: 'R$ 23,35',
+    precoTeto: 'R$ 48,70',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '115.000',
+    percentualCarteira: '4.1%'
+  },
+
+  'PETR4': {
+    ticker: 'PETR4',
+    nomeCompleto: 'Petróleo Brasileiro S.A. - Petrobras',
+    setor: 'Petróleo',
+    descricao: 'A Petrobras é a maior empresa brasileira e uma das principais companhias de energia do mundo.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/PETR.png',
+    dataEntrada: '20/05/2020',
+    precoIniciou: 'R$ 18,45',
+    precoTeto: 'R$ 35,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '82.000',
+    percentualCarteira: '5.8%'
+  },
+
+  // ========================================
+  // QUÍMICO (1 ativo)
+  // ========================================
+  'UNIP6': {
+    ticker: 'UNIP6',
+    nomeCompleto: 'Unipar Carbocloro S.A.',
+    setor: 'Químico',
+    descricao: 'A Unipar é uma das maiores empresas petroquímicas do Brasil, produtora de cloro, soda cáustica e PVC.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/UNIP.png',
+    dataEntrada: '08/12/2020',
+    precoIniciou: 'R$ 42,41',
+    precoTeto: 'R$ 117,90',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '118.000',
+    percentualCarteira: '4.9%'
+  },
+
+  // ========================================
+  // SANEAMENTO (2 ativos)
+  // ========================================
+  'SAPR4': {
+    ticker: 'SAPR4',
+    nomeCompleto: 'Sanepar S.A.',
+    setor: 'Saneamento',
+    descricao: 'A Sanepar é a companhia de saneamento básico do Paraná, responsável pelos serviços de água e esgoto.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SAPR.png',
+    dataEntrada: '11/06/2020',
+    precoIniciou: 'R$ 8,95',
+    precoTeto: 'R$ 15,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '96.000',
+    percentualCarteira: '2.8%'
+  },
+
+  'CSMG3': {
+    ticker: 'CSMG3',
+    nomeCompleto: 'Copasa MG S.A.',
+    setor: 'Saneamento',
+    descricao: 'A Copasa é a companhia de saneamento de Minas Gerais, prestando serviços de água e esgoto no estado.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/CSMG.png',
+    dataEntrada: '18/12/2020',
+    precoIniciou: 'R$ 12,80',
+    precoTeto: 'R$ 22,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '119.500',
+    percentualCarteira: '2.9%'
+  },
+
+  // ========================================
+  // SAÚDE (2 ativos)
+  // ========================================
+  'FLRY3': {
+    ticker: 'FLRY3',
+    nomeCompleto: 'Fleury S.A.',
+    setor: 'Saúde',
+    descricao: 'A Fleury é uma das maiores empresas de medicina diagnóstica do Brasil, oferecendo exames laboratoriais e de imagem.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/FLRY.png',
+    dataEntrada: '19/05/2022',
+    precoIniciou: 'R$ 14,63',
+    precoTeto: 'R$ 17,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '108.500',
+    percentualCarteira: '2.5%'
+  },
+
+  'ODPV3': {
+    ticker: 'ODPV3',
+    nomeCompleto: 'Odontoprev S.A.',
+    setor: 'Saúde',
+    descricao: 'A Odontoprev é a maior empresa de planos odontológicos do Brasil, atendendo milhões de beneficiários.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ODPV.png',
+    dataEntrada: '26/10/2021',
+    precoIniciou: 'R$ 12,45',
+    precoTeto: 'R$ 18,80',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '104.000',
+    percentualCarteira: '2.3%'
+  },
+
+  // ========================================
+  // SEGUROS (1 ativo)
+  // ========================================
+  'WIZC3': {
+    ticker: 'WIZC3',
+    nomeCompleto: 'Wiz Soluções e Corretagem de Seguros S.A.',
+    setor: 'Seguros',
+    descricao: 'A Wiz é uma das maiores corretoras de seguros do Brasil, oferecendo soluções completas em seguros e previdência.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/WIZC.png',
+    dataEntrada: '07/07/2021',
+    precoIniciou: 'R$ 9,85',
+    precoTeto: 'R$ 16,20',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '131.000',
+    percentualCarteira: '2.4%'
+  },
+
+  // ========================================
+  // SUCROENERGÉTICO (2 ativos)
+  // ========================================
+  'SMTO3': {
+    ticker: 'SMTO3',
+    nomeCompleto: 'São Martinho S.A.',
+    setor: 'Sucroenergético',
+    descricao: 'A São Martinho é uma das maiores produtoras de açúcar e etanol do Brasil, com operações integradas.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/SMTO.png',
+    dataEntrada: '10/11/2022',
+    precoIniciou: 'R$ 28,20',
+    precoTeto: 'R$ 35,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '109.000',
+    percentualCarteira: '3.2%'
+  },
+
+  'JALL3': {
+    ticker: 'JALL3',
+    nomeCompleto: 'Jalles Machado S.A.',
+    setor: 'Sucroenergético',
+    descricao: 'A Jalles Machado é uma empresa brasileira produtora de açúcar, etanol e energia elétrica.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/JALL.png',
+    dataEntrada: '04/04/2022',
+    precoIniciou: 'R$ 16,80',
+    precoTeto: 'R$ 24,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '117.000',
+    percentualCarteira: '2.6%'
+  },
+
+  // ========================================
+  // TECNOLOGIA (1 ativo)
+  // ========================================
+  'POSI3': {
+    ticker: 'POSI3',
+    nomeCompleto: 'Positivo Tecnologia S.A.',
+    setor: 'Tecnologia',
+    descricao: 'A Positivo Tecnologia é uma empresa brasileira fabricante de computadores, tablets e soluções educacionais.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/POSI.png',
+    dataEntrada: '15/03/2021',
+    precoIniciou: 'R$ 3,45',
+    precoTeto: 'R$ 7,80',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '121.000',
+    percentualCarteira: '1.6%'
+  },
+
+  // ========================================
+  // TELECOM (1 ativo)
+  // ========================================
+  'VIVT3': {
+    ticker: 'VIVT3',
+    nomeCompleto: 'Telefônica Brasil S.A.',
+    setor: 'Telecom',
+    descricao: 'A Telefônica Brasil (Vivo) é a maior operadora de telecomunicações do país, oferecendo serviços móveis e fixos.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/VIVT.png',
+    dataEntrada: '22/01/2023',
+    precoIniciou: 'R$ 45,80',
+    precoTeto: 'R$ 58,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '111.000',
+    percentualCarteira: '4.6%'
+  },
+
+  // ========================================
+  // ATIVO ORIGINAL MANTIDO
+  // ========================================
   'ALOS3': {
     ticker: 'ALOS3',
     nomeCompleto: 'Allos S.A.',
@@ -132,6 +876,8 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     percentualCarteira: '4.2%'
   }
 };
+
+export default dadosFallback;
 
 // ========================================
 // FUNÇÕES UTILITÁRIAS
