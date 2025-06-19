@@ -129,25 +129,37 @@ class AuthClient {
   async signUp(_: SignUpParams): Promise<{ error?: string }> {
     const token = generateToken();
     localStorage.setItem('custom-auth-token', token);
-    return {};
+    return { error: null };
   }
 
   async signInWithOAuth(_: SignInWithOAuthParams): Promise<{ error?: string }> {
     return { error: 'Social authentication not implemented' };
   }
 
+  // ✅ CORRIGIDO: Retornar formato correto
   async signInWithPassword(params: SignInWithPasswordParams): Promise<{ error?: string }> {
     const { email, password } = params;
     
+    console.log('🔐 Verificando credenciais para:', email);
+    
     const user = users[email as keyof typeof users];
-    if (!user || password !== 'Secret1') {
-      return { error: 'Invalid credentials' };
+    if (!user) {
+      console.log('❌ Usuário não encontrado:', email);
+      return { error: 'Credenciais inválidas' };
+    }
+    
+    if (password !== 'Secret1') {
+      console.log('❌ Senha incorreta para:', email);
+      return { error: 'Credenciais inválidas' };
     }
 
+    console.log('✅ Login bem-sucedido para:', email);
+    
     const token = generateToken();
     localStorage.setItem('custom-auth-token', token);
     localStorage.setItem('user-email', email);
-    return {};
+    
+    return { error: null }; // ✅ FORMATO CORRETO
   }
 
   async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {
@@ -175,7 +187,7 @@ class AuthClient {
   async signOut(): Promise<{ error?: string }> {
     localStorage.removeItem('custom-auth-token');
     localStorage.removeItem('user-email');
-    return {};
+    return { error: null };
   }
 
   // ✅ Função para verificar acesso a uma página
