@@ -20,10 +20,10 @@ interface NavigationCardProps {
   description: string;
   icon: React.ReactNode;
   href: string;
-  isSpecial?: boolean;
+  isNew?: boolean;
 }
 
-function NavigationCard({ title, description, icon, href, isSpecial = false }: NavigationCardProps): React.JSX.Element {
+function NavigationCard({ title, description, icon, href, isNew = false }: NavigationCardProps): React.JSX.Element {
   const handleNavigation = () => {
     window.location.href = href;
   };
@@ -33,52 +33,48 @@ function NavigationCard({ title, description, icon, href, isSpecial = false }: N
       onClick={handleNavigation}
       sx={{
         position: 'relative',
-        height: '200px',
-        borderRadius: 3,
+        height: '220px',
+        borderRadius: 4,
         overflow: 'hidden',
         cursor: 'pointer',
-        background: isSpecial 
-          ? 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)'
-          : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%)',
-        border: isSpecial 
-          ? '1px solid rgba(255, 255, 255, 0.3)'
-          : '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: isSpecial
-          ? '0 4px 6px -1px rgba(30, 64, 175, 0.2), 0 2px 4px -2px rgba(30, 64, 175, 0.1)'
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          transform: 'translateY(-6px)',
-          boxShadow: isSpecial
-            ? '0 20px 40px -8px rgba(30, 64, 175, 0.4)'
-            : '0 20px 40px -8px rgba(0, 0, 0, 0.3)',
-          border: isSpecial
-            ? '1px solid rgba(255, 255, 255, 0.4)'
-            : '1px solid rgba(255, 255, 255, 0.25)',
+          transform: 'translateY(-8px) scale(1.02)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
           '& .arrow-icon': {
-            transform: 'translateX(6px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            transform: 'translateX(8px) scale(1.1)',
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
           },
           '& .icon-container': {
-            transform: 'scale(1.1) rotate(5deg)',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            transform: 'scale(1.15) rotate(10deg)',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)'
+          },
+          '& .glow-effect': {
+            opacity: 1,
+            transform: 'scale(1.2)'
           }
         },
       }}
     >
-      {/* Special badge para Projeto América */}
-      {isSpecial && (
+      {/* Badge "NOVO" melhorado */}
+      {isNew && (
         <Box
           sx={{
             position: 'absolute',
-            top: 12,
-            right: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '12px',
-            px: 1.5,
-            py: 0.5,
-            zIndex: 3
+            top: 16,
+            right: 16,
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            borderRadius: '20px',
+            px: 2,
+            py: 0.75,
+            zIndex: 3,
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
           }}
         >
           <Typography
@@ -86,48 +82,48 @@ function NavigationCard({ title, description, icon, href, isSpecial = false }: N
             sx={{
               color: 'white',
               fontWeight: 700,
-              fontSize: '0.7rem',
+              fontSize: '0.75rem',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              letterSpacing: '0.1em'
             }}
           >
-            🇺🇸 Novo
+            🇺🇸 NOVO
           </Typography>
         </Box>
       )}
 
-      {/* Subtle glow effect */}
+      {/* Glow effect melhorado */}
       <Box
+        className="glow-effect"
         sx={{
           position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '120px',
-          height: '120px',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+          top: -50,
+          right: -50,
+          width: '150px',
+          height: '150px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
           borderRadius: '50%',
-          transform: 'translate(30%, -30%)'
+          opacity: 0.6,
+          transition: 'all 0.4s ease'
         }}
       />
       
-      {/* Accent line */}
+      {/* Linha decorativa superior */}
       <Box
         sx={{
           position: 'absolute',
           top: 0,
           left: 0,
           width: '100%',
-          height: '2px',
-          background: isSpecial
-            ? 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.2) 100%)'
-            : 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%)'
+          height: '3px',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)'
         }}
       />
       
       {/* Content */}
       <Box
         sx={{
-          p: 3,
+          p: 4,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -137,32 +133,34 @@ function NavigationCard({ title, description, icon, href, isSpecial = false }: N
         }}
       >
         {/* Header */}
-        <Stack spacing={2}>
+        <Stack spacing={3}>
           <Box
             className="icon-container"
             sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              backgroundColor: 'rgba(255, 255, 255, 0.12)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              width: 56,
+              height: 56,
+              borderRadius: 3,
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              transition: 'transform 0.3s ease'
+              transition: 'all 0.4s ease',
+              backdropFilter: 'blur(10px)'
             }}
           >
-            {React.cloneElement(icon as React.ReactElement, { size: 24, weight: 'bold' })}
+            {React.cloneElement(icon as React.ReactElement, { size: 28, weight: 'bold' })}
           </Box>
           
-          <Stack spacing={1}>
+          <Stack spacing={1.5}>
             <Typography
               variant="h5"
               sx={{
-                fontWeight: 700,
+                fontWeight: 800,
                 color: 'white',
-                fontSize: '1.4rem'
+                fontSize: '1.5rem',
+                lineHeight: 1.2
               }}
             >
               {title}
@@ -170,9 +168,10 @@ function NavigationCard({ title, description, icon, href, isSpecial = false }: N
             <Typography
               variant="body2"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '0.9rem',
-                lineHeight: 1.4
+                color: 'rgba(255, 255, 255, 0.8)',
+                fontSize: '0.95rem',
+                lineHeight: 1.5,
+                fontWeight: 400
               }}
             >
               {description}
@@ -180,24 +179,25 @@ function NavigationCard({ title, description, icon, href, isSpecial = false }: N
           </Stack>
         </Stack>
 
-        {/* Arrow */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Arrow melhorada */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
           <Box
             className="arrow-icon"
             sx={{
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.12)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              transition: 'transform 0.3s ease'
+              transition: 'all 0.4s ease',
+              backdropFilter: 'blur(10px)'
             }}
           >
-            <ArrowRightIcon size={18} weight="bold" />
+            <ArrowRightIcon size={20} weight="bold" />
           </Box>
         </Box>
       </Box>
@@ -231,7 +231,7 @@ export default function Page(): React.JSX.Element {
       description: 'Investimentos estratégicos no mercado americano',
       icon: <StarIcon />,
       href: '/dashboard/internacional/projeto-america',
-      isSpecial: true
+      isNew: true
     }
   ];
 
