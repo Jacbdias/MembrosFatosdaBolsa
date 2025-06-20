@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -30,7 +30,7 @@ import {
   Divider
 } from '@mui/material';
 
-// Ícones mock (substitua pelos ícones do seu sistema)
+// Ícones
 const ArrowLeftIcon = () => <span>←</span>;
 const UploadIcon = () => <span>📤</span>;
 const CloudUploadIcon = () => <span>☁️</span>;
@@ -60,7 +60,6 @@ interface RelatorioImportacao {
   proventos: ProventoCentral[];
 }
 
-// Componente principal
 export default function CentralProventos() {
   const router = useRouter();
   
@@ -79,6 +78,9 @@ export default function CentralProventos() {
     dataUltimoUpload: ''
   });
 
+  // Função para delay
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   // Carregar estatísticas
   const carregarEstatisticas = useCallback(() => {
     try {
@@ -88,17 +90,18 @@ export default function CentralProventos() {
       if (masterData) {
         const dados = JSON.parse(masterData);
         
-        const estatisticas = dados.reduce((acc: any, item: any) => {
-          acc.tickers.add(item.ticker);
-          acc.totalValor += item.valor;
-          acc.totalProventos += 1;
-          return acc;
-        }, { tickers: new Set(), totalValor: 0, totalProventos: 0 });
+        const tickers = new Set();
+        let totalValor = 0;
+        
+        dados.forEach((item: any) => {
+          tickers.add(item.ticker);
+          totalValor += item.valor;
+        });
 
         setEstatisticasGerais({
-          totalEmpresas: estatisticas.tickers.size,
-          totalProventos: estatisticas.totalProventos,
-          valorTotal: estatisticas.totalValor,
+          totalEmpresas: tickers.size,
+          totalProventos: dados.length,
+          valorTotal: totalValor,
           dataUltimoUpload: localStorage.getItem('proventos_central_data_upload') || ''
         });
       } else {
@@ -136,12 +139,18 @@ export default function CentralProventos() {
       return;
     }
     
+    console.log('Arquivo selecionado:', arquivo.name, arquivo.size);
     setArquivoSelecionado(arquivo);
   }, []);
 
+  // FUNÇÃO CORRIGIDA - processarCSV
   const processarCSV = useCallback(async () => {
-    if (!arquivoSelecionado) return;
+    if (!arquivoSelecionado) {
+      console.log('Nenhum arquivo selecionado');
+      return;
+    }
 
+    console.log('Iniciando processamento do CSV...');
     setLoading(true);
     setProgresso(0);
     setEtapaProcessamento('Lendo arquivo CSV...');
@@ -150,30 +159,41 @@ export default function CentralProventos() {
 
     try {
       // Etapa 1: Ler arquivo
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Etapa 1: Lendo arquivo...');
       setProgresso(20);
+      await delay(300);
 
       const text = await arquivoSelecionado.text();
+      console.log('Conteúdo do arquivo:', text.substring(0, 200) + '...');
+      
       const linhas = text.split('\n').filter(linha => linha.trim());
+      console.log('Número de linhas:', linhas.length);
       
       if (linhas.length < 2) {
         throw new Error('Arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados');
       }
 
+      // Etapa 2: Validar dados
+      console.log('Etapa 2: Validando dados...');
       setEtapaProcessamento('Validando dados...');
       setProgresso(40);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await delay(300);
 
-      // Etapa 2: Processar dados
       const proventosValidos: ProventoCentral[] = [];
       const erros: string[] = [];
 
-      for (let i = 1; i < linhas.length && i <= 10000; i++) {
+      // Processar apenas as primeiras 1000 linhas para teste
+      const maxLinhas = Math.min(linhas.length, 1001); // header + 1000 linhas
+      
+      for (let i = 1; i < maxLinhas; i++) {
         const linha = linhas[i];
         const partes = linha.split(',').map(p => p.trim().replace(/"/g, ''));
         
+        console.log(`Processando linha ${i}:`, partes);
+        
         if (partes.length < 4) {
-          erros.push(`Linha ${i + 1}: Formato inválido (mínimo 4 colunas)`);
+          erros.push(`Linha ${i + 1}: Formato inválido (${partes.length} colunas, mínimo 4)`);
+          console.log(`Erro linha ${i + 1}: formato inválido`);
           continue;
         }
 
@@ -181,12 +201,14 @@ export default function CentralProventos() {
         
         if (!ticker || !data || !valor || !tipo) {
           erros.push(`Linha ${i + 1}: Dados obrigatórios em branco`);
+          console.log(`Erro linha ${i + 1}: dados em branco`);
           continue;
         }
 
         const valorNum = parseFloat(valor.replace(',', '.'));
         if (isNaN(valorNum)) {
           erros.push(`Linha ${i + 1}: Valor inválido (${valor})`);
+          console.log(`Erro linha ${i + 1}: valor inválido`);
           continue;
         }
 
@@ -206,10 +228,11 @@ export default function CentralProventos() {
           }
         } catch {
           erros.push(`Linha ${i + 1}: Data inválida (${data})`);
+          console.log(`Erro linha ${i + 1}: data inválida`);
           continue;
         }
 
-        proventosValidos.push({
+        const proventoValido: ProventoCentral = {
           ticker: ticker.toUpperCase(),
           data: data,
           dataObj: dataObj,
@@ -217,52 +240,85 @@ export default function CentralProventos() {
           tipo: tipo,
           dataFormatada: dataObj.toLocaleDateString('pt-BR'),
           valorFormatado: formatarMoeda(valorNum)
-        });
+        };
+
+        proventosValidos.push(proventoValido);
+        console.log(`Provento válido adicionado:`, proventoValido);
       }
 
-      setProgresso(60);
+      console.log(`Processamento concluído: ${proventosValidos.length} proventos válidos, ${erros.length} erros`);
+      
+      if (erros.length > 0) {
+        console.log('Erros encontrados:', erros.slice(0, 5)); // Mostrar apenas os primeiros 5
+      }
+
+      if (proventosValidos.length === 0) {
+        throw new Error('Nenhum provento válido encontrado no arquivo');
+      }
+
+      // Etapa 3: Agrupar por ticker
+      console.log('Etapa 3: Agrupando por ticker...');
       setEtapaProcessamento('Agrupando por empresa...');
-      await new Promise(resolve => setTimeout(resolve, 300));
+      setProgresso(60);
+      await delay(300);
 
-      // Etapa 3: Agrupar por ticker e gerar relatório
-      const proventosPorTicker = proventosValidos.reduce((acc, provento) => {
-        if (!acc[provento.ticker]) {
-          acc[provento.ticker] = [];
+      const proventosPorTicker: Record<string, ProventoCentral[]> = {};
+      
+      proventosValidos.forEach(provento => {
+        if (!proventosPorTicker[provento.ticker]) {
+          proventosPorTicker[provento.ticker] = [];
         }
-        acc[provento.ticker].push(provento);
-        return acc;
-      }, {} as Record<string, ProventoCentral[]>);
+        proventosPorTicker[provento.ticker].push(provento);
+      });
 
+      console.log('Tickers encontrados:', Object.keys(proventosPorTicker));
+
+      // Gerar relatório
       const relatorio: RelatorioImportacao[] = Object.entries(proventosPorTicker).map(([ticker, proventos]) => {
         const totalValor = proventos.reduce((sum, p) => sum + p.valor, 0);
-        const ultimaData = proventos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime())[0];
+        const proventosOrdenados = proventos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+        const ultimaData = proventosOrdenados[0];
         
         return {
           ticker,
           quantidade: proventos.length,
           totalValor,
           ultimaData: ultimaData.dataFormatada,
-          proventos: proventos.slice(0, 5)
+          proventos: proventosOrdenados.slice(0, 5)
         };
       });
 
-      setProgresso(80);
+      // Etapa 4: Salvar dados
+      console.log('Etapa 4: Salvando dados...');
       setEtapaProcessamento('Salvando dados...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setProgresso(80);
+      await delay(300);
 
-      // Etapa 4: Salvar no localStorage
       if (typeof window !== 'undefined') {
-        // Salvar master file
-        localStorage.setItem('proventos_central_master', JSON.stringify(proventosValidos));
-        localStorage.setItem('proventos_central_data_upload', new Date().toISOString());
+        try {
+          // Salvar master file
+          const masterDataString = JSON.stringify(proventosValidos);
+          localStorage.setItem('proventos_central_master', masterDataString);
+          localStorage.setItem('proventos_central_data_upload', new Date().toISOString());
+          
+          console.log('Master data salvo:', proventosValidos.length, 'proventos');
 
-        // Distribuir para cada ticker
-        Object.entries(proventosPorTicker).forEach(([ticker, proventos]) => {
-          const proventosOrdenados = proventos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-          localStorage.setItem(`proventos_${ticker}`, JSON.stringify(proventosOrdenados));
-        });
+          // Distribuir para cada ticker
+          Object.entries(proventosPorTicker).forEach(([ticker, proventos]) => {
+            const proventosOrdenados = proventos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+            const tickerDataString = JSON.stringify(proventosOrdenados);
+            localStorage.setItem(`proventos_${ticker}`, tickerDataString);
+            console.log(`Dados salvos para ${ticker}:`, proventosOrdenados.length, 'proventos');
+          });
+
+        } catch (storageError) {
+          console.error('Erro ao salvar no localStorage:', storageError);
+          throw new Error('Erro ao salvar dados no navegador');
+        }
       }
 
+      // Etapa 5: Finalizar
+      console.log('Etapa 5: Finalizando...');
       setProgresso(100);
       setEtapaProcessamento('Concluído!');
       
@@ -270,15 +326,26 @@ export default function CentralProventos() {
       setRelatorioImportacao(relatorio);
       
       // Atualizar estatísticas
+      await delay(500);
       carregarEstatisticas();
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Processamento concluído com sucesso!');
+      
+      // Fechar dialog
+      await delay(1000);
       setDialogAberto(false);
+      
+      // Reset do form
+      setArquivoSelecionado(null);
+      
+      // Mostrar mensagem de sucesso
+      alert(`✅ Sucesso!\n\n${proventosValidos.length} proventos processados\n${Object.keys(proventosPorTicker).length} empresas atualizadas`);
 
     } catch (error) {
-      console.error('Erro ao processar CSV:', error);
-      setEtapaProcessamento(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-      alert(`Erro ao processar CSV: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      console.error('Erro durante processamento:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setEtapaProcessamento(`Erro: ${errorMessage}`);
+      alert(`❌ Erro ao processar CSV:\n\n${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -360,6 +427,19 @@ export default function CentralProventos() {
     );
   }, []);
 
+  const resetarForm = useCallback(() => {
+    setArquivoSelecionado(null);
+    setLoading(false);
+    setProgresso(0);
+    setEtapaProcessamento('');
+    
+    // Reset do input file
+    const fileInput = document.getElementById('upload-csv-central') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }, []);
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
       {/* Header com botão voltar */}
@@ -433,6 +513,7 @@ export default function CentralProventos() {
             startIcon={<CloudUploadIcon />}
             onClick={() => setDialogAberto(true)}
             sx={{ py: 2 }}
+            disabled={loading}
           >
             Novo Upload CSV
           </Button>
@@ -492,131 +573,22 @@ export default function CentralProventos() {
               <code>PETR4,20/03/2024,2.30,JCP</code>
             </Typography>
           </Alert>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ p: 2, backgroundColor: '#f0f9ff', borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  ✅ O que o sistema faz:
-                </Typography>
-                <Typography variant="body2">
-                  • Processa um único CSV com todos os proventos<br/>
-                  • Distribui automaticamente por empresa<br/>
-                  • Mantém backup do arquivo original<br/>
-                  • Atualiza todas as páginas individuais<br/>
-                  • Gera relatório de importação detalhado
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ p: 2, backgroundColor: '#fef3c7', borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  ⚠️ Importante:
-                </Typography>
-                <Typography variant="body2">
-                  • Máximo 10MB e 10.000 linhas<br/>
-                  • Dados anteriores são sobrescritos<br/>
-                  • Sempre faça backup antes<br/>
-                  • Formato de data: DD/MM/AAAA<br/>
-                  • Valores com ponto ou vírgula
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
         </CardContent>
       </Card>
 
-      {/* Relatório de Importação */}
-      {relatorioImportacao.length > 0 && (
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              📊 Relatório da Última Importação
-            </Typography>
-            
-            <Alert severity="success" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                <strong>✅ Importação concluída com sucesso!</strong><br/>
-                {proventosProcessados.length} proventos processados para {relatorioImportacao.length} empresas
-              </Typography>
-            </Alert>
-
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Empresa</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700 }}>Proventos</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>Valor Total</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700 }}>Último Provento</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700 }}>Detalhes</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {relatorioImportacao.map((item) => (
-                    <React.Fragment key={item.ticker}>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>{item.ticker}</TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={item.quantidade}
-                            color="primary"
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                          {formatarMoeda(item.totalValor)}
-                        </TableCell>
-                        <TableCell align="center">{item.ultimaData}</TableCell>
-                        <TableCell align="center">
-                          <IconButton 
-                            size="small"
-                            onClick={() => toggleDetalhes(item.ticker)}
-                          >
-                            {expandirDetalhes.includes(item.ticker) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                      
-                      <TableRow>
-                        <TableCell colSpan={5} sx={{ p: 0, border: 'none' }}>
-                          <Collapse in={expandirDetalhes.includes(item.ticker)}>
-                            <Box sx={{ p: 2, backgroundColor: '#f8fafc' }}>
-                              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                                Últimos 5 proventos de {item.ticker}:
-                              </Typography>
-                              <Table size="small">
-                                <TableHead>
-                                  <TableRow>
-                                    <TableCell>Data</TableCell>
-                                    <TableCell align="right">Valor</TableCell>
-                                    <TableCell>Tipo</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {item.proventos.map((provento, index) => (
-                                    <TableRow key={index}>
-                                      <TableCell>{provento.dataFormatada}</TableCell>
-                                      <TableCell align="right">{provento.valorFormatado}</TableCell>
-                                      <TableCell>{provento.tipo}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </Box>
-                          </Collapse>
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Dialog de Upload */}
-      <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="md" fullWidth>
+      <Dialog 
+        open={dialogAberto} 
+        onClose={() => {
+          if (!loading) {
+            setDialogAberto(false);
+            resetarForm();
+          }
+        }} 
+        maxWidth="md" 
+        fullWidth
+        disableEscapeKeyDown={loading}
+      >
         <DialogTitle>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             📤 Upload Central de Proventos
@@ -627,7 +599,6 @@ export default function CentralProventos() {
           <Alert severity="warning" sx={{ mb: 3 }}>
             <Typography variant="body2">
               <strong>⚠️ ATENÇÃO:</strong> Este upload irá substituir TODOS os proventos existentes de TODAS as empresas.
-              Recomendamos fazer um backup antes de continuar.
             </Typography>
           </Alert>
 
@@ -642,6 +613,7 @@ export default function CentralProventos() {
               id="upload-csv-central"
               type="file"
               onChange={handleUploadArquivo}
+              disabled={loading}
             />
             <label htmlFor="upload-csv-central">
               <Button 
@@ -649,6 +621,7 @@ export default function CentralProventos() {
                 component="span"
                 startIcon={<UploadIcon />}
                 fullWidth
+                disabled={loading}
                 sx={{ 
                   py: 3,
                   backgroundColor: arquivoSelecionado ? '#e8f5e8' : undefined,
@@ -664,29 +637,10 @@ export default function CentralProventos() {
               <Alert severity="success" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   <strong>📄 Arquivo:</strong> {arquivoSelecionado.name}<br/>
-                  <strong>📊 Tamanho:</strong> {(arquivoSelecionado.size / 1024).toFixed(1)} KB<br/>
-                  <strong>📅 Selecionado:</strong> {new Date().toLocaleString('pt-BR')}
+                  <strong>📊 Tamanho:</strong> {(arquivoSelecionado.size / 1024).toFixed(1)} KB
                 </Typography>
               </Alert>
             )}
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-              Formato esperado do CSV:
-            </Typography>
-            
-            <Box sx={{ p: 2, backgroundColor: '#f1f5f9', borderRadius: 1, fontFamily: 'monospace' }}>
-              <Typography variant="body2">
-                ticker,data,valor,tipo<br/>
-                VALE3,15/03/2024,1.50,Dividendo<br/>
-                PETR4,20/03/2024,2.30,JCP<br/>
-                BBAS3,10/04/2024,0.45,Dividendo<br/>
-                VALE3,15/06/2024,1.80,Dividendo
-              </Typography>
-            </Box>
           </Box>
 
           {loading && (
@@ -706,9 +660,7 @@ export default function CentralProventos() {
           <Button 
             onClick={() => {
               setDialogAberto(false);
-              setArquivoSelecionado(null);
-              setLoading(false);
-              setProgresso(0);
+              resetarForm();
             }}
             disabled={loading}
           >
