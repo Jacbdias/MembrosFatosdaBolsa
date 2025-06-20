@@ -7,7 +7,7 @@ function generateToken(): string {
   return Array.from(arr, (v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-// ✅ PERMISSÕES EXPANDIDAS com níveis administrativos
+// ✅ PERMISSÕES SIMPLIFICADAS - apenas Admin (sem Super Admin)
 const planPermissions = {
   'VIP': {
     displayName: 'Close Friends VIP',
@@ -64,7 +64,7 @@ const planPermissions = {
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram'
     ]
   },
-  // 🛡️ NOVOS PLANOS ADMINISTRATIVOS
+  // 🛡️ PLANO ADMINISTRATIVO ÚNICO (com todas as permissões)
   'ADMIN': {
     displayName: 'Administrador',
     isAdmin: true,
@@ -74,35 +74,9 @@ const planPermissions = {
       'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
       'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks', 
       'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
-      // Páginas administrativas
-      'admin', 'admin-dashboard', 'admin-usuarios', 'admin-empresas', 'admin-proventos', 
-      'admin-relatorios', 'admin-integracoes'
-    ],
-    adminPermissions: {
-      canManageUsers: true,
-      canManageCompanies: true,
-      canManageProventos: true,
-      canViewReports: true,
-      canManageIntegrations: true,
-      canExportData: true,
-      canViewAnalytics: true,
-      canManageSettings: false, // Super admin only
-      canManagePlans: false,    // Super admin only
-      canViewLogs: false        // Super admin only
-    }
-  },
-  'SUPER_ADMIN': {
-    displayName: 'Super Administrador',
-    isAdmin: true,
-    pages: [
-      // Acesso a TUDO
-      'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-      'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
-      'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks', 
-      'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
       // Todas as páginas administrativas
       'admin', 'admin-dashboard', 'admin-usuarios', 'admin-empresas', 'admin-proventos', 
-      'admin-relatorios', 'admin-integracoes', 'admin-settings', 'admin-logs', 'admin-plans'
+      'admin-relatorios', 'admin-integracoes', 'admin-settings', 'admin-logs'
     ],
     adminPermissions: {
       canManageUsers: true,
@@ -113,13 +87,12 @@ const planPermissions = {
       canExportData: true,
       canViewAnalytics: true,
       canManageSettings: true,
-      canManagePlans: true,
       canViewLogs: true
     }
   }
 } as const;
 
-// ✅ Usuários expandidos com administradores
+// ✅ Usuários simplificados (sem super admin)
 const users = {
   'sofia@devias.io': {
     id: 'USR-000',
@@ -161,7 +134,7 @@ const users = {
     email: 'ana@teste.com',
     plan: 'AMERICA' as keyof typeof planPermissions
   },
-  // 🛡️ NOVOS USUÁRIOS ADMINISTRATIVOS
+  // 🛡️ USUÁRIO ADMINISTRATIVO ÚNICO
   'admin@fatosdobolsa.com': {
     id: 'ADM-001',
     avatar: '/assets/avatar.png',
@@ -169,14 +142,6 @@ const users = {
     lastName: 'Sistema',
     email: 'admin@fatosdobolsa.com',
     plan: 'ADMIN' as keyof typeof planPermissions
-  },
-  'superadmin@fatosdobolsa.com': {
-    id: 'SADM-001',
-    avatar: '/assets/avatar.png',
-    firstName: 'Super',
-    lastName: 'Admin',
-    email: 'superadmin@fatosdobolsa.com',
-    plan: 'SUPER_ADMIN' as keyof typeof planPermissions
   }
 } satisfies Record<string, User & { plan: keyof typeof planPermissions }>;
 
@@ -200,7 +165,7 @@ export interface ResetPasswordParams {
   email: string;
 }
 
-// 🛡️ Interface para permissões administrativas
+// 🛡️ Interface para permissões administrativas (simplificada)
 export interface AdminPermissions {
   canManageUsers: boolean;
   canManageCompanies: boolean;
@@ -210,7 +175,6 @@ export interface AdminPermissions {
   canExportData: boolean;
   canViewAnalytics: boolean;
   canManageSettings: boolean;
-  canManagePlans: boolean;
   canViewLogs: boolean;
 }
 
@@ -236,7 +200,7 @@ class AuthClient {
       return { error: 'Credenciais inválidas' };
     }
     
-    // 🛡️ Senhas diferentes para diferentes tipos de usuário
+    // 🛡️ Senhas: Admin usa Admin123!, outros usam Secret1
     const validPassword = email.includes('admin') ? 'Admin123!' : 'Secret1';
     
     if (password !== validPassword) {
@@ -290,7 +254,7 @@ class AuthClient {
     return planPermissions[userPlan]?.pages.includes(page) || false;
   }
 
-  // 🛡️ NOVA: Verificar se usuário é admin
+  // 🛡️ Verificar se usuário é admin
   async isAdmin(): Promise<boolean> {
     const { data: user } = await this.getUser();
     if (!user || !('plan' in user)) return false;
@@ -299,7 +263,7 @@ class AuthClient {
     return planPermissions[userPlan]?.isAdmin || false;
   }
 
-  // 🛡️ NOVA: Obter permissões administrativas
+  // 🛡️ Obter permissões administrativas
   async getAdminPermissions(): Promise<AdminPermissions | null> {
     const { data: user } = await this.getUser();
     if (!user || !('plan' in user)) return null;
@@ -310,13 +274,13 @@ class AuthClient {
     return plan?.adminPermissions || null;
   }
 
-  // 🛡️ NOVA: Verificar permissão administrativa específica
+  // 🛡️ Verificar permissão administrativa específica
   async hasAdminPermission(permission: keyof AdminPermissions): Promise<boolean> {
     const permissions = await this.getAdminPermissions();
     return permissions?.[permission] || false;
   }
 
-  // ✅ Função para obter informações do plano (expandida)
+  // ✅ Função para obter informações do plano
   async getPlanInfo(): Promise<{ 
     displayName: string; 
     pages: string[]; 
@@ -342,18 +306,16 @@ class AuthClient {
 
 export const authClient = new AuthClient();
 
-// ✅ ADICIONAR: Exportar globalmente para debug
+// ✅ Exportar globalmente para debug
 if (typeof window !== 'undefined') {
   (window as any).authClient = authClient;
   
-  // 🛡️ Helper para testar login de admin no console
+  // 🛡️ Helper para testar login de admin no console (simplificado)
   (window as any).loginAsAdmin = () => {
-    console.log('🛡️ Para fazer login como ADMIN:');
+    console.log('🛡️ Para fazer login como ADMINISTRADOR:');
     console.log('Email: admin@fatosdobolsa.com');
     console.log('Senha: Admin123!');
     console.log('');
-    console.log('🛡️ Para fazer login como SUPER ADMIN:');
-    console.log('Email: superadmin@fatosdobolsa.com');
-    console.log('Senha: Admin123!');
+    console.log('✅ Usuários normais usam senha: Secret1');
   };
 }
