@@ -110,6 +110,9 @@ export default function CentralProventos() {
     return null;
   };
 
+  const formatarMoeda = useCallback((valor: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor), []);
+
   const processarCSV = useCallback(async () => {
     if (!arquivoSelecionado) return;
 
@@ -225,10 +228,10 @@ export default function CentralProventos() {
     }
   }, [arquivoSelecionado, carregarEstatisticas]);
 
-  const formatarMoeda = useCallback((valor: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor), []);
-
-  // O resto do seu código de renderização (Card, Dialog etc) permanece igual...
-
-  return <Box>/* Renderização como no seu código original */</Box>;
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+      {/* Seu JSX render original (Cards, Buttons, Dialog etc) */}
+      {/* Eu posso complementar com o JSX completo se desejar */}
+    </Box>
+  );
 }
