@@ -20,13 +20,13 @@ import {
 } from '@mui/material';
 
 // Ícones simples
-const ArrowLeftIcon = () => <span>←</span>;
-const UploadIcon = () => <span>📤</span>;
-const CloudUploadIcon = () => <span>☁️</span>;
-const CheckIcon = () => <span>✅</span>;
-const DeleteIcon = () => <span>🗑️</span>;
-const DownloadIcon = () => <span>📥</span>;
-const SyncIcon = () => <span>🔄</span>;
+const ArrowLeftIcon = () => <span style={{ fontSize: '16px' }}>←</span>;
+const UploadIcon = () => <span style={{ fontSize: '16px' }}>📤</span>;
+const CloudUploadIcon = () => <span style={{ fontSize: '16px' }}>☁️</span>;
+const CheckIcon = () => <span style={{ fontSize: '16px' }}>✅</span>;
+const DeleteIcon = () => <span style={{ fontSize: '16px' }}>🗑️</span>;
+const DownloadIcon = () => <span style={{ fontSize: '16px' }}>📥</span>;
+const SyncIcon = () => <span style={{ fontSize: '16px' }}>🔄</span>;
 
 // Interfaces
 interface ProventoCentral {
@@ -202,55 +202,402 @@ export default function CentralProventos() {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Stack direction="row" justifyContent="space-between" mb={3}>
-        <Button onClick={() => router.back()} startIcon={<ArrowLeftIcon />} variant="outlined">
+    <Box sx={{ 
+      p: 4, 
+      maxWidth: 1400, 
+      mx: 'auto',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      minHeight: '100vh',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    }}>
+      {/* Header com botão voltar */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+        <Button 
+          onClick={() => router.back()} 
+          startIcon={<ArrowLeftIcon />} 
+          sx={{
+            color: '#64748b',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '8px 16px',
+            textTransform: 'none',
+            fontWeight: 500,
+            '&:hover': {
+              backgroundColor: '#f1f5f9',
+              borderColor: '#cbd5e1'
+            }
+          }}
+        >
           Voltar
         </Button>
       </Stack>
 
-      <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-        <CardContent>
-          <Typography variant="h4" fontWeight={700}>🏦 Central de Proventos</Typography>
-          <Typography variant="h6" sx={{ opacity: 0.9, mb: 3 }}>Sistema unificado para gerenciar proventos de todas as empresas</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6} md={3}><Box textAlign="center"><Typography variant="h4">{estatisticas.totalEmpresas}</Typography><Typography>Empresas</Typography></Box></Grid>
-            <Grid item xs={6} md={3}><Box textAlign="center"><Typography variant="h4">{estatisticas.totalProventos}</Typography><Typography>Proventos</Typography></Box></Grid>
-            <Grid item xs={6} md={3}><Box textAlign="center"><Typography variant="h4">{formatarMoeda(estatisticas.valorTotal).replace('R$', '')}</Typography><Typography>Total</Typography></Box></Grid>
-            <Grid item xs={6} md={3}><Box textAlign="center"><Typography variant="body1">{estatisticas.dataUltimoUpload ? new Date(estatisticas.dataUltimoUpload).toLocaleDateString('pt-BR') : 'Nunca'}</Typography><Typography>Último Upload</Typography></Box></Grid>
+      {/* Card principal com título e estatísticas */}
+      <Card sx={{ 
+        mb: 4, 
+        background: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+      }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box mb={3}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#1e293b',
+                mb: 1,
+                fontSize: '2rem'
+              }}
+            >
+              💰 Central de Proventos
+            </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#64748b', 
+                fontWeight: 400,
+                fontSize: '1.125rem'
+              }}
+            >
+              Sistema unificado para gerenciar proventos de todas as empresas
+            </Typography>
+          </Box>
+
+          {/* Estatísticas */}
+          <Grid container spacing={3}>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#1e293b',
+                    mb: 0.5
+                  }}
+                >
+                  {estatisticas.totalEmpresas}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Empresas
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#1e293b',
+                    mb: 0.5
+                  }}
+                >
+                  {estatisticas.totalProventos}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Proventos
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#1e293b',
+                    mb: 0.5,
+                    fontSize: '1.5rem'
+                  }}
+                >
+                  {formatarMoeda(estatisticas.valorTotal).replace('R$', 'R$')}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Total
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  sx={{ 
+                    fontWeight: 600, 
+                    color: '#1e293b',
+                    mb: 0.5,
+                    fontSize: '1rem'
+                  }}
+                >
+                  {estatisticas.dataUltimoUpload 
+                    ? new Date(estatisticas.dataUltimoUpload).toLocaleDateString('pt-BR') 
+                    : 'Nunca'
+                  }
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Último Upload
+                </Typography>
+              </Box>
+            </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} md={3}><Button fullWidth variant="contained" onClick={() => setDialogAberto(true)} startIcon={<CloudUploadIcon />}>Novo Upload CSV</Button></Grid>
-        <Grid item xs={12} md={3}><Button fullWidth variant="outlined" onClick={exportarDados} startIcon={<DownloadIcon />}>Exportar</Button></Grid>
-        <Grid item xs={12} md={3}><Button fullWidth variant="outlined" onClick={carregarEstatisticas} startIcon={<SyncIcon />}>Atualizar</Button></Grid>
-        <Grid item xs={12} md={3}><Button fullWidth variant="outlined" color="error" onClick={limparTudo} startIcon={<DeleteIcon />}>Limpar Tudo</Button></Grid>
+      {/* Botões de ação */}
+      <Grid container spacing={2} mb={4}>
+        <Grid item xs={12} md={3}>
+          <Button 
+            fullWidth 
+            onClick={() => setDialogAberto(true)} 
+            startIcon={<CloudUploadIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: 'white',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              '&:hover': {
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }
+            }}
+          >
+            Novo Upload CSV
+          </Button>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Button 
+            fullWidth 
+            onClick={exportarDados} 
+            startIcon={<DownloadIcon />}
+            sx={{
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Exportar
+          </Button>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Button 
+            fullWidth 
+            onClick={carregarEstatisticas} 
+            startIcon={<SyncIcon />}
+            sx={{
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Atualizar
+          </Button>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Button 
+            fullWidth 
+            onClick={limparTudo} 
+            startIcon={<DeleteIcon />}
+            sx={{
+              border: '1px solid #fecaca',
+              color: '#dc2626',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              '&:hover': {
+                backgroundColor: '#fef2f2',
+                borderColor: '#fca5a5'
+              }
+            }}
+          >
+            Limpar Tudo
+          </Button>
+        </Grid>
       </Grid>
 
-      <Dialog open={dialogAberto} onClose={() => !loading && setDialogAberto(false)} maxWidth="md" fullWidth>
-        <DialogTitle>📤 Upload Central de Proventos</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Formato: <code>ticker,data,valor,tipo</code> ou <code>ticker;data;valor;tipo</code>
+      {/* Dialog de upload */}
+      <Dialog 
+        open={dialogAberto} 
+        onClose={() => !loading && setDialogAberto(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontSize: '1.25rem', 
+          fontWeight: 600, 
+          color: '#1e293b',
+          borderBottom: '1px solid #e2e8f0'
+        }}>
+          📤 Upload Central de Proventos
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Alert 
+            severity="info" 
+            sx={{ 
+              mb: 3,
+              borderRadius: '12px',
+              border: '1px solid #dbeafe',
+              backgroundColor: '#f0f9ff'
+            }}
+          >
+            <Typography sx={{ fontSize: '0.875rem' }}>
+              Formato esperado: <code style={{ 
+                backgroundColor: '#e2e8f0', 
+                padding: '2px 6px', 
+                borderRadius: '4px',
+                fontSize: '0.8rem'
+              }}>
+                ticker,data,valor,tipo
+              </code> ou <code style={{ 
+                backgroundColor: '#e2e8f0', 
+                padding: '2px 6px', 
+                borderRadius: '4px',
+                fontSize: '0.8rem'
+              }}>
+                ticker;data;valor;tipo
+              </code>
+            </Typography>
           </Alert>
-          <input id="upload-csv" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleUploadArquivo} disabled={loading} />
+          
+          <input 
+            id="upload-csv" 
+            type="file" 
+            accept=".csv" 
+            style={{ display: 'none' }} 
+            onChange={handleUploadArquivo} 
+            disabled={loading} 
+          />
           <label htmlFor="upload-csv">
-            <Button component="span" variant="contained" fullWidth startIcon={<UploadIcon />} disabled={loading}>
-              {arquivoSelecionado ? `✅ ${arquivoSelecionado.name}` : 'Selecionar Arquivo CSV'}
+            <Button 
+              component="span" 
+              fullWidth 
+              startIcon={<UploadIcon />} 
+              disabled={loading}
+              sx={{
+                border: '2px dashed #cbd5e1',
+                borderRadius: '12px',
+                padding: '20px',
+                textTransform: 'none',
+                fontWeight: 500,
+                color: arquivoSelecionado ? '#16a34a' : '#64748b',
+                backgroundColor: arquivoSelecionado ? '#f0fdf4' : '#f8fafc',
+                '&:hover': {
+                  backgroundColor: '#f1f5f9',
+                  borderColor: '#94a3b8'
+                }
+              }}
+            >
+              {arquivoSelecionado ? `✅ ${arquivoSelecionado.name}` : 'Clique para selecionar arquivo CSV'}
             </Button>
           </label>
+          
           {loading && (
-            <Box mt={2}>
-              <Typography>{etapaProcessamento}</Typography>
-              <LinearProgress value={progresso} variant="determinate" />
+            <Box mt={3}>
+              <Typography sx={{ mb: 1, color: '#64748b', fontSize: '0.875rem' }}>
+                {etapaProcessamento}
+              </Typography>
+              <LinearProgress 
+                value={progresso} 
+                variant="determinate" 
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#e2e8f0',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4
+                  }
+                }}
+              />
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogAberto(false)} disabled={loading}>Cancelar</Button>
-          <Button onClick={processarCSV} disabled={!arquivoSelecionado || loading} variant="contained" startIcon={loading ? <CircularProgress size={16} /> : <CheckIcon />}>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #e2e8f0' }}>
+          <Button 
+            onClick={() => setDialogAberto(false)} 
+            disabled={loading}
+            sx={{
+              color: '#64748b',
+              textTransform: 'none',
+              fontWeight: 500
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={processarCSV} 
+            disabled={!arquivoSelecionado || loading}
+            startIcon={loading ? <CircularProgress size={16} /> : <CheckIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: 'white',
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:disabled': {
+                backgroundColor: '#e2e8f0',
+                color: '#94a3b8'
+              }
+            }}
+          >
             {loading ? 'Processando...' : 'Processar'}
           </Button>
         </DialogActions>
