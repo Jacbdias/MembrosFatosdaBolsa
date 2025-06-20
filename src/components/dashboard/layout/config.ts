@@ -145,13 +145,13 @@ export const navItems = [
     ],
   },
 
-  // 🛡️ NOVO - MENU ADMINISTRATIVO
+  // 🛡️ MENU ADMINISTRATIVO (sem ícone no título)
   {
     key: 'administracao',
     title: 'Administração',
     href: paths.dashboard.admin,
-    icon: 'gear', // Certifique-se que este ícone existe no nav-icons
-    page: 'admin', // Página principal que controla acesso
+    icon: 'gear',
+    page: 'admin',
     items: [
       {
         key: 'admin-dashboard',
@@ -194,21 +194,10 @@ export const navItems = [
         href: paths.dashboard.adminIntegracoes,
         icon: 'link',
         page: 'admin-integracoes'
-      }
-    ]
-  },
-
-  // 🛡️ NOVO - SUPER ADMIN (só aparece para super admins)
-  {
-    key: 'super-admin',
-    title: 'Super Admin',
-    href: paths.dashboard.adminSettings,
-    icon: 'shield-check', // Certifique-se que este ícone existe
-    page: 'admin-settings', // Controla acesso de super admin
-    items: [
+      },
       {
         key: 'admin-settings',
-        title: 'Configurações do Sistema',
+        title: 'Configurações',
         href: paths.dashboard.adminSettings,
         icon: 'gear',
         page: 'admin-settings'
@@ -219,13 +208,6 @@ export const navItems = [
         href: paths.dashboard.adminLogs,
         icon: 'list',
         page: 'admin-logs'
-      },
-      {
-        key: 'admin-plans',
-        title: 'Gestão de Planos',
-        href: paths.dashboard.adminPlans,
-        icon: 'package',
-        page: 'admin-plans'
       }
     ]
   },
