@@ -213,8 +213,18 @@ export default function CentralProventos() {
         }
 
         // ✅ LIMPEZA E CONVERSÃO DE VALOR MELHORADA
-        let valorLimpo = valor.toString()
-          .replace('R$', '')
+let valorLimpo = valor.toString()
+  .replace('R$', '')
+  .replace(/\s/g, '')
+  .replace(',', '.')
+  .trim();
+
+const valorNum = parseFloat(valorLimpo);
+if (isNaN(valorNum)) {
+  erros.push(`Linha ${i + 1}: Valor inválido (${valor} -> ${valorLimpo})`);
+  console.log(`Erro linha ${i + 1}: valor inválido`);
+  continue;
+}
 
         let dataObj: Date;
         try {
