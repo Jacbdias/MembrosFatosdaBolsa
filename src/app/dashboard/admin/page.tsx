@@ -47,44 +47,48 @@ export default function AdminDashboard() {
 
   const styles = {
     adminContainer: {
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
       minHeight: '100vh',
-      padding: '20px'
+      padding: '24px'
     },
     container: {
-      maxWidth: '1200px',
+      maxWidth: '1400px',
       margin: '0 auto'
     },
     header: {
       textAlign: 'center' as const,
-      marginBottom: '40px',
-      color: 'white'
+      marginBottom: '48px',
+      color: '#1e293b'
     },
     title: {
-      fontSize: '2.5rem',
-      marginBottom: '10px',
-      textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-      margin: '0 0 10px 0'
+      fontSize: '2.75rem',
+      fontWeight: 700,
+      marginBottom: '12px',
+      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+      backgroundClip: 'text',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      margin: '0 0 12px 0'
     },
     subtitle: {
-      fontSize: '1.1rem',
-      opacity: 0.9,
+      fontSize: '1.125rem',
+      color: '#64748b',
+      fontWeight: 400,
       margin: 0
     },
     dashboardGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '25px',
-      marginBottom: '40px'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+      gap: '24px',
+      marginBottom: '48px'
     },
     card: {
-      background: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '15px',
-      padding: '30px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
+      background: '#ffffff',
+      borderRadius: '16px',
+      padding: '32px',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      border: '1px solid #e2e8f0',
       transition: 'all 0.3s ease',
       cursor: 'pointer',
       position: 'relative' as const,
@@ -93,139 +97,154 @@ export default function AdminDashboard() {
       transform: 'translateY(30px)'
     },
     cardIcon: {
-      width: '60px',
-      height: '60px',
-      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+      width: '56px',
+      height: '56px',
+      background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
       borderRadius: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: '20px',
-      fontSize: '24px',
-      color: 'white'
+      fontSize: '22px',
+      border: '1px solid #e2e8f0'
     },
     cardTitle: {
-      color: '#333',
-      fontSize: '1.4rem',
-      marginBottom: '10px',
-      margin: '0 0 10px 0'
+      color: '#1e293b',
+      fontSize: '1.25rem',
+      fontWeight: 600,
+      marginBottom: '8px',
+      margin: '0 0 8px 0'
     },
     cardText: {
-      color: '#666',
+      color: '#64748b',
       lineHeight: 1.6,
       marginBottom: '20px',
-      margin: '0 0 20px 0'
+      margin: '0 0 20px 0',
+      fontSize: '0.95rem'
     },
     statusActive: {
-      display: 'inline-block',
+      display: 'inline-flex',
+      alignItems: 'center',
       padding: '4px 12px',
       borderRadius: '20px',
-      fontSize: '0.8rem',
-      fontWeight: 600,
+      fontSize: '0.75rem',
+      fontWeight: 500,
       textTransform: 'uppercase' as const,
-      background: '#e8f5e8',
-      color: '#2d5a2d'
+      background: '#dcfce7',
+      color: '#166534',
+      border: '1px solid #bbf7d0'
     },
     statusDevelopment: {
-      display: 'inline-block',
+      display: 'inline-flex',
+      alignItems: 'center',
       padding: '4px 12px',
       borderRadius: '20px',
-      fontSize: '0.8rem',
-      fontWeight: 600,
+      fontSize: '0.75rem',
+      fontWeight: 500,
       textTransform: 'uppercase' as const,
-      background: '#fff3cd',
-      color: '#856404'
+      background: '#fef3c7',
+      color: '#92400e',
+      border: '1px solid #fde68a'
     },
     statusPlanned: {
-      display: 'inline-block',
+      display: 'inline-flex',
+      alignItems: 'center',
       padding: '4px 12px',
       borderRadius: '20px',
-      fontSize: '0.8rem',
-      fontWeight: 600,
+      fontSize: '0.75rem',
+      fontWeight: 500,
       textTransform: 'uppercase' as const,
-      background: '#e2e3e5',
-      color: '#383d41'
+      background: '#f1f5f9',
+      color: '#475569',
+      border: '1px solid #e2e8f0'
     },
     quickActions: {
-      background: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '15px',
-      padding: '30px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      marginBottom: '40px'
+      background: '#ffffff',
+      borderRadius: '16px',
+      padding: '32px',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '48px'
     },
     quickActionsTitle: {
-      color: '#333',
-      marginBottom: '20px',
-      fontSize: '1.6rem',
-      margin: '0 0 20px 0'
+      color: '#1e293b',
+      marginBottom: '24px',
+      fontSize: '1.5rem',
+      fontWeight: 600,
+      margin: '0 0 24px 0'
     },
     actionsGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '15px'
+      gap: '16px'
     },
     actionBtn: {
-      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
       color: 'white',
       border: 'none',
-      padding: '15px 20px',
-      borderRadius: '10px',
-      fontSize: '1rem',
-      fontWeight: 600,
+      padding: '14px 20px',
+      borderRadius: '12px',
+      fontSize: '0.95rem',
+      fontWeight: 500,
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '8px'
+      gap: '8px',
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
     },
     footer: {
       textAlign: 'center' as const,
-      marginTop: '40px',
-      color: 'rgba(255, 255, 255, 0.8)'
+      marginTop: '48px',
+      color: '#94a3b8',
+      fontSize: '0.9rem'
     },
     notification: {
       position: 'fixed' as const,
-      top: '20px',
-      right: '20px',
-      background: '#4CAF50',
-      color: 'white',
-      padding: '15px 25px',
-      borderRadius: '10px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+      top: '24px',
+      right: '24px',
+      background: '#ffffff',
+      color: '#1e293b',
+      padding: '16px 24px',
+      borderRadius: '12px',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      border: '1px solid #e2e8f0',
       zIndex: 1000,
       transform: notification ? 'translateX(0)' : 'translateX(400px)',
-      transition: 'transform 0.3s ease'
+      transition: 'transform 0.3s ease',
+      fontSize: '0.9rem',
+      fontWeight: 500
     }
   };
 
   const handleCardHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'translateY(-5px)';
-    e.currentTarget.style.boxShadow = '0 15px 40px rgba(0,0,0,0.15)';
+    e.currentTarget.style.transform = 'translateY(-4px)';
+    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    e.currentTarget.style.borderColor = '#cbd5e1';
   };
 
   const handleCardLeave = (e: React.MouseEvent<HTMLDivElement>) => {
     e.currentTarget.style.transform = 'translateY(0)';
-    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
+    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)';
+    e.currentTarget.style.borderColor = '#e2e8f0';
   };
 
   const handleButtonHover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = 'translateY(-2px)';
-    e.currentTarget.style.boxShadow = '0 5px 15px rgba(102, 126, 234, 0.4)';
+    e.currentTarget.style.transform = 'translateY(-1px)';
+    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
   };
 
   const handleButtonLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.transform = 'translateY(0)';
-    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
   };
 
   return (
     <div style={styles.adminContainer}>
       <div style={styles.container}>
         <div style={styles.header}>
-          <h1 style={styles.title}>🎯 Dashboard Administrativo</h1>
+          <h1 style={styles.title}>Dashboard Administrativo</h1>
           <p style={styles.subtitle}>Centro de Gerenciamento - Fatos da Bolsa</p>
         </div>
 
@@ -246,13 +265,13 @@ export default function AdminDashboard() {
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Gestão de Clientes')}
+            onClick={() => showComingSoon('Gestão de Usuários')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
             <div style={styles.cardIcon}>👥</div>
-            <h3 style={styles.cardTitle}>Gestão de Clientes</h3>
-            <p style={styles.cardText}>Administre contas de clientes, permissões e níveis de acesso ao sistema.</p>
+            <h3 style={styles.cardTitle}>Gestão de Usuários</h3>
+            <p style={styles.cardText}>Administre contas de usuários, permissões e níveis de acesso ao sistema.</p>
             <span style={styles.statusDevelopment}>Em Desenvolvimento</span>
           </div>
 
@@ -272,13 +291,13 @@ export default function AdminDashboard() {
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Mercado Internacional')}
+            onClick={() => showComingSoon('Relatórios')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
-            <div style={styles.cardIcon}>🌍</div>
-            <h3 style={styles.cardTitle}>Mercado Internacional</h3>
-            <p style={styles.cardText}>Ferramentas para análise e gestão de ativos internacionais.</p>
+            <div style={styles.cardIcon}>📊</div>
+            <h3 style={styles.cardTitle}>Relatórios</h3>
+            <p style={styles.cardText}>Gere relatórios detalhados e visualize métricas importantes do sistema.</p>
             <span style={styles.statusPlanned}>Planejado</span>
           </div>
 
@@ -298,19 +317,19 @@ export default function AdminDashboard() {
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Gestão de API')}
+            onClick={() => showComingSoon('Configurações')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
-            <div style={styles.cardIcon}>⚡</div>
-            <h3 style={styles.cardTitle}>Gestão de API</h3>
-            <p style={styles.cardText}>Monitore endpoints, logs e performance das APIs do sistema.</p>
+            <div style={styles.cardIcon}>⚙️</div>
+            <h3 style={styles.cardTitle}>Configurações</h3>
+            <p style={styles.cardText}>Gerencie configurações do sistema, logs e preferências gerais.</p>
             <span style={styles.statusPlanned}>Planejado</span>
           </div>
         </div>
 
         <div style={styles.quickActions}>
-          <h2 style={styles.quickActionsTitle}>⚡ Ações Rápidas</h2>
+          <h2 style={styles.quickActionsTitle}>Ações Rápidas</h2>
           <div style={styles.actionsGrid}>
             <button 
               style={styles.actionBtn} 
@@ -322,11 +341,11 @@ export default function AdminDashboard() {
             </button>
             <button 
               style={styles.actionBtn} 
-              onClick={() => showComingSoon('Novo Cliente')}
+              onClick={() => showComingSoon('Novo Usuário')}
               onMouseEnter={handleButtonHover}
               onMouseLeave={handleButtonLeave}
             >
-              👤 Novo Cliente
+              👤 Novo Usuário
             </button>
             <button 
               style={styles.actionBtn} 
