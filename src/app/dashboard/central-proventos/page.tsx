@@ -692,9 +692,6 @@ if (isNaN(valorNum)) {
       </Dialog>
     </Box>
   );
-          .replace(/\s/g, '')          // Remove espaços
-          .replace(',', '.')           // Vírgula vira ponto
-          .trim();
         
         const valorNum = parseFloat(valorLimpo);
         if (isNaN(valorNum)) {
