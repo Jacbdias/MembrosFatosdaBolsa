@@ -10,7 +10,6 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 import { Package } from '@phosphor-icons/react/dist/ssr/Package';
-
 // Novos ícones melhorados
 import { Book } from '@phosphor-icons/react/dist/ssr/Book';
 import { Receipt } from '@phosphor-icons/react/dist/ssr/Receipt';
@@ -20,6 +19,8 @@ import { Table } from '@phosphor-icons/react/dist/ssr/Table';
 import { ChatCircle } from '@phosphor-icons/react/dist/ssr/ChatCircle';
 import { Lightbulb } from '@phosphor-icons/react/dist/ssr/Lightbulb';
 import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
+// 🇺🇸 NOVO - Ícone para Projeto América
+import { Star } from '@phosphor-icons/react/dist/ssr/Star';
 
 export const navIcons = {
   'chart-pie': ChartPie,
@@ -42,4 +43,7 @@ export const navIcons = {
   'airplane': Airplane,           // Para Milhas Aéreas
   'table': Table,                 // Para Planilhas
   'chat': ChatCircle,             // Para Telegram
+  
+  // 🇺🇸 NOVO - Projeto América
+  'star': Star,                   // Para Projeto América
 } as Record<string, Icon>;
