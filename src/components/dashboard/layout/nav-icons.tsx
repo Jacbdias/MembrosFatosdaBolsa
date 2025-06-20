@@ -10,6 +10,7 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 import { Package } from '@phosphor-icons/react/dist/ssr/Package';
+
 // Novos ícones melhorados
 import { Book } from '@phosphor-icons/react/dist/ssr/Book';
 import { Receipt } from '@phosphor-icons/react/dist/ssr/Receipt';
@@ -19,8 +20,13 @@ import { Table } from '@phosphor-icons/react/dist/ssr/Table';
 import { ChatCircle } from '@phosphor-icons/react/dist/ssr/ChatCircle';
 import { Lightbulb } from '@phosphor-icons/react/dist/ssr/Lightbulb';
 import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
-// 🇺🇸 NOVO - Ícone para Projeto América
 import { Star } from '@phosphor-icons/react/dist/ssr/Star';
+
+// 🛡️ NOVOS ÍCONES ADMINISTRATIVOS
+import { Gear } from '@phosphor-icons/react/dist/ssr/Gear';
+import { ShieldCheck } from '@phosphor-icons/react/dist/ssr/ShieldCheck';
+import { Link } from '@phosphor-icons/react/dist/ssr/Link';
+import { List } from '@phosphor-icons/react/dist/ssr/List';
 
 export const navIcons = {
   'chart-pie': ChartPie,
@@ -44,4 +50,10 @@ export const navIcons = {
   'table': Table,                 // Para Planilhas
   'chat': ChatCircle,             // Para Telegram
   'star': Star,                   // Para Projeto América
+  
+  // 🛡️ ÍCONES ADMINISTRATIVOS
+  'gear': Gear,                   // Para menu Administração e configurações
+  'shield-check': ShieldCheck,    // Para Super Admin
+  'link': Link,                   // Para Integrações
+  'list': List,                   // Para Logs do Sistema
 } as Record<string, Icon>;
