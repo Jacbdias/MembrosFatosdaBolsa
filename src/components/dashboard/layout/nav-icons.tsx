@@ -43,7 +43,5 @@ export const navIcons = {
   'airplane': Airplane,           // Para Milhas Aéreas
   'table': Table,                 // Para Planilhas
   'chat': ChatCircle,             // Para Telegram
-  
-  // 🇺🇸 NOVO - Projeto América
   'star': Star,                   // Para Projeto América
 } as Record<string, Icon>;
