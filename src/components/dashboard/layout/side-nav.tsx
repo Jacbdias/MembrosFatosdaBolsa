@@ -38,19 +38,19 @@ export function SideNav(): React.JSX.Element {
           setPlanInfo(info);
           console.log('✅ PlanInfo definido:', info);
         } else {
-console.log('⚠️ PlanInfo é null, usando fallback VIP');
-setPlanInfo({
-  displayName: 'Close Friends VIP',
-  pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos']
-});
+          console.log('⚠️ PlanInfo é null, usando fallback VIP');
+          setPlanInfo({
+            displayName: 'Close Friends VIP',
+            pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos']
+          });
         }
       } catch (error) {
         console.error('❌ Error loading plan info:', error);
-console.log('🔄 Usando fallback VIP devido ao erro');
-setPlanInfo({
-  displayName: 'Close Friends VIP',
-  pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos']
-});
+        console.log('🔄 Usando fallback VIP devido ao erro');
+        setPlanInfo({
+          displayName: 'Close Friends VIP',
+          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos']
+        });
       } finally {
         setLoading(false);
         console.log('✅ Loading finalizado');
