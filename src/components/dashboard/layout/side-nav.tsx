@@ -20,11 +20,20 @@ import { authClient } from '@/lib/auth/client';
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
 
+// 🛡️ Interface expandida para incluir informações de admin
+interface ExtendedPlanInfo {
+  displayName: string;
+  pages: string[];
+  isAdmin?: boolean;
+  adminPermissions?: any;
+}
+
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = React.useState<Record<string, boolean>>({});
   
-  const [planInfo, setPlanInfo] = React.useState<{ displayName: string; pages: string[] } | null>(null);
+  // 🛡️ Tipo expandido para incluir isAdmin
+  const [planInfo, setPlanInfo] = React.useState<ExtendedPlanInfo | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -37,11 +46,18 @@ export function SideNav(): React.JSX.Element {
         if (info) {
           setPlanInfo(info);
           console.log('✅ PlanInfo definido:', info);
+          
+          // 🛡️ Log especial para admins
+          if (info.isAdmin) {
+            console.log('🛡️ Usuário logado como ADMINISTRADOR');
+            console.log('🔑 Permissões admin:', info.adminPermissions);
+          }
         } else {
           console.log('⚠️ PlanInfo é null, usando fallback VIP');
           setPlanInfo({
             displayName: 'Close Friends VIP',
-            pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos']
+            pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'],
+            isAdmin: false
           });
         }
       } catch (error) {
@@ -49,7 +65,8 @@ export function SideNav(): React.JSX.Element {
         console.log('🔄 Usando fallback VIP devido ao erro');
         setPlanInfo({
           displayName: 'Close Friends VIP',
-          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos']
+          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'],
+          isAdmin: false
         });
       } finally {
         setLoading(false);
@@ -60,6 +77,7 @@ export function SideNav(): React.JSX.Element {
     loadPlanInfo();
   }, []);
 
+  // 🛡️ Função hasAccessSync atualizada para suportar admin
   const hasAccessSync = (page: string): boolean => {
     if (!page) {
       console.log('⚠️ Página vazia fornecida');
@@ -69,6 +87,22 @@ export function SideNav(): React.JSX.Element {
     if (!planInfo) {
       console.log('⚠️ planInfo não carregado ainda');
       return true; // Se não carregou ainda, mostra tudo
+    }
+    
+    // 🛡️ VERIFICAÇÃO ESPECIAL PARA PÁGINAS ADMINISTRATIVAS
+    if (page.startsWith('admin')) {
+      const isAdminUser = planInfo.isAdmin || false;
+      console.log(`🛡️ Verificando acesso admin para "${page}": ${isAdminUser}`);
+      
+      if (!isAdminUser) {
+        console.log(`❌ Usuário não é admin, negando acesso a "${page}"`);
+        return false;
+      }
+      
+      // Se é admin, verificar se tem a página específica
+      const hasPageAccess = planInfo.pages.includes(page);
+      console.log(`🔑 Admin verificando página "${page}": ${hasPageAccess}`);
+      return hasPageAccess;
     }
     
     const hasAccess = planInfo.pages.includes(page);
@@ -198,6 +232,11 @@ export function SideNav(): React.JSX.Element {
             cursor: 'pointer',
             display: 'flex',
             p: '4px 12px',
+            // 🛡️ Destaque visual para admins
+            ...(planInfo?.isAdmin && {
+              border: '1px solid #4dfb01',
+              boxShadow: '0 0 10px rgba(77, 251, 1, 0.3)',
+            }),
           }}
         >
           <Box sx={{ flex: '1 1 auto' }}>
@@ -206,6 +245,24 @@ export function SideNav(): React.JSX.Element {
             </Typography>
             <Typography color="inherit" variant="subtitle1">
               {planInfo?.displayName || 'Carregando...'}
+              {/* 🛡️ Badge para admins */}
+              {planInfo?.isAdmin && (
+                <Typography
+                  component="span"
+                  sx={{
+                    ml: 1,
+                    px: 1,
+                    py: 0.5,
+                    bgcolor: '#4dfb01',
+                    color: '#000',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  ADMIN
+                </Typography>
+              )}
             </Typography>
           </Box>
         </Box>
@@ -213,47 +270,46 @@ export function SideNav(): React.JSX.Element {
 
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
 
-<Box 
-  component="nav" 
-  sx={{ 
-    flex: '1 1 auto', 
-    p: '12px',
-    // 🚀 ADICIONE ESTAS LINHAS:
-    overflowY: 'auto',
-    overflowX: 'hidden',
-    maxHeight: 'calc(100vh - 200px)',
-    // Scrollbar customizada
-    '&::-webkit-scrollbar': {
-      width: '6px',
-    },
-    '&::-webkit-scrollbar-track': {
-      background: 'rgba(255, 255, 255, 0.1)',
-      borderRadius: '3px',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      background: 'rgba(255, 255, 255, 0.3)',
-      borderRadius: '3px',
-      '&:hover': {
-        background: 'rgba(255, 255, 255, 0.5)',
-      },
-    },
-    scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)',
-  }}
->
-  {loading ? (
-    <Typography color="var(--mui-palette-neutral-400)" variant="body2" sx={{ p: 2 }}>
-      Carregando menu...
-    </Typography>
-  ) : (
-    renderNavItems({ 
-      pathname, 
-      items: filteredNavItems,
-      expandedItems, 
-      toggleExpanded 
-    })
-  )}
-</Box>
+      <Box 
+        component="nav" 
+        sx={{ 
+          flex: '1 1 auto', 
+          p: '12px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          maxHeight: 'calc(100vh - 200px)',
+          // Scrollbar customizada
+          '&::-webkit-scrollbar': {
+            width: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '3px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(255, 255, 255, 0.3)',
+            borderRadius: '3px',
+            '&:hover': {
+              background: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        {loading ? (
+          <Typography color="var(--mui-palette-neutral-400)" variant="body2" sx={{ p: 2 }}>
+            Carregando menu...
+          </Typography>
+        ) : (
+          renderNavItems({ 
+            pathname, 
+            items: filteredNavItems,
+            expandedItems, 
+            toggleExpanded 
+          })
+        )}
+      </Box>
     </Box>
   );
 }
@@ -319,6 +375,9 @@ function NavItem({
   const hasChildren = items && items.length > 0;
   const isExpanded = expandedItems[itemKey] || false;
 
+  // 🛡️ Detectar se é item administrativo para estilo especial
+  const isAdminItem = itemKey.includes('admin') || title.toLowerCase().includes('admin');
+
   if (href && hasChildren) {
     return (
       <li>
@@ -341,6 +400,11 @@ function NavItem({
               position: 'relative',
               textDecoration: 'none',
               whiteSpace: 'nowrap',
+              // 🛡️ Estilo especial para itens admin
+              ...(isAdminItem && {
+                border: '1px solid rgba(77, 251, 1, 0.3)',
+                backgroundColor: 'rgba(77, 251, 1, 0.1)',
+              }),
               ...(disabled && {
                 bgcolor: 'var(--NavItem-disabled-background)',
                 color: 'var(--NavItem-disabled-color)',
@@ -382,6 +446,19 @@ function NavItem({
                 }}
               >
                 {title}
+                {/* 🛡️ Ícone para itens admin */}
+                {isAdminItem && (
+                  <Typography
+                    component="span"
+                    sx={{
+                      ml: 1,
+                      fontSize: '0.7rem',
+                      opacity: 0.7,
+                    }}
+                  >
+                    🛡️
+                  </Typography>
+                )}
               </Typography>
             </Box>
           </Box>
@@ -452,6 +529,11 @@ function NavItem({
           position: 'relative',
           textDecoration: 'none',
           whiteSpace: 'nowrap',
+          // 🛡️ Estilo especial para itens admin
+          ...(isAdminItem && {
+            border: '1px solid rgba(77, 251, 1, 0.3)',
+            backgroundColor: 'rgba(77, 251, 1, 0.1)',
+          }),
           ...(disabled && {
             bgcolor: 'var(--NavItem-disabled-background)',
             color: 'var(--NavItem-disabled-color)',
@@ -490,6 +572,19 @@ function NavItem({
             }}
           >
             {title}
+            {/* 🛡️ Ícone para itens admin */}
+            {isAdminItem && (
+              <Typography
+                component="span"
+                sx={{
+                  ml: 1,
+                  fontSize: '0.7rem',
+                  opacity: 0.7,
+                }}
+              >
+                🛡️
+              </Typography>
+            )}
           </Typography>
         </Box>
       </Box>
