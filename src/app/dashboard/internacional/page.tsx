@@ -12,6 +12,7 @@ import { ArrowRight as ArrowRightIcon } from '@phosphor-icons/react/dist/ssr/Arr
 import { ChartLine as ChartLineIcon } from '@phosphor-icons/react/dist/ssr/ChartLine';
 import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { Star as StarIcon } from '@phosphor-icons/react/dist/ssr/Star';
 
 // 🎨 CARD DE NAVEGAÇÃO CLEAN
 interface NavigationCardProps {
@@ -19,9 +20,10 @@ interface NavigationCardProps {
   description: string;
   icon: React.ReactNode;
   href: string;
+  isSpecial?: boolean;
 }
 
-function NavigationCard({ title, description, icon, href }: NavigationCardProps): React.JSX.Element {
+function NavigationCard({ title, description, icon, href, isSpecial = false }: NavigationCardProps): React.JSX.Element {
   const handleNavigation = () => {
     window.location.href = href;
   };
@@ -35,14 +37,24 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
         borderRadius: 3,
         overflow: 'hidden',
         cursor: 'pointer',
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
+        background: isSpecial 
+          ? 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)'
+          : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%)',
+        border: isSpecial 
+          ? '1px solid rgba(255, 255, 255, 0.3)'
+          : '1px solid rgba(255, 255, 255, 0.15)',
+        boxShadow: isSpecial
+          ? '0 4px 6px -1px rgba(30, 64, 175, 0.2), 0 2px 4px -2px rgba(30, 64, 175, 0.1)'
+          : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           transform: 'translateY(-6px)',
-          boxShadow: '0 20px 40px -8px rgba(0, 0, 0, 0.3)',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
+          boxShadow: isSpecial
+            ? '0 20px 40px -8px rgba(30, 64, 175, 0.4)'
+            : '0 20px 40px -8px rgba(0, 0, 0, 0.3)',
+          border: isSpecial
+            ? '1px solid rgba(255, 255, 255, 0.4)'
+            : '1px solid rgba(255, 255, 255, 0.25)',
           '& .arrow-icon': {
             transform: 'translateX(6px)',
             backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -54,6 +66,36 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
         },
       }}
     >
+      {/* Special badge para Projeto América */}
+      {isSpecial && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '12px',
+            px: 1.5,
+            py: 0.5,
+            zIndex: 3
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+          >
+            🇺🇸 Novo
+          </Typography>
+        </Box>
+      )}
+
       {/* Subtle glow effect */}
       <Box
         sx={{
@@ -76,7 +118,9 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
           left: 0,
           width: '100%',
           height: '2px',
-          background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%)'
+          background: isSpecial
+            ? 'linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.2) 100%)'
+            : 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%)'
         }}
       />
       
@@ -101,7 +145,7 @@ function NavigationCard({ title, description, icon, href }: NavigationCardProps)
               height: 48,
               borderRadius: 2,
               backgroundColor: 'rgba(255, 255, 255, 0.12)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -180,6 +224,14 @@ export default function Page(): React.JSX.Element {
       description: 'Ativos focados em renda passiva',
       icon: <CurrencyDollarIcon />,
       href: '/dashboard/internacional/dividendos'
+    },
+    // 🇺🇸 NOVO CARD - Projeto América
+    {
+      title: 'Projeto América',
+      description: 'Investimentos estratégicos no mercado americano',
+      icon: <StarIcon />,
+      href: '/dashboard/internacional/projeto-america',
+      isSpecial: true
     }
   ];
 
@@ -234,9 +286,9 @@ export default function Page(): React.JSX.Element {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' },
           gap: 3,
-          maxWidth: '900px',
+          maxWidth: '1200px',
           mx: 'auto'
         }}
       >
