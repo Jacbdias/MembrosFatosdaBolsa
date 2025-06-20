@@ -232,11 +232,6 @@ export function SideNav(): React.JSX.Element {
             cursor: 'pointer',
             display: 'flex',
             p: '4px 12px',
-            // 🛡️ Destaque visual para admins
-            ...(planInfo?.isAdmin && {
-              border: '1px solid #4dfb01',
-              boxShadow: '0 0 10px rgba(77, 251, 1, 0.3)',
-            }),
           }}
         >
           <Box sx={{ flex: '1 1 auto' }}>
@@ -245,7 +240,7 @@ export function SideNav(): React.JSX.Element {
             </Typography>
             <Typography color="inherit" variant="subtitle1">
               {planInfo?.displayName || 'Carregando...'}
-              {/* 🛡️ Badge para admins */}
+              {/* 🛡️ Badge para admins (mantido só o badge simples) */}
               {planInfo?.isAdmin && (
                 <Typography
                   component="span"
@@ -375,8 +370,7 @@ function NavItem({
   const hasChildren = items && items.length > 0;
   const isExpanded = expandedItems[itemKey] || false;
 
-  // 🛡️ Detectar se é item administrativo para estilo especial
-  const isAdminItem = itemKey.includes('admin') || title.toLowerCase().includes('admin');
+  // ❌ REMOVIDO: const isAdminItem = itemKey.includes('admin') || title.toLowerCase().includes('admin');
 
   if (href && hasChildren) {
     return (
@@ -400,11 +394,7 @@ function NavItem({
               position: 'relative',
               textDecoration: 'none',
               whiteSpace: 'nowrap',
-              // 🛡️ Estilo especial para itens admin
-              ...(isAdminItem && {
-                border: '1px solid rgba(77, 251, 1, 0.3)',
-                backgroundColor: 'rgba(77, 251, 1, 0.1)',
-              }),
+              // ❌ REMOVIDO: Estilos especiais para admin
               ...(disabled && {
                 bgcolor: 'var(--NavItem-disabled-background)',
                 color: 'var(--NavItem-disabled-color)',
@@ -446,19 +436,7 @@ function NavItem({
                 }}
               >
                 {title}
-                {/* 🛡️ Ícone para itens admin */}
-                {isAdminItem && (
-                  <Typography
-                    component="span"
-                    sx={{
-                      ml: 1,
-                      fontSize: '0.7rem',
-                      opacity: 0.7,
-                    }}
-                  >
-                    🛡️
-                  </Typography>
-                )}
+                {/* ❌ REMOVIDO: Ícone de escudo para itens admin */}
               </Typography>
             </Box>
           </Box>
@@ -529,11 +507,7 @@ function NavItem({
           position: 'relative',
           textDecoration: 'none',
           whiteSpace: 'nowrap',
-          // 🛡️ Estilo especial para itens admin
-          ...(isAdminItem && {
-            border: '1px solid rgba(77, 251, 1, 0.3)',
-            backgroundColor: 'rgba(77, 251, 1, 0.1)',
-          }),
+          // ❌ REMOVIDO: Estilos especiais para admin
           ...(disabled && {
             bgcolor: 'var(--NavItem-disabled-background)',
             color: 'var(--NavItem-disabled-color)',
@@ -572,19 +546,7 @@ function NavItem({
             }}
           >
             {title}
-            {/* 🛡️ Ícone para itens admin */}
-            {isAdminItem && (
-              <Typography
-                component="span"
-                sx={{
-                  ml: 1,
-                  fontSize: '0.7rem',
-                  opacity: 0.7,
-                }}
-              >
-                🛡️
-              </Typography>
-            )}
+            {/* ❌ REMOVIDO: Ícone de escudo para itens admin */}
           </Typography>
         </Box>
       </Box>
