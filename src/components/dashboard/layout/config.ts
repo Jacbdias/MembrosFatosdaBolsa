@@ -149,49 +149,49 @@ export const navItems = [
   {
     key: 'administracao',
     title: 'Administração',
-    href: '/dashboard/admin',
+    href: paths.dashboard.admin,
     icon: 'gear', // Certifique-se que este ícone existe no nav-icons
     page: 'admin', // Página principal que controla acesso
     items: [
       {
         key: 'admin-dashboard',
         title: 'Dashboard Admin',
-        href: '/dashboard/admin',
+        href: paths.dashboard.admin,
         icon: 'chart-pie',
         page: 'admin-dashboard'
       },
       {
         key: 'admin-proventos',
         title: 'Central de Proventos',
-        href: '/dashboard/central-proventos',
+        href: paths.dashboard.adminProventos,
         icon: 'chart-line-up',
         page: 'admin-proventos'
       },
       {
         key: 'admin-usuarios',
         title: 'Gestão de Usuários',
-        href: '/dashboard/admin/usuarios',
+        href: paths.dashboard.adminUsuarios,
         icon: 'users',
         page: 'admin-usuarios'
       },
       {
         key: 'admin-empresas',
         title: 'Gestão de Empresas',
-        href: '/dashboard/admin/empresas',
+        href: paths.dashboard.adminEmpresas,
         icon: 'buildings',
         page: 'admin-empresas'
       },
       {
         key: 'admin-relatorios',
         title: 'Relatórios',
-        href: '/dashboard/admin/relatorios',
+        href: paths.dashboard.adminRelatorios,
         icon: 'chart-bar',
         page: 'admin-relatorios'
       },
       {
         key: 'admin-integracoes',
         title: 'Integrações',
-        href: '/dashboard/admin/integracoes',
+        href: paths.dashboard.adminIntegracoes,
         icon: 'link',
         page: 'admin-integracoes'
       }
@@ -202,28 +202,28 @@ export const navItems = [
   {
     key: 'super-admin',
     title: 'Super Admin',
-    href: '/dashboard/admin/settings',
+    href: paths.dashboard.adminSettings,
     icon: 'shield-check', // Certifique-se que este ícone existe
     page: 'admin-settings', // Controla acesso de super admin
     items: [
       {
         key: 'admin-settings',
         title: 'Configurações do Sistema',
-        href: '/dashboard/admin/settings',
+        href: paths.dashboard.adminSettings,
         icon: 'gear',
         page: 'admin-settings'
       },
       {
         key: 'admin-logs',
         title: 'Logs do Sistema',
-        href: '/dashboard/admin/logs',
+        href: paths.dashboard.adminLogs,
         icon: 'list',
         page: 'admin-logs'
       },
       {
         key: 'admin-plans',
         title: 'Gestão de Planos',
-        href: '/dashboard/admin/plans',
+        href: paths.dashboard.adminPlans,
         icon: 'package',
         page: 'admin-plans'
       }
