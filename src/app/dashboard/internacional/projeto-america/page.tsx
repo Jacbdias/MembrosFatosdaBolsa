@@ -19,7 +19,6 @@ import Chip from '@mui/material/Chip';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
 
@@ -627,7 +626,7 @@ export default function Page(): React.JSX.Element {
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ 
             minWidth: '100%',
-            tableLayout: 'fixed', // Força larguras fixas
+            tableLayout: 'fixed',
             width: '100%'
           }}>
             <TableHead>
@@ -715,64 +714,8 @@ export default function Page(): React.JSX.Element {
             </TableHead>
             <TableBody>
               {projetoAmerica.map((row) => {
-                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={projetoAmerica.length}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={0}
-          rowsPerPage={projetoAmerica.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-          sx={{
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            p: 2,
-            '& .MuiTablePagination-toolbar': {
-              color: '#475569'
-            }
-          }}
-        />
-      </Card>
-    </Box>
-  );
-}, ''));
-                const precoAtual = parseFloat(row.precoAtual.replace('US
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={projetoAmerica.length}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={0}
-          rowsPerPage={projetoAmerica.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-          sx={{
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            p: 2,
-            '& .MuiTablePagination-toolbar': {
-              color: '#475569'
-            }
-          }}
-        />
-      </Card>
-    </Box>
-  );
-}, ''));
+                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
+                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
                 const variacao = row.precoAtual !== 'N/A' ? 
                   ((precoAtual - precoIniciou) / precoIniciou) * 100 : 0;
                 const isPositive = variacao >= 0;
