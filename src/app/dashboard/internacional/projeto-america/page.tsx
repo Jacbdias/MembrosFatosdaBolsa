@@ -19,6 +19,7 @@ import Chip from '@mui/material/Chip';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
 
@@ -624,11 +625,7 @@ export default function Page(): React.JSX.Element {
         </Box>
         
         <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ 
-            minWidth: '100%',
-            tableLayout: 'fixed',
-            width: '100%'
-          }}>
+          <Table sx={{ minWidth: '1000px' }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -636,22 +633,20 @@ export default function Page(): React.JSX.Element {
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
-                  width: '8%',
+                  width: '60px',
                   color: '#475569',
-                  fontSize: '0.75rem',
+                  fontSize: '0.8rem',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  padding: '8px 4px'
+                  letterSpacing: '0.05em'
                 }}>
                   RANK
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   color: '#475569', 
-                  fontSize: '0.75rem', 
+                  fontSize: '0.8rem', 
                   textTransform: 'uppercase',
-                  width: '20%',
-                  padding: '8px 8px'
+                  width: '200px'
                 }}>
                   Ativo
                 </TableCell>
@@ -659,10 +654,8 @@ export default function Page(): React.JSX.Element {
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  width: '16%',
-                  padding: '8px 4px'
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
                 }}>
                   Setor
                 </TableCell>
@@ -670,45 +663,37 @@ export default function Page(): React.JSX.Element {
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  width: '12%',
-                  padding: '8px 4px'
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
                 }}>
-                  Entrada
+                  Data de Entrada
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  width: '14%',
-                  padding: '8px 4px'
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
                 }}>
-                  Inicial
+                  Preço que Iniciou
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  width: '15%',
-                  padding: '8px 4px'
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
                 }}>
-                  Atual
+                  Preço Atual
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 700, 
                   textAlign: 'center', 
                   color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  width: '15%',
-                  padding: '8px 4px'
+                  fontSize: '0.8rem', 
+                  textTransform: 'uppercase'
                 }}>
-                  Teto
+                  Preço Teto
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -728,7 +713,7 @@ export default function Page(): React.JSX.Element {
                       '&:hover': {
                         backgroundColor: 'rgba(0, 0, 0, 0.04)',
                         cursor: 'pointer',
-                        transform: 'scale(1.002)',
+                        transform: 'scale(1.005)',
                         transition: 'all 0.2s ease'
                       },
                       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
@@ -737,26 +722,22 @@ export default function Page(): React.JSX.Element {
                     <TableCell sx={{ 
                       textAlign: 'center', 
                       fontWeight: 800, 
-                      fontSize: '0.9rem',
-                      color: '#1e40af',
-                      padding: '8px 4px'
+                      fontSize: '1rem',
+                      color: '#1e40af'
                     }}>
                       {row.rank}°
                     </TableCell>
-                    <TableCell sx={{ 
-                      width: '20%',
-                      padding: '8px 8px'
-                    }}>
-                      <Stack direction="row" spacing={1.5} alignItems="center">
+                    <TableCell sx={{ width: '200px' }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar 
                           src={row.avatar}
                           sx={{ 
-                            width: 36, 
-                            height: 36, 
+                            width: 44, 
+                            height: 44, 
                             backgroundColor: '#f8fafc',
                             color: '#374151',
                             fontWeight: 600,
-                            fontSize: '0.7rem',
+                            fontSize: '0.75rem',
                             border: '2px solid',
                             borderColor: 'rgba(0, 0, 0, 0.2)'
                           }}
@@ -767,17 +748,15 @@ export default function Page(): React.JSX.Element {
                           <Typography variant="subtitle1" sx={{ 
                             fontWeight: 700,
                             color: '#1e293b',
-                            fontSize: '0.9rem',
-                            lineHeight: 1.2
+                            fontSize: '1rem'
                           }}>
                             {row.ticker}
                           </Typography>
                           <Typography variant="caption" sx={{ 
                             color: row.precoAtual === 'N/A' ? '#64748b' : 
                                    isPositive ? '#059669' : '#dc2626',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            lineHeight: 1
+                            fontSize: '0.8rem',
+                            fontWeight: 600
                           }}>
                             {row.precoAtual === 'N/A' ? 'Sem dados' : 
                              `${isPositive ? '+' : ''}${variacao.toFixed(1)}%`}
@@ -785,29 +764,24 @@ export default function Page(): React.JSX.Element {
                         </Box>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      padding: '8px 4px'
-                    }}>
+                    <TableCell sx={{ textAlign: 'center' }}>
                       <Chip 
                         label={row.setor}
-                        size="small"
+                        size="medium"
                         sx={{
                           backgroundColor: 'rgba(30, 64, 175, 0.1)',
                           color: '#1e40af',
                           fontWeight: 600,
-                          fontSize: '0.7rem',
-                          border: '1px solid rgba(30, 64, 175, 0.2)',
-                          height: '24px'
+                          fontSize: '0.8rem',
+                          border: '1px solid rgba(30, 64, 175, 0.2)'
                         }}
                       />
                     </TableCell>
                     <TableCell sx={{ 
                       textAlign: 'center',
                       color: '#64748b',
-                      fontSize: '0.8rem',
-                      whiteSpace: 'nowrap',
-                      padding: '8px 4px'
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap'
                     }}>
                       {row.dataEntrada}
                     </TableCell>
@@ -816,8 +790,7 @@ export default function Page(): React.JSX.Element {
                       fontWeight: 600,
                       color: '#475569',
                       whiteSpace: 'nowrap',
-                      fontSize: '0.85rem',
-                      padding: '8px 4px'
+                      fontSize: '0.9rem'
                     }}>
                       {row.precoQueIniciou}
                     </TableCell>
@@ -827,8 +800,7 @@ export default function Page(): React.JSX.Element {
                       color: row.precoAtual === 'N/A' ? '#64748b' :
                              isPositive ? '#10b981' : '#ef4444',
                       whiteSpace: 'nowrap',
-                      fontSize: '0.85rem',
-                      padding: '8px 4px'
+                      fontSize: '0.9rem'
                     }}>
                       {row.precoAtual}
                     </TableCell>
@@ -837,9 +809,7 @@ export default function Page(): React.JSX.Element {
                       fontWeight: 600,
                       color: row.precoTeto === '-' ? '#94a3b8' : '#475569',
                       whiteSpace: 'nowrap',
-                      fontStyle: row.precoTeto === '-' ? 'italic' : 'normal',
-                      fontSize: '0.85rem',
-                      padding: '8px 4px'
+                      fontStyle: row.precoTeto === '-' ? 'italic' : 'normal'
                     }}>
                       {row.precoTeto}
                     </TableCell>
