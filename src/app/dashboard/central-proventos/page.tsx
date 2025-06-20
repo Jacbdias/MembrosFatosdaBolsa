@@ -682,7 +682,6 @@ export default function CentralProventos() {
       </Dialog>
     </Box>
   );
-}, '')           // Remove R$
           .replace(/\s/g, '')          // Remove espaços
           .replace(',', '.')           // Vírgula vira ponto
           .trim();
