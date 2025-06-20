@@ -214,9 +214,9 @@ export default function CentralProventos() {
 
         // ✅ LIMPEZA E CONVERSÃO DE VALOR MELHORADA
 let valorLimpo = valor.toString()
-  .replace('R$', '')
-  .replace(/\s/g, '')
-  .replace(',', '.')
+  .replace('R$', '')         // Remove símbolo R$
+  .replace(/\s/g, '')        // Remove espaços
+  .replace(',', '.')         // Troca vírgula por ponto (para parseFloat)
   .trim();
 
 const valorNum = parseFloat(valorLimpo);
