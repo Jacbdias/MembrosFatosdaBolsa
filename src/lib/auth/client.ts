@@ -14,8 +14,8 @@ const planPermissions = {
     pages: [
       // Páginas principais
       'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 
-      // Internacional completo
-      'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos',
+      // Internacional completo + PROJETO AMÉRICA
+      'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
       // Recursos Exclusivos completo
       'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks', 
       'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram'
@@ -26,7 +26,7 @@ const planPermissions = {
     pages: [
       // Páginas principais (SEM micro-caps)
       'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-      // Internacional apenas ETFs e Stocks (SEM dividendos)
+      // Internacional apenas ETFs e Stocks (SEM dividendos e projeto américa)
       'internacional', 'internacional-etfs', 'internacional-stocks',
       // Recursos Exclusivos limitado (SEM analise, imposto, lives, milhas)
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
@@ -53,8 +53,8 @@ const planPermissions = {
   'AMERICA': {
     displayName: 'Projeto América',
     pages: [
-      // Internacional completo
-      'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos',
+      // Internacional completo + PROJETO AMÉRICA
+      'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
       // Recursos Exclusivos com Lives (SEM analise, imposto, milhas)
       'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram'
     ]
