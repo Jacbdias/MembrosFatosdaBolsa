@@ -14,7 +14,18 @@ export const paths = {
     recursosExclusivos: '/dashboard/recursos-exclusivos',
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
-    rentabilidades: '/dashboard/rentabilidades', // ✨ NOVA ROTA ADICIONADA
+    rentabilidades: '/dashboard/rentabilidades',
+    
+    // 🛡️ NOVAS ROTAS ADMINISTRATIVAS
+    admin: '/dashboard/admin',
+    adminUsuarios: '/dashboard/admin/usuarios',
+    adminEmpresas: '/dashboard/admin/empresas',
+    adminProventos: '/dashboard/central-proventos', // Sua página existente
+    adminRelatorios: '/dashboard/admin/relatorios',
+    adminIntegracoes: '/dashboard/admin/integracoes',
+    adminSettings: '/dashboard/admin/settings',
+    adminLogs: '/dashboard/admin/logs',
+    adminPlans: '/dashboard/admin/plans',
   },
   errors: {
     notFound: '/errors/not-found'
@@ -31,5 +42,7 @@ export type Paths = typeof paths;
 console.log('=== DEBUG PATHS ===');
 console.log('Paths loaded:', paths);
 console.log('recursosExclusivos path:', paths.dashboard.recursosExclusivos);
-console.log('rentabilidades path:', paths.dashboard.rentabilidades); // ✨ NOVA LINHA
+console.log('rentabilidades path:', paths.dashboard.rentabilidades);
+console.log('🛡️ admin path:', paths.dashboard.admin); // ✨ NOVA LINHA
+console.log('🛡️ adminUsuarios path:', paths.dashboard.adminUsuarios); // ✨ NOVA LINHA
 console.log('==================');
