@@ -144,6 +144,92 @@ export const navItems = [
       },
     ],
   },
+
+  // 🛡️ NOVO - MENU ADMINISTRATIVO
+  {
+    key: 'administracao',
+    title: 'Administração',
+    href: '/dashboard/admin',
+    icon: 'gear', // Certifique-se que este ícone existe no nav-icons
+    page: 'admin', // Página principal que controla acesso
+    items: [
+      {
+        key: 'admin-dashboard',
+        title: 'Dashboard Admin',
+        href: '/dashboard/admin',
+        icon: 'chart-pie',
+        page: 'admin-dashboard'
+      },
+      {
+        key: 'admin-proventos',
+        title: 'Central de Proventos',
+        href: '/dashboard/central-proventos',
+        icon: 'chart-line-up',
+        page: 'admin-proventos'
+      },
+      {
+        key: 'admin-usuarios',
+        title: 'Gestão de Usuários',
+        href: '/dashboard/admin/usuarios',
+        icon: 'users',
+        page: 'admin-usuarios'
+      },
+      {
+        key: 'admin-empresas',
+        title: 'Gestão de Empresas',
+        href: '/dashboard/admin/empresas',
+        icon: 'buildings',
+        page: 'admin-empresas'
+      },
+      {
+        key: 'admin-relatorios',
+        title: 'Relatórios',
+        href: '/dashboard/admin/relatorios',
+        icon: 'chart-bar',
+        page: 'admin-relatorios'
+      },
+      {
+        key: 'admin-integracoes',
+        title: 'Integrações',
+        href: '/dashboard/admin/integracoes',
+        icon: 'link',
+        page: 'admin-integracoes'
+      }
+    ]
+  },
+
+  // 🛡️ NOVO - SUPER ADMIN (só aparece para super admins)
+  {
+    key: 'super-admin',
+    title: 'Super Admin',
+    href: '/dashboard/admin/settings',
+    icon: 'shield-check', // Certifique-se que este ícone existe
+    page: 'admin-settings', // Controla acesso de super admin
+    items: [
+      {
+        key: 'admin-settings',
+        title: 'Configurações do Sistema',
+        href: '/dashboard/admin/settings',
+        icon: 'gear',
+        page: 'admin-settings'
+      },
+      {
+        key: 'admin-logs',
+        title: 'Logs do Sistema',
+        href: '/dashboard/admin/logs',
+        icon: 'list',
+        page: 'admin-logs'
+      },
+      {
+        key: 'admin-plans',
+        title: 'Gestão de Planos',
+        href: '/dashboard/admin/plans',
+        icon: 'package',
+        page: 'admin-plans'
+      }
+    ]
+  },
+
   { 
     key: 'error', 
     title: 'Error', 
