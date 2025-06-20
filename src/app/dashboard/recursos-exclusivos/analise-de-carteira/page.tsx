@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState } from 'react';
 
 export default function PortfolioAnalysisForm() {
   const [formData, setFormData] = useState({
+
     name: '',
     email: '',
     phone: '',
