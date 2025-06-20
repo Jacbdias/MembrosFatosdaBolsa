@@ -68,6 +68,14 @@ export const navItems = [
         icon: 'chart-pie',
         page: 'internacional-dividendos'
       },
+      // 🇺🇸 NOVO ITEM - Projeto América
+      {
+        key: 'internacional-projeto-america',
+        title: 'Projeto América',
+        href: paths.dashboard.internacional + '/projeto-america',
+        icon: 'star',
+        page: 'internacional-projeto-america'
+      },
     ],
   },
   // ✅ DESCOMENTADO - Recursos Exclusivos
