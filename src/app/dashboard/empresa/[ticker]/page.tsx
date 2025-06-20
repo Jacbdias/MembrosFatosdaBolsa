@@ -1,5 +1,12 @@
 'use client';
 
+import React, { useState } from 'react';
+
+export default function PortfolioAnalysisForm() {
+  const [formData, setFormData] = useState({
+    // seus dados do estado aqui
+  });
+
 import * as React from 'react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
