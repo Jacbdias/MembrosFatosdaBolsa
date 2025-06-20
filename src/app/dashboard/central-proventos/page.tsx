@@ -214,7 +214,7 @@ export default function CentralProventos() {
 
         // ✅ LIMPEZA E CONVERSÃO DE VALOR MELHORADA
         let valorLimpo = valor.toString()
-          .replace('R
+          .replace('R$', '')
 
         let dataObj: Date;
         try {
