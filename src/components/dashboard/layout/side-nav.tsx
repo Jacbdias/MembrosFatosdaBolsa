@@ -213,20 +213,47 @@ export function SideNav(): React.JSX.Element {
 
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
 
-      <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {loading ? (
-          <Typography color="var(--mui-palette-neutral-400)" variant="body2" sx={{ p: 2 }}>
-            Carregando menu...
-          </Typography>
-        ) : (
-          renderNavItems({ 
-            pathname, 
-            items: filteredNavItems,
-            expandedItems, 
-            toggleExpanded 
-          })
-        )}
-      </Box>
+<Box 
+  component="nav" 
+  sx={{ 
+    flex: '1 1 auto', 
+    p: '12px',
+    // 🚀 ADICIONE ESTAS LINHAS:
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    maxHeight: 'calc(100vh - 200px)',
+    // Scrollbar customizada
+    '&::-webkit-scrollbar': {
+      width: '6px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'rgba(255, 255, 255, 0.1)',
+      borderRadius: '3px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      background: 'rgba(255, 255, 255, 0.3)',
+      borderRadius: '3px',
+      '&:hover': {
+        background: 'rgba(255, 255, 255, 0.5)',
+      },
+    },
+    scrollbarWidth: 'thin',
+    scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)',
+  }}
+>
+  {loading ? (
+    <Typography color="var(--mui-palette-neutral-400)" variant="body2" sx={{ p: 2 }}>
+      Carregando menu...
+    </Typography>
+  ) : (
+    renderNavItems({ 
+      pathname, 
+      items: filteredNavItems,
+      expandedItems, 
+      toggleExpanded 
+    })
+  )}
+</Box>
     </Box>
   );
 }
