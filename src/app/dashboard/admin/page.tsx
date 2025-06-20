@@ -65,10 +65,7 @@ export default function AdminDashboard() {
       fontSize: '2.75rem',
       fontWeight: 700,
       marginBottom: '12px',
-      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-      backgroundClip: 'text',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
+      color: '#000000',
       margin: '0 0 12px 0'
     },
     subtitle: {
