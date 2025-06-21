@@ -923,9 +923,9 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
     
     case 'millions':
       if (valor >= 1000000000) {
-        return R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi;
+        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
       } else if (valor >= 1000000) {
-        return R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi;
+        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
       } else {
         return formatarValor(valor, 'currency');
       }
@@ -968,7 +968,7 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
 
     try {
       // Carregar proventos do localStorage
-      const chaveStorage = proventos_${ticker};
+      const chaveStorage = `proventos_${ticker}`;
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (!dadosSalvos) {
@@ -1041,7 +1041,7 @@ function useDadosFinanceiros(ticker: string) {
       setLoading(true);
       setError(null);
 
-      const quoteUrl = https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true;
+      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`;
       
       const response = await fetch(quoteUrl, {
         method: 'GET',
@@ -1078,7 +1078,7 @@ function useDadosFinanceiros(ticker: string) {
           throw new Error('Nenhum resultado encontrado');
         }
       } else {
-        throw new Error(Erro HTTP ${response.status});
+        throw new Error(`Erro HTTP ${response.status}`);
       }
 
     } catch (err) {
@@ -1217,7 +1217,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = proventos_${ticker};
+      const chaveStorage = `proventos_${ticker}`;
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (dadosSalvos) {
@@ -1334,8 +1334,8 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                   }}
                 >
                   {mostrarTodos 
-                    ? 📋 Mostrar apenas 10 recentes 
-                    : 📋 Mostrar todos os ${proventos.length} proventos
+                    ? `📋 Mostrar apenas 10 recentes` 
+                    : `📋 Mostrar todos os ${proventos.length} proventos`
                   }
                 </Button>
               </Box>
@@ -1357,7 +1357,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </TableHead>
                 <TableBody>
                  {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
-                    <TableRow key={${provento.data}-${index}}>
+                    <TableRow key={`${provento.data}-${index}`}>
                       <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e' }}>
                         {provento.valorFormatado}
@@ -1380,8 +1380,8 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="caption" color="text.secondary">
                 {mostrarTodos 
-                  ? Mostrando todos os ${proventos.length} proventos com rolagem
-                  : Mostrando os 10 mais recentes • Total: ${proventos.length}
+                  ? `Mostrando todos os ${proventos.length} proventos com rolagem`
+                  : `Mostrando os 10 mais recentes • Total: ${proventos.length}`
                 }
               </Typography>
             </Box>
@@ -1439,7 +1439,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         const relatoriosFormatados = relatoriosTicker.map((rel: any) => ({
           ...rel,
           arquivo: rel.arquivoPdf ? 'PDF_CENTRALIZADO' : undefined,
-          tamanho: rel.tamanhoArquivo ? ${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB : undefined
+          tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
         }));
         
         setRelatorios(relatoriosFormatados);
@@ -1509,7 +1509,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     try {
       const link = document.createElement('a');
       link.href = relatorio.arquivoPdf;
-      link.download = relatorio.nomeArquivoPdf || ${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf;
+      link.download = relatorio.nomeArquivoPdf || `${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       link.target = '_blank';
       
       document.body.appendChild(link);
@@ -1518,11 +1518,11 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       
       // Feedback visual
       const toast = document.createElement('div');
-      toast.style.cssText = 
+      toast.style.cssText = `
         position: fixed; top: 20px; right: 20px; background: #22c55e; color: white;
         padding: 12px 20px; border-radius: 8px; z-index: 10000;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      ;
+      `;
       toast.textContent = '📥 Download iniciado!';
       document.body.appendChild(toast);
       setTimeout(() => document.body.removeChild(toast), 3000);
@@ -1925,9 +1925,9 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
     if (dias < 0) return 'Passou';
     if (dias === 0) return 'Hoje';
     if (dias === 1) return 'Amanhã';
-    if (dias <= 7) return Em ${dias} dias;
-    if (dias <= 30) return Em ${Math.ceil(dias / 7)} semanas;
-    return Em ${Math.ceil(dias / 30)} meses;
+    if (dias <= 7) return `Em ${dias} dias`;
+    if (dias <= 30) return `Em ${Math.ceil(dias / 7)} semanas`;
+    return `Em ${Math.ceil(dias / 30)} meses`;
   }, []);
 
   // Criar eventos estimados quando não há dados da API
@@ -2044,7 +2044,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
             tipo: 'dividendo',
             titulo: 'Provável Data Ex-Dividendos',
             data: proximaData,
-            descricao: Estimativa baseada no histórico (último: ${ultimaData.toLocaleDateString('pt-BR')}),
+            descricao: `Estimativa baseada no histórico (último: ${ultimaData.toLocaleDateString('pt-BR')})`,
             estimado: true,
             icone: '💰',
             cor: '#22c55e'
@@ -2075,7 +2075,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       setError(null);
 
       // Buscar dividendos históricos
-      const dividendsUrl = https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}&limit=20;
+      const dividendsUrl = `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}&limit=20`;
       
       const response = await fetch(dividendsUrl, {
         method: 'GET',
@@ -2100,7 +2100,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
         
         setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
       } else {
-        throw new Error(Erro HTTP ${response.status});
+        throw new Error(`Erro HTTP ${response.status}`);
       }
 
     } catch (err) {
@@ -2576,7 +2576,7 @@ export default function EmpresaDetalhes() {
         <Grid item xs={6} md={2}>
           <MetricCard 
             title="DY 12 MESES" 
-            value={dy12Meses > 0 ? ${dy12Meses.toFixed(2)}% : 'N/A'}
+            value={dy12Meses > 0 ? `${dy12Meses.toFixed(2)}%` : 'N/A'}
             subtitle="últimos 12m"
             loading={dadosLoading}
           />
@@ -2584,7 +2584,7 @@ export default function EmpresaDetalhes() {
         <Grid item xs={6} md={2}>
           <MetricCard 
             title="DY ENTRADA" 
-            value={dyDesdeEntrada > 0 ? ${dyDesdeEntrada.toFixed(2)}% : 'N/A'}
+            value={dyDesdeEntrada > 0 ? `${dyDesdeEntrada.toFixed(2)}%` : 'N/A'}
             subtitle="desde entrada"
             loading={dadosLoading}
           />
