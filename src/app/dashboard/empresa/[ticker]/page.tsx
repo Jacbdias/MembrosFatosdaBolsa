@@ -1400,7 +1400,8 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
 // COMPONENTE GERENCIADOR DE RELATÓRIOS
 // ========================================
 // ========================================
-// GERENCIADOR DE RELATÓRIOS - VERSÃO CENTRALIZADA
+// ========================================
+// GERENCIADOR DE RELATÓRIOS - VERSÃO CENTRALIZADA COMPLETA
 // ========================================
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
@@ -1650,19 +1651,28 @@ Acesse: /dashboard/central-relatorios`)}
                 />
                 <ListItemSecondaryAction>
                   <Stack direction="row" spacing={1}>
-                    {/* Botão de visualização */}
-                    {(relatorio.tipoVisualizacao === 'iframe' || relatorio.tipoVisualizacao === 'canva' || relatorio.tipoVisualizacao === 'link') && (
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setRelatorioSelecionado(relatorio);
-                          setDialogVisualizacao(true);
-                        }}
-                        sx={{ backgroundColor: '#e3f2fd', '&:hover': { backgroundColor: '#bbdefb' } }}
-                      >
-                        <ViewIcon />
-                      </IconButton>
-                    )}
+                    {/* ✅ BOTÃO DE VISUALIZAÇÃO PARA TODOS OS TIPOS */}
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        console.log('👁️ Clique no olho - Relatório:', relatorio.nome);
+                        console.log('🔗 Tipo:', relatorio.tipoVisualizacao);
+                        console.log('🎨 Link Canva:', relatorio.linkCanva);
+                        console.log('🔗 Link Externo:', relatorio.linkExterno);
+                        
+                        setRelatorioSelecionado(relatorio);
+                        setDialogVisualizacao(true);
+                        setLoadingIframe(true);
+                        setTimeoutError(false);
+                      }}
+                      sx={{ 
+                        backgroundColor: '#e3f2fd', 
+                        '&:hover': { backgroundColor: '#bbdefb' }
+                      }}
+                      title="Visualizar conteúdo"
+                    >
+                      <ViewIcon />
+                    </IconButton>
                     
                     {/* ✅ NOVO: Botão inteligente de download/re-upload */}
                     {(relatorio.arquivoPdf || relatorio.nomeArquivoPdf) && (
@@ -1695,6 +1705,249 @@ Acesse: /dashboard/central-relatorios`)}
             • Atualizações aparecem automaticamente em todos os ativos
           </Typography>
         </Alert>
+
+        {/* ✅ DIALOG DE VISUALIZAÇÃO - COMPLETO */}
+        <Dialog 
+          open={dialogVisualizacao} 
+          onClose={() => {
+            console.log('❌ Fechando dialog de visualização');
+            setDialogVisualizacao(false);
+            setLoadingIframe(false);
+            setTimeoutError(false);
+            setRelatorioSelecionado(null);
+          }} 
+          maxWidth="lg" 
+          fullWidth
+          PaperProps={{ 
+            sx: { 
+              height: '95vh',
+              backgroundColor: '#f8fafc'
+            } 
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2,
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e2e8f0'
+          }}>
+            <Box>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} 
+                {relatorioSelecionado?.nome}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {relatorioSelecionado?.tipo} • {relatorioSelecionado?.dataReferencia}
+              </Typography>
+            </Box>
+            
+            <Stack direction="row" spacing={1}>
+              {relatorioSelecionado && (
+                <IconButton 
+                  onClick={() => {
+                    console.log('🔗 Abrindo em nova aba');
+                    const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                      ? relatorioSelecionado.linkCanva 
+                      : relatorioSelecionado.linkExterno;
+                    console.log('🎯 URL para nova aba:', src);
+                    if (src) window.open(src, '_blank');
+                  }}
+                  title="Abrir em nova aba"
+                >
+                  🔗
+                </IconButton>
+              )}
+              <IconButton 
+                onClick={() => {
+                  setDialogVisualizacao(false);
+                  setLoadingIframe(false);
+                  setTimeoutError(false);
+                  setRelatorioSelecionado(null);
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 0, height: '100%', backgroundColor: '#f8fafc' }}>
+            {relatorioSelecionado && (
+              <Box sx={{ position: 'relative', height: '80vh' }}>
+                {loadingIframe && !timeoutError && (
+                  <Box sx={{ 
+                    position: 'absolute', 
+                    top: '50%', 
+                    left: '50%', 
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 2,
+                    textAlign: 'center'
+                  }}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" sx={{ mt: 2 }}>
+                      Carregando conteúdo...
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      {relatorioSelecionado.tipoVisualizacao.toUpperCase()}
+                    </Typography>
+                  </Box>
+                )}
+
+                {timeoutError && (
+                  <Box sx={{ 
+                    position: 'absolute', 
+                    top: '50%', 
+                    left: '50%', 
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 2,
+                    textAlign: 'center',
+                    maxWidth: 400,
+                    p: 3
+                  }}>
+                    <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+                      ⚠️ Erro ao Carregar
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 3 }}>
+                      O conteúdo não pôde ser carregado. Isso pode acontecer se:
+                    </Typography>
+                    <ul style={{ textAlign: 'left', fontSize: '0.875rem', color: '#666' }}>
+                      <li>A URL não permite incorporação (iframe)</li>
+                      <li>O site tem restrições de segurança</li>
+                      <li>A conexão está lenta</li>
+                      <li>A URL está incorreta</li>
+                    </ul>
+                    
+                    <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
+                      <Button 
+                        variant="outlined"
+                        onClick={() => {
+                          console.log('🔄 Tentando recarregar iframe');
+                          setTimeoutError(false);
+                          setLoadingIframe(true);
+                        }}
+                        size="small"
+                      >
+                        🔄 Tentar Novamente
+                      </Button>
+                      <Button 
+                        variant="contained"
+                        onClick={() => {
+                          console.log('🔗 Abrindo em nova aba do dialog');
+                          const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                            ? relatorioSelecionado.linkCanva 
+                            : relatorioSelecionado.linkExterno;
+                          console.log('🎯 URL:', src);
+                          if (src) window.open(src, '_blank');
+                        }}
+                        size="small"
+                      >
+                        🔗 Abrir em Nova Aba
+                      </Button>
+                    </Stack>
+                  </Box>
+                )}
+
+                {/* ✅ IFRAME PRINCIPAL - PROCESSAMENTO INTELIGENTE */}
+                <iframe
+                  src={(() => {
+                    // Processar URL para iframe
+                    const relatorio = relatorioSelecionado;
+                    console.log('🔧 Processando URL para iframe');
+                    console.log('📊 Relatório:', relatorio.nome);
+                    console.log('🎭 Tipo:', relatorio.tipoVisualizacao);
+                    
+                    let url = '';
+                    if (relatorio.tipoVisualizacao === 'canva') {
+                      url = relatorio.linkCanva || '';
+                      console.log('🎨 URL do Canva (raw):', url);
+                    } else {
+                      url = relatorio.linkExterno || '';
+                      console.log('🔗 URL Externa (raw):', url);
+                    }
+                    
+                    if (!url) {
+                      console.log('❌ URL vazia!');
+                      return '';
+                    }
+                    
+                    // Processar Canva automaticamente
+                    if (url.includes('canva.com')) {
+                      console.log('🎨 Detectado Canva - processando...');
+                      
+                      if (url.includes('?embed')) {
+                        console.log('✅ URL já tem ?embed');
+                        return url;
+                      }
+                      
+                      if (url.includes('/view')) {
+                        const urlFinal = url + '?embed';
+                        console.log('✅ Adicionando ?embed à URL /view:', urlFinal);
+                        return urlFinal;
+                      }
+                      
+                      if (url.includes('/design/')) {
+                        const urlFinal = url.replace(/\/(edit|preview).*$/, '/view?embed');
+                        console.log('✅ Convertendo para /view?embed:', urlFinal);
+                        return urlFinal;
+                      }
+                    }
+                    
+                    console.log('🔗 Usando URL original:', url);
+                    return url;
+                  })()}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    border: 'none', 
+                    borderRadius: '8px',
+                    opacity: timeoutError ? 0.3 : 1
+                  }}
+                  allowFullScreen
+                  onLoad={() => {
+                    console.log('✅ Iframe carregou com sucesso!');
+                    setLoadingIframe(false);
+                    setTimeoutError(false);
+                  }}
+                  onError={() => {
+                    console.log('❌ Erro no iframe detectado');
+                    setLoadingIframe(false);
+                    setTimeoutError(true);
+                  }}
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  loading="lazy"
+                />
+                
+                {!loadingIframe && !timeoutError && (
+                  <Box sx={{ 
+                    position: 'absolute', 
+                    top: 16, 
+                    right: 16,
+                    zIndex: 1
+                  }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                          ? relatorioSelecionado.linkCanva 
+                          : relatorioSelecionado.linkExterno;
+                        if (src) window.open(src, '_blank');
+                      }}
+                      sx={{ 
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
+                      }}
+                      title="Abrir em nova aba"
+                    >
+                      🔗
+                    </IconButton>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* ✅ NOVO: Dialog de re-upload para PDFs grandes */}
         <Dialog open={dialogReupload} onClose={() => setDialogReupload(false)} maxWidth="sm" fullWidth>
@@ -1749,49 +2002,10 @@ Acesse: /dashboard/central-relatorios`)}
           </DialogActions>
         </Dialog>
 
-        {/* Manter dialog de visualização existente */}
-        {/* ... resto do código de visualização ... */}
       </CardContent>
     </Card>
   );
 });
-
-// ✅ FUNÇÕES AUXILIARES NECESSÁRIAS (adicionar no final do arquivo)
-const calcularHash = async (arquivo: File): Promise<string> => {
-  const arrayBuffer = await arquivo.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-};
-
-const processarPdfHibrido = async (arquivo: File): Promise<any> => {
-  const LIMITE_BASE64 = 3 * 1024 * 1024;
-  
-  if (arquivo.size <= LIMITE_BASE64) {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(arquivo);
-    });
-    
-    return {
-      arquivoPdf: base64,
-      nomeArquivoPdf: arquivo.name,
-      tamanhoArquivo: arquivo.size,
-      tipoPdf: 'base64'
-    };
-  } else {
-    const hash = await calcularHash(arquivo);
-    return {
-      nomeArquivoPdf: arquivo.name,
-      tamanhoArquivo: arquivo.size,
-      hashArquivo: hash,
-      tipoPdf: 'referencia',
-      solicitarReupload: true
-    };
-  }
-};
 // ========================================
 // COMPONENTE AGENDA CORPORATIVA
 // ========================================
