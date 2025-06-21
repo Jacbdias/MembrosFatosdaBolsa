@@ -1548,7 +1548,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               maxHeight: mostrarTodos ? '400px' : 'auto',
               overflowY: mostrarTodos ? 'auto' : 'visible'
             }}>
-              <Table size="small">
+            <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Data</TableCell>
