@@ -1211,11 +1211,12 @@ const MetricCard = React.memo(({
 // ========================================
 // COMPONENTE HISTÓRICO DE DIVIDENDOS
 // ========================================
+// ========================================
+// COMPONENTE HISTÓRICO DE DIVIDENDOS
+// ========================================
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
   const [proventos, setProventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [mostrarTodos, setMostrarTodos] = useState(false); // ADICIONAR AQUI
+  const [mostrarTodos, setMostrarTodos] = useState(false);
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
@@ -1229,7 +1230,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             ...item,
             dataObj: new Date(item.dataObj)
           }));
-          // ADICIONAR ORDENAÇÃO AQUI TAMBÉM
           proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
           setProventos(proventosLimitados);
         } catch (err) {
@@ -1239,147 +1239,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
       }
     }
   }, [ticker]);
-
-  const salvarProventos = useCallback((novosProventos: any[]) => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      const dadosMinimos = novosProventos.slice(0, 500).map(item => ({
-        ticker: item.ticker,
-        data: item.data,
-        dataObj: item.dataObj,
-        valor: item.valor,
-        tipo: item.tipo,
-        dataFormatada: item.dataFormatada,
-        valorFormatado: item.valorFormatado
-      }));
-      localStorage.setItem(chaveStorage, JSON.stringify(dadosMinimos));
-    }
-  }, [ticker]);
-
-  const limparProventos = useCallback(() => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      localStorage.removeItem(chaveStorage);
-      setProventos([]);
-      setError(null);
-    }
-  }, [ticker]);
-
-  const handleArquivoCSV = useCallback((file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const linhas = text.split('\n').filter(linha => linha.trim());
-        
-        if (linhas.length < 2) {
-          throw new Error('Arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados');
-        }
-
-        if (linhas.length > 5000) {
-          alert('CSV muito grande. Máximo 5000 linhas.');
-          return;
-        }
-
-        const dados = linhas
-          .slice(1)
-          .slice(0, 1000)
-          .map((linha, index) => {
-            const partes = linha.split(',').map(p => p.trim().replace(/"/g, ''));
-            
-            if (partes.length < 4) return null;
-
-            const [csvTicker, data, valor, tipo] = partes;
-            
-            if (!csvTicker || !data || !valor || !tipo) return null;
-           
-            if (!csvTicker || typeof csvTicker !== 'string' || csvTicker.trim() === '') {
-              return null;
-            }
-
-            if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
-              return null;
-            }
-
-            const tickerLimpo = csvTicker.trim().toUpperCase();
-            const tickerAtual = ticker.trim().toUpperCase();
-
-            if (tickerLimpo !== tickerAtual) {
-              return null;
-            }
-            
-            const valorNum = parseFloat(valor.replace(',', '.'));
-            if (isNaN(valorNum)) return null;
-
-            let dataObj;
-            try {
-              if (data.includes('/')) {
-                const [dia, mes, ano] = data.split('/');
-                dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-              } else if (data.includes('-')) {
-                dataObj = new Date(data);
-              } else {
-                throw new Error('Formato de data não reconhecido');
-              }
-              
-              if (isNaN(dataObj.getTime())) {
-                throw new Error('Data inválida');
-              }
-            } catch {
-              return null;
-            }
-
-            return {
-              ticker: csvTicker.toUpperCase(),
-              data: data,
-              dataObj: dataObj,
-              valor: valorNum,
-              tipo: tipo || 'Dividendo',
-              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
-              valorFormatado: `R$ ${valorNum.toFixed(2).replace('.', ',')}`
-            };
-          })
-          .filter(item => item !== null);
-
-        let dadosFiltrados = dados;
-        if (dataEntrada) {
-          try {
-            const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-            dadosFiltrados = dados.filter(item => item.dataObj >= dataEntradaObj);
-          } catch (err) {
-            console.warn('Erro ao filtrar por data de entrada:', err);
-          }
-        }
-
-        dadosFiltrados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-
-        setProventos(dadosFiltrados);
-        salvarProventos(dadosFiltrados);
-        
-        if (dadosFiltrados.length === 0) {
-          setError(`Nenhum provento encontrado para ${ticker} após ${dataEntrada || 'a data de entrada'}`);
-        } else {
-          setError(null);
-        }
-
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Erro ao processar arquivo CSV';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    reader.readAsText(file, 'UTF-8');
-  }, [ticker, dataEntrada, salvarProventos]);
 
   const { totalProventos, mediaProvento, ultimoProvento, totalPorAno } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + item.valor, 0);
@@ -1414,64 +1273,9 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             💰 Histórico de Proventos
           </Typography>
-          <Stack direction="row" spacing={1}>
-            {proventos.length > 0 && (
-              <Button 
-                variant="outlined" 
-                size="small" 
-                color="error"
-                onClick={limparProventos}
-                sx={{ mr: 1 }}
-              >
-                🗑️ Limpar
-              </Button>
-            )}
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleArquivoCSV(file);
-              }}
-              style={{ display: 'none' }}
-              id="upload-proventos-csv"
-            />
-            <label htmlFor="upload-proventos-csv">
-              <Button 
-                component="span" 
-                variant="outlined" 
-                size="small" 
-                startIcon={<UploadIcon />}
-                disabled={loading}
-              >
-                {loading ? 'Processando...' : 'Carregar CSV'}
-              </Button>
-            </label>
-          </Stack>
         </Stack>
 
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <strong>Formato CSV:</strong> ticker,data,valor,tipo
-          </Typography>
-          <Typography variant="caption">
-            Máximo 5MB e 5000 linhas
-          </Typography>
-        </Alert>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {proventos.length === 0 && !loading ? (
+        {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
               Nenhum provento carregado para {ticker}
@@ -1482,12 +1286,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           </Box>
         ) : (
           <>
-            {proventos.length > 0 && (
-              <Alert severity="success" sx={{ mb: 3 }}>
-                💾 <strong>{proventos.length} proventos carregados</strong>
-              </Alert>
-            )}
-
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={3}>
                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f0f9ff', borderRadius: 1 }}>
@@ -1522,6 +1320,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Box>
               </Grid>
             </Grid>
+            
             {proventos.length > 10 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                 <Button
@@ -1544,6 +1343,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Button>
               </Box>
             )}
+            
             <TableContainer sx={{ 
               backgroundColor: 'white', 
               borderRadius: 1,
