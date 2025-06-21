@@ -1213,8 +1213,6 @@ const MetricCard = React.memo(({
 // ========================================
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
   const [proventos, setProventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [mostrarTodos, setMostrarTodos] = useState(false); // ADICIONAR AQUI
 
   useEffect(() => {
