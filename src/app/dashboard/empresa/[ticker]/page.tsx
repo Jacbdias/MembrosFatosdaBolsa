@@ -1173,22 +1173,15 @@ const MetricCard = React.memo(({
         <Skeleton variant="text" height={50} />
       ) : (
         <>
-          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-            <Typography variant="h3" sx={{ 
-              fontWeight: 800, 
-              fontSize: '2rem',
-              color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
-              lineHeight: 1,
-              letterSpacing: '-0.5px'
-            }}>
-              {value}
-            </Typography>
-            {trend && (
-              <Box sx={{ ml: 0.5 }}>
-                {trend === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
-              </Box>
-            )}
-          </Stack>
+<Typography variant="h3" sx={{ 
+  fontWeight: 800, 
+  fontSize: '2rem',
+  color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
+  lineHeight: 1,
+  letterSpacing: '-0.5px'
+}}>
+  {value}
+</Typography>
           
           {subtitle && (
             <Typography variant="caption" sx={{ 
@@ -2529,25 +2522,15 @@ export default function EmpresaDetalhes() {
                   <Typography variant="h2" sx={{ fontWeight: 700 }}>
                     {precoAtualFormatado}
                   </Typography>
-                  <Stack 
-                    direction="row" 
-                    spacing={1} 
-                    alignItems="center" 
-                    justifyContent={{ xs: 'center', md: 'flex-end' }}
-                  >
-                    {tendencia && (
-                      <>
-                        {tendencia === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
-                        <Typography sx={{ 
-                          color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
-                          fontWeight: 700, 
-                          fontSize: '1.2rem'
-                        }}>
-                          {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
-                        </Typography>
-                      </>
-                    )}
-                  </Stack>
+{tendencia && (
+  <Typography sx={{ 
+    color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
+    fontWeight: 700, 
+    fontSize: '1.2rem'
+  }}>
+    {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+  </Typography>
+)}
                 </>
               )}
             </Box>
