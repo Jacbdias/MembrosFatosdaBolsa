@@ -1215,6 +1215,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
   const [proventos, setProventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mostrarTodos, setMostrarTodos] = useState(false); // ADICIONAR AQUI
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
