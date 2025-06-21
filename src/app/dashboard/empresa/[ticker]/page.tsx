@@ -1240,35 +1240,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
     }
   }, [ticker]);
 
-  const salvarProventos = useCallback((novosProventos: any[]) => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      const dadosMinimos = novosProventos.slice(0, 500).map(item => ({
-        ticker: item.ticker,
-        data: item.data,
-        dataObj: item.dataObj,
-        valor: item.valor,
-        tipo: item.tipo,
-        dataFormatada: item.dataFormatada,
-        valorFormatado: item.valorFormatado
-      }));
-      localStorage.setItem(chaveStorage, JSON.stringify(dadosMinimos));
-    }
-  }, [ticker]);
-
-  const limparProventos = useCallback(() => {
-    if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
-      localStorage.removeItem(chaveStorage);
-      setProventos([]);
-      setError(null);
-    }
-  }, [ticker]);
-
-  const handleArquivoCSV = useCallback((file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB.');
-      return;
     }
 
     setLoading(true);
