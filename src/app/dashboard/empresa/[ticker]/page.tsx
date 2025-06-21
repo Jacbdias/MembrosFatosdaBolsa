@@ -1416,15 +1416,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           </Typography>
         </Stack>
 
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            <strong>Formato CSV:</strong> ticker,data,valor,tipo
-          </Typography>
-          <Typography variant="caption">
-            Máximo 5MB e 5000 linhas
-          </Typography>
-        </Alert>
-
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
