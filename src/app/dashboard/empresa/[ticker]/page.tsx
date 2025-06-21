@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -2415,7 +2417,7 @@ export default function EmpresaDetalhes() {
         </Typography>
         <Button 
           startIcon={<ArrowLeftIcon />} 
-          onClick={() => router.back()}
+          onClick={() => window.history.back()}
           variant="contained"
           size="large"
         >
@@ -2435,7 +2437,7 @@ export default function EmpresaDetalhes() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button 
           startIcon={<ArrowLeftIcon />} 
-          onClick={() => router.back()} 
+          onClick={() => window.history.back()} 
           variant="outlined"
         >
           Voltar
