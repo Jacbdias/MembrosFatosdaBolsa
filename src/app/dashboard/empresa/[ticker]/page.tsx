@@ -143,7 +143,7 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     viesAtual: 'Aguardar',
     ibovespaEpoca: '108.500',
     percentualCarteira: '4.2%'
-  }
+  },
     'AGRO3': {
     ticker: 'AGRO3',
     nomeCompleto: 'BrasilAgro S.A.',
