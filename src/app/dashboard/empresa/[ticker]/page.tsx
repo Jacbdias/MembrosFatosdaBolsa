@@ -1414,40 +1414,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             💰 Histórico de Proventos
           </Typography>
-          <Stack direction="row" spacing={1}>
-            {proventos.length > 0 && (
-              <Button 
-                variant="outlined" 
-                size="small" 
-                color="error"
-                onClick={limparProventos}
-                sx={{ mr: 1 }}
-              >
-                🗑️ Limpar
-              </Button>
-            )}
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleArquivoCSV(file);
-              }}
-              style={{ display: 'none' }}
-              id="upload-proventos-csv"
-            />
-            <label htmlFor="upload-proventos-csv">
-              <Button 
-                component="span" 
-                variant="outlined" 
-                size="small" 
-                startIcon={<UploadIcon />}
-                disabled={loading}
-              >
-                {loading ? 'Processando...' : 'Carregar CSV'}
-              </Button>
-            </label>
-          </Stack>
         </Stack>
 
         <Alert severity="info" sx={{ mb: 3 }}>
