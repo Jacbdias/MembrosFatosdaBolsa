@@ -130,7 +130,7 @@ export default function CentralProventos() {
       const linha = linhas[i].replace(/\r/g, '');
       const partes = linha.includes(';') ? linha.split(';') : linha.split(',');
       if (partes.length < 4) continue;
-      const [ticker, data, valorRaw, tipo] = partes.map(p => p.trim());
+const [ticker, valorRaw, dataCom, dataPagamento, tipo, dividendYieldRaw] = partes.map(p => p.trim());
       let valor = parseFloat(
         valorRaw.replace('R$', '').replace(/\s/g, '').replace(',', '.')
       );
@@ -511,7 +511,7 @@ export default function CentralProventos() {
                 borderRadius: '4px',
                 fontSize: '0.8rem'
               }}>
-                ticker,data,valor,tipo
+               ticker,valor,dataCom,dataPagamento,tipo,dividendYield
               </code> ou <code style={{ 
                 backgroundColor: '#e2e8f0', 
                 padding: '2px 6px', 
