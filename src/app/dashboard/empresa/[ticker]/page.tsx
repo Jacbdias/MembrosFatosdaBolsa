@@ -1350,17 +1350,28 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Data</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Ativo</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>Valor</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>Data Com</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>Pagamento</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 700 }}>Tipo</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>DY</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                  {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
                     <TableRow key={`${provento.data}-${index}`}>
-                      <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada}</TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        {ticker}
+                      </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e' }}>
                         {provento.valorFormatado}
+                      </TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 500 }}>
+                        {provento.dataComFormatada || provento.dataFormatada}
+                      </TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 500 }}>
+                        {provento.dataPagamentoFormatada || provento.dataFormatada}
                       </TableCell>
                       <TableCell align="center">
                         <Chip
@@ -1369,6 +1380,9 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                           variant="outlined"
                           sx={{ fontSize: '0.7rem' }}
                         />
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                        {provento.dividendYield ? `${provento.dividendYield.toFixed(2)}%` : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
