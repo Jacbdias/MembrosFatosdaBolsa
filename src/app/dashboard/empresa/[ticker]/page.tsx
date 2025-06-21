@@ -886,8 +886,6 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
   }
 };
 
-};
-
 // ========================================
 // FUNÇÕES UTILITÁRIAS
 // ========================================
