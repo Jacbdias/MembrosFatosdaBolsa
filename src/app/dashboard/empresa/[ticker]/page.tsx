@@ -41,6 +41,643 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 
 // ========================================
+// COMPONENTE GERENCIADOR DE RELATÓRIOS
+// ========================================
+const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
+  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
+  const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
+  const [loadingIframe, setLoadingIframe] = useState(false);
+  const [timeoutError, setTimeoutError] = useState(false);
+  const [tabAtiva, setTabAtiva] = useState(1);
+  const [novoRelatorio, setNovoRelatorio] = useState({
+    nome: '',
+    tipo: 'trimestral' as const,
+    dataReferencia: '',
+    arquivo: null as File | null,
+    linkCanva: '',
+    linkExterno: '',
+    tipoVisualizacao: 'iframe' as const
+  });
+
+  const [arquivoPdfSelecionado, setArquivoPdfSelecionado] = useState<File | null>(null);
+
+  const baixarPdf = useCallback((relatorio: Relatorio) => {
+    console.log('⬇️ Iniciando download do PDF...');
+    
+    if (!relatorio.arquivoPdf) {
+      alert('❌ Arquivo PDF não encontrado!');
+      return;
+    }
+    
+    try {
+      const link = document.createElement('a');
+      link.href = relatorio.arquivoPdf;
+      link.download = relatorio.nomeArquivoPdf || `${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      link.target = '_blank';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (error) {
+      console.error('❌ Erro no download:', error);
+      alert('❌ Erro ao baixar o arquivo. Tente novamente.');
+    }
+  }, []);
+  
+  useEffect(() => {
+    const chave = `relatorios_${ticker}`;
+    const relatoriosExistentes = localStorage.getItem(chave);
+    
+    if (relatoriosExistentes) {
+      try {
+        setRelatorios(JSON.parse(relatoriosExistentes));
+      } catch (error) {
+        console.error('Erro ao carregar relatórios:', error);
+      }
+    }
+  }, [ticker]);
+
+  const handleUploadPdf = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = event.target.files?.[0];
+    
+    if (!arquivo) {
+      console.log('❌ Nenhum arquivo selecionado');
+      return;
+    }
+    
+    if (arquivo.type !== 'application/pdf') {
+      console.error('❌ Arquivo deve ser PDF');
+      alert('Por favor, selecione apenas arquivos PDF');
+      event.target.value = '';
+      return;
+    }
+    
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (arquivo.size > maxSize) {
+      console.error('❌ Arquivo muito grande (máximo 10MB)');
+      alert('Arquivo muito grande! Máximo 10MB permitido.');
+      event.target.value = '';
+      return;
+    }
+    
+    setArquivoPdfSelecionado(arquivo);
+  }, []);
+
+  const salvarPdfNoServidor = useCallback(async (arquivo: File): Promise<string> => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const urlLocal = URL.createObjectURL(arquivo);
+      return urlLocal;
+    } catch (error) {
+      console.error('❌ Erro ao processar PDF:', error);
+      throw new Error('Erro ao processar arquivo PDF');
+    }
+  }, []);
+
+  const salvarRelatorio = useCallback(async () => {
+    if (!novoRelatorio.nome) {
+      alert('Digite o nome do relatório');
+      return;
+    }
+
+    try {
+      let relatorioParaSalvar: any = { ...novoRelatorio };
+      
+      if (arquivoPdfSelecionado) {
+        const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
+        
+        relatorioParaSalvar = {
+          ...relatorioParaSalvar,
+          arquivoPdf: urlPdf,
+          nomeArquivoPdf: arquivoPdfSelecionado.name,
+          tamanhoArquivo: arquivoPdfSelecionado.size,
+          dataUploadPdf: new Date().toISOString(),
+        };
+      } else if (novoRelatorio.tipoVisualizacao === 'pdf') {
+        alert('Por favor, selecione um arquivo PDF');
+        return;
+      }
+
+      const relatorio: Relatorio = {
+        id: Date.now().toString(),
+        nome: relatorioParaSalvar.nome,
+        tipo: relatorioParaSalvar.tipo,
+        dataUpload: new Date().toISOString(),
+        dataReferencia: relatorioParaSalvar.dataReferencia,
+        tipoVisualizacao: relatorioParaSalvar.tipoVisualizacao,
+        linkCanva: relatorioParaSalvar.linkCanva || undefined,
+        linkExterno: relatorioParaSalvar.linkExterno || undefined,
+        tamanho: relatorioParaSalvar.arquivo ? `${(relatorioParaSalvar.arquivo.size / 1024 / 1024).toFixed(1)} MB` : undefined,
+        arquivoPdf: relatorioParaSalvar.arquivoPdf,
+        nomeArquivoPdf: relatorioParaSalvar.nomeArquivoPdf,
+        tamanhoArquivo: relatorioParaSalvar.tamanhoArquivo,
+        dataUploadPdf: relatorioParaSalvar.dataUploadPdf
+      };
+
+      const chave = `relatorios_${ticker}`;
+      const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+      relatoriosExistentes.push(relatorio);
+      localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+      
+      setRelatorios(relatoriosExistentes);
+      setDialogAberto(false);
+      setNovoRelatorio({
+        nome: '',
+        tipo: 'trimestral',
+        dataReferencia: '',
+        arquivo: null,
+        linkCanva: '',
+        linkExterno: '',
+        tipoVisualizacao: 'iframe'
+      });
+      setArquivoPdfSelecionado(null);
+      setTabAtiva(1);
+      
+    } catch (error) {
+      console.error('❌ Erro ao salvar relatório:', error);
+      alert('Erro ao salvar relatório. Tente novamente.');
+    }
+  }, [novoRelatorio, ticker, arquivoPdfSelecionado, salvarPdfNoServidor]);
+
+  const excluirRelatorio = useCallback((id: string) => {
+    if (confirm('Excluir relatório?')) {
+      const chave = `relatorios_${ticker}`;
+      const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
+      localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
+      setRelatorios(relatoriosAtualizados);
+    }
+  }, [relatorios, ticker]);
+
+  const getIconePorTipo = useCallback((tipo: string) => {
+    switch (tipo) {
+      case 'iframe': return '🖼️';
+      case 'canva': return '🎨';
+      case 'link': return '🔗';
+      case 'pdf': return '📄';
+      default: return '📄';
+    }
+  }, []);
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            📋 Relatórios da Empresa
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => setDialogAberto(true)}
+            size="small"
+          >
+            + Adicionar Relatório
+          </Button>
+        </Stack>
+
+        {relatorios.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              Nenhum relatório cadastrado para {ticker}
+            </Typography>
+          </Box>
+        ) : (
+          <List>
+            {relatorios.map((relatorio) => (
+              <ListItem key={relatorio.id} sx={{ 
+                border: '1px solid #e2e8f0', 
+                borderRadius: 2, 
+                mb: 1,
+                backgroundColor: 'white',
+                '&:hover': { backgroundColor: '#f8fafc' }
+              }}>
+                <ListItemText
+                  primary={
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {relatorio.nome}
+                      </Typography>
+                    </Stack>
+                  }
+                  secondary={
+                    <Typography variant="body2" color="text.secondary">
+                      {relatorio.tipo} • {relatorio.dataReferencia}
+                    </Typography>
+                  }
+                />
+                <ListItemSecondaryAction>
+                  <Stack direction="row" spacing={1}>
+                    {relatorio.arquivoPdf && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={() => baixarPdf(relatorio)}
+                        startIcon={<DownloadIconCustom />}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        PDF
+                      </Button>
+                    )}
+                    
+                    <IconButton
+                      size="small"
+                      onClick={() => excluirRelatorio(relatorio.id)}
+                      color="error"
+                      sx={{ 
+                        backgroundColor: '#ffebee',
+                        '&:hover': { backgroundColor: '#ffcdd2' }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        )}
+
+        {/* Dialog para adicionar relatório */}
+        <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Adicionar Relatório</DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <TextField
+                fullWidth
+                label="Nome do Relatório"
+                value={novoRelatorio.nome}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
+              />
+              <FormControl fullWidth>
+                <InputLabel>Tipo</InputLabel>
+                <Select
+                  value={novoRelatorio.tipo}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+                >
+                  <MenuItem value="trimestral">Trimestral</MenuItem>
+                  <MenuItem value="anual">Anual</MenuItem>
+                  <MenuItem value="apresentacao">Apresentação</MenuItem>
+                  <MenuItem value="outros">Outros</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                fullWidth
+                label="Data de Referência"
+                value={novoRelatorio.dataReferencia}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
+                placeholder="Ex: Q1 2024"
+              />
+              
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  📄 Upload de Arquivo PDF
+                </Typography>
+                
+                <input
+                  accept="application/pdf"
+                  style={{ display: 'none' }}
+                  id="upload-pdf-input"
+                  type="file"
+                  onChange={handleUploadPdf}
+                />
+                <label htmlFor="upload-pdf-input">
+                  <Button 
+                    variant={arquivoPdfSelecionado ? 'outlined' : 'contained'}
+                    component="span"
+                    startIcon={<CloudUploadIconCustom />}
+                    fullWidth
+                    sx={{ mb: 2, py: 2 }}
+                  >
+                    {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
+                  </Button>
+                </label>
+                
+                {arquivoPdfSelecionado && (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      <strong>📄 Arquivo:</strong> {arquivoPdfSelecionado.name}<br/>
+                      <strong>Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB
+                    </Typography>
+                  </Alert>
+                )}
+              </Box>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              setDialogAberto(false);
+              setArquivoPdfSelecionado(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={salvarRelatorio} 
+              variant="contained"
+              disabled={!novoRelatorio.nome}
+            >
+              💾 Salvar Relatório
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+});
+
+// ========================================
+// COMPONENTE AGENDA CORPORATIVA
+// ========================================
+const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
+
+  const calcularDiasAteEvento = useCallback((dataEvento: Date) => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const evento = new Date(dataEvento);
+    evento.setHours(0, 0, 0, 0);
+    
+    const diffTime = evento.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  }, []);
+
+  const formatarProximidade = useCallback((dias: number) => {
+    if (dias < 0) return 'Passou';
+    if (dias === 0) return 'Hoje';
+    if (dias === 1) return 'Amanhã';
+    if (dias <= 7) return `Em ${dias} dias`;
+    if (dias <= 30) return `Em ${Math.ceil(dias / 7)} semanas`;
+    return `Em ${Math.ceil(dias / 30)} meses`;
+  }, []);
+
+  const criarEventosEstimados = useCallback((ticker: string) => {
+    const eventos: any[] = [];
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    let proximoResultado: Date;
+    
+    if (mesAtual <= 1) {
+      proximoResultado = new Date(anoAtual, 3, 15);
+    } else if (mesAtual <= 4) {
+      proximoResultado = new Date(anoAtual, 5, 15);
+    } else if (mesAtual <= 7) {
+      proximoResultado = new Date(anoAtual, 8, 15);
+    } else {
+      proximoResultado = new Date(anoAtual, 11, 15);
+    }
+    
+    if (proximoResultado <= hoje) {
+      proximoResultado.setMonth(proximoResultado.getMonth() + 3);
+      if (proximoResultado.getFullYear() > anoAtual) {
+        proximoResultado = new Date(anoAtual + 1, 2, 15);
+      }
+    }
+    
+    eventos.push({
+      id: 'resultado-estimado',
+      tipo: 'resultado',
+      titulo: 'Próximos Resultados',
+      data: proximoResultado,
+      descricao: 'Data estimada para divulgação de resultados trimestrais',
+      estimado: true,
+      cor: '#3b82f6'
+    });
+
+    const proximoDividendo = new Date(proximoResultado);
+    proximoDividendo.setMonth(proximoDividendo.getMonth() + 2);
+    
+    eventos.push({
+      id: 'dividendo-estimado',
+      tipo: 'dividendo',
+      titulo: 'Possível Data Ex-Dividendos',
+      data: proximoDividendo,
+      descricao: 'Estimativa baseada em padrões típicos do mercado brasileiro',
+      estimado: true,
+      cor: '#22c55e'
+    });
+
+    const dataAssembleia = new Date(anoAtual, 3, 30);
+    if (dataAssembleia <= hoje) {
+      dataAssembleia.setFullYear(anoAtual + 1);
+    }
+    
+    eventos.push({
+      id: 'assembleia-geral',
+      tipo: 'assembleia',
+      titulo: 'Assembleia Geral Ordinária',
+      data: dataAssembleia,
+      descricao: 'Data típica para aprovação das contas e eleição do conselho',
+      estimado: true,
+      cor: '#8b5cf6'
+    });
+
+    return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
+  }, []);
+
+  const buscarEventos = useCallback(async () => {
+    if (!ticker) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const eventosEstimados = criarEventosEstimados(ticker);
+      setEventos(eventosEstimados);
+      setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
+
+    } catch (err) {
+      console.error('Erro ao buscar eventos:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      
+      const eventosEstimados = criarEventosEstimados(ticker);
+      setEventos(eventosEstimados);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker, criarEventosEstimados]);
+
+  useEffect(() => {
+    buscarEventos();
+  }, [buscarEventos]);
+
+  return (
+    <Card>
+      <CardContent sx={{ p: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            📅 Agenda Corporativa
+          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {ultimaAtualizacao && (
+              <Typography variant="caption" color="text.secondary">
+                {ultimaAtualizacao}
+              </Typography>
+            )}
+            <IconButton 
+              size="small" 
+              onClick={buscarEventos} 
+              disabled={loading}
+              title="Atualizar eventos"
+            >
+              <RefreshIcon />
+            </IconButton>
+          </Stack>
+        </Stack>
+
+        {error && !loading && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              ⚠️ Usando estimativas padrão. {error}
+            </Typography>
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : eventos.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="body2">
+              📭 Nenhum evento encontrado para {ticker}
+            </Typography>
+          </Box>
+        ) : (
+          <Stack spacing={3}>
+            {eventos.slice(0, 4).map((evento, index) => {
+              const diasAteEvento = calcularDiasAteEvento(evento.data);
+              const proximidade = formatarProximidade(diasAteEvento);
+              
+              return (
+                <Card key={evento.id} sx={{ 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: 2,
+                  backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
+                  '&:hover': { 
+                    backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Stack direction="row" alignItems="center" spacing={4}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="h6" sx={{ 
+                              fontWeight: 600,
+                              fontSize: '1.1rem',
+                              mb: 1,
+                              color: '#1e293b'
+                            }}>
+                              {evento.titulo}
+                            </Typography>
+                            
+                            <Typography variant="body2" color="text.secondary" sx={{ 
+                              fontSize: '0.9rem',
+                              lineHeight: 1.5,
+                              mb: 2
+                            }}>
+                              {evento.descricao}
+                            </Typography>
+
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip 
+                                label={proximidade}
+                                size="medium"
+                                sx={{ 
+                                  backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
+                                  color: 'white',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 500,
+                                  px: 1
+                                }}
+                              />
+                              {evento.estimado && (
+                                <Chip 
+                                  label="Estimado"
+                                  size="medium"
+                                  variant="outlined"
+                                  sx={{ 
+                                    fontSize: '0.8rem',
+                                    borderColor: '#d1d5db',
+                                    color: '#6b7280'
+                                  }}
+                                />
+                              )}
+                            </Stack>
+                          </Box>
+
+                          <Box sx={{ 
+                            textAlign: 'right',
+                            minWidth: 140,
+                            flexShrink: 0
+                          }}>
+                            <Typography variant="h5" sx={{ 
+                              fontWeight: 700,
+                              color: evento.cor,
+                              fontSize: '1.3rem',
+                              lineHeight: 1
+                            }}>
+                              {evento.data.getDate()}
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              fontWeight: 600,
+                              color: '#64748b',
+                              fontSize: '0.9rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              {evento.data.toLocaleDateString('pt-BR', {
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ 
+                              fontSize: '0.75rem',
+                              display: 'block',
+                              mt: 0.5
+                            }}>
+                              {evento.data.toLocaleDateString('pt-BR', {
+                                weekday: 'long'
+                              })}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Stack>
+        )}
+
+        <Alert severity="info" sx={{ mt: 3 }}>
+          <Typography variant="body2">
+            <strong>ℹ️ Sobre as datas:</strong><br/>
+            • 📊 <strong>Estimativas:</strong> Calculadas com padrões do mercado brasileiro<br/>
+            • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo
+          </Typography>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
+});
+
+// ========================================
 // ÍCONES MOCK
 // ========================================
 const ArrowLeftIcon = () => <span>←</span>;
@@ -498,6 +1135,17 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
           <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
+        </Grid>
+      </Grid>
+
+      {/* Seções secundárias */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <GerenciadorRelatorios ticker={ticker} />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <AgendaCorporativa ticker={ticker} />
         </Grid>
       </Grid>
 
