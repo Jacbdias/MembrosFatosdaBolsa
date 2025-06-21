@@ -1415,7 +1415,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [relatorioReupload, setRelatorioReupload] = useState<Relatorio | null>(null);
   const [arquivoReupload, setArquivoReupload] = useState<File | null>(null);
 
-  // ✅ SISTEMA NOVO: Leitura centralizada
+  // ✅ CARREGAMENTO CENTRALIZADO (mas interface limpa)
   useEffect(() => {
     carregarRelatoriosCentralizados();
     
@@ -1432,13 +1432,13 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
 
   const carregarRelatoriosCentralizados = useCallback(() => {
     try {
-      const dadosCentralizados = localStorage.getItem('relatorios_central');  // ← CENTRALIZADO
+      const dadosCentralizados = localStorage.getItem('relatorios_central');
       
       if (dadosCentralizados) {
         const dados = JSON.parse(dadosCentralizados);
         const relatoriosTicker = dados[ticker] || [];
         
-        // Converter para formato compatível com o componente atual
+        // Converter para formato compatível
         const relatoriosFormatados = relatoriosTicker.map((rel: any) => ({
           ...rel,
           arquivo: rel.arquivoPdf ? 'PDF_CENTRALIZADO' : undefined,
@@ -1450,15 +1450,14 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         setRelatorios([]);
       }
     } catch (error) {
-      console.error('Erro ao carregar relatórios centralizados:', error);
+      console.error('Erro ao carregar relatórios:', error);
       setRelatorios([]);
     }
   }, [ticker]);
 
-  // ✅ SISTEMA NOVO: Re-upload inteligente para PDFs grandes
+  // Re-upload para PDFs grandes
   const handleReuploadPdf = useCallback(async (arquivo: File, relatorio: Relatorio) => {
     try {
-      // Validar hash se disponível
       if (relatorio.hashArquivo) {
         const novoHash = await calcularHash(arquivo);
         if (novoHash !== relatorio.hashArquivo) {
@@ -1468,10 +1467,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         }
       }
 
-      // Processar PDF com sistema híbrido
       const dadosPdf = await processarPdfHibrido(arquivo);
-      
-      // Atualizar dados centralizados
       const dadosCentralizados = JSON.parse(localStorage.getItem('relatorios_central') || '{}');
       
       if (dadosCentralizados[ticker]) {
@@ -1500,11 +1496,10 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   }, [ticker, carregarRelatoriosCentralizados]);
 
-  // ✅ SISTEMA NOVO: Download melhorado
+  // Download de PDF
   const baixarPdf = useCallback((relatorio: Relatorio) => {
     if (!relatorio.arquivoPdf) {
       if (relatorio.solicitarReupload) {
-        // PDF grande que precisa de re-upload
         setRelatorioReupload(relatorio);
         setDialogReupload(true);
         return;
@@ -1540,7 +1535,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   }, []);
 
-  // Manter funções auxiliares existentes
   const getIconePorTipo = useCallback((tipo: string) => {
     switch (tipo) {
       case 'iframe': return '🖼️';
@@ -1551,7 +1545,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   }, []);
 
-  // ✅ INTERFACE NOVA: Foco na central + indicadores de sistema híbrido
+  // ✅ INTERFACE LIMPA - SEM REFERÊNCIAS AO SISTEMA CENTRAL
   return (
     <Card>
       <CardContent sx={{ p: 4 }}>
@@ -1559,34 +1553,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             📋 Relatórios da Empresa
           </Typography>
-          <Stack direction="row" spacing={1}>
-            <Button 
-              variant="outlined" 
-              size="small"
-              onClick={() => alert(`💡 SISTEMA CENTRALIZADO ATIVO:
-
-📊 Os relatórios são gerenciados centralmente
-🔄 Atualizações aparecem automaticamente  
-⚡ PDFs pequenos (≤3MB): Acesso instantâneo
-📁 PDFs grandes (>3MB): Re-upload quando necessário
-
-🛠️ Para adicionar/editar relatórios:
-Acesse: /dashboard/central-relatorios`)}
-            >
-              💡 Sistema Central
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={() => {
-                if (confirm('🔗 Ir para a Central de Relatórios para adicionar novos?')) {
-                  window.open('/dashboard/central-relatorios', '_blank');
-                }
-              }}
-              size="small"
-            >
-              + Gerenciar Relatórios
-            </Button>
-          </Stack>
+          {/* Interface limpa - sem botões de sistema central */}
         </Stack>
 
         {relatorios.length === 0 ? (
@@ -1594,16 +1561,6 @@ Acesse: /dashboard/central-relatorios`)}
             <Typography variant="body2">
               Nenhum relatório cadastrado para {ticker}
             </Typography>
-            <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-              📊 Use a Central de Relatórios para adicionar
-            </Typography>
-            <Button
-              variant="outlined"
-              sx={{ mt: 2 }}
-              onClick={() => window.open('/dashboard/central-relatorios', '_blank')}
-            >
-              🔗 Abrir Central de Relatórios
-            </Button>
           </Box>
         ) : (
           <List>
@@ -1622,7 +1579,6 @@ Acesse: /dashboard/central-relatorios`)}
                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                         {relatorio.nome}
                       </Typography>
-                      {/* ✅ NOVO: Indicadores de sistema híbrido */}
                       {relatorio.solicitarReupload && (
                         <Chip 
                           label="Re-upload" 
@@ -1641,9 +1597,7 @@ Acesse: /dashboard/central-relatorios`)}
                       </Typography>
                       {relatorio.tamanhoArquivo && (
                         <Typography variant="caption" color="text.secondary">
-                          📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB 
-                          {relatorio.tipoPdf === 'base64' && ' (Instantâneo)'}
-                          {relatorio.tipoPdf === 'referencia' && ' (Referência)'}
+                          📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
                         </Typography>
                       )}
                     </Stack>
@@ -1651,15 +1605,10 @@ Acesse: /dashboard/central-relatorios`)}
                 />
                 <ListItemSecondaryAction>
                   <Stack direction="row" spacing={1}>
-                    {/* ✅ BOTÃO DE VISUALIZAÇÃO PARA TODOS OS TIPOS */}
+                    {/* Botão de visualização */}
                     <IconButton
                       size="small"
                       onClick={() => {
-                        console.log('👁️ Clique no olho - Relatório:', relatorio.nome);
-                        console.log('🔗 Tipo:', relatorio.tipoVisualizacao);
-                        console.log('🎨 Link Canva:', relatorio.linkCanva);
-                        console.log('🔗 Link Externo:', relatorio.linkExterno);
-                        
                         setRelatorioSelecionado(relatorio);
                         setDialogVisualizacao(true);
                         setLoadingIframe(true);
@@ -1674,7 +1623,7 @@ Acesse: /dashboard/central-relatorios`)}
                       <ViewIcon />
                     </IconButton>
                     
-                    {/* ✅ NOVO: Botão inteligente de download/re-upload */}
+                    {/* Botão de download/re-upload */}
                     {(relatorio.arquivoPdf || relatorio.nomeArquivoPdf) && (
                       <Button
                         variant="contained"
@@ -1695,22 +1644,10 @@ Acesse: /dashboard/central-relatorios`)}
           </List>
         )}
 
-        {/* ✅ NOVO: Informações do sistema central */}
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>🔄 Sistema Centralizado Ativo:</strong><br/>
-            • Relatórios são gerenciados na Central de Relatórios<br/>
-            • {relatorios.filter(r => r.tipoPdf === 'base64').length} PDF(s) com acesso instantâneo<br/>
-            • {relatorios.filter(r => r.solicitarReupload).length} PDF(s) precisam de re-upload<br/>
-            • Atualizações aparecem automaticamente em todos os ativos
-          </Typography>
-        </Alert>
-
-        {/* ✅ DIALOG DE VISUALIZAÇÃO - COMPLETO */}
+        {/* Dialog de visualização */}
         <Dialog 
           open={dialogVisualizacao} 
           onClose={() => {
-            console.log('❌ Fechando dialog de visualização');
             setDialogVisualizacao(false);
             setLoadingIframe(false);
             setTimeoutError(false);
@@ -1747,11 +1684,9 @@ Acesse: /dashboard/central-relatorios`)}
               {relatorioSelecionado && (
                 <IconButton 
                   onClick={() => {
-                    console.log('🔗 Abrindo em nova aba');
                     const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
                       ? relatorioSelecionado.linkCanva 
                       : relatorioSelecionado.linkExterno;
-                    console.log('🎯 URL para nova aba:', src);
                     if (src) window.open(src, '_blank');
                   }}
                   title="Abrir em nova aba"
@@ -1788,9 +1723,6 @@ Acesse: /dashboard/central-relatorios`)}
                     <Typography variant="body2" sx={{ mt: 2 }}>
                       Carregando conteúdo...
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      {relatorioSelecionado.tipoVisualizacao.toUpperCase()}
-                    </Typography>
                   </Box>
                 )}
 
@@ -1809,20 +1741,13 @@ Acesse: /dashboard/central-relatorios`)}
                       ⚠️ Erro ao Carregar
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 3 }}>
-                      O conteúdo não pôde ser carregado. Isso pode acontecer se:
+                      O conteúdo não pôde ser carregado.
                     </Typography>
-                    <ul style={{ textAlign: 'left', fontSize: '0.875rem', color: '#666' }}>
-                      <li>A URL não permite incorporação (iframe)</li>
-                      <li>O site tem restrições de segurança</li>
-                      <li>A conexão está lenta</li>
-                      <li>A URL está incorreta</li>
-                    </ul>
                     
-                    <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
+                    <Stack direction="row" spacing={2} justifyContent="center">
                       <Button 
                         variant="outlined"
                         onClick={() => {
-                          console.log('🔄 Tentando recarregar iframe');
                           setTimeoutError(false);
                           setLoadingIframe(true);
                         }}
@@ -1833,11 +1758,9 @@ Acesse: /dashboard/central-relatorios`)}
                       <Button 
                         variant="contained"
                         onClick={() => {
-                          console.log('🔗 Abrindo em nova aba do dialog');
                           const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
                             ? relatorioSelecionado.linkCanva 
                             : relatorioSelecionado.linkExterno;
-                          console.log('🎯 URL:', src);
                           if (src) window.open(src, '_blank');
                         }}
                         size="small"
@@ -1848,52 +1771,27 @@ Acesse: /dashboard/central-relatorios`)}
                   </Box>
                 )}
 
-                {/* ✅ IFRAME PRINCIPAL - PROCESSAMENTO INTELIGENTE */}
+                {/* Iframe principal */}
                 <iframe
                   src={(() => {
-                    // Processar URL para iframe
                     const relatorio = relatorioSelecionado;
-                    console.log('🔧 Processando URL para iframe');
-                    console.log('📊 Relatório:', relatorio.nome);
-                    console.log('🎭 Tipo:', relatorio.tipoVisualizacao);
                     
                     let url = '';
                     if (relatorio.tipoVisualizacao === 'canva') {
                       url = relatorio.linkCanva || '';
-                      console.log('🎨 URL do Canva (raw):', url);
                     } else {
                       url = relatorio.linkExterno || '';
-                      console.log('🔗 URL Externa (raw):', url);
                     }
                     
-                    if (!url) {
-                      console.log('❌ URL vazia!');
-                      return '';
-                    }
+                    if (!url) return '';
                     
                     // Processar Canva automaticamente
                     if (url.includes('canva.com')) {
-                      console.log('🎨 Detectado Canva - processando...');
-                      
-                      if (url.includes('?embed')) {
-                        console.log('✅ URL já tem ?embed');
-                        return url;
-                      }
-                      
-                      if (url.includes('/view')) {
-                        const urlFinal = url + '?embed';
-                        console.log('✅ Adicionando ?embed à URL /view:', urlFinal);
-                        return urlFinal;
-                      }
-                      
-                      if (url.includes('/design/')) {
-                        const urlFinal = url.replace(/\/(edit|preview).*$/, '/view?embed');
-                        console.log('✅ Convertendo para /view?embed:', urlFinal);
-                        return urlFinal;
-                      }
+                      if (url.includes('?embed')) return url;
+                      if (url.includes('/view')) return url + '?embed';
+                      if (url.includes('/design/')) return url.replace(/\/(edit|preview).*$/, '/view?embed');
                     }
                     
-                    console.log('🔗 Usando URL original:', url);
                     return url;
                   })()}
                   style={{ 
@@ -1905,18 +1803,15 @@ Acesse: /dashboard/central-relatorios`)}
                   }}
                   allowFullScreen
                   onLoad={() => {
-                    console.log('✅ Iframe carregou com sucesso!');
                     setLoadingIframe(false);
                     setTimeoutError(false);
                   }}
                   onError={() => {
-                    console.log('❌ Erro no iframe detectado');
                     setLoadingIframe(false);
                     setTimeoutError(true);
                   }}
                   sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
                   referrerPolicy="no-referrer-when-downgrade"
-                  loading="lazy"
                 />
                 
                 {!loadingIframe && !timeoutError && (
@@ -1949,7 +1844,7 @@ Acesse: /dashboard/central-relatorios`)}
           </DialogContent>
         </Dialog>
 
-        {/* ✅ NOVO: Dialog de re-upload para PDFs grandes */}
+        {/* Dialog de re-upload */}
         <Dialog open={dialogReupload} onClose={() => setDialogReupload(false)} maxWidth="sm" fullWidth>
           <DialogTitle>📤 Re-upload de PDF</DialogTitle>
           <DialogContent>
