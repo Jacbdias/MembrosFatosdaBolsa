@@ -1557,7 +1557,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {proventos.slice(0, 10).map((provento, index) => (
+                   {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
                     <TableRow key={`${provento.data}-${index}`}>
                       <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e' }}>
