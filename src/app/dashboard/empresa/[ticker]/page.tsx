@@ -1542,7 +1542,12 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Button>
               </Box>
             )}
-            <TableContainer sx={{ backgroundColor: 'white', borderRadius: 1 }}>
+                       <TableContainer sx={{ 
+              backgroundColor: 'white', 
+              borderRadius: 1,
+              maxHeight: mostrarTodos ? '400px' : 'auto',
+              overflowY: mostrarTodos ? 'auto' : 'visible'
+            }}>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
