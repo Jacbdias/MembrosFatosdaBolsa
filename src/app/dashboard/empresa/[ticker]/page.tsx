@@ -1520,7 +1520,28 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Box>
               </Grid>
             </Grid>
-
+                        {proventos.length > 10 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setMostrarTodos(!mostrarTodos)}
+                  sx={{
+                    border: '1px solid #e2e8f0',
+                    color: '#64748b',
+                    '&:hover': {
+                      backgroundColor: '#f1f5f9',
+                      borderColor: '#cbd5e1'
+                    }
+                  }}
+                >
+                  {mostrarTodos 
+                    ? `📋 Mostrar apenas 10 recentes` 
+                    : `📋 Mostrar todos os ${proventos.length} proventos`
+                  }
+                </Button>
+              </Box>
+            )}
             <TableContainer sx={{ backgroundColor: 'white', borderRadius: 1 }}>
               <Table size="small">
                 <TableHead>
