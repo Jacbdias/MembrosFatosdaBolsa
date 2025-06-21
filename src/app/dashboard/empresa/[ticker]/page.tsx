@@ -1167,21 +1167,25 @@ const MetricCard = React.memo(({
       backgroundColor: 'white',
       p: 3,
       textAlign: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
       '&:last-child': { pb: 3 }
     }}>
       {loading ? (
         <Skeleton variant="text" height={50} />
       ) : (
         <>
-<Typography variant="h3" sx={{ 
-  fontWeight: 800, 
-  fontSize: '2rem',
-  color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
-  lineHeight: 1,
-  letterSpacing: '-0.5px'
-}}>
-  {value}
-</Typography>
+          <Typography variant="h3" sx={{ 
+            fontWeight: 800, 
+            fontSize: '2rem',
+            color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
+            lineHeight: 1,
+            letterSpacing: '-0.5px'
+          }}>
+            {value}
+          </Typography>
           
           {subtitle && (
             <Typography variant="caption" sx={{ 
