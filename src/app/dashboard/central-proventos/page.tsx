@@ -105,6 +105,7 @@ export default function CentralProventos() {
     setArquivoSelecionado(file);
   };
 
+  // ✅ FUNÇÃO PROCESSARCSV CORRIGIDA
   const processarCSV = useCallback(async () => {
     if (!arquivoSelecionado) return;
 
@@ -113,77 +114,193 @@ export default function CentralProventos() {
     setEtapaProcessamento('Lendo arquivo...');
     await delay(300);
 
-    const text = await arquivoSelecionado.text();
-    const linhas = text.split('\n').filter(l => l.trim());
-    if (linhas.length < 2) {
-      alert('Arquivo vazio ou sem dados válidos.');
-      setLoading(false);
-      return;
-    }
-
-    setEtapaProcessamento('Processando linhas...');
-    setProgresso(30);
-    await delay(300);
-
-    const proventos: ProventoCentral[] = [];
-    for (let i = 1; i < linhas.length; i++) {
-      const linha = linhas[i].replace(/\r/g, '');
-      const partes = linha.includes(';') ? linha.split(';') : linha.split(',');
-      if (partes.length < 4) continue;
-const [ticker, valorRaw, dataCom, dataPagamento, tipo, dividendYieldRaw] = partes.map(p => p.trim());
-      let valor = parseFloat(
-        valorRaw.replace('R$', '').replace(/\s/g, '').replace(',', '.')
-      );
-      if (isNaN(valor)) continue;
-      let dataObj: Date;
-      if (data.includes('/')) {
-        const [d, m, a] = data.split('/');
-        dataObj = new Date(+a, +m - 1, +d);
-      } else {
-        dataObj = new Date(data);
+    try {
+      const text = await arquivoSelecionado.text();
+      const linhas = text.split('\n').filter(l => l.trim());
+      
+      if (linhas.length < 2) {
+        alert('Arquivo vazio ou sem dados válidos.');
+        setLoading(false);
+        return;
       }
-      if (isNaN(dataObj.getTime())) continue;
-      proventos.push({
-        ticker,
-        data,
-        dataObj,
-        valor,
-        tipo,
-        dataFormatada: dataObj.toLocaleDateString('pt-BR'),
-        valorFormatado: formatarMoeda(valor)
-      });
-    }
 
-    if (proventos.length === 0) {
-      alert('Nenhum provento válido encontrado.');
+      setEtapaProcessamento('Processando linhas...');
+      setProgresso(30);
+      await delay(300);
+
+      const proventos: ProventoCentral[] = [];
+      let errosProcessamento = 0;
+
+      for (let i = 1; i < linhas.length; i++) {
+        try {
+          const linha = linhas[i].replace(/\r/g, '').trim();
+          if (!linha) continue;
+
+          const partes = linha.includes(';') ? linha.split(';') : linha.split(',');
+          
+          // ✅ NOVO FORMATO: ticker,valor,dataCom,dataPagamento,tipo,dividendYield
+          if (partes.length >= 6) {
+            const [ticker, valorRaw, dataCom, dataPagamento, tipo, dividendYieldRaw] = partes.map(p => p.trim());
+            
+            // Processar valor
+            let valor = parseFloat(
+              valorRaw.replace('R$', '').replace(/\s/g, '').replace(',', '.')
+            );
+            if (isNaN(valor)) {
+              errosProcessamento++;
+              continue;
+            }
+
+            // ✅ CORRIGIDO: Usar dataCom em vez de variável 'data' inexistente
+            let dataObj: Date;
+            if (dataCom.includes('/')) {
+              const [d, m, a] = dataCom.split('/');
+              dataObj = new Date(+a, +m - 1, +d);
+            } else {
+              dataObj = new Date(dataCom);
+            }
+            if (isNaN(dataObj.getTime())) {
+              errosProcessamento++;
+              continue;
+            }
+
+            // Processar dividend yield (opcional)
+            let dividendYield: number | undefined;
+            if (dividendYieldRaw && dividendYieldRaw !== '') {
+              const dy = parseFloat(dividendYieldRaw.replace('%', '').replace(',', '.'));
+              if (!isNaN(dy)) {
+                dividendYield = dy;
+              }
+            }
+
+            // Processar data pagamento (opcional)
+            let dataPagamentoFormatada: string | undefined;
+            if (dataPagamento && dataPagamento !== '') {
+              let dataPagamentoObj: Date;
+              if (dataPagamento.includes('/')) {
+                const [d, m, a] = dataPagamento.split('/');
+                dataPagamentoObj = new Date(+a, +m - 1, +d);
+              } else {
+                dataPagamentoObj = new Date(dataPagamento);
+              }
+              if (!isNaN(dataPagamentoObj.getTime())) {
+                dataPagamentoFormatada = dataPagamentoObj.toLocaleDateString('pt-BR');
+              }
+            }
+
+            proventos.push({
+              ticker,
+              data: dataCom, // ✅ CORRIGIDO: Usar dataCom como data principal
+              dataObj,
+              valor,
+              tipo,
+              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
+              valorFormatado: formatarMoeda(valor),
+              // Campos extras para compatibilidade
+              dataCom,
+              dataComFormatada: dataObj.toLocaleDateString('pt-BR'),
+              dataPagamento,
+              dataPagamentoFormatada,
+              dividendYield
+            });
+
+          } else if (partes.length >= 4) {
+            // 🔄 FALLBACK PARA FORMATO ANTIGO (4 colunas)
+            const [ticker, data, valorRaw, tipo] = partes.map(p => p.trim());
+            
+            let valor = parseFloat(
+              valorRaw.replace('R$', '').replace(/\s/g, '').replace(',', '.')
+            );
+            if (isNaN(valor)) {
+              errosProcessamento++;
+              continue;
+            }
+
+            let dataObj: Date;
+            if (data.includes('/')) {
+              const [d, m, a] = data.split('/');
+              dataObj = new Date(+a, +m - 1, +d);
+            } else {
+              dataObj = new Date(data);
+            }
+            if (isNaN(dataObj.getTime())) {
+              errosProcessamento++;
+              continue;
+            }
+
+            proventos.push({
+              ticker,
+              data,
+              dataObj,
+              valor,
+              tipo,
+              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
+              valorFormatado: formatarMoeda(valor)
+            });
+
+          } else {
+            errosProcessamento++;
+          }
+
+          // Atualizar progresso
+          if (i % 50 === 0) {
+            const progressoAtual = 30 + (i / linhas.length) * 40;
+            setProgresso(progressoAtual);
+            await delay(10);
+          }
+
+        } catch (error) {
+          console.error(`Erro na linha ${i}:`, error);
+          errosProcessamento++;
+        }
+      }
+
+      if (proventos.length === 0) {
+        alert(`Nenhum provento válido encontrado. Erros: ${errosProcessamento}`);
+        setLoading(false);
+        return;
+      }
+
+      setEtapaProcessamento('Salvando dados...');
+      setProgresso(80);
+      await delay(300);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('proventos_central_master', JSON.stringify(proventos));
+        localStorage.setItem('proventos_central_data_upload', new Date().toISOString());
+        
+        const porTicker: Record<string, any[]> = {};
+        proventos.forEach(p => {
+          if (!porTicker[p.ticker]) porTicker[p.ticker] = [];
+          porTicker[p.ticker].push(p);
+        });
+        
+        Object.entries(porTicker).forEach(([t, ps]) => {
+          localStorage.setItem(`proventos_${t}`, JSON.stringify(ps));
+        });
+      }
+
+      setProgresso(100);
+      await delay(500);
+      carregarEstatisticas();
+      
+      let mensagem = `✅ ${proventos.length} proventos processados com sucesso!`;
+      if (errosProcessamento > 0) {
+        mensagem += `\n⚠️ ${errosProcessamento} linhas ignoradas por erros.`;
+      }
+      
+      alert(mensagem);
+      setDialogAberto(false);
+      setArquivoSelecionado(null);
+
+    } catch (error) {
+      console.error('Erro no processamento:', error);
+      alert('Erro ao processar o arquivo. Verifique o formato.');
+    } finally {
       setLoading(false);
-      return;
+      setEtapaProcessamento('');
+      setProgresso(0);
     }
-
-    setEtapaProcessamento('Salvando dados...');
-    setProgresso(70);
-    await delay(300);
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('proventos_central_master', JSON.stringify(proventos));
-      localStorage.setItem('proventos_central_data_upload', new Date().toISOString());
-      const porTicker: Record<string, ProventoCentral[]> = {};
-      proventos.forEach(p => {
-        if (!porTicker[p.ticker]) porTicker[p.ticker] = [];
-        porTicker[p.ticker].push(p);
-      });
-      Object.entries(porTicker).forEach(([t, ps]) => {
-        localStorage.setItem(`proventos_${t}`, JSON.stringify(ps));
-      });
-    }
-
-    setProgresso(100);
-    await delay(500);
-    carregarEstatisticas();
-    alert(`✅ ${proventos.length} proventos processados com sucesso.`);
-    setDialogAberto(false);
-    setArquivoSelecionado(null);
-    setLoading(false);
   }, [arquivoSelecionado, carregarEstatisticas]);
 
   const exportarDados = () => {
