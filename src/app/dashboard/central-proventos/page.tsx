@@ -37,6 +37,12 @@ interface ProventoCentral {
   tipo: string;
   dataFormatada: string;
   valorFormatado: string;
+  // ✅ NOVOS CAMPOS ADICIONADOS
+  dataCom?: string;
+  dataComFormatada?: string;
+  dataPagamento?: string;
+  dataPagamentoFormatada?: string;
+  dividendYield?: number;
 }
 
 export default function CentralProventos() {
