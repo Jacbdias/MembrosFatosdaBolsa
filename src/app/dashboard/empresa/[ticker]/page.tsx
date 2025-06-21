@@ -1439,11 +1439,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           </Box>
         ) : (
           <>
-            {proventos.length > 0 && (
-              <Alert severity="success" sx={{ mb: 3 }}>
-                💾 <strong>{proventos.length} proventos carregados</strong>
-              </Alert>
-            )}
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={3}>
