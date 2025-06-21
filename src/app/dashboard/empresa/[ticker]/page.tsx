@@ -1274,7 +1274,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
       mediaProvento: media,
       ultimoProvento: ultimo,
       totalPorAno: totalAno
-  });  // ← Fechar o return do useMemo primeiro
+  };  // ← Fechar o return do useMemo primeiro
 }, [proventos]);  // ← Depois fechar o useMemo
 
   return (
