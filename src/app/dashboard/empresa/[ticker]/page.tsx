@@ -1385,18 +1385,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           </Typography>
         </Stack>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress />
-          </Box>
-        )}
-
         {proventos.length === 0 && !loading ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
