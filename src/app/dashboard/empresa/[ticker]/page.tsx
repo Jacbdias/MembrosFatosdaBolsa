@@ -41,64 +41,262 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 
 // ========================================
-// COMPONENTE GERENCIADOR DE RELATÓRIOS
+// ÍCONES MOCK
 // ========================================
-const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
-  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
-  const [dialogAberto, setDialogAberto] = useState(false);
-  const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
-  const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
-  const [loadingIframe, setLoadingIframe] = useState(false);
-  const [timeoutError, setTimeoutError] = useState(false);
-  const [tabAtiva, setTabAtiva] = useState(1);
-  const [novoRelatorio, setNovoRelatorio] = useState({
-    nome: '',
-    tipo: 'trimestral' as const,
-    dataReferencia: '',
-    arquivo: null as File | null,
-    linkCanva: '',
-    linkExterno: '',
-    tipoVisualizacao: 'iframe' as const
+const ArrowLeftIcon = () => <span>←</span>;
+const TrendUpIcon = () => <span style={{ color: '#22c55e' }}>↗</span>;
+const TrendDownIcon = () => <span style={{ color: '#ef4444' }}>↘</span>;
+const RefreshIcon = () => <span>🔄</span>;
+const WarningIcon = () => <span>⚠</span>;
+const CheckIcon = () => <span>✓</span>;
+const UploadIcon = () => <span>📤</span>;
+const DownloadIconCustom = () => <span>📥</span>;
+const DeleteIcon = () => <span>🗑</span>;
+const FileIcon = () => <span>📄</span>;
+const ViewIcon = () => <span>👁</span>;
+const CloseIcon = () => <span>✕</span>;
+const CloudUploadIconCustom = () => <span>☁️</span>;
+const PictureAsPdfIconCustom = () => <span>📄</span>;
+
+// ========================================
+// CONSTANTES E CONFIGURAÇÕES
+// ========================================
+const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+// ========================================
+// INTERFACES E TIPOS
+// ========================================
+interface DadosFinanceiros {
+  precoAtual: number;
+  variacao: number;
+  variacaoPercent: number;
+  volume: number;
+  marketCap?: number;
+  pl?: number;
+  dy?: number;
+}
+
+interface EmpresaCompleta {
+  ticker: string;
+  nomeCompleto: string;
+  setor: string;
+  descricao: string;
+  avatar: string;
+  dataEntrada: string;
+  precoIniciou: string;
+  precoTeto: string;
+  viesAtual: string;
+  ibovespaEpoca: string;
+  percentualCarteira: string;
+  tipo?: 'FII';
+  gestora?: string;
+  dadosFinanceiros?: DadosFinanceiros;
+  statusApi?: string;
+  ultimaAtualizacao?: string;
+}
+
+export type TipoVisualizacao = 'iframe' | 'canva' | 'link' | 'pdf';
+
+interface Relatorio {
+  id: string;
+  nome: string;
+  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
+  dataUpload: string;
+  dataReferencia: string;
+  arquivo?: string;
+  linkCanva?: string;
+  linkExterno?: string;
+  tamanho?: string;
+  tipoVisualizacao: TipoVisualizacao;
+  arquivoPdf?: string;
+  nomeArquivoPdf?: string;
+  tamanhoArquivo?: number;
+  dataUploadPdf?: string;
+}
+
+// ========================================
+// DADOS DE FALLBACK - CORRIGIDO
+// ========================================
+const dadosFallback: { [key: string]: EmpresaCompleta } = {
+  'KEPL3': {
+    ticker: 'KEPL3',
+    nomeCompleto: 'Kepler Weber S.A.',
+    setor: 'Agricultura',
+    descricao: 'A Kepler Weber é uma empresa brasileira especializada em soluções para armazenagem e movimentação de grãos, líquidos e gases.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/KEPL.png',
+    dataEntrada: '21/03/2021',
+    precoIniciou: 'R$ 7,30',
+    precoTeto: 'R$ 12,50',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '115.000',
+    percentualCarteira: '2.1%'
+  },
+  'VALE3': {
+    ticker: 'VALE3',
+    nomeCompleto: 'Vale S.A.',
+    setor: 'Mineração',
+    descricao: 'A Vale é uma empresa brasileira de mineração multinacional e uma das maiores operadoras de logística do país.',
+    avatar: 'https://logoeps.com/wp-content/uploads/2013/03/vale-vector-logo.png',
+    dataEntrada: '15/01/2022',
+    precoIniciou: 'R$ 85,00',
+    precoTeto: 'R$ 120,00',
+    viesAtual: 'Compra',
+    ibovespaEpoca: '103.500',
+    percentualCarteira: '8.5%'
+  }
+};
+
+// ========================================
+// FUNÇÕES UTILITÁRIAS
+// ========================================
+function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
+  try {
+    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    
+    if (isNaN(precoTetoNum) || precoAtual <= 0) {
+      return 'Aguardar';
+    }
+    
+    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
+    
+    if (percentualDoTeto <= 80) {
+      return 'Compra Forte';
+    } else if (percentualDoTeto <= 95) {
+      return 'Compra';
+    } else if (percentualDoTeto <= 105) {
+      return 'Neutro';
+    } else if (percentualDoTeto <= 120) {
+      return 'Aguardar';
+    } else {
+      return 'Venda';
+    }
+  } catch {
+    return 'Aguardar';
+  }
+}
+
+function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
+  if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
+  
+  switch (tipo) {
+    case 'currency':
+      return new Intl.NumberFormat('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(valor);
+    
+    case 'percent':
+      return `${valor.toFixed(2).replace('.', ',')}%`;
+    
+    case 'millions':
+      if (valor >= 1000000000) {
+        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
+      } else if (valor >= 1000000) {
+        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
+      } else {
+        return formatarValor(valor, 'currency');
+      }
+    
+    case 'number':
+      return valor.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2 
+      });
+    
+    default:
+      return valor.toString();
+  }
+}
+
+// ========================================
+// HOOK PARA CALCULAR DIVIDEND YIELD
+// ========================================
+function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string) {
+  const [dyData, setDyData] = useState({
+    dy12Meses: 0,
+    dyDesdeEntrada: 0
   });
 
-  const [arquivoPdfSelecionado, setArquivoPdfSelecionado] = useState<File | null>(null);
-
-  const baixarPdf = useCallback((relatorio: Relatorio) => {
-    console.log('⬇️ Iniciando download do PDF...');
-    
-    if (!relatorio.arquivoPdf) {
-      alert('❌ Arquivo PDF não encontrado!');
-      return;
-    }
-    
+  const parsePreco = useCallback((precoStr: string): number => {
     try {
-      const link = document.createElement('a');
-      link.href = relatorio.arquivoPdf;
-      link.download = relatorio.nomeArquivoPdf || `${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      link.target = '_blank';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-    } catch (error) {
-      console.error('❌ Erro no download:', error);
-      alert('❌ Erro ao baixar o arquivo. Tente novamente.');
+      return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    } catch {
+      return 0;
     }
   }, []);
-  
-  useEffect(() => {
-    const chave = `relatorios_${ticker}`;
-    const relatoriosExistentes = localStorage.getItem(chave);
-    
-    if (relatoriosExistentes) {
-      try {
-        setRelatorios(JSON.parse(relatoriosExistentes));
-      } catch (error) {
-        console.error('Erro ao carregar relatórios:', error);
-      }
+
+  const calcularDY = useCallback(() => {
+    if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+      return;
     }
-  }, [ticker]);
+
+    try {
+      if (typeof window === 'undefined') {
+        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+        return;
+      }
+
+      const chaveStorage = `proventos_${ticker}`;
+      const dadosSalvos = localStorage.getItem(chaveStorage);
+      
+      if (!dadosSalvos) {
+        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+        return;
+      }
+
+      const proventos = JSON.parse(dadosSalvos).map((item: any) => ({
+        ...item,
+        dataObj: new Date(item.dataObj)
+      }));
+
+      const hoje = new Date();
+      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
+      const data12MesesAtras = new Date();
+      data12MesesAtras.setFullYear(hoje.getFullYear() - 1);
+
+      const proventos12Meses = proventos.filter((provento: any) => 
+        provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje
+      );
+
+      const proventosDesdeEntrada = proventos.filter((provento: any) => 
+        provento.dataObj >= dataEntradaObj && provento.dataObj <= hoje
+      );
+
+      const totalProventos12Meses = proventos12Meses.reduce((sum: number, p: any) => sum + p.valor, 0);
+      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum: number, p: any) => sum + p.valor, 0);
+
+      const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
+
+      const precoEntrada = parsePreco(precoIniciou);
+      const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
+
+      setDyData({
+        dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
+        dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
+      });
+
+    } catch (error) {
+      console.error('Erro ao calcular DY:', error);
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+    }
+  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
+
+  useEffect(() => {
+    if (relatorioSelecionado) {
+      setTimeoutError(false);
+      setLoadingIframe(true);
+      
+      const timer = setTimeout(() => {
+        setLoadingIframe(false);
+        setTimeoutError(true);
+      }, 60000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [relatorioSelecionado]);
 
   const handleUploadPdf = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const arquivo = event.target.files?.[0];
@@ -123,13 +321,20 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       return;
     }
     
+    console.log('✅ PDF selecionado:', arquivo.name);
+    console.log('📊 Tamanho:', (arquivo.size / 1024 / 1024).toFixed(2), 'MB');
     setArquivoPdfSelecionado(arquivo);
   }, []);
 
   const salvarPdfNoServidor = useCallback(async (arquivo: File): Promise<string> => {
+    console.log('💾 Processando PDF para armazenamento local...');
+    
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const urlLocal = URL.createObjectURL(arquivo);
+      console.log('✅ PDF processado com URL local:', urlLocal);
+      
       return urlLocal;
     } catch (error) {
       console.error('❌ Erro ao processar PDF:', error);
@@ -147,6 +352,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       let relatorioParaSalvar: any = { ...novoRelatorio };
       
       if (arquivoPdfSelecionado) {
+        console.log('📄 Fazendo upload do PDF...');
         const urlPdf = await salvarPdfNoServidor(arquivoPdfSelecionado);
         
         relatorioParaSalvar = {
@@ -156,6 +362,8 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           tamanhoArquivo: arquivoPdfSelecionado.size,
           dataUploadPdf: new Date().toISOString(),
         };
+        
+        console.log('✅ PDF salvo com sucesso:', urlPdf);
       } else if (novoRelatorio.tipoVisualizacao === 'pdf') {
         alert('Por favor, selecione um arquivo PDF');
         return;
@@ -177,12 +385,15 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         dataUploadPdf: relatorioParaSalvar.dataUploadPdf
       };
 
-      const chave = `relatorios_${ticker}`;
-      const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
-      relatoriosExistentes.push(relatorio);
-      localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+      if (typeof window !== 'undefined') {
+        const chave = `relatorios_${ticker}`;
+        const relatoriosExistentes = JSON.parse(localStorage.getItem(chave) || '[]');
+        relatoriosExistentes.push(relatorio);
+        localStorage.setItem(chave, JSON.stringify(relatoriosExistentes));
+        
+        setRelatorios(relatoriosExistentes);
+      }
       
-      setRelatorios(relatoriosExistentes);
       setDialogAberto(false);
       setNovoRelatorio({
         nome: '',
@@ -194,7 +405,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
         tipoVisualizacao: 'iframe'
       });
       setArquivoPdfSelecionado(null);
-      setTabAtiva(1);
+      setTabAtiva(0);
       
     } catch (error) {
       console.error('❌ Erro ao salvar relatório:', error);
@@ -204,10 +415,12 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
 
   const excluirRelatorio = useCallback((id: string) => {
     if (confirm('Excluir relatório?')) {
-      const chave = `relatorios_${ticker}`;
-      const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
-      localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
-      setRelatorios(relatoriosAtualizados);
+      if (typeof window !== 'undefined') {
+        const chave = `relatorios_${ticker}`;
+        const relatoriosAtualizados = relatorios.filter(r => r.id !== id);
+        localStorage.setItem(chave, JSON.stringify(relatoriosAtualizados));
+        setRelatorios(relatoriosAtualizados);
+      }
     }
   }, [relatorios, ticker]);
 
@@ -221,6 +434,331 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   }, []);
 
+  const renderVisualizador = useMemo(() => {
+    if (!relatorioSelecionado) return null;
+
+    const processarUrl = (url: string, tipo: string): string => {
+      console.log('🔍 DEBUG - processarUrl chamada');
+      console.log('URL original:', url);
+      console.log('Tipo:', tipo);
+      
+      if (!url) {
+        console.log('❌ URL vazia!');
+        return '';
+      }
+      
+      try {
+        if (tipo === 'canva' || url.includes('canva.com')) {
+          console.log('🎨 Processando URL do Canva...');
+          
+          if (url.includes('?embed')) {
+            console.log('✅ URL já tem ?embed, usando diretamente:', url);
+            return url;
+          }
+          
+          if (url.includes('/view')) {
+            const urlComEmbed = url + '?embed';
+            console.log('✅ Adicionando ?embed à URL /view:', urlComEmbed);
+            return urlComEmbed;
+          }
+          
+          if (url.includes('/design/') && !url.includes('/view')) {
+            const urlView = url.replace(/\/(edit|preview).*$/, '/view?embed');
+            console.log('✅ Convertendo para /view?embed:', urlView);
+            return urlView;
+          }
+          
+          console.log('⚠️ URL do Canva não reconhecida, usando original:', url);
+          return url;
+        }
+        
+        console.log('🔗 Processando URL genérica...');
+        return url;
+        
+      } catch (error) {
+        console.error('❌ Erro ao processar URL:', error);
+        return url;
+      }
+    };
+
+    const handleIframeLoad = () => {
+      console.log('✅ Iframe carregou com sucesso!');
+      setLoadingIframe(false);
+      setTimeoutError(false);
+    };
+
+    const handleIframeError = () => {
+      console.log('❌ Erro no iframe detectado');
+      setLoadingIframe(false);
+      setTimeoutError(true);
+    };
+
+    const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+      ? processarUrl(relatorioSelecionado.linkCanva || '', 'canva')
+      : processarUrl(relatorioSelecionado.linkExterno || '', relatorioSelecionado.tipoVisualizacao);
+
+    if (!src) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+            ⚠️ URL não encontrada
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Nenhuma URL foi configurada para este relatório.
+          </Typography>
+        </Box>
+      );
+    }
+
+    if (relatorioSelecionado.tipoVisualizacao === 'pdf') {
+      return (
+        <Box sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          bgcolor: 'grey.50',
+          borderRadius: 1,
+          p: 4
+        }}>
+          <Box sx={{ fontSize: 80, color: '#ef4444', mb: 2, textAlign: 'center' }}>
+            <PictureAsPdfIconCustom />
+          </Box>
+          
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textAlign: 'center' }}>
+            📄 {relatorioSelecionado.nome}
+          </Typography>
+          
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+            {relatorioSelecionado.tipo} • {relatorioSelecionado.dataReferencia}
+          </Typography>
+          
+          <Box sx={{ 
+            bgcolor: 'background.paper', 
+            p: 2, 
+            borderRadius: 1, 
+            border: 1, 
+            borderColor: 'divider',
+            mb: 3,
+            minWidth: 300
+          }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              📋 Informações do Arquivo:
+            </Typography>
+            <Typography variant="body2">
+              <strong>📄 Nome:</strong> {relatorioSelecionado.nomeArquivoPdf || 'Arquivo PDF'}<br/>
+              {relatorioSelecionado.tamanhoArquivo && (
+                <>
+                  <strong>📊 Tamanho:</strong> {(relatorioSelecionado.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB<br/>
+                </>
+              )}
+              {relatorioSelecionado.dataUploadPdf && (
+                <>
+                  <strong>📅 Upload:</strong> {new Date(relatorioSelecionado.dataUploadPdf).toLocaleDateString('pt-BR')}<br/>
+                </>
+              )}
+            </Typography>
+          </Box>
+          
+          <Button 
+            variant="contained"
+            color="success"
+            size="large"
+            startIcon={<DownloadIconCustom />}
+            onClick={() => {
+              console.log('⬇️ Botão de download clicado');
+              baixarPdf(relatorioSelecionado);
+            }}
+            sx={{ py: 1.5, px: 4 }}
+          >
+            ⬇️ Baixar PDF
+          </Button>
+          
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
+            💡 Clique no botão acima para fazer o download do arquivo
+          </Typography>
+        </Box>
+      );
+    }
+
+    switch (relatorioSelecionado.tipoVisualizacao) {
+      case 'iframe':
+      case 'canva':
+      case 'link':
+        return (
+          <Box sx={{ position: 'relative', height: '80vh' }}>
+            
+            {loadingIframe && !timeoutError && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2,
+                textAlign: 'center'
+              }}>
+                <CircularProgress size={40} />
+                <Typography variant="body2" sx={{ mt: 2 }}>
+                  Carregando conteúdo...
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {relatorioSelecionado.tipoVisualizacao.toUpperCase()}
+                </Typography>
+              </Box>
+            )}
+
+            {timeoutError && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2,
+                textAlign: 'center',
+                maxWidth: 400,
+                p: 3
+              }}>
+                <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+                  ⚠️ Erro ao Carregar
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 3 }}>
+                  O conteúdo não pôde ser carregado. Isso pode acontecer se:
+                </Typography>
+                <ul style={{ textAlign: 'left', fontSize: '0.875rem', color: '#666' }}>
+                  <li>A URL não permite incorporação (iframe)</li>
+                  <li>O site tem restrições de segurança</li>
+                  <li>A conexão está lenta</li>
+                  <li>A URL está incorreta</li>
+                </ul>
+                
+                <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
+                  <Button 
+                    variant="outlined"
+                    onClick={() => {
+                      setTimeoutError(false);
+                      setLoadingIframe(true);
+                      const iframe = document.querySelector('iframe[data-report-src]') as HTMLIFrameElement;
+                      if (iframe) {
+                        iframe.src = iframe.src;
+                      }
+                    }}
+                    size="small"
+                  >
+                    🔄 Tentar Novamente
+                  </Button>
+                  <Button 
+                    variant="contained"
+                    onClick={() => {
+                      console.log('🔗 Clique no botão Nova Aba');
+                      console.log('relatorioSelecionado:', relatorioSelecionado);
+                      console.log('src calculado:', src);
+                      
+                      let urlParaAbrir = '';
+                      
+                      if (relatorioSelecionado.tipoVisualizacao === 'canva') {
+                        urlParaAbrir = relatorioSelecionado.linkCanva || '';
+                        console.log('URL do Canva (original):', urlParaAbrir);
+                        
+                        if (urlParaAbrir.includes('?embed')) {
+                          urlParaAbrir = urlParaAbrir.replace('?embed', '');
+                          console.log('URL sem ?embed para nova aba:', urlParaAbrir);
+                        }
+                      } else {
+                        urlParaAbrir = relatorioSelecionado.linkExterno || '';
+                      }
+                      
+                      console.log('URL final para nova aba:', urlParaAbrir);
+                      
+                      if (urlParaAbrir) {
+                        try {
+                          window.open(urlParaAbrir, '_blank', 'noopener,noreferrer');
+                          console.log('✅ Nova aba aberta');
+                        } catch (error) {
+                          console.error('❌ Erro ao abrir nova aba:', error);
+                        }
+                      } else {
+                        console.error('❌ URL vazia para nova aba');
+                      }
+                    }}
+                    size="small"
+                  >
+                    🔗 Abrir em Nova Aba
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+
+            <iframe
+              data-report-src={src}
+              src={src}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                border: 'none', 
+                borderRadius: '8px',
+                opacity: timeoutError ? 0.3 : 1
+              }}
+              allowFullScreen
+              onLoad={() => {
+                console.log('🎯 Iframe onLoad disparado');
+                handleIframeLoad();
+              }}
+              onError={() => {
+                console.log('🚨 Iframe onError disparado');
+                handleIframeError();
+              }}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+              referrerPolicy="no-referrer-when-downgrade"
+              loading="lazy"
+            />
+            
+            {!loadingIframe && !timeoutError && (
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 16, 
+                right: 16,
+                zIndex: 1
+              }}>
+                <IconButton
+                  size="small"
+                  onClick={() => window.open(src, '_blank')}
+                  sx={{ 
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
+                  }}
+                  title="Abrir em nova aba"
+                >
+                  🔗
+                </IconButton>
+              </Box>
+            )}
+          </Box>
+        );
+
+      default:
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <FileIcon style={{ fontSize: '4rem', opacity: 0.5 }} />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              Tipo não suportado
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Tipo: {relatorioSelecionado.tipoVisualizacao}
+            </Typography>
+            <Button 
+              variant="outlined"
+              onClick={() => window.open(src, '_blank')}
+              sx={{ mt: 2 }}
+              size="small"
+            >
+              🔗 Abrir Link Direto
+            </Button>
+          </Box>
+        );
+    }
+  }, [relatorioSelecionado, loadingIframe, timeoutError, baixarPdf]);
+
   return (
     <Card>
       <CardContent sx={{ p: 4 }}>
@@ -228,13 +766,35 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             📋 Relatórios da Empresa
           </Typography>
-          <Button 
-            variant="contained" 
-            onClick={() => setDialogAberto(true)}
-            size="small"
-          >
-            + Adicionar Relatório
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={() => {
+                alert(`💡 FUNCIONALIDADES DISPONÍVEIS:
+
+🖼️ Iframe Genérico - Para sites que permitem iframe
+🎨 Canva - Para designs do Canva
+🔗 Link Externo - Abre em nova aba
+📄 PDF - Upload e download de arquivos PDF
+
+📄 SISTEMA PDF:
+• Faça upload de PDFs até 10MB
+• Download direto do arquivo
+• Armazenamento local no navegador
+• Feedback visual do processo`);
+              }}
+            >
+              💡 Como Funciona
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={() => setDialogAberto(true)}
+              size="small"
+            >
+              + Adicionar Relatório
+            </Button>
+          </Stack>
         </Stack>
 
         {relatorios.length === 0 ? (
@@ -260,16 +820,49 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                         {relatorio.nome}
                       </Typography>
+                      {relatorio.tipoVisualizacao === 'pdf' && (
+                        <Chip 
+                          label="PDF" 
+                          size="small" 
+                          color="error" 
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      )}
                     </Stack>
                   }
                   secondary={
-                    <Typography variant="body2" color="text.secondary">
-                      {relatorio.tipo} • {relatorio.dataReferencia}
-                    </Typography>
+                    <Stack spacing={0.5}>
+                      <Typography variant="body2" color="text.secondary">
+                        {relatorio.tipo} • {relatorio.dataReferencia}
+                      </Typography>
+                      {relatorio.tipoVisualizacao === 'pdf' && relatorio.tamanhoArquivo && (
+                        <Typography variant="caption" color="text.secondary">
+                          📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
+                        </Typography>
+                      )}
+                    </Stack>
                   }
                 />
                 <ListItemSecondaryAction>
                   <Stack direction="row" spacing={1}>
+                    {(relatorio.tipoVisualizacao === 'iframe' || relatorio.tipoVisualizacao === 'canva' || relatorio.tipoVisualizacao === 'link') && (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setRelatorioSelecionado(relatorio);
+                          setDialogVisualizacao(true);
+                        }}
+                        sx={{ 
+                          backgroundColor: '#e3f2fd',
+                          '&:hover': { backgroundColor: '#bbdefb' }
+                        }}
+                        title="Visualizar conteúdo"
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                    )}
+                    
                     {relatorio.arquivoPdf && (
                       <Button
                         variant="contained"
@@ -278,8 +871,22 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                         onClick={() => baixarPdf(relatorio)}
                         startIcon={<DownloadIconCustom />}
                         sx={{ minWidth: 'auto', px: 2 }}
+                        title="Baixar PDF"
                       >
                         PDF
+                      </Button>
+                    )}
+                    
+                    {relatorio.tipoVisualizacao === 'pdf' && !relatorio.linkExterno && !relatorio.linkCanva && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={() => baixarPdf(relatorio)}
+                        startIcon={<DownloadIconCustom />}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        Download
                       </Button>
                     )}
                     
@@ -301,87 +908,247 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           </List>
         )}
 
-        {/* Dialog para adicionar relatório */}
         <Dialog open={dialogAberto} onClose={() => setDialogAberto(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Adicionar Relatório</DialogTitle>
           <DialogContent>
-            <Stack spacing={3} sx={{ mt: 1 }}>
-              <TextField
-                fullWidth
-                label="Nome do Relatório"
-                value={novoRelatorio.nome}
-                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
-              />
-              <FormControl fullWidth>
-                <InputLabel>Tipo</InputLabel>
-                <Select
-                  value={novoRelatorio.tipo}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
-                >
-                  <MenuItem value="trimestral">Trimestral</MenuItem>
-                  <MenuItem value="anual">Anual</MenuItem>
-                  <MenuItem value="apresentacao">Apresentação</MenuItem>
-                  <MenuItem value="outros">Outros</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                fullWidth
-                label="Data de Referência"
-                value={novoRelatorio.dataReferencia}
-                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
-                placeholder="Ex: Q1 2024"
-              />
-              
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  📄 Upload de Arquivo PDF
-                </Typography>
-                
-                <input
-                  accept="application/pdf"
-                  style={{ display: 'none' }}
-                  id="upload-pdf-input"
-                  type="file"
-                  onChange={handleUploadPdf}
+            <Tabs value={tabAtiva} onChange={(_, newValue) => setTabAtiva(newValue)} sx={{ mb: 3 }}>
+              <Tab label="Informações Básicas" />
+              <Tab label="Link/URL" />
+            </Tabs>
+
+            {tabAtiva === 0 && (
+              <Stack spacing={3}>
+                <TextField
+                  fullWidth
+                  label="Nome do Relatório"
+                  value={novoRelatorio.nome}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
                 />
-                <label htmlFor="upload-pdf-input">
-                  <Button 
-                    variant={arquivoPdfSelecionado ? 'outlined' : 'contained'}
-                    component="span"
-                    startIcon={<CloudUploadIconCustom />}
-                    fullWidth
-                    sx={{ mb: 2, py: 2 }}
+                <FormControl fullWidth>
+                  <InputLabel>Tipo</InputLabel>
+                  <Select
+                    value={novoRelatorio.tipo}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
                   >
-                    {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
-                  </Button>
-                </label>
-                
-                {arquivoPdfSelecionado && (
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    <Typography variant="body2">
-                      <strong>📄 Arquivo:</strong> {arquivoPdfSelecionado.name}<br/>
-                      <strong>Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB
-                    </Typography>
-                  </Alert>
+                    <MenuItem value="trimestral">Trimestral</MenuItem>
+                    <MenuItem value="anual">Anual</MenuItem>
+                    <MenuItem value="apresentacao">Apresentação</MenuItem>
+                    <MenuItem value="outros">Outros</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label="Data de Referência"
+                  value={novoRelatorio.dataReferencia}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
+                  placeholder="Ex: Q1 2024"
+                />
+              </Stack>
+            )}
+
+            {tabAtiva === 1 && (
+              <Stack spacing={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Tipo de Visualização</InputLabel>
+                  <Select
+                    value={novoRelatorio.tipoVisualizacao}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
+                  >
+                    <MenuItem value="iframe">🖼️ Iframe Genérico</MenuItem>
+                    <MenuItem value="canva">🎨 Canva</MenuItem>
+                    <MenuItem value="link">🔗 Link Externo</MenuItem>
+                    <MenuItem value="pdf">📄 PDF para Download</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {novoRelatorio.tipoVisualizacao === 'canva' && (
+                  <TextField
+                    fullWidth
+                    label="Link do Canva"
+                    value={novoRelatorio.linkCanva}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkCanva: e.target.value }))}
+                    placeholder="https://www.canva.com/design/..."
+                    helperText="Cole o link do seu design no Canva"
+                  />
                 )}
-              </Box>
-            </Stack>
+
+                {(novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && (
+                  <TextField
+                    fullWidth
+                    label="Link Externo"
+                    value={novoRelatorio.linkExterno}
+                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
+                    placeholder="https://..."
+                    helperText="URL do documento ou apresentação"
+                  />
+                )}
+                
+                {novoRelatorio.tipoVisualizacao !== 'canva' && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: '#d32f2f' }}>
+                      📄 Upload de Arquivo PDF (Opcional)
+                    </Typography>
+                    
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        <strong>📋 Instruções:</strong><br/>
+                        - {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Arquivo PDF obrigatório para este tipo' : 'Arquivo PDF opcional - complementa a visualização'}<br/>
+                        - Selecione arquivos PDF até 10MB<br/>
+                        - {novoRelatorio.tipoVisualizacao === 'pdf' ? 'Só download disponível' : 'Visualização + download disponíveis'}<br/>
+                        - Formatos aceitos: .pdf apenas
+                      </Typography>
+                    </Alert>
+                    
+                    <input
+                      accept="application/pdf"
+                      style={{ display: 'none' }}
+                      id="upload-pdf-input"
+                      type="file"
+                      onChange={handleUploadPdf}
+                    />
+                    <label htmlFor="upload-pdf-input">
+                      <Button 
+                        variant={arquivoPdfSelecionado ? 'outlined' : 'contained'}
+                        component="span"
+                        startIcon={<CloudUploadIconCustom />}
+                        fullWidth
+                        sx={{ 
+                          mb: 2, 
+                          py: 2,
+                          backgroundColor: arquivoPdfSelecionado ? '#e8f5e8' : undefined,
+                          borderColor: arquivoPdfSelecionado ? '#22c55e' : undefined,
+                          color: arquivoPdfSelecionado ? '#22c55e' : undefined,
+                          '&:hover': {
+                            backgroundColor: arquivoPdfSelecionado ? '#d4edda' : undefined
+                          }
+                        }}
+                      >
+                        {arquivoPdfSelecionado ? '✅ Arquivo Selecionado' : '📁 Selecionar Arquivo PDF'}
+                      </Button>
+                    </label>
+                    
+                    {arquivoPdfSelecionado && (
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        <Typography variant="body2">
+                          <strong>📄 Arquivo Selecionado:</strong><br/>
+                          <strong>Nome:</strong> {arquivoPdfSelecionado.name}<br/>
+                          <strong>Tamanho:</strong> {(arquivoPdfSelecionado.size / 1024 / 1024).toFixed(2)} MB<br/>
+                          <strong>Tipo:</strong> {arquivoPdfSelecionado.type}<br/>
+                          <strong>Selecionado em:</strong> {new Date().toLocaleString('pt-BR')}
+                        </Typography>
+                        
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            setArquivoPdfSelecionado(null);
+                            const input = document.getElementById('upload-pdf-input') as HTMLInputElement;
+                            if (input) input.value = '';
+                          }}
+                          sx={{ mt: 1 }}
+                        >
+                          🗑️ Remover Arquivo
+                        </Button>
+                      </Alert>
+                    )}
+                    
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
+                      ℹ️ O arquivo PDF será armazenado localmente e ficará disponível para download pelos usuários
+                    </Typography>
+                  </Box>
+                )}
+              </Stack>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => {
               setDialogAberto(false);
               setArquivoPdfSelecionado(null);
+              setTabAtiva(0);
             }}>
               Cancelar
             </Button>
             <Button 
               onClick={salvarRelatorio} 
               variant="contained"
-              disabled={!novoRelatorio.nome}
+              disabled={
+                !novoRelatorio.nome || 
+                (novoRelatorio.tipoVisualizacao === 'pdf' && !arquivoPdfSelecionado) ||
+                (novoRelatorio.tipoVisualizacao === 'canva' && !novoRelatorio.linkCanva) ||
+                ((novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && !novoRelatorio.linkExterno && !arquivoPdfSelecionado)
+              }
             >
               💾 Salvar Relatório
             </Button>
           </DialogActions>
+        </Dialog>
+
+        <Dialog 
+          open={dialogVisualizacao} 
+          onClose={() => {
+            setDialogVisualizacao(false);
+            setLoadingIframe(false);
+            setTimeoutError(false);
+            setRelatorioSelecionado(null);
+          }} 
+          maxWidth="lg" 
+          fullWidth
+          PaperProps={{ 
+            sx: { 
+              height: '95vh',
+              backgroundColor: '#f8fafc'
+            } 
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2,
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e2e8f0'
+          }}>
+            <Box>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} 
+                {relatorioSelecionado?.nome}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {relatorioSelecionado?.tipo} • {relatorioSelecionado?.dataReferencia}
+              </Typography>
+            </Box>
+            
+            <Stack direction="row" spacing={1}>
+              {relatorioSelecionado && (
+                <IconButton 
+                  onClick={() => {
+                    const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                      ? relatorioSelecionado.linkCanva 
+                      : relatorioSelecionado.linkExterno;
+                    if (src) window.open(src, '_blank');
+                  }}
+                  title="Abrir em nova aba"
+                >
+                  🔗
+                </IconButton>
+              )}
+              <IconButton 
+                onClick={() => {
+                  setDialogVisualizacao(false);
+                  setLoadingIframe(false);
+                  setTimeoutError(false);
+                  setRelatorioSelecionado(null);
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 0, height: '100%', backgroundColor: '#f8fafc' }}>
+            {renderVisualizador}
+          </DialogContent>
         </Dialog>
       </CardContent>
     </Card>
@@ -421,6 +1188,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
   const criarEventosEstimados = useCallback((ticker: string) => {
     const eventos: any[] = [];
     const hoje = new Date();
+    
     const mesAtual = hoje.getMonth();
     const anoAtual = hoje.getFullYear();
     
@@ -450,6 +1218,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       data: proximoResultado,
       descricao: 'Data estimada para divulgação de resultados trimestrais',
       estimado: true,
+      icone: '📊',
       cor: '#3b82f6'
     });
 
@@ -463,6 +1232,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       data: proximoDividendo,
       descricao: 'Estimativa baseada em padrões típicos do mercado brasileiro',
       estimado: true,
+      icone: '💰',
       cor: '#22c55e'
     });
 
@@ -478,11 +1248,66 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       data: dataAssembleia,
       descricao: 'Data típica para aprovação das contas e eleição do conselho',
       estimado: true,
+      icone: '🏛️',
       cor: '#8b5cf6'
     });
 
     return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
   }, []);
+
+  const processarEventos = useCallback((dividendos: any[], ticker: string) => {
+    const eventos: any[] = [];
+    const hoje = new Date();
+    
+    if (dividendos && dividendos.length > 0) {
+      const dividendosOrdenados = dividendos
+        .map(div => ({
+          ...div,
+          dataObj: new Date(div.date)
+        }))
+        .sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+
+      const ultimosDividendos = dividendosOrdenados.slice(0, 4);
+      
+      if (ultimosDividendos.length >= 2) {
+        const intervalos = [];
+        for (let i = 0; i < ultimosDividendos.length - 1; i++) {
+          const diff = ultimosDividendos[i].dataObj.getTime() - ultimosDividendos[i + 1].dataObj.getTime();
+          const meses = diff / (1000 * 60 * 60 * 24 * 30);
+          intervalos.push(meses);
+        }
+        
+        const mediaIntervalo = intervalos.reduce((a, b) => a + b, 0) / intervalos.length;
+        const ultimaData = ultimosDividendos[0].dataObj;
+        
+        const proximaData = new Date(ultimaData);
+        proximaData.setMonth(proximaData.getMonth() + Math.round(mediaIntervalo));
+        
+        if (proximaData > hoje) {
+          eventos.push({
+            id: 'proximo-dividendo',
+            tipo: 'dividendo',
+            titulo: 'Provável Data Ex-Dividendos',
+            data: proximaData,
+            descricao: `Estimativa baseada no histórico (último: ${ultimaData.toLocaleDateString('pt-BR')})`,
+            estimado: true,
+            icone: '💰',
+            cor: '#22c55e'
+          });
+        }
+      }
+    }
+
+    const eventosEstimados = criarEventosEstimados(ticker);
+    eventos.push(...eventosEstimados);
+
+    const eventosUnicos = eventos.filter((evento, index, self) => 
+      index === self.findIndex(e => e.tipo === evento.tipo && 
+        Math.abs(e.data.getTime() - evento.data.getTime()) < 7 * 24 * 60 * 60 * 1000)
+    );
+
+    return eventosUnicos.sort((a, b) => a.data.getTime() - b.data.getTime());
+  }, [criarEventosEstimados]);
 
   const buscarEventos = useCallback(async () => {
     if (!ticker) return;
@@ -491,9 +1316,32 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       setLoading(true);
       setError(null);
 
-      const eventosEstimados = criarEventosEstimados(ticker);
-      setEventos(eventosEstimados);
-      setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
+      const dividendsUrl = `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}&limit=20`;
+      
+      const response = await fetch(dividendsUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Portfolio-Details-App',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          const eventosProcessados = processarEventos(data.results, ticker);
+          setEventos(eventosProcessados);
+        } else {
+          const eventosEstimados = criarEventosEstimados(ticker);
+          setEventos(eventosEstimados);
+        }
+        
+        setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
+      } else {
+        throw new Error(`Erro HTTP ${response.status}`);
+      }
 
     } catch (err) {
       console.error('Erro ao buscar eventos:', err);
@@ -505,10 +1353,13 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
     } finally {
       setLoading(false);
     }
-  }, [ticker, criarEventosEstimados]);
+  }, [ticker, processarEventos, criarEventosEstimados]);
 
   useEffect(() => {
     buscarEventos();
+    
+    const interval = setInterval(buscarEventos, 6 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [buscarEventos]);
 
   return (
@@ -665,9 +1516,18 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
           </Stack>
         )}
 
+        {eventos.length > 4 && (
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              Mostrando os próximos 4 eventos • Total: {eventos.length}
+            </Typography>
+          </Box>
+        )}
+
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
             <strong>ℹ️ Sobre as datas:</strong><br/>
+            • 🎯 <strong>Dados históricos:</strong> Baseados em dividendos reais da API BRAPI<br/>
             • 📊 <strong>Estimativas:</strong> Calculadas com padrões do mercado brasileiro<br/>
             • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo
           </Typography>
@@ -678,250 +1538,93 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
 });
 
 // ========================================
-// ÍCONES MOCK
+// COMPONENTE PRINCIPAL - DETALHES DA EMPRESA
 // ========================================
-const ArrowLeftIcon = () => <span>←</span>;
-const TrendUpIcon = () => <span style={{ color: '#22c55e' }}>↗</span>;
-const TrendDownIcon = () => <span style={{ color: '#ef4444' }}>↘</span>;
-const RefreshIcon = () => <span>🔄</span>;
-const WarningIcon = () => <span>⚠</span>;
-const CheckIcon = () => <span>✓</span>;
-const UploadIcon = () => <span>📤</span>;
-const DownloadIconCustom = () => <span>📥</span>;
-const DeleteIcon = () => <span>🗑</span>;
-const FileIcon = () => <span>📄</span>;
-const ViewIcon = () => <span>👁</span>;
-const CloseIcon = () => <span>✕</span>;
-const CloudUploadIconCustom = () => <span>☁️</span>;
-const PictureAsPdfIconCustom = () => <span>📄</span>;
-
-// ========================================
-// CONSTANTES E CONFIGURAÇÕES
-// ========================================
-const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-// ========================================
-// INTERFACES E TIPOS
-// ========================================
-interface DadosFinanceiros {
-  precoAtual: number;
-  variacao: number;
-  variacaoPercent: number;
-  volume: number;
-  marketCap?: number;
-  pl?: number;
-  dy?: number;
-}
-
-interface EmpresaCompleta {
-  ticker: string;
-  nomeCompleto: string;
-  setor: string;
-  descricao: string;
-  avatar: string;
-  dataEntrada: string;
-  precoIniciou: string;
-  precoTeto: string;
-  viesAtual: string;
-  ibovespaEpoca: string;
-  percentualCarteira: string;
-  tipo?: 'FII';
-  gestora?: string;
-  dadosFinanceiros?: DadosFinanceiros;
-  statusApi?: string;
-  ultimaAtualizacao?: string;
-}
-
-export type TipoVisualizacao = 'iframe' | 'canva' | 'link' | 'pdf';
-
-interface Relatorio {
-  id: string;
-  nome: string;
-  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
-  dataUpload: string;
-  dataReferencia: string;
-  arquivo?: string;
-  linkCanva?: string;
-  linkExterno?: string;
-  tamanho?: string;
-  tipoVisualizacao: TipoVisualizacao;
-  arquivoPdf?: string;
-  nomeArquivoPdf?: string;
-  tamanhoArquivo?: number;
-  dataUploadPdf?: string;
-}
-
-// ========================================
-// DADOS DE FALLBACK
-// ========================================
-const dadosFallback: { [key: string]: EmpresaCompleta } = {
-  'KEPL3': {
-    ticker: 'KEPL3',
-    nomeCompleto: 'Kepler Weber S.A.',
-    setor: 'Agricultura',
-    descricao: 'A Kepler Weber é uma empresa brasileira especializada em soluções para armazenagem e movimentação de grãos, líquidos e gases.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/KEPL.png',
-    dataEntrada: '21/03/2021',
-    precoIniciou: 'R$ 7,30',
-    precoTeto: 'R$ 12,50',
-    viesAtual: 'Aguardar',
-    ibovespaEpoca: '115.000',
-    percentualCarteira: '2.1%'
-  },
-  'ALOS3': {
-    ticker: 'ALOS3',
-    nomeCompleto: 'Allos S.A.',
-    setor: 'Shoppings',
-    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
-    dataEntrada: '15/01/2021',
-    precoIniciou: 'R$ 26,68',
-    precoTeto: 'R$ 23,76',
-    viesAtual: 'Aguardar',
-    ibovespaEpoca: '108.500',
-    percentualCarteira: '4.2%'
-  },
-  'AGRO3': {
-    ticker: 'AGRO3',
-    nomeCompleto: 'BrasilAgro S.A.',
-    setor: 'Agricultura',
-    descricao: 'A BrasilAgro é uma empresa do agronegócio com foco na produção de commodities agrícolas como soja, milho, algodão e açúcar.',
-    avatar: 'https://www.ivalor.com.br/media/emp/logos/AGRO.png',
-    dataEntrada: '15/08/2021',
-    precoIniciou: 'R$ 24,80',
-    precoTeto: 'R$ 35,00',
-    viesAtual: 'Aguardar',
-    ibovespaEpoca: '125.000',
-    percentualCarteira: '3.2%'
-  }
-};
-
-// ========================================
-// FUNÇÕES UTILITÁRIAS
-// ========================================
-function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
-  try {
-    const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    
-    if (isNaN(precoTetoNum) || precoAtual <= 0) {
-      return 'Aguardar';
-    }
-    
-    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
-    
-    if (percentualDoTeto <= 80) {
-      return 'Compra Forte';
-    } else if (percentualDoTeto <= 95) {
-      return 'Compra';
-    } else if (percentualDoTeto <= 105) {
-      return 'Neutro';
-    } else if (percentualDoTeto <= 120) {
-      return 'Aguardar';
-    } else {
-      return 'Venda';
-    }
-  } catch {
-    return 'Aguardar';
-  }
-}
-
-function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' | 'number' | 'millions' = 'currency'): string {
-  if (valor === undefined || valor === null || isNaN(valor)) return 'N/A';
+export default function EmpresaDetalhes() {
+  const params = useParams();
+  const ticker = (params?.ticker as string) || '';
   
-  switch (tipo) {
-    case 'currency':
-      return new Intl.NumberFormat('pt-BR', { 
-        style: 'currency', 
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(valor);
-    
-    case 'percent':
-      return `${valor.toFixed(2).replace('.', ',')}%`;
-    
-    case 'millions':
-      if (valor >= 1000000000) {
-        return `R$ ${(valor / 1000000000).toFixed(1).replace('.', ',')} bi`;
-      } else if (valor >= 1000000) {
-        return `R$ ${(valor / 1000000).toFixed(1).replace('.', ',')} mi`;
-      } else {
-        return formatarValor(valor, 'currency');
+  const [empresa, setEmpresa] = useState<EmpresaCompleta | null>(null);
+  const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
+  
+  const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
+
+  const { dy12Meses, dyDesdeEntrada } = useDividendYield(
+    ticker, 
+    empresa?.dataEntrada || '', 
+    dadosFinanceiros?.precoAtual, 
+    empresa?.precoIniciou || ''
+  );
+
+  useEffect(() => {
+    if (!ticker) return;
+
+    const carregarDados = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
+          
+          if (dadosAdmin) {
+            const ativos = JSON.parse(dadosAdmin);
+            const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
+            
+            if (ativoEncontrado) {
+              setEmpresa(ativoEncontrado);
+              setDataSource('admin');
+              return;
+            }
+          }
+        }
+
+        const ativoFallback = dadosFallback[ticker];
+        if (ativoFallback) {
+          setEmpresa(ativoFallback);
+          setDataSource('fallback');
+          return;
+        }
+
+        setDataSource('not_found');
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        setDataSource('not_found');
       }
+    };
+
+    carregarDados();
+  }, [ticker]);
+
+  const empresaCompleta = React.useMemo(() => {
+    if (!empresa) return null;
     
-    case 'number':
-      return valor.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2 
-      });
+    let empresaAtualizada = { ...empresa };
     
-    default:
-      return valor.toString();
-  }
-}
-
-// ========================================
-// HOOK PARA CALCULAR DIVIDEND YIELD
-// ========================================
-function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string) {
-  const [dyData, setDyData] = useState({
-    dy12Meses: 0,
-    dyDesdeEntrada: 0
-  });
-
-  const parsePreco = useCallback((precoStr: string): number => {
-    try {
-      return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    } catch {
-      return 0;
+    if (dadosFinanceiros && dadosFinanceiros.precoAtual > 0) {
+      empresaAtualizada = {
+        ...empresaAtualizada,
+        dadosFinanceiros,
+        viesAtual: calcularViesInteligente(empresa.precoTeto, dadosFinanceiros.precoAtual),
+        statusApi: 'success',
+        ultimaAtualizacao
+      };
+    } else {
+      empresaAtualizada.statusApi = 'error';
     }
-  }, []);
+    
+    return empresaAtualizada;
+  }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
 
-  const calcularDY = useCallback(() => {
-    if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
-      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
-      return;
-    }
-
+  const calcularPerformance = useCallback(() => {
+    if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
+    
     try {
-      const chaveStorage = `proventos_${ticker}`;
-      const dadosSalvos = localStorage.getItem(chaveStorage);
+      const precoEntradaStr = empresaCompleta.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.');
+      const precoEntrada = parseFloat(precoEntradaStr);
+      const precoAtual = empresaCompleta.dadosFinanceiros.precoAtual;
       
-      if (!dadosSalvos) {
-        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
-        return;
+      if (precoEntrada > 0 && precoAtual > 0) {
+        const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
+        return formatarValor(performance, 'percent');
       }
-
-      const proventos = JSON.parse(dadosSalvos).map((item: any) => ({
-        ...item,
-        dataObj: new Date(item.dataObj)
-      }));
-
-      const hoje = new Date();
-      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-      const data12MesesAtras = new Date();
-      data12MesesAtras.setFullYear(hoje.getFullYear() - 1);
-
-      const proventos12Meses = proventos.filter((provento: any) => 
-        provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje
-      );
-
-      const proventosDesdeEntrada = proventos.filter((provento: any) => 
-        provento.dataObj >= dataEntradaObj && provento.dataObj <= hoje
-      );
-
-      const totalProventos12Meses = proventos12Meses.reduce((sum: number, p: any) => sum + p.valor, 0);
-      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum: number, p: any) => sum + p.valor, 0);
-
-      const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
-      const precoEntrada = parsePreco(precoIniciou);
-      const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
-
-      setDyData({
-        dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
-        dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
-      });
-
     } catch (error) {
       console.error('Erro ao calcular performance:', error);
     }
@@ -963,7 +1666,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button 
           startIcon={<ArrowLeftIcon />} 
@@ -999,7 +1701,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
         </Stack>
       </Stack>
 
-      {/* Card principal da empresa */}
       <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' }}>
         <CardContent sx={{ p: 4 }}>
           <Stack 
@@ -1082,7 +1783,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
         </CardContent>
       </Card>
 
-      {/* Cards de métricas com DY - 6 CARDS */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={6} md={2}>
           <MetricCard 
@@ -1131,14 +1831,12 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
         </Grid>
       </Grid>
 
-      {/* Histórico de Dividendos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
           <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
         </Grid>
       </Grid>
 
-      {/* Seções secundárias */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
           <GerenciadorRelatorios ticker={ticker} />
@@ -1149,7 +1847,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
         </Grid>
       </Grid>
 
-      {/* Dados da Posição */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -1177,7 +1874,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
           </Card>
         </Grid>
 
-        {/* Análise de Viés */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent sx={{ p: 4 }}>
@@ -1214,13 +1910,7 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
       </Grid>
     </Box>
   );
-}error) {
-      console.error('Erro ao calcular DY:', error);
-      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
-    }
-  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
-
-  useEffect(() => {
+}
     calcularDY();
   }, [calcularDY]);
 
@@ -1420,32 +2110,30 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
-      setLoading(true);
       const chaveStorage = `proventos_${ticker}`;
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (dadosSalvos) {
         try {
           const proventosSalvos = JSON.parse(dadosSalvos);
-          if (Array.isArray(proventosSalvos)) {
-            const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
-              ...item,
-              dataObj: item.dataObj ? new Date(item.dataObj) : new Date()
-            }));
-            proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-            setProventos(proventosLimitados);
-          }
+          const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
+            ...item,
+            dataObj: new Date(item.dataObj)
+          }));
+          proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+          setProventos(proventosLimitados);
         } catch (err) {
           console.error('Erro ao carregar proventos salvos:', err);
-          localStorage.removeItem(chaveStorage);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(chaveStorage);
+          }
         }
       }
-      setLoading(false);
     }
   }, [ticker]);
 
   const { totalProventos, mediaProvento, ultimoProvento } = useMemo(() => {
-    const total = proventos.reduce((sum, item) => sum + item.valor, 0);
+    const total = proventos.reduce((sum, item) => sum + (item.valor || 0), 0);
     const media = proventos.length > 0 ? total / proventos.length : 0;
     const ultimo = proventos.length > 0 ? proventos[0] : null;
 
@@ -1504,7 +2192,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               <Grid item xs={3}>
                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#fdf4ff', borderRadius: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#a855f7' }}>
-                    {ultimoProvento ? ultimoProvento.dataFormatada.replace(/\/\d{4}/, '') : 'N/A'}
+                    {ultimoProvento ? ultimoProvento.dataFormatada?.replace(/\/\d{4}/, '') || 'N/A' : 'N/A'}
                   </Typography>
                   <Typography variant="caption">Último</Typography>
                 </Box>
@@ -1551,13 +2239,13 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 <TableBody>
                   {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
                     <TableRow key={`${provento.data}-${index}`}>
-                      <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada}</TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada || 'N/A'}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e' }}>
-                        {provento.valorFormatado}
+                        {provento.valorFormatado || formatarValor(provento.valor || 0)}
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={provento.tipo}
+                          label={provento.tipo || 'N/A'}
                           size="small"
                           variant="outlined"
                           sx={{ fontSize: '0.7rem' }}
@@ -1587,91 +2275,91 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
 });
 
 // ========================================
-// COMPONENTE PRINCIPAL - DETALHES DA EMPRESA
+// COMPONENTE GERENCIADOR DE RELATÓRIOS
 // ========================================
-export default function EmpresaDetalhes() {
-  const params = useParams();
-  const ticker = (params?.ticker as string) || '';
-  
-  const [empresa, setEmpresa] = useState<EmpresaCompleta | null>(null);
-  const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
-  
-  const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
+const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
+  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
+  const [relatorioSelecionado, setRelatorioSelecionado] = useState<Relatorio | null>(null);
+  const [loadingIframe, setLoadingIframe] = useState(false);
+  const [timeoutError, setTimeoutError] = useState(false);
+  const [tabAtiva, setTabAtiva] = useState(0);
+  const [novoRelatorio, setNovoRelatorio] = useState({
+    nome: '',
+    tipo: 'trimestral' as const,
+    dataReferencia: '',
+    arquivo: null as File | null,
+    linkCanva: '',
+    linkExterno: '',
+    tipoVisualizacao: 'iframe' as const
+  });
 
-  const { dy12Meses, dyDesdeEntrada } = useDividendYield(
-    ticker, 
-    empresa?.dataEntrada || '', 
-    dadosFinanceiros?.precoAtual, 
-    empresa?.precoIniciou || ''
-  );
+  const [arquivoPdfSelecionado, setArquivoPdfSelecionado] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (!ticker) return;
-
-    const carregarDados = () => {
-      try {
-        if (typeof window !== 'undefined') {
-          const dadosAdmin = localStorage.getItem('portfolioDataAdmin');
-          
-          if (dadosAdmin) {
-            const ativos = JSON.parse(dadosAdmin);
-            const ativoEncontrado = ativos.find((a: any) => a.ticker === ticker);
-            
-            if (ativoEncontrado) {
-              setEmpresa(ativoEncontrado);
-              setDataSource('admin');
-              return;
-            }
-          }
-        }
-
-        const ativoFallback = dadosFallback[ticker];
-        if (ativoFallback) {
-          setEmpresa(ativoFallback);
-          setDataSource('fallback');
-          return;
-        }
-
-        setDataSource('not_found');
-      } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        setDataSource('not_found');
-      }
-    };
-
-    carregarDados();
-  }, [ticker]);
-
-  const empresaCompleta = React.useMemo(() => {
-    if (!empresa) return null;
+  const baixarPdf = useCallback((relatorio: Relatorio) => {
+    console.log('⬇️ Iniciando download do PDF...');
+    console.log('Relatório:', relatorio.nome);
     
-    let empresaAtualizada = { ...empresa };
-    
-    if (dadosFinanceiros && dadosFinanceiros.precoAtual > 0) {
-      empresaAtualizada = {
-        ...empresaAtualizada,
-        dadosFinanceiros,
-        viesAtual: calcularViesInteligente(empresa.precoTeto, dadosFinanceiros.precoAtual),
-        statusApi: 'success',
-        ultimaAtualizacao
-      };
-    } else {
-      empresaAtualizada.statusApi = 'error';
+    if (!relatorio.arquivoPdf) {
+      alert('❌ Arquivo PDF não encontrado!');
+      console.error('❌ URL do PDF não existe');
+      return;
     }
     
-    return empresaAtualizada;
-  }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
-
-  const calcularPerformance = useCallback(() => {
-    if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
-    
     try {
-      const precoEntradaStr = empresaCompleta.precoIniciou.replace('R$ ', '').replace('.', '').replace(',', '.');
-      const precoEntrada = parseFloat(precoEntradaStr);
-      const precoAtual = empresaCompleta.dadosFinanceiros.precoAtual;
+      const link = document.createElement('a');
+      link.href = relatorio.arquivoPdf;
+      link.download = relatorio.nomeArquivoPdf || `${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      link.target = '_blank';
       
-      if (precoEntrada > 0 && precoAtual > 0) {
-        const performance = ((precoAtual - precoEntrada) / precoEntrada) * 100;
-        return formatarValor(performance, 'percent');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('✅ Download iniciado com sucesso');
+      
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      `;
+      toast.textContent = '📥 Download iniciado!';
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Erro no download:', error);
+      alert('❌ Erro ao baixar o arquivo. Tente novamente.');
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const chave = `relatorios_${ticker}`;
+      const relatoriosExistentes = localStorage.getItem(chave);
+      
+      if (relatoriosExistentes) {
+        try {
+          setRelatorios(JSON.parse(relatoriosExistentes));
+        } catch (error) {
+          console.error('Erro ao carregar relatórios:', error);
+        }
       }
-    } catch (
+    }
+  }, [ticker]);
+
+  useEffect(()
