@@ -1578,11 +1578,14 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             </TableContainer>
             
             {proventos.length > 10 && (
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Mostrando os 10 mais recentes • Total: {proventos.length}
-                </Typography>
-              </Box>
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                {mostrarTodos 
+                  ? `Mostrando todos os ${proventos.length} proventos com rolagem`
+                  : `Mostrando os 10 mais recentes • Total: ${proventos.length}`
+                }
+              </Typography>
+            </Box>
             )}
           </>
         )}
