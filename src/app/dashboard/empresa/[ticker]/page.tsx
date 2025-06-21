@@ -1225,10 +1225,12 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
       if (dadosSalvos) {
         try {
           const proventosSalvos = JSON.parse(dadosSalvos);
-          const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
+         const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
             ...item,
             dataObj: new Date(item.dataObj)
           }));
+          // ADICIONAR ORDENAÇÃO AQUI TAMBÉM
+          proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
           setProventos(proventosLimitados);
         } catch (err) {
           console.error('Erro ao carregar proventos salvos:', err);
