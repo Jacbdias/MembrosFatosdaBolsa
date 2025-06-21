@@ -118,9 +118,6 @@ interface Relatorio {
 // DADOS DE FALLBACK
 // ========================================
 const dadosFallback: { [key: string]: EmpresaCompleta } = {
-  // ========================================
-  // AGRICULTURA (2 ativos)
-  // ========================================
   'KEPL3': {
     ticker: 'KEPL3',
     nomeCompleto: 'Kepler Weber S.A.',
@@ -134,8 +131,20 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     ibovespaEpoca: '115.000',
     percentualCarteira: '2.1%'
   },
-  
-  'AGRO3': {
+  'ALOS3': {
+    ticker: 'ALOS3',
+    nomeCompleto: 'Allos S.A.',
+    setor: 'Shoppings',
+    descricao: 'A Allos é uma empresa de shopping centers, focada em empreendimentos de alto padrão.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/ALOS.png',
+    dataEntrada: '15/01/2021',
+    precoIniciou: 'R$ 26,68',
+    precoTeto: 'R$ 23,76',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '108.500',
+    percentualCarteira: '4.2%'
+  }
+    'AGRO3': {
     ticker: 'AGRO3',
     nomeCompleto: 'BrasilAgro S.A.',
     setor: 'Agricultura',
@@ -877,6 +886,8 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
   }
 };
 
+};
+
 // ========================================
 // FUNÇÕES UTILITÁRIAS
 // ========================================
@@ -1213,28 +1224,32 @@ const MetricCard = React.memo(({
 // ========================================
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
   const [proventos, setProventos] = useState<any[]>([]);
-  const [mostrarTodos, setMostrarTodos] = useState(false); // ADICIONAR AQUI
+  const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
+      setLoading(true);
       const chaveStorage = `proventos_${ticker}`;
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (dadosSalvos) {
         try {
           const proventosSalvos = JSON.parse(dadosSalvos);
-         const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
-            ...item,
-            dataObj: new Date(item.dataObj)
-          }));
-          // ADICIONAR ORDENAÇÃO AQUI TAMBÉM
-          proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-          setProventos(proventosLimitados);
+          if (Array.isArray(proventosSalvos)) {
+            const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
+              ...item,
+              dataObj: item.dataObj ? new Date(item.dataObj) : new Date()
+            }));
+            proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+            setProventos(proventosLimitados);
+          }
         } catch (err) {
           console.error('Erro ao carregar proventos salvos:', err);
           localStorage.removeItem(chaveStorage);
         }
       }
+      setLoading(false);
     }
   }, [ticker]);
 
@@ -1284,7 +1299,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           </Box>
         ) : (
           <>
-
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={3}>
                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#f0f9ff', borderRadius: 1 }}>
@@ -1319,7 +1333,8 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Box>
               </Grid>
             </Grid>
-                        {proventos.length > 10 && (
+            
+            {proventos.length > 10 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                 <Button
                   variant="outlined"
@@ -1341,13 +1356,14 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Button>
               </Box>
             )}
-                       <TableContainer sx={{ 
+            
+            <TableContainer sx={{ 
               backgroundColor: 'white', 
               borderRadius: 1,
               maxHeight: mostrarTodos ? '400px' : 'auto',
               overflowY: mostrarTodos ? 'auto' : 'visible'
             }}>
-            <Table size="small" stickyHeader>
+              <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Data</TableCell>
@@ -1356,14 +1372,189 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                   {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
+                  {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
                     <TableRow key={`${provento.data}-${index}`}>
                       <TableCell sx={{ fontWeight: 500 }}>{provento.dataFormatada}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e' }}>
                         {provento.valorFormatado}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
+                        <Chip 
+                label={empresaCompleta.setor} 
+                variant="outlined"
+                sx={{ mb: 2 }}
+              />
+              <Typography variant="body1" sx={{ maxWidth: 600 }}>
+                {empresaCompleta.descricao}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
+              {dadosLoading ? (
+                <Skeleton variant="text" width={150} height={60} />
+              ) : (
+                <>
+                  <Typography variant="h2" sx={{ fontWeight: 700 }}>
+                    {precoAtualFormatado}
+                  </Typography>
+                  <Stack 
+                    direction="row" 
+                    spacing={1} 
+                    alignItems="center" 
+                    justifyContent={{ xs: 'center', md: 'flex-end' }}
+                  >
+                    {tendencia && (
+                      <>
+                        {tendencia === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
+                        <Typography sx={{ 
+                          color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
+                          fontWeight: 700, 
+                          fontSize: '1.2rem'
+                        }}>
+                          {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+                        </Typography>
+                      </>
+                    )}
+                  </Stack>
+                </>
+              )}
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* Cards de métricas com DY - 6 CARDS */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="COTAÇÃO" 
+            value={precoAtualFormatado}
+            loading={dadosLoading}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="VARIAÇÃO HOJE" 
+            value={dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
+            loading={dadosLoading}
+            trend={dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="PERFORMANCE" 
+            value={calcularPerformance()}
+            subtitle="desde entrada"
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="P/L" 
+            value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
+            loading={dadosLoading}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="DY 12 MESES" 
+            value={dy12Meses > 0 ? `${dy12Meses.toFixed(2)}%` : 'N/A'}
+            subtitle="últimos 12m"
+            loading={dadosLoading}
+          />
+        </Grid>
+        <Grid item xs={6} md={2}>
+          <MetricCard 
+            title="DY ENTRADA" 
+            value={dyDesdeEntrada > 0 ? `${dyDesdeEntrada.toFixed(2)}%` : 'N/A'}
+            subtitle="desde entrada"
+            loading={dadosLoading}
+          />
+        </Grid>
+      </Grid>
+
+      {/* Histórico de Dividendos */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
+        </Grid>
+      </Grid>
+
+      {/* Seções secundárias */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <GerenciadorRelatorios ticker={ticker} />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <AgendaCorporativa ticker={ticker} />
+        </Grid>
+      </Grid>
+
+      {/* Dados da Posição */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                📊 Dados da Posição
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.dataEntrada}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoIniciou}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: dados?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: dados?.precoAtual ? '#22c55e' : 'inherit' }}>
+                    {precoAtualFormatado}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Análise de Viés */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                🎯 Análise de Viés
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Teto</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoTeto}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Viés Atual</Typography>
+                  <Chip 
+                    label={empresaCompleta.viesAtual}
+                    size="small"
+                    color={
+                      empresaCompleta.viesAtual === 'Compra Forte' ? 'success' :
+                      empresaCompleta.viesAtual === 'Compra' ? 'info' :
+                      empresaCompleta.viesAtual === 'Neutro' ? 'warning' :
+                      empresaCompleta.viesAtual === 'Venda' ? 'error' : 'default'
+                    }
+                    sx={{ fontWeight: 600 }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">% da Carteira</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.percentualCarteira}</Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+}
                           label={provento.tipo}
                           size="small"
                           variant="outlined"
@@ -1377,14 +1568,14 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
             </TableContainer>
             
             {proventos.length > 10 && (
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                {mostrarTodos 
-                  ? `Mostrando todos os ${proventos.length} proventos com rolagem`
-                  : `Mostrando os 10 mais recentes • Total: ${proventos.length}`
-                }
-              </Typography>
-            </Box>
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {mostrarTodos 
+                    ? `Mostrando todos os ${proventos.length} proventos com rolagem`
+                    : `Mostrando os 10 mais recentes • Total: ${proventos.length}`
+                  }
+                </Typography>
+              </Box>
             )}
           </>
         )}
@@ -2964,179 +3155,4 @@ export default function EmpresaDetalhes() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 {empresaCompleta.nomeCompleto}
               </Typography>
-              <Chip 
-                label={empresaCompleta.setor} 
-                variant="outlined"
-                sx={{ mb: 2 }}
-              />
-              <Typography variant="body1" sx={{ maxWidth: 600 }}>
-                {empresaCompleta.descricao}
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
-              {dadosLoading ? (
-                <Skeleton variant="text" width={150} height={60} />
-              ) : (
-                <>
-                  <Typography variant="h2" sx={{ fontWeight: 700 }}>
-                    {precoAtualFormatado}
-                  </Typography>
-                  <Stack 
-                    direction="row" 
-                    spacing={1} 
-                    alignItems="center" 
-                    justifyContent={{ xs: 'center', md: 'flex-end' }}
-                  >
-                    {tendencia && (
-                      <>
-                        {tendencia === 'up' ? <TrendUpIcon /> : <TrendDownIcon />}
-                        <Typography sx={{ 
-                          color: tendencia === 'up' ? '#22c55e' : '#ef4444', 
-                          fontWeight: 700, 
-                          fontSize: '1.2rem'
-                        }}>
-                          {dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
-                        </Typography>
-                      </>
-                    )}
-                  </Stack>
-                </>
-              )}
-            </Box>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      {/* 🆕 MODIFICADO: Cards de métricas com DY - AGORA 6 CARDS */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="COTAÇÃO" 
-            value={precoAtualFormatado}
-            loading={dadosLoading}
-          />
-        </Grid>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="VARIAÇÃO HOJE" 
-            value={dados?.variacaoPercent ? formatarValor(dados.variacaoPercent, 'percent') : 'N/A'}
-            loading={dadosLoading}
-            trend={dados?.variacaoPercent ? (dados.variacaoPercent >= 0 ? 'up' : 'down') : undefined}
-          />
-        </Grid>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="PERFORMANCE" 
-            value={calcularPerformance()}
-            subtitle="desde entrada"
-          />
-        </Grid>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="P/L" 
-            value={dados?.pl ? formatarValor(dados.pl, 'number') : 'N/A'}
-            loading={dadosLoading}
-          />
-        </Grid>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="DY 12 MESES" 
-            value={dy12Meses > 0 ? `${dy12Meses.toFixed(2)}%` : 'N/A'}
-            subtitle="últimos 12m"
-            loading={dadosLoading}
-          />
-        </Grid>
-        <Grid item xs={6} md={2}>
-          <MetricCard 
-            title="DY ENTRADA" 
-            value={dyDesdeEntrada > 0 ? `${dyDesdeEntrada.toFixed(2)}%` : 'N/A'}
-            subtitle="desde entrada"
-            loading={dadosLoading}
-          />
-        </Grid>
-      </Grid>
-
-      {/* Histórico de Dividendos */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12}>
-          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
-        </Grid>
-      </Grid>
-
-      {/* Seções secundárias */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12}>
-          <GerenciadorRelatorios ticker={ticker} />
-        </Grid>
-        
-        <Grid item xs={12}>
-          <AgendaCorporativa ticker={ticker} />
-        </Grid>
-      </Grid>
-
-      {/* Dados da Posição */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                📊 Dados da Posição
-              </Typography>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.dataEntrada}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoIniciou}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: dados?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: dados?.precoAtual ? '#22c55e' : 'inherit' }}>
-                    {precoAtualFormatado}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Análise de Viés */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                🎯 Análise de Viés
-              </Typography>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Preço Teto</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoTeto}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Viés Atual</Typography>
-                  <Chip 
-                    label={empresaCompleta.viesAtual}
-                    size="small"
-                    color={
-                      empresaCompleta.viesAtual === 'Compra Forte' ? 'success' :
-                      empresaCompleta.viesAtual === 'Compra' ? 'info' :
-                      empresaCompleta.viesAtual === 'Neutro' ? 'warning' :
-                      empresaCompleta.viesAtual === 'Venda' ? 'error' : 'default'
-                    }
-                    sx={{ fontWeight: 600 }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">% da Carteira</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.percentualCarteira}</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
-  );
-}
+              <Chip
