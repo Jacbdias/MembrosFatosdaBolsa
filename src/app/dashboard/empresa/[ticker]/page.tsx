@@ -2417,7 +2417,7 @@ export default function EmpresaDetalhes() {
         </Typography>
         <Button 
           startIcon={<ArrowLeftIcon />} 
-          onClick={() => router.back()}
+          onClick={() => { if(window.history.length > 1){router.back()}else{router.push('/')}}
           variant="contained"
           size="large"
         >
@@ -2437,7 +2437,7 @@ export default function EmpresaDetalhes() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Button 
           startIcon={<ArrowLeftIcon />} 
-          onClick={() => router.back()} 
+          onClick={() => { if(window.history.length > 1){router.back()}else{router.push('/')}} 
           variant="outlined"
         >
           Voltar
