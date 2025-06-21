@@ -1238,8 +1238,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
     }
   }, [ticker]);
 
-    }
-
   const { totalProventos, mediaProvento, ultimoProvento, totalPorAno } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + item.valor, 0);
     const media = proventos.length > 0 ? total / proventos.length : 0;
