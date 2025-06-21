@@ -919,7 +919,7 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
       }).format(valor);
     
     case 'percent':
-      return ${valor.toFixed(2).replace('.', ',')}%;
+      return `${valor.toFixed(2).replace('.', ',')}%`;
     
     case 'millions':
       if (valor >= 1000000000) {
