@@ -1548,7 +1548,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
               maxHeight: mostrarTodos ? '400px' : 'auto',
               overflowY: mostrarTodos ? 'auto' : 'visible'
             }}>
-              <Table size="small">
+              {proventos.slice(0, 10).map((provento, index) => (
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Data</TableCell>
