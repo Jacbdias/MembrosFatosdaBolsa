@@ -18,6 +18,7 @@ export default function AdminDashboard() {
 
   const getPageName = (url: string) => {
     if (url.includes('central-proventos')) return 'Central de Proventos';
+    if (url.includes('central-relatorios')) return 'Central de Relatórios'; // NOVO
     if (url.includes('customers')) return 'Gestão de Clientes';
     if (url.includes('empresa')) return 'Gestão de Empresas';
     return 'página solicitada';
@@ -285,17 +286,18 @@ export default function AdminDashboard() {
             <span style={styles.statusDevelopment}>Em Desenvolvimento</span>
           </div>
 
+          {/* CARD RELATÓRIOS MODIFICADO */}
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Relatórios')}
+            onClick={() => navigateTo('/dashboard/central-relatorios')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
             <div style={styles.cardIcon}>📊</div>
             <h3 style={styles.cardTitle}>Relatórios</h3>
             <p style={styles.cardText}>Gere relatórios detalhados e visualize métricas importantes do sistema.</p>
-            <span style={styles.statusPlanned}>Planejado</span>
+            <span style={styles.statusActive}>Ativo</span>
           </div>
 
           <div 
@@ -352,9 +354,10 @@ export default function AdminDashboard() {
             >
               🏢 Nova Empresa
             </button>
+            {/* BOTÃO RELATÓRIOS MODIFICADO */}
             <button 
               style={styles.actionBtn} 
-              onClick={() => showComingSoon('Relatórios')}
+              onClick={() => navigateTo('/dashboard/central-relatorios')}
               onMouseEnter={handleButtonHover}
               onMouseLeave={handleButtonLeave}
             >
