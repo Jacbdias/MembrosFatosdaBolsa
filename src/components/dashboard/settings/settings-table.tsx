@@ -501,9 +501,10 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
   key={row.id}
   onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
   sx={{
-    cursor: 'pointer',  // ← ADICIONAR ESTA LINHA AQUI (fora do hover)
+    cursor: 'pointer !important',  // ← FORÇAR COM !important
     '&:hover': {
       backgroundColor: 'rgba(0, 0, 0, 0.04)',
+      cursor: 'pointer !important',  // ← TAMBÉM AQUI
       transform: 'scale(1.005)',
       transition: 'all 0.2s ease'
     },
