@@ -911,7 +911,8 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     percentualCarteira: '3.2%',
     tipo: 'FII',
     gestora: 'XP Asset Management'
-  }
+  },
+  
   'MALL11': {
   ticker: 'MALL11',
   nomeCompleto: 'Shopping Centers Shoppings Centers Fundo de Investimento Imobiliário',
