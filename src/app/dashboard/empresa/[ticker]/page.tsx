@@ -912,6 +912,373 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     tipo: 'FII',
     gestora: 'XP Asset Management'
   }
+  'MALL11': {
+  ticker: 'MALL11',
+  nomeCompleto: 'Shopping Centers Shoppings Centers Fundo de Investimento Imobiliário',
+  setor: 'Shopping Centers',
+  descricao: 'Fundo de investimento imobiliário focado em shopping centers e centros comerciais.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/MALL.png',
+  dataEntrada: '10/04/2021',
+  precoIniciou: 'R$ 95,00',
+  precoTeto: 'R$ 110,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '118.000',
+  percentualCarteira: '2.5%',
+  tipo: 'FII',
+  gestora: 'Vinci Partners'
+},
+
+'KNSC11': {
+  ticker: 'KNSC11',
+  nomeCompleto: 'Kinea Shopping Centers Fundo de Investimento Imobiliário',
+  setor: 'Shopping Centers',
+  descricao: 'Fundo de investimento imobiliário com foco em shopping centers estrategicamente localizados.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/KNSC.png',
+  dataEntrada: '05/06/2021',
+  precoIniciou: 'R$ 135,00',
+  precoTeto: 'R$ 155,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '120.000',
+  percentualCarteira: '3.1%',
+  tipo: 'FII',
+  gestora: 'Kinea'
+},
+
+'KNHF11': {
+  ticker: 'KNHF11',
+  nomeCompleto: 'Kinea High Frequency Fundo de Investimento Imobiliário',
+  setor: 'Híbrido',
+  descricao: 'Fundo de investimento imobiliário com estratégia híbrida e alta frequência de negociação.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/KNHF.png',
+  dataEntrada: '18/09/2021',
+  precoIniciou: 'R$ 85,50',
+  precoTeto: 'R$ 100,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '110.000',
+  percentualCarteira: '2.2%',
+  tipo: 'FII',
+  gestora: 'Kinea'
+},
+
+'HGBS11': {
+  ticker: 'HGBS11',
+  nomeCompleto: 'CSHG Brasil Shopping Fundo de Investimento Imobiliário',
+  setor: 'Shopping Centers',
+  descricao: 'Fundo de investimento imobiliário focado em shopping centers no Brasil.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/HGBS.png',
+  dataEntrada: '12/07/2021',
+  precoIniciou: 'R$ 145,00',
+  precoTeto: 'R$ 170,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '122.000',
+  percentualCarteira: '3.0%',
+  tipo: 'FII',
+  gestora: 'CSHG Real Estate'
+},
+
+'RURA11': {
+  ticker: 'RURA11',
+  nomeCompleto: 'Kinea Rura Fundo de Investimento Imobiliário',
+  setor: 'Agronegócio',
+  descricao: 'Fundo de investimento imobiliário focado em ativos rurais e do agronegócio.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/RURA.png',
+  dataEntrada: '25/05/2021',
+  precoIniciou: 'R$ 105,00',
+  precoTeto: 'R$ 125,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '119.000',
+  percentualCarteira: '2.7%',
+  tipo: 'FII',
+  gestora: 'Kinea'
+},
+
+'BCIA11': {
+  ticker: 'BCIA11',
+  nomeCompleto: 'BTG Pactual Corporate Office Fundo de Investimento Imobiliário',
+  setor: 'Corporativo',
+  descricao: 'Fundo de investimento imobiliário focado em edifícios corporativos premium.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BCIA.png',
+  dataEntrada: '30/01/2021',
+  precoIniciou: 'R$ 88,00',
+  precoTeto: 'R$ 105,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '112.000',
+  percentualCarteira: '2.9%',
+  tipo: 'FII',
+  gestora: 'BTG Pactual'
+},
+
+'BPFF11': {
+  ticker: 'BPFF11',
+  nomeCompleto: 'BTG Pactual Fundo de Fundos Fundo de Investimento Imobiliário',
+  setor: 'Fundo de Fundos',
+  descricao: 'Fundo de investimento imobiliário que investe em cotas de outros FIIs.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BPFF.png',
+  dataEntrada: '08/11/2020',
+  precoIniciou: 'R$ 78,50',
+  precoTeto: 'R$ 95,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '105.000',
+  percentualCarteira: '3.5%',
+  tipo: 'FII',
+  gestora: 'BTG Pactual'
+},
+
+'HGFF11': {
+  ticker: 'HGFF11',
+  nomeCompleto: 'CSHG Fundo de Fundos Fundo de Investimento Imobiliário',
+  setor: 'Fundo de Fundos',
+  descricao: 'Fundo de investimento imobiliário diversificado através de cotas de outros FIIs.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/HGFF.png',
+  dataEntrada: '20/02/2021',
+  precoIniciou: 'R$ 92,00',
+  precoTeto: 'R$ 110,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '114.000',
+  percentualCarteira: '2.8%',
+  tipo: 'FII',
+  gestora: 'CSHG Real Estate'
+},
+
+'BRCO11': {
+  ticker: 'BRCO11',
+  nomeCompleto: 'Banco Btg Pactual Corporativo Fundo de Investimento Imobiliário',
+  setor: 'Corporativo',
+  descricao: 'Fundo de investimento imobiliário focado em edifícios corporativos de alta qualidade.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BRCO.png',
+  dataEntrada: '14/06/2021',
+  precoIniciou: 'R$ 125,00',
+  precoTeto: 'R$ 145,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '121.000',
+  percentualCarteira: '3.3%',
+  tipo: 'FII',
+  gestora: 'BTG Pactual'
+},
+
+'XPML11': {
+  ticker: 'XPML11',
+  nomeCompleto: 'XP Malls Fundo de Investimento Imobiliário',
+  setor: 'Shopping Centers',
+  descricao: 'Fundo de investimento imobiliário especializado em shopping centers.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/XPML.png',
+  dataEntrada: '03/08/2021',
+  precoIniciou: 'R$ 112,00',
+  precoTeto: 'R$ 130,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '124.000',
+  percentualCarteira: '2.6%',
+  tipo: 'FII',
+  gestora: 'XP Asset Management'
+},
+
+'HGLG11': {
+  ticker: 'HGLG11',
+  nomeCompleto: 'CSHG Logística Fundo de Investimento Imobiliário',
+  setor: 'Logística',
+  descricao: 'Fundo de investimento imobiliário focado em galpões logísticos e centros de distribuição.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/HGLG.png',
+  dataEntrada: '15/03/2021',
+  precoIniciou: 'R$ 160,00',
+  precoTeto: 'R$ 180,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '115.000',
+  percentualCarteira: '2.8%',
+  tipo: 'FII',
+  gestora: 'CSHG Real Estate'
+},
+
+'HSML11': {
+  ticker: 'HSML11',
+  nomeCompleto: 'HSI Mall Fundo de Investimento Imobiliário',
+  setor: 'Shopping Centers',
+  descricao: 'Fundo de investimento imobiliário focado em shopping centers regionais.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/HSML.png',
+  dataEntrada: '28/04/2021',
+  precoIniciou: 'R$ 89,00',
+  precoTeto: 'R$ 105,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '117.000',
+  percentualCarteira: '2.4%',
+  tipo: 'FII',
+  gestora: 'HSI Asset Management'
+},
+
+'VGIP11': {
+  ticker: 'VGIP11',
+  nomeCompleto: 'Valora Grupo Imobiliário Partners Fundo de Investimento Imobiliário',
+  setor: 'Híbrido',
+  descricao: 'Fundo de investimento imobiliário com portfólio diversificado de ativos imobiliários.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/VGIP.png',
+  dataEntrada: '16/09/2021',
+  precoIniciou: 'R$ 75,50',
+  precoTeto: 'R$ 90,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '109.000',
+  percentualCarteira: '2.1%',
+  tipo: 'FII',
+  gestora: 'Valora'
+},
+
+'AFHI11': {
+  ticker: 'AFHI11',
+  nomeCompleto: 'Alpha Fundo de Investimento Imobiliário',
+  setor: 'Híbrido',
+  descricao: 'Fundo de investimento imobiliário com estratégia diversificada em múltiplos segmentos.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/AFHI.png',
+  dataEntrada: '07/05/2021',
+  precoIniciou: 'R$ 98,00',
+  precoTeto: 'R$ 115,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '118.500',
+  percentualCarteira: '2.7%',
+  tipo: 'FII',
+  gestora: 'Alpha Capital'
+},
+
+'BTLG11': {
+  ticker: 'BTLG11',
+  nomeCompleto: 'BTG Pactual Logística Fundo de Investimento Imobiliário',
+  setor: 'Logística',
+  descricao: 'Fundo de investimento imobiliário focado em ativos logísticos estratégicos.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BTLG.png',
+  dataEntrada: '22/07/2021',
+  precoIniciou: 'R$ 142,00',
+  precoTeto: 'R$ 165,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '123.000',
+  percentualCarteira: '3.4%',
+  tipo: 'FII',
+  gestora: 'BTG Pactual'
+},
+
+'VRTA11': {
+  ticker: 'VRTA11',
+  nomeCompleto: 'Vortx Renda Imobiliária Fundo de Investimento Imobiliário',
+  setor: 'Corporativo',
+  descricao: 'Fundo de investimento imobiliário focado em edifícios corporativos e comerciais.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/VRTA.png',
+  dataEntrada: '11/01/2021',
+  precoIniciou: 'R$ 86,50',
+  precoTeto: 'R$ 102,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '111.000',
+  percentualCarteira: '2.3%',
+  tipo: 'FII',
+  gestora: 'Vortx'
+},
+
+'LVBI11': {
+  ticker: 'LVBI11',
+  nomeCompleto: 'Live Brasil Fundo de Investimento Imobiliário',
+  setor: 'Residencial',
+  descricao: 'Fundo de investimento imobiliário focado no segmento residencial.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/LVBI.png',
+  dataEntrada: '29/10/2021',
+  precoIniciou: 'R$ 63,00',
+  precoTeto: 'R$ 78,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '108.000',
+  percentualCarteira: '2.0%',
+  tipo: 'FII',
+  gestora: 'Live Capital'
+},
+
+'HGRU11': {
+  ticker: 'HGRU11',
+  nomeCompleto: 'CSHG Renda Urbana Fundo de Investimento Imobiliário',
+  setor: 'Corporativo',
+  descricao: 'Fundo de investimento imobiliário focado em renda urbana e edifícios corporativos.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/HGRU.png',
+  dataEntrada: '13/04/2021',
+  precoIniciou: 'R$ 118,00',
+  precoTeto: 'R$ 140,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '116.000',
+  percentualCarteira: '2.9%',
+  tipo: 'FII',
+  gestora: 'CSHG Real Estate'
+},
+
+'ALZR11': {
+  ticker: 'ALZR11',
+  nomeCompleto: 'Alianza Trust Renda Imobiliária Fundo de Investimento Imobiliário',
+  setor: 'Corporativo',
+  descricao: 'Fundo de investimento imobiliário com foco em ativos corporativos de qualidade.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/ALZR.png',
+  dataEntrada: '06/08/2021',
+  precoIniciou: 'R$ 91,50',
+  precoTeto: 'R$ 108,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '125.500',
+  percentualCarteira: '2.5%',
+  tipo: 'FII',
+  gestora: 'Alianza Trust'
+},
+
+'BCRI11': {
+  ticker: 'BCRI11',
+  nomeCompleto: 'BTG Pactual Crédito Imobiliário Fundo de Investimento Imobiliário',
+  setor: 'Papel',
+  descricao: 'Fundo de investimento imobiliário focado em créditos imobiliários e recebíveis.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/BCRI.png',
+  dataEntrada: '19/05/2021',
+  precoIniciou: 'R$ 73,00',
+  precoTeto: 'R$ 88,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '119.500',
+  percentualCarteira: '2.2%',
+  tipo: 'FII',
+  gestora: 'BTG Pactual'
+},
+
+'KNRI11': {
+  ticker: 'KNRI11',
+  nomeCompleto: 'Kinea Renda Imobiliária Fundo de Investimento Imobiliário',
+  setor: 'Papel',
+  descricao: 'Fundo de investimento imobiliário focado em recebíveis imobiliários.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/KNRI.png',
+  dataEntrada: '24/06/2021',
+  precoIniciou: 'R$ 82,50',  
+  precoTeto: 'R$ 96,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '121.500',
+  percentualCarteira: '2.4%',
+  tipo: 'FII',
+  gestora: 'Kinea'
+},
+
+'IRDM11': {
+  ticker: 'IRDM11',
+  nomeCompleto: 'Iridium Recebíveis Imobiliários Fundo de Investimento Imobiliário',
+  setor: 'Papel',
+  descricao: 'Fundo de investimento imobiliário especializado em recebíveis imobiliários.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/IRDM.png',
+  dataEntrada: '17/12/2021',
+  precoIniciou: 'R$ 67,00',
+  precoTeto: 'R$ 82,00',
+  viesAtual: 'Compra',
+  ibovespaEpoca: '106.000',
+  percentualCarteira: '1.9%',
+  tipo: 'FII',
+  gestora: 'Iridium Asset'
+},
+
+'MXRF11': {
+  ticker: 'MXRF11',
+  nomeCompleto: 'Maxi Renda Fundo de Investimento Imobiliário',
+  setor: 'Corporativo',
+  descricao: 'Fundo de investimento imobiliário focado em edifícios corporativos premium.',
+  avatar: 'https://www.ivalor.com.br/media/emp/logos/MXRF.png',
+  dataEntrada: '02/09/2021',
+  precoIniciou: 'R$ 104,00',
+  precoTeto: 'R$ 122,00',
+  viesAtual: 'Aguardar',
+  ibovespaEpoca: '107.500',
+  percentualCarteira: '2.6%',
+  tipo: 'FII',
+  gestora: 'Maxi Renda'
+}
 
 };
 // ========================================
