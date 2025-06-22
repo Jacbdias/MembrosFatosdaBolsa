@@ -1464,6 +1464,28 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
 // ========================================
 // GERENCIADOR DE RELATÓRIOS - VERSÃO CENTRALIZADA COMPLETA
 // ========================================
+const calcularHash = async (arquivo: File): Promise<string> => {
+  const buffer = await arquivo.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+const processarPdfHibrido = async (arquivo: File) => {
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = () => {
+      resolve({
+        arquivoPdf: reader.result as string,
+        nomeArquivoPdf: arquivo.name,
+        tamanhoArquivo: arquivo.size,
+        dataUploadPdf: new Date().toISOString()
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(arquivo);
+  });
+};
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
@@ -2412,6 +2434,7 @@ export default function EmpresaDetalhes() {
   const [dataSource, setDataSource] = useState<'admin' | 'fallback' | 'not_found'>('not_found');
   
   const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
+  const isFII = empresa?.tipo === 'FII';
 
   // 🆕 NOVO: Hook para calcular DY
   const { dy12Meses, dyDesdeEntrada } = useDividendYield(
@@ -2479,7 +2502,6 @@ export default function EmpresaDetalhes() {
     return empresaAtualizada;
   }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
   // Identificar se é FII
-const isFII = empresaCompleta?.tipo === 'FII';
 
   const calcularPerformance = useCallback(() => {
     if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
