@@ -1531,9 +1531,9 @@ function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
     try {
       setLoading(true);
       setError(null);
-      logMobile(`Buscando dados FII: ${ticker}`);
+      logMobile(`🏢 Buscando dados FII: ${ticker}`);
       
-      // ✅ MOBILE: Priorizar dados locais
+      // ✅ PRIMEIRA TENTATIVA: Dados manuais
       const dadosManuais = localStorage.getItem(`dados_fii_${ticker}`);
       let dadosProcessados: DadosFII = { fonte: 'manual' };
       
@@ -1541,26 +1541,35 @@ function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
         try {
           const dadosSalvos = JSON.parse(dadosManuais);
           dadosProcessados = { ...dadosSalvos, fonte: 'manual' };
-          logMobile(`📝 Dados manuais carregados`);
+          logMobile(`📝 Dados manuais encontrados`);
         } catch (err) {
-          logMobile(`Erro dados manuais: ${err.message}`);
+          logMobile(`⚠️ Erro nos dados manuais: ${err.message}`);
         }
       }
 
-      // ✅ MOBILE: Tentar API apenas se conectividade boa
-      if (navigator.onLine && (!isMobile() || (isMobile() && (!navigator.connection || navigator.connection.effectiveType !== '2g')))) {
+      // ✅ SEGUNDA TENTATIVA: API apenas se não for mobile ou for WiFi
+      const tentarAPI = !isMobile() || 
+        (navigator.connection && navigator.connection.effectiveType === 'wifi') ||
+        !navigator.connection;
+        
+      if (navigator.onLine && tentarAPI) {
         try {
+          logMobile(`🌐 Tentando API FII para ${ticker}`);
+          
+          // Timeout muito curto para mobile
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s para mobile
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+            logMobile(`⏱️ Timeout API FII`);
+          }, 1500); // 1.5s apenas
 
-          const url = `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics,financialData&token=${BRAPI_TOKEN}`;
+          const url = `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
           
           const response = await fetch(url, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Mobile-FII-App',
-              'Cache-Control': 'max-age=300' // Cache 5min
+              'Cache-Control': 'max-age=3600'
             },
             signal: controller.signal
           });
@@ -1569,23 +1578,22 @@ function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
 
           if (response.ok) {
             const data = await response.json();
+            logMobile(`✅ API FII respondeu`);
             
             if (data.results && data.results.length > 0) {
               const fii = data.results[0];
               const stats = fii.defaultKeyStatistics || {};
-              const financial = fii.financialData || {};
               
               const dadosAPI = {
-                valorPatrimonial: stats.bookValue || undefined,
-                pvp: stats.priceToBook || undefined,
-                valorMercado: dadosFinanceiros?.marketCap || fii.marketCap || undefined,
-                valorCaixa: financial.totalCash || undefined,
-                numeroCotas: stats.sharesOutstanding || undefined,
-                ultimoRendimento: stats.lastDividendValue || undefined,
-                dataUltimoRendimento: stats.lastDividendDate || undefined,
+                valorPatrimonial: stats.bookValue,
+                pvp: stats.priceToBook,
+                numeroCotas: stats.sharesOutstanding,
+                ultimoRendimento: stats.lastDividendValue,
+                dataUltimoRendimento: stats.lastDividendDate,
                 ultimaAtualizacao: new Date().toLocaleString('pt-BR')
               };
 
+              // Calcular patrimônio
               if (dadosAPI.valorPatrimonial && dadosAPI.numeroCotas) {
                 dadosAPI.patrimonio = dadosAPI.valorPatrimonial * dadosAPI.numeroCotas;
               }
@@ -1593,40 +1601,55 @@ function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
               dadosProcessados = {
                 ...dadosProcessados,
                 ...dadosAPI,
-                fonte: Object.keys(dadosAPI).some(k => dadosAPI[k] !== undefined) ? 'misto' : 'manual'
+                fonte: 'api'
               };
 
-              logMobile(`✅ Dados API obtidos`);
+              logMobile(`📊 Dados API FII obtidos`);
             }
           }
         } catch (apiError) {
-          logMobile(`API falhou: ${apiError.message}`);
+          logMobile(`❌ API FII falhou: ${apiError.message}`);
         }
+      } else {
+        logMobile(`📱 Mobile: pulando API FII`);
       }
 
-      // ✅ FALLBACK: Dados de exemplo para demonstração
-      if (!dadosProcessados.valorPatrimonial && !dadosProcessados.pvp) {
+      // ✅ TERCEIRA TENTATIVA: Dados de exemplo sempre disponíveis
+      if (!dadosProcessados.valorPatrimonial) {
+        logMobile(`🎯 Aplicando dados de exemplo para ${ticker}`);
+        
         const dadosExemplo = {
-          valorPatrimonial: 95.50,
+          valorPatrimonial: ticker === 'MALL11' ? 100.25 :
+                           ticker === 'HSML11' ? 95.50 :
+                           ticker === 'HGBS11' ? 158.30 : 88.75,
           pvp: 0.88,
           valorMercado: 2200000000,
           valorCaixa: 150000000,
           numeroCotas: 26178644,
-          patrimonio: 95.50 * 26178644,
           ultimoRendimento: 0.75,
           dataUltimoRendimento: '2024-12-15',
-          ultimaAtualizacao: 'Dados de exemplo - ' + new Date().toLocaleString('pt-BR')
+          ultimaAtualizacao: 'Exemplo - ' + new Date().toLocaleString('pt-BR')
         };
         
-        dadosProcessados = { ...dadosProcessados, ...dadosExemplo, fonte: 'exemplo' as const };
-        logMobile(`📋 Usando dados de exemplo`);
+        // Calcular patrimônio
+        dadosExemplo.patrimonio = dadosExemplo.valorPatrimonial * dadosExemplo.numeroCotas;
+        
+        dadosProcessados = { 
+          ...dadosProcessados, 
+          ...dadosExemplo, 
+          fonte: 'exemplo' as const 
+        };
       }
 
       setDadosFII(dadosProcessados);
+      logMobile(`✅ Dados FII finalizados para ${ticker}`);
 
     } catch (error) {
-      logMobile(`❌ Erro geral: ${error.message}`);
-      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      logMobile(`💥 Erro geral FII: ${errorMessage}`);
+      setError(errorMessage);
+      
+      // Em caso de erro, pelo menos estrutura básica
       setDadosFII({ fonte: 'manual' });
     } finally {
       setLoading(false);
@@ -1648,17 +1671,17 @@ function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
         fonte: prev?.fonte === 'api' ? 'misto' : prev?.fonte || 'manual'
       }));
       
-      logMobile(`💾 Dados manuais salvos`);
+      logMobile(`💾 Dados manuais salvos para ${ticker}`);
     } catch (error) {
-      logMobile(`Erro ao salvar: ${error.message}`);
+      logMobile(`⚠️ Erro ao salvar: ${error.message}`);
     }
   }, [ticker]);
 
   const definirDadosTeste = useCallback(() => {
     const dadosTeste: DadosFII = {
-      valorPatrimonial: 95.50,
+      valorPatrimonial: 100.25,
       pvp: 0.88,
-      patrimonio: 2500000000,
+      patrimonio: 2625000000,
       valorMercado: 2200000000,
       valorCaixa: 150000000,
       numeroCotas: 26178644,
@@ -1671,7 +1694,7 @@ function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
     };
     
     setDadosFII(dadosTeste);
-    logMobile(`🧪 Dados de teste aplicados`);
+    logMobile(`🧪 Dados de teste aplicados para ${ticker}`);
   }, [ticker]);
 
   useEffect(() => {
@@ -1696,111 +1719,120 @@ function useDadosFinanceiros(ticker: string) {
     try {
       setLoading(true);
       setError(null);
-      logMobile(`Iniciando busca para ${ticker}`);
+      logMobile(`🔍 Iniciando busca: ${ticker}`);
 
-      // ✅ PRIMEIRA TENTATIVA: API com timeout menor para mobile
-      const timeoutDuration = isMobile() ? 3000 : 10000; // 3s mobile, 10s desktop
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        logMobile(`Timeout após ${timeoutDuration}ms`);
-      }, timeoutDuration);
-
-      const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true`;
-      logMobile(`URL: ${quoteUrl.substring(0, 50)}...`);
-      
-      const response = await fetch(quoteUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': isMobile() ? 'Mobile-Portfolio-App' : 'Portfolio-Details-App',
-          'Cache-Control': 'no-cache'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      logMobile(`Resposta recebida: ${response.status}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        logMobile(`Dados recebidos`, data.results?.length || 0);
-
-        if (data.results && data.results.length > 0) {
-          const quote = data.results[0];
-          
-          const precoAtual = quote.regularMarketPrice || quote.currentPrice || quote.price || 0;
-          const dividendYield = quote.dividendYield || 0;
-
-          const dadosProcessados: DadosFinanceiros = {
-            precoAtual: precoAtual,
-            variacao: quote.regularMarketChange || 0,
-            variacaoPercent: quote.regularMarketChangePercent || 0,
-            volume: quote.regularMarketVolume || quote.volume || 0,
-            dy: dividendYield,
-            marketCap: quote.marketCap,
-            pl: quote.priceEarnings || quote.pe
-          };
-
-          setDadosFinanceiros(dadosProcessados);
-          setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
-          logMobile(`✅ Dados processados`, dadosProcessados);
-          
-          // ✅ CACHE: Salvar dados bem-sucedidos
-          try {
-            localStorage.setItem(`cache_${ticker}`, JSON.stringify({
-              data: dadosProcessados,
-              timestamp: Date.now()
-            }));
-          } catch (storageError) {
-            logMobile(`Storage error: ${storageError.message}`);
-          }
-          
-        } else {
-          throw new Error('Nenhum resultado encontrado');
-        }
-      } else {
-        throw new Error(`Erro HTTP ${response.status}`);
-      }
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      logMobile(`❌ Erro: ${errorMessage}`);
-      
-      // ✅ FALLBACK: Tentar dados do cache/localStorage
+      // ✅ PRIMEIRA TENTATIVA: Verificar cache primeiro
       try {
         const cachedData = localStorage.getItem(`cache_${ticker}`);
         if (cachedData) {
           const parsed = JSON.parse(cachedData);
-          if (parsed.timestamp && (Date.now() - parsed.timestamp) < 24 * 60 * 60 * 1000) { // 24h
+          if (parsed.timestamp && (Date.now() - parsed.timestamp) < 6 * 60 * 60 * 1000) { // 6 horas
             setDadosFinanceiros(parsed.data);
-            logMobile(`📦 Usando cache para ${ticker}`);
             setUltimaAtualizacao('Cache: ' + new Date(parsed.timestamp).toLocaleString('pt-BR'));
-            return;
+            logMobile(`📦 Cache válido encontrado para ${ticker}`);
+            setLoading(false);
+            return; // ✅ Usar cache se estiver válido
           }
         }
       } catch (cacheError) {
-        logMobile(`Cache error: ${cacheError.message}`);
+        logMobile(`⚠️ Erro no cache: ${cacheError.message}`);
       }
+
+      // ✅ SEGUNDA TENTATIVA: API apenas se for desktop ou WiFi
+      const isGoodConnection = !isMobile() || 
+        (navigator.connection && ['wifi', '4g'].includes(navigator.connection.effectiveType)) ||
+        !navigator.connection;
       
+      if (navigator.onLine && isGoodConnection) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+            logMobile(`⏱️ Timeout de API (${isMobile() ? '2s' : '8s'})`);
+          }, isMobile() ? 2000 : 8000);
+
+          const quoteUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+          logMobile(`🌐 Tentando API: ${ticker}`);
+          
+          const response = await fetch(quoteUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': isMobile() ? 'Portfolio-Mobile/1.0' : 'Portfolio-Desktop/1.0',
+              'Cache-Control': isMobile() ? 'max-age=3600' : 'no-cache'
+            },
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            logMobile(`✅ API funcionou para ${ticker}`);
+
+            if (data.results && data.results.length > 0) {
+              const quote = data.results[0];
+              
+              const dadosProcessados: DadosFinanceiros = {
+                precoAtual: quote.regularMarketPrice || quote.currentPrice || 0,
+                variacao: quote.regularMarketChange || 0,
+                variacaoPercent: quote.regularMarketChangePercent || 0,
+                volume: quote.regularMarketVolume || 0,
+                dy: quote.dividendYield || 0,
+                marketCap: quote.marketCap,
+                pl: quote.priceEarnings
+              };
+
+              setDadosFinanceiros(dadosProcessados);
+              setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
+              
+              // Salvar no cache
+              try {
+                localStorage.setItem(`cache_${ticker}`, JSON.stringify({
+                  data: dadosProcessados,
+                  timestamp: Date.now()
+                }));
+                logMobile(`💾 Dados salvos no cache`);
+              } catch (storageError) {
+                logMobile(`⚠️ Erro ao salvar cache: ${storageError.message}`);
+              }
+              
+              setLoading(false);
+              return;
+            }
+          } else {
+            logMobile(`❌ API retornou erro: ${response.status}`);
+          }
+        } catch (apiError) {
+          logMobile(`❌ Falha na API: ${apiError.message}`);
+        }
+      } else {
+        logMobile(`📶 Conexão ruim ou offline, pulando API`);
+      }
+
+      // ✅ TERCEIRA TENTATIVA: Dados estáticos baseados no ticker
+      logMobile(`🔄 Usando dados estáticos para ${ticker}`);
+      
+      const dadosEstaticos: DadosFinanceiros = {
+        precoAtual: ticker === 'MALL11' ? 100.00 : 
+                   ticker === 'HSML11' ? 95.50 :
+                   ticker === 'HGBS11' ? 128.30 : 85.75,
+        variacao: 1.50,
+        variacaoPercent: 1.52,
+        volume: 1000000,
+        dy: ticker.includes('11') ? 8.5 : 4.2, // FII vs Ação
+        marketCap: ticker.includes('11') ? 2200000000 : 15000000000,
+        pl: ticker.includes('11') ? undefined : 12.5
+      };
+      
+      setDadosFinanceiros(dadosEstaticos);
+      setUltimaAtualizacao('Dados estáticos - ' + new Date().toLocaleString('pt-BR'));
+      logMobile(`📊 Dados estáticos aplicados`);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      logMobile(`💥 Erro geral: ${errorMessage}`);
       setError(errorMessage);
-      
-      // ✅ ÚLTIMO RECURSO: Dados estáticos para mobile
-      if (isMobile()) {
-        const dadosEstaticos: DadosFinanceiros = {
-          precoAtual: 100.00,
-          variacao: 1.50,
-          variacaoPercent: 1.52,
-          volume: 1000000,
-          dy: 8.5,
-          marketCap: undefined,
-          pl: undefined
-        };
-        setDadosFinanceiros(dadosEstaticos);
-        setUltimaAtualizacao('Dados estáticos (mobile)');
-        logMobile(`🔄 Usando dados estáticos para mobile`);
-      }
-      
     } finally {
       setLoading(false);
     }
@@ -1808,10 +1840,6 @@ function useDadosFinanceiros(ticker: string) {
 
   useEffect(() => {
     buscarDados();
-    
-    // Interval menor para mobile para não sobrecarregar
-    const interval = setInterval(buscarDados, isMobile() ? 10 * 60 * 1000 : 5 * 60 * 1000); // 10min mobile, 5min desktop
-    return () => clearInterval(interval);
   }, [buscarDados]);
 
   return { dadosFinanceiros, loading, error, ultimaAtualizacao, refetch: buscarDados };
@@ -3500,6 +3528,19 @@ const DadosPosicaoExpandidos = React.memo(({
 const MobileDebugPanel = () => {
   const [showDebug, setShowDebug] = useState(false);
   
+  const forcarDados = () => {
+    logMobile(`🔄 Forçando recarregamento de dados`);
+    // Limpar cache
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('cache_') || key.startsWith('dados_fii_')) {
+        localStorage.removeItem(key);
+        logMobile(`🗑️ Cache removido: ${key}`);
+      }
+    });
+    // Recarregar página
+    setTimeout(() => window.location.reload(), 1000);
+  };
+  
   if (!isMobile()) return null;
   
   return (
@@ -3514,14 +3555,14 @@ const MobileDebugPanel = () => {
         <IconButton
           onClick={() => setShowDebug(!showDebug)}
           sx={{
-            backgroundColor: '#ef4444',
+            backgroundColor: showDebug ? '#22c55e' : '#ef4444',
             color: 'white',
-            '&:hover': { backgroundColor: '#dc2626' },
+            '&:hover': { backgroundColor: showDebug ? '#16a34a' : '#dc2626' },
             width: 56,
             height: 56
           }}
         >
-          🐛
+          {showDebug ? '✅' : '🐛'}
         </IconButton>
       </Box>
       
@@ -3532,20 +3573,21 @@ const MobileDebugPanel = () => {
           top: 10,
           left: 10,
           right: 10,
-          backgroundColor: 'rgba(0,0,0,0.9)',
+          backgroundColor: 'rgba(0,0,0,0.95)',
           color: 'white',
           p: 2,
           borderRadius: 1,
           zIndex: 9998,
-          maxHeight: '50vh',
+          maxHeight: '70vh',
           overflow: 'auto',
           fontSize: '12px'
         }}>
           <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
-            📱 Debug Mobile
+            📱 Debug Mobile - MALL11
           </Typography>
-          <Typography variant="body2" sx={{ color: 'white' }}>
-            • User Agent: {navigator.userAgent.substring(0, 50)}...<br/>
+          
+          <Typography variant="body2" sx={{ color: 'white', mb: 2 }}>
+            • User Agent: {navigator.userAgent.substring(0, 30)}...<br/>
             • Screen: {window.screen.width}x{window.screen.height}<br/>
             • Viewport: {window.innerWidth}x{window.innerHeight}<br/>
             • Online: {navigator.onLine ? '✅' : '❌'}<br/>
@@ -3553,12 +3595,41 @@ const MobileDebugPanel = () => {
             • LocalStorage: {typeof Storage !== 'undefined' ? '✅' : '❌'}
           </Typography>
           
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+            <Button 
+              size="small" 
+              onClick={forcarDados}
+              sx={{ 
+                backgroundColor: '#f59e0b', 
+                color: 'white',
+                '&:hover': { backgroundColor: '#d97706' }
+              }}
+            >
+              🔄 Forçar Dados
+            </Button>
+            
+            <Button 
+              size="small" 
+              onClick={() => {
+                localStorage.clear();
+                logMobile(`🗑️ LocalStorage limpo`);
+              }}
+              sx={{ 
+                backgroundColor: '#dc2626', 
+                color: 'white',
+                '&:hover': { backgroundColor: '#b91c1c' }
+              }}
+            >
+              🗑️ Limpar Cache
+            </Button>
+          </Box>
+          
           <Button 
             size="small" 
             onClick={() => setShowDebug(false)}
-            sx={{ mt: 2, color: 'white', border: '1px solid white' }}
+            sx={{ color: 'white', border: '1px solid white' }}
           >
-            Fechar
+            Fechar Debug
           </Button>
         </Box>
       )}
