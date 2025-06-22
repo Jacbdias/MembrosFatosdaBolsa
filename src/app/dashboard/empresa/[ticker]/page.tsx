@@ -984,7 +984,7 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
       const hoje = new Date();
       const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
       const data12MesesAtras = new Date();
-      data12MesesAtras.setFullYear(hoje.getFullYear() - 1);
+      data12MesesAtras.setMonth(data12MesesAtras.getMonth() - 12);
 
       // Filtrar proventos dos últimos 12 meses
       const proventos12Meses = proventos.filter((provento: any) => 
