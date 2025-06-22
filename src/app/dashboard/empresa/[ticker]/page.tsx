@@ -1340,8 +1340,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
                 </Button>
               </Box>
             )}
-            
-// SUBSTITUIR APENAS ESTA PARTE DA TABELA NO SEU CÓDIGO EXISTENTE:
 
             <TableContainer sx={{ 
               backgroundColor: 'white', 
