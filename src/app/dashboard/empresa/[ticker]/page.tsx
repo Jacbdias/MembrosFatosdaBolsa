@@ -876,6 +876,41 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     percentualCarteira: '4.2%'
   }
 };
+  // ========================================
+  // FIIs - FUNDOS IMOBILIÁRIOS
+  // ========================================
+  'HGLG11': {
+    ticker: 'HGLG11',
+    nomeCompleto: 'CSHG Logística Fundo de Investimento Imobiliário',
+    setor: 'Logística',
+    descricao: 'Fundo de investimento imobiliário focado em galpões logísticos e centros de distribuição.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/HGLG.png',
+    dataEntrada: '15/03/2021',
+    precoIniciou: 'R$ 160,00',
+    precoTeto: 'R$ 180,00',
+    viesAtual: 'Aguardar',
+    ibovespaEpoca: '115.000',
+    percentualCarteira: '2.8%',
+    tipo: 'FII', // ✅ IMPORTANTE: Marcar como FII
+    gestora: 'CSHG Real Estate' // ✅ NOVO: Informação específica de FII
+  },
+  
+  'XPLG11': {
+    ticker: 'XPLG11',
+    nomeCompleto: 'XP LOG Fundo de Investimento Imobiliário',
+    setor: 'Logística', 
+    descricao: 'Fundo de investimento imobiliário com foco em ativos logísticos de alta qualidade.',
+    avatar: 'https://www.ivalor.com.br/media/emp/logos/XPLG.png',
+    dataEntrada: '22/08/2021',
+    precoIniciou: 'R$ 98,50',
+    precoTeto: 'R$ 120,00',
+    viesAtual: 'Compra',
+    ibovespaEpoca: '125.000',
+    percentualCarteira: '3.2%',
+    tipo: 'FII',
+    gestora: 'XP Asset Management'
+  }
+};
 
 // ========================================
 // FUNÇÕES UTILITÁRIAS
@@ -1928,7 +1963,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
 // ========================================
 // COMPONENTE AGENDA CORPORATIVA
 // ========================================
-const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
+const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1958,32 +1993,65 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
   }, []);
 
   // Criar eventos estimados quando não há dados da API
-  const criarEventosEstimados = useCallback((ticker: string) => {
-    const eventos: any[] = [];
-    const hoje = new Date();
+const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
+  const eventos: any[] = [];
+  const hoje = new Date();
+  
+  if (isFII) {
+    // EVENTOS ESPECÍFICOS PARA FIIs
+    // Próxima distribuição mensal
+    const proximaDistribuicao = new Date(hoje);
+    proximaDistribuicao.setMonth(proximaDistribuicao.getMonth() + 1);
+    proximaDistribuicao.setDate(15);
     
-    // Próximo resultado trimestral - estimar baseado no trimestre atual
-    const mesAtual = hoje.getMonth(); // 0-11
+    eventos.push({
+      id: 'distribuicao-fii',
+      tipo: 'dividendo',
+      titulo: 'Próxima Distribuição',
+      data: proximaDistribuicao,
+      descricao: 'FIIs distribuem rendimentos mensalmente',
+      estimado: true,
+      icone: '💰',
+      cor: '#f59e0b'
+    });
+    
+    // Relatório mensal
+    const proximoRelatorio = new Date(hoje);
+    proximoRelatorio.setMonth(proximoRelatorio.getMonth() + 1);
+    proximoRelatorio.setDate(10);
+    
+    eventos.push({
+      id: 'relatorio-fii',
+      tipo: 'resultado',
+      titulo: 'Relatório Mensal',
+      data: proximoRelatorio,
+      descricao: 'Relatório gerencial mensal do fundo',
+      estimado: true,
+      icone: '📊',
+      cor: '#f59e0b'
+    });
+    
+  } else {
+    // EVENTOS PARA AÇÕES (código original)
+    const mesAtual = hoje.getMonth();
     const anoAtual = hoje.getFullYear();
     
-    // Determinar próxima data de resultado (final de cada trimestre + 45 dias)
     let proximoResultado: Date;
     
-    if (mesAtual <= 1) { // Jan-Fev: Resultado Q4 do ano anterior
-      proximoResultado = new Date(anoAtual, 3, 15); // 15 de abril
-    } else if (mesAtual <= 4) { // Mar-Mai: Resultado Q1
-      proximoResultado = new Date(anoAtual, 5, 15); // 15 de junho
-    } else if (mesAtual <= 7) { // Jun-Ago: Resultado Q2
-      proximoResultado = new Date(anoAtual, 8, 15); // 15 de setembro
-    } else { // Set-Dez: Resultado Q3
-      proximoResultado = new Date(anoAtual, 11, 15); // 15 de dezembro
+    if (mesAtual <= 1) {
+      proximoResultado = new Date(anoAtual, 3, 15);
+    } else if (mesAtual <= 4) {
+      proximoResultado = new Date(anoAtual, 5, 15);
+    } else if (mesAtual <= 7) {
+      proximoResultado = new Date(anoAtual, 8, 15);
+    } else {
+      proximoResultado = new Date(anoAtual, 11, 15);
     }
     
-    // Se a data já passou, pegar o próximo trimestre
     if (proximoResultado <= hoje) {
       proximoResultado.setMonth(proximoResultado.getMonth() + 3);
       if (proximoResultado.getFullYear() > anoAtual) {
-        proximoResultado = new Date(anoAtual + 1, 2, 15); // 15 de março do próximo ano
+        proximoResultado = new Date(anoAtual + 1, 2, 15);
       }
     }
     
@@ -1997,6 +2065,40 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       icone: '📊',
       cor: '#3b82f6'
     });
+
+    const proximoDividendo = new Date(proximoResultado);
+    proximoDividendo.setMonth(proximoDividendo.getMonth() + 2);
+    
+    eventos.push({
+      id: 'dividendo-estimado',
+      tipo: 'dividendo',
+      titulo: 'Possível Data Ex-Dividendos',
+      data: proximoDividendo,
+      descricao: 'Estimativa baseada em padrões típicos do mercado brasileiro',
+      estimado: true,
+      icone: '💰',
+      cor: '#22c55e'
+    });
+
+    const dataAssembleia = new Date(anoAtual, 3, 30);
+    if (dataAssembleia <= hoje) {
+      dataAssembleia.setFullYear(anoAtual + 1);
+    }
+    
+    eventos.push({
+      id: 'assembleia-geral',
+      tipo: 'assembleia',
+      titulo: 'Assembleia Geral Ordinária',
+      data: dataAssembleia,
+      descricao: 'Data típica para aprovação das contas e eleição do conselho',
+      estimado: true,
+      icone: '🏛️',
+      cor: '#8b5cf6'
+    });
+  }
+
+  return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
+}, []);
 
     // Estimativa de dividendos (geralmente 2-3 meses após resultados)
     const proximoDividendo = new Date(proximoResultado);
@@ -2081,7 +2183,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
     }
 
     // Adicionar eventos estimados padrão
-    const eventosEstimados = criarEventosEstimados(ticker);
+    const eventosEstimados = criarEventosEstimados(ticker, isFII);
     eventos.push(...eventosEstimados);
 
     // Remover duplicatas e ordenar
@@ -2121,7 +2223,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
           setEventos(eventosProcessados);
         } else {
           // Se não há dados, criar eventos estimados
-          const eventosEstimados = criarEventosEstimados(ticker);
+          const eventosEstimados = criarEventosEstimados(ticker, isFII);
           setEventos(eventosEstimados);
         }
         
@@ -2136,7 +2238,7 @@ const AgendaCorporativa = React.memo(({ ticker }: { ticker: string }) => {
       setError(errorMessage);
       
       // Em caso de erro, mostrar eventos estimados
-      const eventosEstimados = criarEventosEstimados(ticker);
+      const eventosEstimados = criarEventosEstimados(ticker, isFII);
       setEventos(eventosEstimados);
     } finally {
       setLoading(false);
@@ -2344,11 +2446,12 @@ export default function EmpresaDetalhes() {
 
   // 🆕 NOVO: Hook para calcular DY
   const { dy12Meses, dyDesdeEntrada } = useDividendYield(
-    ticker, 
-    empresa?.dataEntrada || '', 
-    dadosFinanceiros?.precoAtual, 
-    empresa?.precoIniciou || ''
-  );
+  ticker, 
+  empresa?.dataEntrada || '', 
+  dadosFinanceiros?.precoAtual, 
+  empresa?.precoIniciou || '',
+  isFII
+);
 
   useEffect(() => {
     if (!ticker) return;
@@ -2406,6 +2509,8 @@ export default function EmpresaDetalhes() {
     
     return empresaAtualizada;
   }, [empresa, dadosFinanceiros, ultimaAtualizacao]);
+  // Identificar se é FII
+const isFII = empresaCompleta?.tipo === 'FII';
 
   const calcularPerformance = useCallback(() => {
     if (!empresaCompleta || !empresaCompleta.dadosFinanceiros) return 'N/A';
@@ -2497,7 +2602,12 @@ export default function EmpresaDetalhes() {
       </Stack>
 
       {/* Card principal da empresa */}
-      <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' }}>
+      <Card sx={{ 
+  mb: 4, 
+  background: isFII 
+    ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' 
+    : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' 
+}}>
         <CardContent sx={{ p: 4 }}>
           <Stack 
             direction={{ xs: 'column', md: 'row' }} 
@@ -2544,6 +2654,15 @@ export default function EmpresaDetalhes() {
               <Typography variant="body1" sx={{ maxWidth: 600 }}>
                 {empresaCompleta.descricao}
               </Typography>
+              {isFII && empresaCompleta.gestora && (
+  <Typography variant="body2" sx={{ 
+    mt: 2, 
+    color: '#92400e',
+    fontWeight: 500 
+  }}>
+    🏢 Gestora: {empresaCompleta.gestora}
+  </Typography>
+)}
             </Box>
             <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
               {dadosLoading ? (
@@ -2621,7 +2740,7 @@ export default function EmpresaDetalhes() {
       {/* Histórico de Dividendos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} />
+          <HistoricoDividendos ticker={ticker} dataEntrada={empresaCompleta.dataEntrada} isFII={isFII} />
         </Grid>
       </Grid>
 
@@ -2632,7 +2751,7 @@ export default function EmpresaDetalhes() {
         </Grid>
         
         <Grid item xs={12}>
-          <AgendaCorporativa ticker={ticker} />
+          <AgendaCorporativa ticker={ticker} isFII={isFII} />
         </Grid>
       </Grid>
 
