@@ -142,7 +142,7 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
           variant="h4"
           sx={{
             fontWeight: 700,
-            color: '#1e293b',
+            color: '#ffffff',
             fontSize: '1.75rem',
             lineHeight: 1.2,
             mb: 2,
@@ -158,7 +158,7 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
         <Typography
           variant="body2"
           sx={{
-            color: '#64748b',
+            color: 'rgba(255, 255, 255, 0.8)',
             fontSize: '0.85rem',
             lineHeight: 1.4,
             fontWeight: 400,
@@ -233,7 +233,7 @@ export default function Page(): React.JSX.Element {
     <Box 
       sx={{ 
         minHeight: '100vh',
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#f5f5f5',
         p: 3 
       }}
     >
