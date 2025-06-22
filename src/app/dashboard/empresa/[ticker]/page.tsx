@@ -2954,7 +2954,7 @@ export default function EmpresaDetalhes() {
       <Card sx={{ 
   mb: 4, 
   background: isFII 
-    ? 'linear-gradient(135deg, #fef3c7 0%, #e9ecef 100%)' 
+    ? 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' 
     : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' 
 }}>
         <CardContent sx={{ p: 4 }}>
