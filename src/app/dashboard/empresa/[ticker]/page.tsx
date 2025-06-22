@@ -983,15 +983,14 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
       }));
 
       // ✅ CORREÇÃO: Usar data atual real do sistema
-      const hoje = new Date();
-      hoje.setHours(23, 59, 59, 999); // Fim do dia
+const hoje = new Date();
+hoje.setHours(23, 59, 59, 999);
 
-      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-      
-      // Calcular 12 meses atrás corretamente
-      const data12MesesAtras = new Date(hoje);
-      data12MesesAtras.setFullYear(data12MesesAtras.getFullYear() - 1);
-      data12MesesAtras.setHours(0, 0, 0, 0); // Início do dia
+const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
+
+const data12MesesAtras = new Date(hoje);
+data12MesesAtras.setFullYear(data12MesesAtras.getFullYear() - 1);
+data12MesesAtras.setHours(0, 0, 0, 0);
 
       // Filtrar proventos dos últimos 12 meses com validação
       const proventos12Meses = proventos.filter((provento: any) => {
@@ -1042,11 +1041,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
 // ========================================
 // VERSÃO ALTERNATIVA COM DATA DINÂMICA
 // ========================================
-function useDividendYieldDinamico(ticker, dataEntrada, precoAtual, precoIniciou) {
-  const [dyData, setDyData] = useState({
-    dy12Meses: 0,
-    dyDesdeEntrada: 0
-  });
 
   const parsePreco = useCallback((precoStr) => {
     try {
@@ -1136,65 +1130,6 @@ function useDividendYieldDinamico(ticker, dataEntrada, precoAtual, precoIniciou)
 
     } catch (error) {
       console.error('❌ Erro ao calcular DY:', error);
-      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
-    }
-  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
-
-  useEffect(() => {
-    calcularDY();
-  }, [calcularDY]);
-
-  return dyData;
-}
-
-    try {
-      // Carregar proventos do localStorage
-      const chaveStorage = `proventos_${ticker}`;
-      const dadosSalvos = localStorage.getItem(chaveStorage);
-      
-      if (!dadosSalvos) {
-        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
-        return;
-      }
-
-      const proventos = JSON.parse(dadosSalvos).map((item: any) => ({
-        ...item,
-        dataObj: new Date(item.dataObj)
-      }));
-
-      const hoje = new Date();
-      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-      const data12MesesAtras = new Date();
-      data12MesesAtras.setMonth(data12MesesAtras.getMonth() - 12);
-
-      // Filtrar proventos dos últimos 12 meses
-      const proventos12Meses = proventos.filter((provento: any) => 
-        provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje
-      );
-
-      // Filtrar proventos desde a entrada
-      const proventosDesdeEntrada = proventos.filter((provento: any) => 
-        provento.dataObj >= dataEntradaObj && provento.dataObj <= hoje
-      );
-
-      // Calcular totais
-      const totalProventos12Meses = proventos12Meses.reduce((sum: number, p: any) => sum + p.valor, 0);
-      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum: number, p: any) => sum + p.valor, 0);
-
-      // Calcular DY dos últimos 12 meses
-      const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
-
-      // Calcular DY desde a entrada
-      const precoEntrada = parsePreco(precoIniciou);
-      const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
-
-      setDyData({
-        dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
-        dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
-      });
-
-    } catch (error) {
-      console.error('Erro ao calcular DY:', error);
       setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
     }
   }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
@@ -1406,7 +1341,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
           const proventosSalvos = JSON.parse(dadosSalvos);
           const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
             ...item,
-            dataObj: new Date(item.dataObj)
+            dataObj: new Date(item.dataCom || item.data || item.dataObj)
           }));
           proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
           setProventos(proventosLimitados);
