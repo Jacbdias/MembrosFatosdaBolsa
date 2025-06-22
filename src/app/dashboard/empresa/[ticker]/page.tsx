@@ -874,8 +874,8 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     viesAtual: 'Aguardar',
     ibovespaEpoca: '108.500',
     percentualCarteira: '4.2%'
-  }
-},
+  },
+
   // ========================================
   // FIIs - FUNDOS IMOBILIÁRIOS
   // ========================================
@@ -891,8 +891,8 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     viesAtual: 'Aguardar',
     ibovespaEpoca: '115.000',
     percentualCarteira: '2.8%',
-    tipo: 'FII', // ✅ IMPORTANTE: Marcar como FII
-    gestora: 'CSHG Real Estate' // ✅ NOVO: Informação específica de FII
+    tipo: 'FII',
+    gestora: 'CSHG Real Estate'
   },
   
   'XPLG11': {
@@ -910,8 +910,8 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     tipo: 'FII',
     gestora: 'XP Asset Management'
   }
-};
 
+};
 // ========================================
 // FUNÇÕES UTILITÁRIAS
 // ========================================
