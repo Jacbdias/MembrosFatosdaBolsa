@@ -115,6 +115,24 @@ interface Relatorio {
   solicitarReupload?: boolean;  // ← ADICIONAR ESTA LINHA
   hashArquivo?: string;         // ← ADICIONAR ESTA LINHA
 }
+interface DadosFII {
+  valorPatrimonial?: number;        // bookValue da API
+  patrimonio?: number;              // calculado: bookValue * sharesOutstanding
+  pvp?: number;                     // priceToBook da API
+  valorMercado?: number;            // marketCap da API
+  valorCaixa?: number;              // totalCash da API
+  numeroCotas?: number;             // sharesOutstanding da API
+  ultimoRendimento?: number;        // lastDividendValue da API
+  dataUltimoRendimento?: string;    // lastDividendDate da API
+  
+  // Dados manuais (não disponíveis via API)
+  dyCagr3Anos?: number;
+  numeroCotistas?: number;
+  
+  // Metadados
+  fonte: 'api' | 'manual' | 'misto';
+  ultimaAtualizacao?: string;
+}
 
 // ========================================
 // DADOS DE FALLBACK
@@ -1466,6 +1484,124 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
   }, [calcularDY]);
 
   return dyData;
+}
+function useDadosFII(ticker: string, dadosFinanceiros?: DadosFinanceiros) {
+  const [dadosFII, setDadosFII] = useState<DadosFII | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const buscarDadosFII = useCallback(async () => {
+    if (!ticker) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Tentar buscar dados específicos de FII via BRAPI
+      const url = `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics,financialData&token=${BRAPI_TOKEN}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Portfolio-FII-Data',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      let dadosProcessados: DadosFII = { fonte: 'manual' };
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          const fii = data.results[0];
+          const stats = fii.defaultKeyStatistics || {};
+          const financial = fii.financialData || {};
+          
+          // Processar dados disponíveis da API
+          dadosProcessados = {
+            valorPatrimonial: stats.bookValue || undefined,
+            pvp: stats.priceToBook || undefined,
+            valorMercado: dadosFinanceiros?.marketCap || fii.marketCap || undefined,
+            valorCaixa: financial.totalCash || undefined,
+            numeroCotas: stats.sharesOutstanding || undefined,
+            ultimoRendimento: stats.lastDividendValue || undefined,
+            dataUltimoRendimento: stats.lastDividendDate || undefined,
+            fonte: 'api',
+            ultimaAtualizacao: new Date().toLocaleString('pt-BR')
+          };
+
+          // Calcular patrimônio se possível
+          if (dadosProcessados.valorPatrimonial && dadosProcessados.numeroCotas) {
+            dadosProcessados.patrimonio = dadosProcessados.valorPatrimonial * dadosProcessados.numeroCotas;
+          }
+
+          console.log(`✅ Dados FII obtidos via API para ${ticker}:`, dadosProcessados);
+        }
+      } else {
+        console.log(`⚠️ API não disponível para ${ticker}, usando dados manuais`);
+      }
+      
+      // Buscar/mesclar dados manuais salvos localmente
+      const dadosManuais = localStorage.getItem(`dados_fii_${ticker}`);
+      if (dadosManuais) {
+        try {
+          const dadosSalvos = JSON.parse(dadosManuais);
+          dadosProcessados = {
+            ...dadosProcessados,
+            ...dadosSalvos,
+            fonte: dadosProcessados.fonte === 'api' ? 'misto' : 'manual'
+          };
+          console.log(`📝 Dados manuais mesclados para ${ticker}:`, dadosSalvos);
+        } catch (err) {
+          console.error('Erro ao carregar dados manuais:', err);
+        }
+      }
+
+      setDadosFII(dadosProcessados);
+
+    } catch (error) {
+      console.error('Erro ao buscar dados FII:', error);
+      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      
+      // Em caso de erro, tentar carregar dados manuais
+      const dadosManuais = localStorage.getItem(`dados_fii_${ticker}`);
+      if (dadosManuais) {
+        try {
+          const dadosSalvos = JSON.parse(dadosManuais);
+          setDadosFII({ ...dadosSalvos, fonte: 'manual' });
+        } catch {
+          setDadosFII({ fonte: 'manual' });
+        }
+      } else {
+        setDadosFII({ fonte: 'manual' });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker, dadosFinanceiros]);
+
+  // Função para salvar dados manuais
+  const salvarDadosManuais = useCallback((dadosManuais: Partial<DadosFII>) => {
+    try {
+      localStorage.setItem(`dados_fii_${ticker}`, JSON.stringify(dadosManuais));
+      setDadosFII(prev => ({
+        ...prev,
+        ...dadosManuais,
+        fonte: prev?.fonte === 'api' ? 'misto' : 'manual'
+      }));
+      console.log(`💾 Dados manuais salvos para ${ticker}:`, dadosManuais);
+    } catch (error) {
+      console.error('Erro ao salvar dados manuais:', error);
+    }
+  }, [ticker]);
+
+  useEffect(() => {
+    buscarDadosFII();
+  }, [buscarDadosFII]);
+
+  return { dadosFII, loading, error, refetch: buscarDadosFII, salvarDadosManuais };
 }
 // ========================================
 // HOOK PERSONALIZADO - DADOS FINANCEIROS
@@ -2886,6 +3022,341 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
   );
 });
 
+const DadosPosicaoExpandidos = React.memo(({ 
+  empresa, 
+  dadosFinanceiros, 
+  precoAtualFormatado,
+  isFII = false 
+}: { 
+  empresa: EmpresaCompleta; 
+  dadosFinanceiros?: DadosFinanceiros;
+  precoAtualFormatado: string;
+  isFII?: boolean;
+}) => {
+  const { dadosFII, loading: loadingFII, error: errorFII, refetch, salvarDadosManuais } = useDadosFII(empresa.ticker, dadosFinanceiros);
+  const [editMode, setEditMode] = useState(false);
+  const [tempData, setTempData] = useState<Partial<DadosFII>>({});
+
+  // Inicializar dados temporários quando entrar no modo edição
+  useEffect(() => {
+    if (editMode) {
+      setTempData({
+        dyCagr3Anos: dadosFII?.dyCagr3Anos,
+        numeroCotistas: dadosFII?.numeroCotistas
+      });
+    }
+  }, [editMode, dadosFII]);
+
+  const handleSave = () => {
+    salvarDadosManuais(tempData);
+    setEditMode(false);
+  };
+
+  if (isFII) {
+    return (
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Card Principal - Dados da Posição */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                📊 Dados da Posição
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.dataEntrada}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.precoIniciou}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: dadosFinanceiros?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: dadosFinanceiros?.precoAtual ? '#22c55e' : 'inherit' }}>
+                    {precoAtualFormatado}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">% da Carteira</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.percentualCarteira}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">Gestora</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.gestora || 'N/A'}</Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Card FII - Dados Fundamentalistas */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ backgroundColor: '#fef7e0', position: 'relative' }}>
+            <CardContent sx={{ p: 4 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#92400e' }}>
+                  🏢 Dados Fundamentalistas
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {dadosFII?.fonte && (
+                    <Chip 
+                      label={dadosFII.fonte === 'api' ? 'API' : dadosFII.fonte === 'misto' ? 'API+Manual' : 'Manual'}
+                      size="small"
+                      color={dadosFII.fonte === 'api' ? 'success' : dadosFII.fonte === 'misto' ? 'warning' : 'default'}
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  )}
+                  <IconButton 
+                    size="small" 
+                    onClick={refetch} 
+                    disabled={loadingFII}
+                    title="Atualizar dados da API"
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </Stack>
+              </Stack>
+              
+              {loadingFII ? (
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                  <CircularProgress size={24} />
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                    Carregando dados...
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#fefce8', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Val. Patrimonial p/Cota</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dadosFII?.valorPatrimonial ? formatarValor(dadosFII.valorPatrimonial) : 'N/A'}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#fefce8', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">P/VP</Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600,
+                      color: dadosFII?.pvp ? (dadosFII.pvp < 1 ? '#22c55e' : dadosFII.pvp > 1.2 ? '#ef4444' : '#f59e0b') : 'inherit'
+                    }}>
+                      {dadosFII?.pvp ? dadosFII.pvp.toFixed(2) : 'N/A'}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#fefce8', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Patrimônio Líquido</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dadosFII?.patrimonio ? formatarValor(dadosFII.patrimonio, 'millions') : 'N/A'}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#fefce8', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Valor de Mercado</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dadosFII?.valorMercado ? formatarValor(dadosFII.valorMercado, 'millions') : 'N/A'}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#fefce8', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">Valor em Caixa</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {dadosFII?.valorCaixa ? formatarValor(dadosFII.valorCaixa, 'millions') : 'N/A'}
+                    </Typography>
+                  </Box>
+                </Stack>
+              )}
+              
+              {errorFII && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  <Typography variant="caption">
+                    ⚠️ API indisponível. Usando dados manuais.
+                  </Typography>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Card Adicional - Dados Operacionais e Edição */}
+        <Grid item xs={12}>
+          <Card sx={{ backgroundColor: '#f0f9ff' }}>
+            <CardContent sx={{ p: 4 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e40af' }}>
+                  📈 Dados Operacionais
+                </Typography>
+                <Button
+                  variant={editMode ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => editMode ? handleSave() : setEditMode(true)}
+                  color={editMode ? "success" : "primary"}
+                  startIcon={editMode ? <CheckIcon /> : undefined}
+                >
+                  {editMode ? 'Salvar' : 'Editar'}
+                </Button>
+              </Stack>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={6} md={2.4}>
+                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'white', borderRadius: 1, border: '1px solid #e2e8f0' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e40af' }}>
+                      {dadosFII?.numeroCotas ? (dadosFII.numeroCotas / 1000000).toFixed(1) + 'M' : 'N/A'}
+                    </Typography>
+                    <Typography variant="caption">Nº de Cotas</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={2.4}>
+                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'white', borderRadius: 1, border: '1px solid #e2e8f0' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e40af' }}>
+                      {dadosFII?.ultimoRendimento ? formatarValor(dadosFII.ultimoRendimento).replace('R$ ', '') : 'N/A'}
+                    </Typography>
+                    <Typography variant="caption">Último Rendimento</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={2.4}>
+                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'white', borderRadius: 1, border: '1px solid #e2e8f0' }}>
+                    {editMode ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={tempData.dyCagr3Anos || ''}
+                        onChange={(e) => setTempData(prev => ({ ...prev, dyCagr3Anos: parseFloat(e.target.value) || undefined }))}
+                        inputProps={{ step: 0.1, min: 0, max: 100 }}
+                        sx={{ width: '80px' }}
+                      />
+                    ) : (
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e40af' }}>
+                        {dadosFII?.dyCagr3Anos ? `${dadosFII.dyCagr3Anos.toFixed(1)}%` : 'N/A'}
+                      </Typography>
+                    )}
+                    <Typography variant="caption">DY CAGR (3a)</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={2.4}>
+                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'white', borderRadius: 1, border: '1px solid #e2e8f0' }}>
+                    {editMode ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={tempData.numeroCotistas || ''}
+                        onChange={(e) => setTempData(prev => ({ ...prev, numeroCotistas: parseInt(e.target.value) || undefined }))}
+                        inputProps={{ step: 1, min: 0 }}
+                        sx={{ width: '100px' }}
+                      />
+                    ) : (
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e40af' }}>
+                        {dadosFII?.numeroCotistas ? dadosFII.numeroCotistas.toLocaleString('pt-BR') : 'N/A'}
+                      </Typography>
+                    )}
+                    <Typography variant="caption">Nº de Cotistas</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={2.4}>
+                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'white', borderRadius: 1, border: '1px solid #e2e8f0' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e40af' }}>
+                      {dadosFII?.dataUltimoRendimento ? 
+                        new Date(dadosFII.dataUltimoRendimento).toLocaleDateString('pt-BR').replace(/\/\d{4}/, '') : 'N/A'}
+                    </Typography>
+                    <Typography variant="caption">Último Pagto</Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+              
+              {editMode && (
+                <Box sx={{ mt: 2, p: 2, backgroundColor: '#fef3c7', borderRadius: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    ✏️ Editando dados manuais. DY CAGR e número de cotistas não estão disponíveis via API.
+                  </Typography>
+                </Box>
+              )}
+              
+              <Alert severity="info" sx={{ mt: 3 }}>
+                <Typography variant="body2">
+                  <strong>💡 Sobre os dados:</strong><br/>
+                  • 🟢 <strong>Dados da API:</strong> Val. patrimonial, P/VP, patrimônio, valor de mercado, caixa, cotas<br/>
+                  • 🟡 <strong>Dados manuais:</strong> DY CAGR (3 anos) e número de cotistas<br/>
+                  • 🔄 <strong>Atualização:</strong> {dadosFII?.ultimaAtualizacao || 'Não disponível'}
+                </Typography>
+              </Alert>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    );
+  }
+
+  // Versão original para ações (mantida sem alterações)
+  return (
+    <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+              📊 Dados da Posição
+            </Typography>
+            <Stack spacing={2}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.dataEntrada}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.precoIniciou}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: dadosFinanceiros?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: dadosFinanceiros?.precoAtual ? '#22c55e' : 'inherit' }}>
+                  {precoAtualFormatado}
+                </Typography>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Análise de Viés - versão original para ações */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+              🎯 Análise de Viés
+            </Typography>
+            <Stack spacing={2}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">Preço Teto</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.precoTeto}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">Viés Atual</Typography>
+                <Chip 
+                  label={empresa.viesAtual}
+                  size="small"
+                  color={
+                    empresa.viesAtual === 'Compra Forte' ? 'success' :
+                    empresa.viesAtual === 'Compra' ? 'info' :
+                    empresa.viesAtual === 'Neutro' ? 'warning' :
+                    empresa.viesAtual === 'Venda' ? 'error' : 'default'
+                  }
+                  sx={{ fontWeight: 600 }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">% da Carteira</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresa.percentualCarteira}</Typography>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
+});
+
 // ========================================
 // COMPONENTE PRINCIPAL - DETALHES DA EMPRESA
 // ========================================
@@ -3220,68 +3691,14 @@ export default function EmpresaDetalhes() {
       </Grid>
 
       {/* Dados da Posição */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                📊 Dados da Posição
-              </Typography>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Data de Entrada</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.dataEntrada}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Preço Inicial</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoIniciou}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: dados?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Preço Atual</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: dados?.precoAtual ? '#22c55e' : 'inherit' }}>
-                    {precoAtualFormatado}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* Dados da Posição Expandidos */}
+      <DadosPosicaoExpandidos 
+        empresa={empresaCompleta} 
+        dadosFinanceiros={dados}
+        precoAtualFormatado={precoAtualFormatado}
+        isFII={isFII}
+      />
 
-        {/* Análise de Viés */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                🎯 Análise de Viés
-              </Typography>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Preço Teto</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.precoTeto}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Viés Atual</Typography>
-                  <Chip 
-                    label={empresaCompleta.viesAtual}
-                    size="small"
-                    color={
-                      empresaCompleta.viesAtual === 'Compra Forte' ? 'success' :
-                      empresaCompleta.viesAtual === 'Compra' ? 'info' :
-                      empresaCompleta.viesAtual === 'Neutro' ? 'warning' :
-                      empresaCompleta.viesAtual === 'Venda' ? 'error' : 'default'
-                    }
-                    sx={{ fontWeight: 600 }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, backgroundColor: '#f8fafc', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.secondary">% da Carteira</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{empresaCompleta.percentualCarteira}</Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
     </Box>
   );
 }
