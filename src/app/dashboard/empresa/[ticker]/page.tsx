@@ -112,6 +112,8 @@ interface Relatorio {
   nomeArquivoPdf?: string;
   tamanhoArquivo?: number;
   dataUploadPdf?: string;
+  solicitarReupload?: boolean;  // ← ADICIONAR ESTA LINHA
+  hashArquivo?: string;         // ← ADICIONAR ESTA LINHA
 }
 
 // ========================================
@@ -2032,7 +2034,7 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
     });
     
   } else {
-    // EVENTOS PARA AÇÕES (código original)
+    // EVENTOS PARA AÇÕES
     const mesAtual = hoje.getMonth();
     const anoAtual = hoje.getFullYear();
     
@@ -2066,40 +2068,6 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
       cor: '#3b82f6'
     });
 
-    const proximoDividendo = new Date(proximoResultado);
-    proximoDividendo.setMonth(proximoDividendo.getMonth() + 2);
-    
-    eventos.push({
-      id: 'dividendo-estimado',
-      tipo: 'dividendo',
-      titulo: 'Possível Data Ex-Dividendos',
-      data: proximoDividendo,
-      descricao: 'Estimativa baseada em padrões típicos do mercado brasileiro',
-      estimado: true,
-      icone: '💰',
-      cor: '#22c55e'
-    });
-
-    const dataAssembleia = new Date(anoAtual, 3, 30);
-    if (dataAssembleia <= hoje) {
-      dataAssembleia.setFullYear(anoAtual + 1);
-    }
-    
-    eventos.push({
-      id: 'assembleia-geral',
-      tipo: 'assembleia',
-      titulo: 'Assembleia Geral Ordinária',
-      data: dataAssembleia,
-      descricao: 'Data típica para aprovação das contas e eleição do conselho',
-      estimado: true,
-      icone: '🏛️',
-      cor: '#8b5cf6'
-    });
-  }
-
-  return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
-}, []);
-
     // Estimativa de dividendos (geralmente 2-3 meses após resultados)
     const proximoDividendo = new Date(proximoResultado);
     proximoDividendo.setMonth(proximoDividendo.getMonth() + 2);
@@ -2131,10 +2099,11 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
       icone: '🏛️',
       cor: '#8b5cf6'
     });
+  }
 
-    return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
-  }, []);
-
+  // ÚNICO return no final da função
+  return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
+}, []);
   // Processar dados reais da API para criar agenda
   const processarEventos = useCallback((dividendos: any[], ticker: string) => {
     const eventos: any[] = [];
