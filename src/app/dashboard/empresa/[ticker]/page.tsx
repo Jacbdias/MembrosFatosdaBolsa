@@ -944,14 +944,14 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
 // ========================================
 // HOOK PARA CALCULAR DIVIDEND YIELD - NOVO!
 // ========================================
-function useDividendYield(ticker, dataEntrada, precoAtual, precoIniciou) {
+function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string) {
   const [dyData, setDyData] = useState({
     dy12Meses: 0,
     dyDesdeEntrada: 0
   });
 
   // Função para converter preço string em número
-  const parsePreco = useCallback((precoStr) => {
+  const parsePreco = useCallback((precoStr: string): number => {
     try {
       return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
     } catch {
@@ -962,7 +962,6 @@ function useDividendYield(ticker, dataEntrada, precoAtual, precoIniciou) {
   // Função para calcular DY
   const calcularDY = useCallback(() => {
     if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
-      console.log('❌ Parâmetros inválidos:', { ticker, precoAtual, precoIniciou, dataEntrada });
       setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
       return;
     }
@@ -973,55 +972,47 @@ function useDividendYield(ticker, dataEntrada, precoAtual, precoIniciou) {
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (!dadosSalvos) {
-        console.log('❌ Nenhum provento encontrado para:', ticker);
         setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
         return;
       }
 
-      const proventos = JSON.parse(dadosSalvos).map((item) => ({
+      const proventos = JSON.parse(dadosSalvos).map((item: any) => ({
         ...item,
         // ✅ CORREÇÃO: Usar múltiplas fontes para a data
         dataObj: new Date(item.dataCom || item.data || item.dataObj)
       }));
 
-      console.log('📊 Total de proventos carregados:', proventos.length);
+      // ✅ CORREÇÃO: Usar data atual real do sistema
+      const hoje = new Date();
+      hoje.setHours(23, 59, 59, 999); // Fim do dia
 
-      // ✅ CORREÇÃO: Usar data atual correta (2025-06-22)
-      const hoje = new Date('2025-06-22T23:59:59'); // Forçar data atual correta
       const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-      const data12MesesAtras = new Date('2024-06-22T00:00:00'); // 12 meses atrás
+      
+      // Calcular 12 meses atrás corretamente
+      const data12MesesAtras = new Date(hoje);
+      data12MesesAtras.setFullYear(data12MesesAtras.getFullYear() - 1);
+      data12MesesAtras.setHours(0, 0, 0, 0); // Início do dia
 
-      console.log('📅 Período de análise:');
-      console.log('• Hoje:', hoje.toLocaleDateString('pt-BR'));
-      console.log('• 12 meses atrás:', data12MesesAtras.toLocaleDateString('pt-BR'));
-      console.log('• Data entrada:', dataEntradaObj.toLocaleDateString('pt-BR'));
-
-      // Filtrar proventos dos últimos 12 meses
-      const proventos12Meses = proventos.filter((provento) => {
-        const dentroDoPeríodo = provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje;
-        
-        // Debug detalhado
-        console.log(`🔍 ${provento.dataObj.toLocaleDateString('pt-BR')} → R$ ${provento.valor} → ${dentroDoPeríodo ? '✅' : '❌'}`);
-        
-        return dentroDoPeríodo;
+      // Filtrar proventos dos últimos 12 meses com validação
+      const proventos12Meses = proventos.filter((provento: any) => {
+        // Validar se a data é válida
+        if (!provento.dataObj || isNaN(provento.dataObj.getTime())) {
+          return false;
+        }
+        return provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje;
       });
 
       // Filtrar proventos desde a entrada
-      const proventosDesdeEntrada = proventos.filter((provento) => 
-        provento.dataObj >= dataEntradaObj && provento.dataObj <= hoje
+      const proventosDesdeEntrada = proventos.filter((provento: any) => 
+        provento.dataObj && 
+        !isNaN(provento.dataObj.getTime()) &&
+        provento.dataObj >= dataEntradaObj && 
+        provento.dataObj <= hoje
       );
 
-      console.log('📈 Resultado da filtragem:');
-      console.log('• Proventos últimos 12 meses:', proventos12Meses.length);
-      console.log('• Proventos desde entrada:', proventosDesdeEntrada.length);
-
       // Calcular totais
-      const totalProventos12Meses = proventos12Meses.reduce((sum, p) => sum + p.valor, 0);
-      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum, p) => sum + p.valor, 0);
-
-      console.log('💰 Totais calculados:');
-      console.log('• Total 12 meses: R$', totalProventos12Meses.toFixed(2));
-      console.log('• Total desde entrada: R$', totalProventosDesdeEntrada.toFixed(2));
+      const totalProventos12Meses = proventos12Meses.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
+      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
 
       // Calcular DY dos últimos 12 meses
       const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
@@ -1030,19 +1021,13 @@ function useDividendYield(ticker, dataEntrada, precoAtual, precoIniciou) {
       const precoEntrada = parsePreco(precoIniciou);
       const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
 
-      console.log('📊 DY Calculados:');
-      console.log('• DY 12 meses:', dy12Meses.toFixed(2) + '%');
-      console.log('• DY desde entrada:', dyDesdeEntrada.toFixed(2) + '%');
-      console.log('• Preço atual: R$', precoAtual.toFixed(2));
-      console.log('• Preço entrada: R$', precoEntrada.toFixed(2));
-
       setDyData({
         dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
         dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
       });
 
     } catch (error) {
-      console.error('❌ Erro ao calcular DY:', error);
+      console.error('Erro ao calcular DY:', error);
       setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
     }
   }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
