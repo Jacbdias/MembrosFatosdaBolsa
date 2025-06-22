@@ -1345,7 +1345,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
     dyDesdeEntrada: 0
   });
 
-  // Função para converter preço string em número
   const parsePreco = useCallback((precoStr: string): number => {
     try {
       return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
@@ -1354,7 +1353,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
     }
   }, []);
 
-  // Função para calcular DY
   const calcularDY = useCallback(() => {
     if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
       setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
@@ -1362,41 +1360,75 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
     }
 
     try {
-      // Carregar proventos do localStorage
-      const chaveStorage = isFII ? `dividendos_fii_${ticker}` : `proventos_${ticker}`;
-      const dadosSalvos = localStorage.getItem(chaveStorage);
+      // ✅ CORREÇÃO: Buscar dados de múltiplas fontes
+      let dadosSalvos = null;
+      
+      if (isFII) {
+        // Para FIIs, tentar várias chaves possíveis
+        dadosSalvos = localStorage.getItem(`dividendos_fii_${ticker}`) || 
+                     localStorage.getItem(`proventos_${ticker}`) ||
+                     localStorage.getItem(`rendimentos_${ticker}`);
+      } else {
+        // Para ações, usar a chave padrão
+        dadosSalvos = localStorage.getItem(`proventos_${ticker}`);
+      }
+
+      // ✅ NOVO: Tentar buscar do sistema central como fallback
+      if (!dadosSalvos) {
+        const proventosCentral = localStorage.getItem('proventos_central_master');
+        if (proventosCentral) {
+          try {
+            const todosDados = JSON.parse(proventosCentral);
+            const dadosTicker = todosDados.filter((item: any) => item.ticker === ticker);
+            if (dadosTicker.length > 0) {
+              dadosSalvos = JSON.stringify(dadosTicker);
+            }
+          } catch (err) {
+            console.error('Erro ao buscar do sistema central:', err);
+          }
+        }
+      }
       
       if (!dadosSalvos) {
+        console.log(`❌ Nenhum dado encontrado para ${ticker}`, {
+          isFII,
+          tentativas: [
+            `dividendos_fii_${ticker}`,
+            `proventos_${ticker}`,
+            `rendimentos_${ticker}`,
+            'proventos_central_master'
+          ]
+        });
         setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
         return;
       }
 
       const proventos = JSON.parse(dadosSalvos).map((item: any) => ({
         ...item,
-        // ✅ CORREÇÃO: Usar múltiplas fontes para a data
-        dataObj: new Date(item.dataCom || item.data || item.dataObj)
+        dataObj: new Date(item.dataCom || item.data || item.dataObj || item.dataFormatada)
       }));
 
-      // ✅ CORREÇÃO: Usar data atual real do sistema
+      console.log(`✅ Dados encontrados para ${ticker}:`, {
+        total: proventos.length,
+        isFII,
+        amostra: proventos.slice(0, 2)
+      });
+
       const hoje = new Date();
       hoje.setHours(23, 59, 59, 999);
 
       const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
-
       const data12MesesAtras = new Date(hoje);
       data12MesesAtras.setFullYear(data12MesesAtras.getFullYear() - 1);
       data12MesesAtras.setHours(0, 0, 0, 0);
 
-      // Filtrar proventos dos últimos 12 meses com validação
       const proventos12Meses = proventos.filter((provento: any) => {
-        // Validar se a data é válida
         if (!provento.dataObj || isNaN(provento.dataObj.getTime())) {
           return false;
         }
         return provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje;
       });
 
-      // Filtrar proventos desde a entrada
       const proventosDesdeEntrada = proventos.filter((provento: any) => 
         provento.dataObj && 
         !isNaN(provento.dataObj.getTime()) &&
@@ -1404,16 +1436,19 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
         provento.dataObj <= hoje
       );
 
-      // Calcular totais
       const totalProventos12Meses = proventos12Meses.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
       const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
 
-      // Calcular DY dos últimos 12 meses
       const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
-
-      // Calcular DY desde a entrada
       const precoEntrada = parsePreco(precoIniciou);
       const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
+
+      console.log(`📊 DY calculado para ${ticker}:`, {
+        dy12Meses: dy12Meses.toFixed(2) + '%',
+        dyDesdeEntrada: dyDesdeEntrada.toFixed(2) + '%',
+        proventos12Meses: proventos12Meses.length,
+        proventosDesdeEntrada: proventosDesdeEntrada.length
+      });
 
       setDyData({
         dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
@@ -1432,7 +1467,6 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
 
   return dyData;
 }
-
 // ========================================
 // HOOK PERSONALIZADO - DADOS FINANCEIROS
 // ========================================
@@ -1625,49 +1659,88 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = isFII ? `dividendos_fii_${ticker}` : `proventos_${ticker}`;
-      const dadosSalvos = localStorage.getItem(chaveStorage);
+      let dadosSalvos = null;
+      
+      // ✅ CORREÇÃO: Buscar dados de múltiplas fontes possíveis
+      if (isFII) {
+        // Para FIIs, tentar várias chaves possíveis
+        dadosSalvos = localStorage.getItem(`dividendos_fii_${ticker}`) || 
+                     localStorage.getItem(`proventos_${ticker}`) ||
+                     localStorage.getItem(`rendimentos_${ticker}`);
+        
+        console.log(`🔍 Buscando dados FII para ${ticker}:`, {
+          dividendos_fii: !!localStorage.getItem(`dividendos_fii_${ticker}`),
+          proventos: !!localStorage.getItem(`proventos_${ticker}`),
+          rendimentos: !!localStorage.getItem(`rendimentos_${ticker}`)
+        });
+      } else {
+        // Para ações, usar a chave padrão
+        dadosSalvos = localStorage.getItem(`proventos_${ticker}`);
+      }
+
+      // ✅ NOVO: Buscar do sistema central como fallback
+      if (!dadosSalvos) {
+        const proventosCentral = localStorage.getItem('proventos_central_master');
+        if (proventosCentral) {
+          try {
+            const todosDados = JSON.parse(proventosCentral);
+            const dadosTicker = todosDados.filter((item: any) => item.ticker === ticker);
+            if (dadosTicker.length > 0) {
+              dadosSalvos = JSON.stringify(dadosTicker);
+              console.log(`✅ Dados encontrados no sistema central para ${ticker}:`, dadosTicker.length);
+            }
+          } catch (err) {
+            console.error('Erro ao buscar do sistema central:', err);
+          }
+        }
+      }
       
       if (dadosSalvos) {
         try {
           const proventosSalvos = JSON.parse(dadosSalvos);
           const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
             ...item,
-            dataObj: new Date(item.dataCom || item.data || item.dataObj)
+            dataObj: new Date(item.dataCom || item.data || item.dataObj || item.dataFormatada)
           }));
-          proventosLimitados.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-          setProventos(proventosLimitados);
+          
+          // Filtrar dados inválidos
+          const proventosValidos = proventosLimitados.filter((item: any) => 
+            item.dataObj && !isNaN(item.dataObj.getTime()) && item.valor && item.valor > 0
+          );
+          
+          proventosValidos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+          setProventos(proventosValidos);
+          
+          console.log(`✅ Proventos carregados para ${ticker}:`, {
+            total: proventosValidos.length,
+            isFII,
+            primeiros2: proventosValidos.slice(0, 2)
+          });
+          
         } catch (err) {
           console.error('Erro ao carregar proventos salvos:', err);
-          localStorage.removeItem(chaveStorage);
+          setProventos([]);
         }
+      } else {
+        console.log(`❌ Nenhum dado encontrado para ${ticker}. Chaves verificadas:`, {
+          localStorage_keys: Object.keys(localStorage).filter(key => 
+            key.includes(ticker) || key.includes('provento') || key.includes('dividendo')
+          )
+        });
+        setProventos([]);
       }
     }
   }, [ticker, isFII]);
 
-  const { totalProventos, mediaProvento, ultimoProvento, totalPorAno } = useMemo(() => {
+  const { totalProventos, mediaProvento, ultimoProvento } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + item.valor, 0);
     const media = proventos.length > 0 ? total / proventos.length : 0;
     const ultimo = proventos.length > 0 ? proventos[0] : null;
 
-    const proventosPorAno = proventos.reduce((acc, item) => {
-      const ano = item.dataObj.getFullYear().toString();
-      if (!acc[ano]) acc[ano] = [];
-      acc[ano].push(item);
-      return acc;
-    }, {} as Record<string, any[]>);
-
-    const totalAno = Object.entries(proventosPorAno).map(([ano, items]) => ({
-      ano,
-      total: items.reduce((sum, item) => sum + item.valor, 0),
-      quantidade: items.length
-    })).sort((a, b) => parseInt(b.ano) - parseInt(a.ano));
-
     return {
       totalProventos: total,
       mediaProvento: media,
-      ultimoProvento: ultimo,
-      totalPorAno: totalAno
+      ultimoProvento: ultimo
     };
   }, [proventos]);
 
@@ -1678,15 +1751,39 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {isFII ? '💰 Histórico de Rendimentos (FII)' : '💰 Histórico de Proventos'}
           </Typography>
+          {/* ✅ NOVO: Botão de debug para verificar dados */}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              const keys = Object.keys(localStorage).filter(key => 
+                key.includes(ticker) || key.includes('provento') || key.includes('dividendo') || key.includes('central')
+              );
+              console.log('🔍 Debug LocalStorage:', {
+                ticker,
+                isFII,
+                keysEncontradas: keys,
+                dadosProventos: proventos.length,
+                exemploProvento: proventos[0]
+              });
+              alert(`Debug: ${keys.length} chaves encontradas. Ver console (F12) para detalhes.`);
+            }}
+            sx={{ fontSize: '0.7rem' }}
+          >
+            🔍 Debug
+          </Button>
         </Stack>
 
         {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
-              {isFII ? `Nenhum provento carregado para ${ticker}` : `Nenhum provento carregado para ${ticker}`}
+              {isFII ? `❌ Nenhum rendimento carregado para ${ticker}` : `❌ Nenhum provento carregado para ${ticker}`}
             </Typography>
             <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
               📅 Data de entrada: {dataEntrada}
+            </Typography>
+            <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'warning.main' }}>
+              ⚠️ Use o botão "Debug" acima para verificar onde estão os dados
             </Typography>
           </Box>
         ) : (
@@ -1719,7 +1816,9 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
               <Grid item xs={3}>
                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#fdf4ff', borderRadius: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#a855f7' }}>
-                    {ultimoProvento ? ultimoProvento.dataFormatada.replace(/\/\d{4}/, '') : 'N/A'}
+                    {ultimoProvento ? 
+                      (ultimoProvento.dataFormatada?.replace(/\/\d{4}/, '') || 
+                       ultimoProvento.dataObj.toLocaleDateString('pt-BR').replace(/\/\d{4}/, '')) : 'N/A'}
                   </Typography>
                   <Typography variant="caption">Último</Typography>
                 </Box>
@@ -1768,22 +1867,28 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                 </TableHead>
                 <TableBody>
                  {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
-                    <TableRow key={`${provento.data}-${index}`}>
+                    <TableRow key={`${provento.data || provento.dataCom}-${index}`}>
                       <TableCell sx={{ fontWeight: 500 }}>
                         {ticker}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#22c55e' }}>
-                        {provento.valorFormatado}
+                        {provento.valorFormatado || formatarValor(provento.valor)}
                       </TableCell>
                       <TableCell align="center" sx={{ fontWeight: 500 }}>
-                        {provento.dataComFormatada || provento.dataFormatada}
+                        {provento.dataComFormatada || 
+                         provento.dataFormatada || 
+                         provento.dataObj?.toLocaleDateString('pt-BR') || 
+                         'N/A'}
                       </TableCell>
                       <TableCell align="center" sx={{ fontWeight: 500 }}>
-                        {provento.dataPagamentoFormatada || provento.dataFormatada}
+                        {provento.dataPagamentoFormatada || 
+                         provento.dataFormatada || 
+                         provento.dataObj?.toLocaleDateString('pt-BR') || 
+                         'N/A'}
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={provento.tipo}
+                          label={provento.tipo || (isFII ? 'Rendimento' : 'Dividendo')}
                           size="small"
                           variant="outlined"
                           sx={{ fontSize: '0.7rem' }}
@@ -3085,7 +3190,17 @@ export default function EmpresaDetalhes() {
           />
         </Grid>
       </Grid>
-
+{/* ✅ NOVO: Alert para problemas com dados */}
+{(dy12Meses === 0 && dyDesdeEntrada === 0) && (
+  <Alert severity="warning" sx={{ mb: 3 }}>
+    <Typography variant="body2">
+      <strong>⚠️ Dados de proventos não encontrados para {ticker}</strong><br/>
+      • Para FIIs: Verifique se os rendimentos foram importados corretamente<br/>
+      • Para ações: Verifique se os dividendos estão na base de dados<br/>
+      • Use o botão "Debug" no histórico para diagnosticar o problema
+    </Typography>
+  </Alert>
+)}
       {/* Histórico de Dividendos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
