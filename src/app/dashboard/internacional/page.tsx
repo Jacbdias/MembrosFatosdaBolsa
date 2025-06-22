@@ -59,36 +59,6 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
         },
       }}
     >
-      {/* Badge PLANILHA no topo */}
-      <Box
-        className="planilha-badge"
-        sx={{
-          position: 'absolute',
-          top: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: '#f5f5f5',
-          color: '#000000',
-          borderRadius: '20px',
-          px: 3,
-          py: 1,
-          zIndex: 3,
-          transition: 'all 0.3s ease',
-        }}
-      >
-        <Typography
-          variant="caption"
-          sx={{
-            fontWeight: 700,
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}
-        >
-          PLANILHA
-        </Typography>
-      </Box>
-
       {/* Badge "NOVO" se aplicável */}
       {isNew && (
         <Box
@@ -143,7 +113,7 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
           textAlign: 'center',
           position: 'relative',
           zIndex: 2,
-          pt: 8 // Espaço para o badge PLANILHA
+          pt: 4 // Reduzido de 8 para 4
         }}
       >
         {/* Ícone */}
@@ -169,15 +139,15 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
         {/* Título principal em verde */}
         <Typography
           className="main-title"
-          variant="h3"
+          variant="h4"
           sx={{
-            fontWeight: 900,
-            color: '#ffffff',
-            fontSize: '2.5rem',
-            lineHeight: 1,
+            fontWeight: 700,
+            color: '#1e293b',
+            fontSize: '1.75rem',
+            lineHeight: 1.2,
             mb: 2,
             textTransform: 'uppercase',
-            letterSpacing: '0.05em',
+            letterSpacing: '0.02em',
             transition: 'color 0.3s ease'
           }}
         >
@@ -188,8 +158,8 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
         <Typography
           variant="body2"
           sx={{
-            color: 'rgba(255, 255, 255, 0.7)',
-            fontSize: '0.9rem',
+            color: '#64748b',
+            fontSize: '0.85rem',
             lineHeight: 1.4,
             fontWeight: 400,
             maxWidth: '200px'
@@ -263,7 +233,7 @@ export default function Page(): React.JSX.Element {
     <Box 
       sx={{ 
         minHeight: '100vh',
-        backgroundColor: '#0a0a0a',
+        backgroundColor: '#f8fafc',
         p: 3 
       }}
     >
@@ -273,11 +243,11 @@ export default function Page(): React.JSX.Element {
           startIcon={<ArrowLeftIcon />}
           onClick={() => window.location.href = '/dashboard'}
           sx={{ 
-            color: '#ffffff',
+            color: '#64748b',
             fontWeight: 600,
             alignSelf: 'flex-start',
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              backgroundColor: '#f1f5f9'
             }
           }}
         >
@@ -288,7 +258,7 @@ export default function Page(): React.JSX.Element {
             variant="h3" 
             sx={{ 
               fontWeight: 800,
-              color: '#ffffff',
+              color: '#1e293b',
               fontSize: { xs: '2rem', sm: '2.5rem' }
             }}
           >
@@ -297,7 +267,7 @@ export default function Page(): React.JSX.Element {
           <Typography 
             variant="body1" 
             sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: '#64748b',
               fontSize: '1rem'
             }}
           >
