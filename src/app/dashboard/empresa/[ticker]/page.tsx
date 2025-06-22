@@ -1683,7 +1683,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
         {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
-              {isFII ? `Nenhum dividendo carregado para ${ticker}` : `Nenhum provento carregado para ${ticker}`}
+              {isFII ? `Nenhum provento carregado para ${ticker}` : `Nenhum provento carregado para ${ticker}`}
             </Typography>
             <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
               📅 Data de entrada: {dataEntrada}
