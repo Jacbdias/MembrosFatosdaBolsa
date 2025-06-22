@@ -14,7 +14,7 @@ import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
 import { Star as StarIcon } from '@phosphor-icons/react/dist/ssr/Star';
 
-// 🎨 CARD DE NAVEGAÇÃO CLEAN
+// 🎨 CARD DE NAVEGAÇÃO MODERNO
 interface NavigationCardProps {
   title: string;
   description: string;
@@ -33,54 +33,81 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
       onClick={handleNavigation}
       sx={{
         position: 'relative',
-        height: '220px',
-        borderRadius: 4,
+        height: '280px',
+        borderRadius: 3,
         overflow: 'hidden',
         cursor: 'pointer',
-        background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        background: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+        border: '1px solid #333333',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          transform: 'translateY(-8px) scale(1.02)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          '& .arrow-icon': {
-            transform: 'translateX(8px) scale(1.1)',
-            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+          transform: 'translateY(-4px)',
+          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
+          border: '1px solid #444444',
+          '& .main-title': {
+            color: '#00ff41',
           },
           '& .icon-container': {
-            transform: 'scale(1.15) rotate(10deg)',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)'
+            backgroundColor: 'rgba(0, 255, 65, 0.1)',
+            border: '1px solid rgba(0, 255, 65, 0.3)',
           },
-          '& .glow-effect': {
-            opacity: 1,
-            transform: 'scale(1.2)'
+          '& .planilha-badge': {
+            backgroundColor: '#ffffff',
+            color: '#000000',
           }
         },
       }}
     >
-      {/* Badge "NOVO" melhorado */}
+      {/* Badge PLANILHA no topo */}
+      <Box
+        className="planilha-badge"
+        sx={{
+          position: 'absolute',
+          top: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#f5f5f5',
+          color: '#000000',
+          borderRadius: '20px',
+          px: 3,
+          py: 1,
+          zIndex: 3,
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}
+        >
+          PLANILHA
+        </Typography>
+      </Box>
+
+      {/* Badge "NOVO" se aplicável */}
       {isNew && (
         <Box
           sx={{
             position: 'absolute',
             top: 16,
             right: 16,
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: 'linear-gradient(135deg, #00ff41 0%, #00cc33 100%)',
             borderRadius: '20px',
             px: 2,
             py: 0.75,
             zIndex: 3,
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
+            boxShadow: '0 4px 12px rgba(0, 255, 65, 0.4)',
           }}
         >
           <Typography
             variant="caption"
             sx={{
-              color: 'white',
+              color: '#000000',
               fontWeight: 700,
               fontSize: '0.75rem',
               textTransform: 'uppercase',
@@ -92,23 +119,7 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
         </Box>
       )}
 
-      {/* Glow effect melhorado */}
-      <Box
-        className="glow-effect"
-        sx={{
-          position: 'absolute',
-          top: -50,
-          right: -50,
-          width: '150px',
-          height: '150px',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-          borderRadius: '50%',
-          opacity: 0.6,
-          transition: 'all 0.4s ease'
-        }}
-      />
-      
-      {/* Linha decorativa superior */}
+      {/* Linha verde no topo */}
       <Box
         sx={{
           position: 'absolute',
@@ -116,7 +127,7 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
           left: 0,
           width: '100%',
           height: '3px',
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)'
+          background: 'linear-gradient(90deg, transparent 0%, #00ff41 50%, transparent 100%)'
         }}
       />
       
@@ -127,80 +138,93 @@ function NavigationCard({ title, description, icon, href, isNew = false }: Navig
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
           position: 'relative',
-          zIndex: 2
+          zIndex: 2,
+          pt: 8 // Espaço para o badge PLANILHA
         }}
       >
-        {/* Header */}
-        <Stack spacing={3}>
-          <Box
-            className="icon-container"
-            sx={{
-              width: 56,
-              height: 56,
-              borderRadius: 3,
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              transition: 'all 0.4s ease',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            {React.cloneElement(icon as React.ReactElement, { size: 28, weight: 'bold' })}
-          </Box>
-          
-          <Stack spacing={1.5}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 800,
-                color: 'white',
-                fontSize: '1.5rem',
-                lineHeight: 1.2
-              }}
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'rgba(255, 255, 255, 0.8)',
-                fontSize: '0.95rem',
-                lineHeight: 1.5,
-                fontWeight: 400
-              }}
-            >
-              {description}
-            </Typography>
-          </Stack>
-        </Stack>
-
-        {/* Arrow melhorada */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-          <Box
-            className="arrow-icon"
-            sx={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              transition: 'all 0.4s ease',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <ArrowRightIcon size={20} weight="bold" />
-          </Box>
+        {/* Ícone */}
+        <Box
+          className="icon-container"
+          sx={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            transition: 'all 0.3s ease',
+            mb: 3
+          }}
+        >
+          {React.cloneElement(icon as React.ReactElement, { size: 36, weight: 'bold' })}
         </Box>
+        
+        {/* Título principal em verde */}
+        <Typography
+          className="main-title"
+          variant="h3"
+          sx={{
+            fontWeight: 900,
+            color: '#ffffff',
+            fontSize: '2.5rem',
+            lineHeight: 1,
+            mb: 2,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            transition: 'color 0.3s ease'
+          }}
+        >
+          {title}
+        </Typography>
+        
+        {/* Descrição */}
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '0.9rem',
+            lineHeight: 1.4,
+            fontWeight: 400,
+            maxWidth: '200px'
+          }}
+        >
+          {description}
+        </Typography>
       </Box>
+
+      {/* Elementos decorativos de fundo */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: -20,
+          right: -20,
+          width: '80px',
+          height: '80px',
+          background: 'radial-gradient(circle, rgba(0,255,65,0.1) 0%, transparent 70%)',
+          borderRadius: '50%',
+          opacity: 0.5
+        }}
+      />
+      
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -30,
+          left: -30,
+          width: '100px',
+          height: '100px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 70%)',
+          borderRadius: '50%',
+          opacity: 0.8
+        }}
+      />
     </Card>
   );
 }
@@ -239,7 +263,7 @@ export default function Page(): React.JSX.Element {
     <Box 
       sx={{ 
         minHeight: '100vh',
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#0a0a0a',
         p: 3 
       }}
     >
@@ -249,11 +273,11 @@ export default function Page(): React.JSX.Element {
           startIcon={<ArrowLeftIcon />}
           onClick={() => window.location.href = '/dashboard'}
           sx={{ 
-            color: '#64748b',
+            color: '#ffffff',
             fontWeight: 600,
             alignSelf: 'flex-start',
             '&:hover': {
-              backgroundColor: '#f1f5f9'
+              backgroundColor: 'rgba(255, 255, 255, 0.1)'
             }
           }}
         >
@@ -264,7 +288,7 @@ export default function Page(): React.JSX.Element {
             variant="h3" 
             sx={{ 
               fontWeight: 800,
-              color: '#1e293b',
+              color: '#ffffff',
               fontSize: { xs: '2rem', sm: '2.5rem' }
             }}
           >
@@ -273,7 +297,7 @@ export default function Page(): React.JSX.Element {
           <Typography 
             variant="body1" 
             sx={{ 
-              color: '#64748b',
+              color: 'rgba(255, 255, 255, 0.7)',
               fontSize: '1rem'
             }}
           >
@@ -287,8 +311,8 @@ export default function Page(): React.JSX.Element {
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' },
-          gap: 3,
-          maxWidth: '1200px',
+          gap: 4,
+          maxWidth: '1400px',
           mx: 'auto'
         }}
       >
