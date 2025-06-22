@@ -944,14 +944,14 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
 // ========================================
 // HOOK PARA CALCULAR DIVIDEND YIELD - NOVO!
 // ========================================
-function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string) {
+function useDividendYield(ticker, dataEntrada, precoAtual, precoIniciou) {
   const [dyData, setDyData] = useState({
     dy12Meses: 0,
     dyDesdeEntrada: 0
   });
 
   // Função para converter preço string em número
-  const parsePreco = useCallback((precoStr: string): number => {
+  const parsePreco = useCallback((precoStr) => {
     try {
       return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
     } catch {
@@ -962,9 +962,205 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
   // Função para calcular DY
   const calcularDY = useCallback(() => {
     if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
+      console.log('❌ Parâmetros inválidos:', { ticker, precoAtual, precoIniciou, dataEntrada });
       setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
       return;
     }
+
+    try {
+      // Carregar proventos do localStorage
+      const chaveStorage = `proventos_${ticker}`;
+      const dadosSalvos = localStorage.getItem(chaveStorage);
+      
+      if (!dadosSalvos) {
+        console.log('❌ Nenhum provento encontrado para:', ticker);
+        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+        return;
+      }
+
+      const proventos = JSON.parse(dadosSalvos).map((item) => ({
+        ...item,
+        // ✅ CORREÇÃO: Usar múltiplas fontes para a data
+        dataObj: new Date(item.dataCom || item.data || item.dataObj)
+      }));
+
+      console.log('📊 Total de proventos carregados:', proventos.length);
+
+      // ✅ CORREÇÃO: Usar data atual correta (2025-06-22)
+      const hoje = new Date('2025-06-22T23:59:59'); // Forçar data atual correta
+      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
+      const data12MesesAtras = new Date('2024-06-22T00:00:00'); // 12 meses atrás
+
+      console.log('📅 Período de análise:');
+      console.log('• Hoje:', hoje.toLocaleDateString('pt-BR'));
+      console.log('• 12 meses atrás:', data12MesesAtras.toLocaleDateString('pt-BR'));
+      console.log('• Data entrada:', dataEntradaObj.toLocaleDateString('pt-BR'));
+
+      // Filtrar proventos dos últimos 12 meses
+      const proventos12Meses = proventos.filter((provento) => {
+        const dentroDoPeríodo = provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje;
+        
+        // Debug detalhado
+        console.log(`🔍 ${provento.dataObj.toLocaleDateString('pt-BR')} → R$ ${provento.valor} → ${dentroDoPeríodo ? '✅' : '❌'}`);
+        
+        return dentroDoPeríodo;
+      });
+
+      // Filtrar proventos desde a entrada
+      const proventosDesdeEntrada = proventos.filter((provento) => 
+        provento.dataObj >= dataEntradaObj && provento.dataObj <= hoje
+      );
+
+      console.log('📈 Resultado da filtragem:');
+      console.log('• Proventos últimos 12 meses:', proventos12Meses.length);
+      console.log('• Proventos desde entrada:', proventosDesdeEntrada.length);
+
+      // Calcular totais
+      const totalProventos12Meses = proventos12Meses.reduce((sum, p) => sum + p.valor, 0);
+      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum, p) => sum + p.valor, 0);
+
+      console.log('💰 Totais calculados:');
+      console.log('• Total 12 meses: R$', totalProventos12Meses.toFixed(2));
+      console.log('• Total desde entrada: R$', totalProventosDesdeEntrada.toFixed(2));
+
+      // Calcular DY dos últimos 12 meses
+      const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
+
+      // Calcular DY desde a entrada
+      const precoEntrada = parsePreco(precoIniciou);
+      const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
+
+      console.log('📊 DY Calculados:');
+      console.log('• DY 12 meses:', dy12Meses.toFixed(2) + '%');
+      console.log('• DY desde entrada:', dyDesdeEntrada.toFixed(2) + '%');
+      console.log('• Preço atual: R$', precoAtual.toFixed(2));
+      console.log('• Preço entrada: R$', precoEntrada.toFixed(2));
+
+      setDyData({
+        dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
+        dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao calcular DY:', error);
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+    }
+  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
+
+  useEffect(() => {
+    calcularDY();
+  }, [calcularDY]);
+
+  return dyData;
+}
+
+// ========================================
+// VERSÃO ALTERNATIVA COM DATA DINÂMICA
+// ========================================
+function useDividendYieldDinamico(ticker, dataEntrada, precoAtual, precoIniciou) {
+  const [dyData, setDyData] = useState({
+    dy12Meses: 0,
+    dyDesdeEntrada: 0
+  });
+
+  const parsePreco = useCallback((precoStr) => {
+    try {
+      return parseFloat(precoStr.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const calcularDY = useCallback(() => {
+    if (!ticker || !precoAtual || precoAtual <= 0 || !precoIniciou || !dataEntrada) {
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+      return;
+    }
+
+    try {
+      const chaveStorage = `proventos_${ticker}`;
+      const dadosSalvos = localStorage.getItem(chaveStorage);
+      
+      if (!dadosSalvos) {
+        setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+        return;
+      }
+
+      const proventos = JSON.parse(dadosSalvos).map((item) => ({
+        ...item,
+        dataObj: new Date(item.dataCom || item.data || item.dataObj)
+      }));
+
+      // ✅ CORREÇÃO: Usar data atual real do sistema
+      const hoje = new Date();
+      hoje.setHours(23, 59, 59, 999); // Fim do dia
+
+      const dataEntradaObj = new Date(dataEntrada.split('/').reverse().join('-'));
+      
+      // Calcular 12 meses atrás corretamente
+      const data12MesesAtras = new Date(hoje);
+      data12MesesAtras.setFullYear(data12MesesAtras.getFullYear() - 1);
+      data12MesesAtras.setHours(0, 0, 0, 0); // Início do dia
+
+      // Debug das datas
+      console.log(`📅 [${ticker}] Período de análise:`);
+      console.log('• Hoje:', hoje.toLocaleDateString('pt-BR'));
+      console.log('• 12 meses atrás:', data12MesesAtras.toLocaleDateString('pt-BR'));
+      console.log('• Data entrada:', dataEntradaObj.toLocaleDateString('pt-BR'));
+
+      // Filtrar com validação rigorosa
+      const proventos12Meses = proventos.filter((provento) => {
+        // Validar se a data é válida
+        if (!provento.dataObj || isNaN(provento.dataObj.getTime())) {
+          console.warn(`⚠️ Data inválida encontrada:`, provento);
+          return false;
+        }
+
+        const dentroDoPeríodo = provento.dataObj >= data12MesesAtras && provento.dataObj <= hoje;
+        
+        if (dentroDoPeríodo) {
+          console.log(`✅ Incluído: ${provento.dataObj.toLocaleDateString('pt-BR')} → R$ ${provento.valor.toFixed(2)}`);
+        }
+        
+        return dentroDoPeríodo;
+      });
+
+      const proventosDesdeEntrada = proventos.filter((provento) => 
+        provento.dataObj && 
+        !isNaN(provento.dataObj.getTime()) &&
+        provento.dataObj >= dataEntradaObj && 
+        provento.dataObj <= hoje
+      );
+
+      const totalProventos12Meses = proventos12Meses.reduce((sum, p) => sum + (p.valor || 0), 0);
+      const totalProventosDesdeEntrada = proventosDesdeEntrada.reduce((sum, p) => sum + (p.valor || 0), 0);
+
+      const dy12Meses = precoAtual > 0 ? (totalProventos12Meses / precoAtual) * 100 : 0;
+      const precoEntrada = parsePreco(precoIniciou);
+      const dyDesdeEntrada = precoEntrada > 0 ? (totalProventosDesdeEntrada / precoEntrada) * 100 : 0;
+
+      console.log(`📊 [${ticker}] Resultado final:`);
+      console.log('• Total 12M: R$', totalProventos12Meses.toFixed(2));
+      console.log('• DY 12M:', dy12Meses.toFixed(2) + '%');
+      console.log('• DY entrada:', dyDesdeEntrada.toFixed(2) + '%');
+
+      setDyData({
+        dy12Meses: isNaN(dy12Meses) ? 0 : dy12Meses,
+        dyDesdeEntrada: isNaN(dyDesdeEntrada) ? 0 : dyDesdeEntrada
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao calcular DY:', error);
+      setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
+    }
+  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
+
+  useEffect(() => {
+    calcularDY();
+  }, [calcularDY]);
+
+  return dyData;
+}
 
     try {
       // Carregar proventos do localStorage
