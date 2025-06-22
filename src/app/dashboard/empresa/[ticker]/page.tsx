@@ -875,7 +875,7 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
     ibovespaEpoca: '108.500',
     percentualCarteira: '4.2%'
   }
-};
+},
   // ========================================
   // FIIs - FUNDOS IMOBILIÁRIOS
   // ========================================
