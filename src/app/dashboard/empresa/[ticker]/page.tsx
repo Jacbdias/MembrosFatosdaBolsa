@@ -1676,7 +1676,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
       <CardContent sx={{ p: 4 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            {isFII ? '💰 Histórico de Dividendos (FII)' : '💰 Histórico de Proventos'}
+            {isFII ? '💰 Histórico de Rendimentos (FII)' : '💰 Histórico de Proventos'}
           </Typography>
         </Stack>
 
