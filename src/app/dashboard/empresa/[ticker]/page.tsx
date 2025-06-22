@@ -944,7 +944,7 @@ function formatarValor(valor: number | undefined, tipo: 'currency' | 'percent' |
 // ========================================
 // HOOK PARA CALCULAR DIVIDEND YIELD - NOVO!
 // ========================================
-function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string) {
+function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: number, precoIniciou?: string, isFII = false) {
   const [dyData, setDyData] = useState({
     dy12Meses: 0,
     dyDesdeEntrada: 0
@@ -968,7 +968,7 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
 
     try {
       // Carregar proventos do localStorage
-      const chaveStorage = `proventos_${ticker}`;
+      const chaveStorage = isFII ? `dividendos_fii_${ticker}` : `proventos_${ticker}`;
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (!dadosSalvos) {
@@ -1029,7 +1029,7 @@ function useDividendYield(ticker: string, dataEntrada: string, precoAtual?: numb
       console.error('Erro ao calcular DY:', error);
       setDyData({ dy12Meses: 0, dyDesdeEntrada: 0 });
     }
-  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco]);
+  }, [ticker, precoAtual, precoIniciou, dataEntrada, parsePreco, isFII]);
 
   useEffect(() => {
     calcularDY();
@@ -1224,13 +1224,13 @@ const MetricCard = React.memo(({
 // ========================================
 // COMPONENTE HISTÓRICO DE DIVIDENDOS
 // ========================================
-const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: string; dataEntrada: string }) => {
+const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: { ticker: string; dataEntrada: string; isFII?: boolean }) => {
   const [proventos, setProventos] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
-      const chaveStorage = `proventos_${ticker}`;
+      const chaveStorage = isFII ? `dividendos_fii_${ticker}` : `proventos_${ticker}`;
       const dadosSalvos = localStorage.getItem(chaveStorage);
       
       if (dadosSalvos) {
@@ -1248,7 +1248,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
         }
       }
     }
-  }, [ticker]);
+  }, [ticker, isFII]);
 
   const { totalProventos, mediaProvento, ultimoProvento, totalPorAno } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + item.valor, 0);
@@ -1281,14 +1281,14 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada }: { ticker: strin
       <CardContent sx={{ p: 4 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            💰 Histórico de Proventos
+            {isFII ? '💰 Histórico de Dividendos (FII)' : '💰 Histórico de Proventos'}
           </Typography>
         </Stack>
 
         {proventos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
             <Typography variant="body2">
-              Nenhum provento carregado para {ticker}
+              {isFII ? `Nenhum dividendo carregado para ${ticker}` : `Nenhum provento carregado para ${ticker}`}
             </Typography>
             <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
               📅 Data de entrada: {dataEntrada}
