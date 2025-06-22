@@ -496,19 +496,16 @@ export function SettingsTable({ count, rows, cardsData, ibovespaReal, ifixReal }
                   const globalIndex = index + 1;
 
                   return (
-                    <TableRow 
-                      hover 
-                      key={row.id}
-                      sx={{
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                          cursor: 'pointer',
-                          transform: 'scale(1.005)',
-                          transition: 'all 0.2s ease'
-                        },
-                        borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-                      }}
-                    >
+<TableRow 
+  hover 
+  key={row.id}
+  onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}  // ← ADICIONAR SÓ ESTA LINHA
+  sx={{
+    '&:hover': {
+      // ...
+    }
+  }}
+>
                       <TableCell sx={{ 
                         textAlign: 'center', 
                         fontWeight: 800, 
