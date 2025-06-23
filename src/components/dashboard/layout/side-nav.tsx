@@ -226,7 +226,6 @@ export function SideNav(): React.JSX.Element {
         <Box
           sx={{
             alignItems: 'center',
-            background: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
             border: '1px solid #333333',
             borderRadius: '12px',
             cursor: 'pointer',
