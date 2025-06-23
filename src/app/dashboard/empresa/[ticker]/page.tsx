@@ -3689,7 +3689,7 @@ export default function EmpresaDetalhes() {
       empresaAtualizada = {
         ...empresaAtualizada,
         dadosFinanceiros,
-        viesAtual: calcularViesSimplificado(empresa.precoTeto, dadosFinanceiros.precoAtual)
+        viesAtual: calcularViesSimplificado(empresa.precoTeto, dadosFinanceiros.precoAtual),
         statusApi: 'success',
         ultimaAtualizacao
       };
