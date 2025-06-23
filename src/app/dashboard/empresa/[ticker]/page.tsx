@@ -1293,7 +1293,7 @@ const dadosFallback: { [key: string]: EmpresaCompleta } = {
 // ========================================
 // FUNÇÕES UTILITÁRIAS
 // ========================================
-function calcularViesInteligente(precoTeto: string, precoAtual: number): string {
+function calcularViesSimplificado(precoTeto: string, precoAtual: number): string {
   try {
     const precoTetoNum = parseFloat(precoTeto.replace('R$ ', '').replace('.', '').replace(',', '.'));
     
@@ -1301,19 +1301,7 @@ function calcularViesInteligente(precoTeto: string, precoAtual: number): string 
       return 'Aguardar';
     }
     
-    const percentualDoTeto = (precoAtual / precoTetoNum) * 100;
-    
-    if (percentualDoTeto <= 80) {
-      return 'Compra Forte';
-    } else if (percentualDoTeto <= 95) {
-      return 'Compra';
-    } else if (percentualDoTeto <= 105) {
-      return 'Neutro';
-    } else if (percentualDoTeto <= 120) {
-      return 'Aguardar';
-    } else {
-      return 'Venda';
-    }
+    return precoAtual < precoTetoNum ? 'Compra' : 'Aguardar';
   } catch {
     return 'Aguardar';
   }
@@ -3505,12 +3493,9 @@ const DadosPosicaoExpandidos = React.memo(({
                 <Chip 
                   label={empresa.viesAtual}
                   size="small"
-                  color={
-                    empresa.viesAtual === 'Compra Forte' ? 'success' :
-                    empresa.viesAtual === 'Compra' ? 'info' :
-                    empresa.viesAtual === 'Neutro' ? 'warning' :
-                    empresa.viesAtual === 'Venda' ? 'error' : 'default'
-                  }
+color={
+  empresa.viesAtual === 'Compra' ? 'success' : 'warning'
+}
                   sx={{ fontWeight: 600 }}
                 />
               </Box>
@@ -3704,7 +3689,7 @@ export default function EmpresaDetalhes() {
       empresaAtualizada = {
         ...empresaAtualizada,
         dadosFinanceiros,
-        viesAtual: calcularViesInteligente(empresa.precoTeto, dadosFinanceiros.precoAtual),
+        viesAtual: calcularViesSimplificado(empresa.precoTeto, dadosFinanceiros.precoAtual)
         statusApi: 'success',
         ultimaAtualizacao
       };
