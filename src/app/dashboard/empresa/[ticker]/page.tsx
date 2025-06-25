@@ -2041,27 +2041,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {isFII ? '💰 Histórico de Rendimentos (FII)' : '💰 Histórico de Proventos'}
           </Typography>
-          {/* ✅ NOVO: Botão de debug para verificar dados */}
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => {
-              const keys = Object.keys(localStorage).filter(key => 
-                key.includes(ticker) || key.includes('provento') || key.includes('dividendo') || key.includes('central')
-              );
-              console.log('🔍 Debug LocalStorage:', {
-                ticker,
-                isFII,
-                keysEncontradas: keys,
-                dadosProventos: proventos.length,
-                exemploProvento: proventos[0]
-              });
-              alert(`Debug: ${keys.length} chaves encontradas. Ver console (F12) para detalhes.`);
-            }}
-            sx={{ fontSize: '0.7rem' }}
-          >
-            🔍 Debug
-          </Button>
         </Stack>
 
         {proventos.length === 0 ? (
