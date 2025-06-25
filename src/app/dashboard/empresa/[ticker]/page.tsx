@@ -1943,9 +1943,6 @@ const MetricCard = React.memo(({
 // ========================================
 // COMPONENTE HISTÓRICO DE DIVIDENDOS
 // ========================================
-// ========================================
-// COMPONENTE HISTÓRICO DE DIVIDENDOS
-// ========================================
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: { ticker: string; dataEntrada: string; isFII?: boolean }) => {
   const [proventos, setProventos] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
@@ -2741,7 +2738,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   );
 });
 // ========================================
-// COMPONENTE AGENDA CORPORATIVA - COM DEBUG AVANÇADO
+// COMPONENTE AGENDA CORPORATIVA - CORRIGIDO PARA USAR CENTRAL
 // ========================================
 const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
   const [eventos, setEventos] = useState<any[]>([]);
@@ -2772,148 +2769,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     return `Em ${Math.ceil(dias / 30)} meses`;
   }, []);
 
-  // 🆕 Função para criar dados de exemplo
-  const criarDadosExemplo = useCallback(() => {
-    const hoje = new Date();
-    const eventosExemplo: any = {};
-
-    // Dados para VALE3
-    eventosExemplo['VALE3'] = [
-      {
-        id: 'vale-resultado-1t25',
-        ticker: 'VALE3',
-        tipo: 'Resultados',
-        titulo: 'Resultados 1T25',
-        descricao: 'Divulgação dos resultados do primeiro trimestre',
-        data: '2025-05-14',
-        dataObj: new Date('2025-05-14'),
-        status: 'Confirmado',
-        prioridade: 'alta',
-        categoria: 'resultado'
-      },
-      {
-        id: 'vale-comunicado-importante',
-        ticker: 'VALE3',
-        tipo: 'Fato Relevante',
-        titulo: 'Comunicado Importante',
-        descricao: 'Comunicado sobre operações especiais',
-        data: '2025-06-30',
-        dataObj: new Date('2025-06-30'),
-        status: 'Estimado',
-        prioridade: 'baixa',
-        categoria: 'comunicado'
-      }
-    ];
-
-    // Dados para PETR4
-    eventosExemplo['PETR4'] = [
-      {
-        id: 'petr4-dividendos-jun25',
-        ticker: 'PETR4',
-        tipo: 'Dividendos',
-        titulo: 'Ex-Dividendos',
-        descricao: 'Data ex-dividendos referente ao 1º trimestre',
-        data: '2025-06-09',
-        dataObj: new Date('2025-06-09'),
-        status: 'Estimado',
-        prioridade: 'media',
-        categoria: 'dividendo'
-      },
-      {
-        id: 'petr4-resultado-1t25',
-        ticker: 'PETR4',
-        tipo: 'Resultados',
-        titulo: 'Resultados 1T25',
-        descricao: 'Divulgação dos resultados trimestrais',
-        data: '2025-05-08',
-        dataObj: new Date('2025-05-08'),
-        status: 'Confirmado',
-        prioridade: 'alta',
-        categoria: 'resultado'
-      }
-    ];
-
-    // Dados para HSML11 (FII)
-    eventosExemplo['HSML11'] = [
-      {
-        id: 'hsml-assembleia-2025',
-        ticker: 'HSML11',
-        tipo: 'Assembleia',
-        titulo: 'AGO 2025',
-        descricao: 'Assembleia Geral Ordinária do fundo',
-        data: '2025-04-27',
-        dataObj: new Date('2025-04-27'),
-        status: 'Confirmado',
-        prioridade: 'alta',
-        categoria: 'assembleia'
-      },
-      {
-        id: 'hsml-rendimento-jun25',
-        ticker: 'HSML11',
-        tipo: 'Rendimentos',
-        titulo: 'Rendimento Jun/25',
-        descricao: 'Distribuição de rendimentos mensal',
-        data: '2025-06-14',
-        dataObj: new Date('2025-06-14'),
-        status: 'Confirmado',
-        prioridade: 'alta',
-        categoria: 'rendimento'
-      }
-    ];
-
-    // Dados para BTLG11 (FII)
-    eventosExemplo['BTLG11'] = [
-      {
-        id: 'btlg-conference-call',
-        ticker: 'BTLG11',
-        tipo: 'Conference Call',
-        titulo: 'Conference Call 1T25',
-        descricao: 'Apresentação dos resultados às 16h00',
-        data: '2025-05-15',
-        dataObj: new Date('2025-05-15'),
-        status: 'Confirmado',
-        prioridade: 'media',
-        categoria: 'apresentacao'
-      }
-    ];
-
-    // Dados para MALL11 (FII)
-    eventosExemplo['MALL11'] = [
-      {
-        id: 'mall-rendimento-jun25',
-        ticker: 'MALL11',
-        tipo: 'Rendimentos',
-        titulo: 'Rendimento Jun/25',
-        descricao: 'Distribuição de rendimentos do período',
-        data: '2025-06-14',
-        dataObj: new Date('2025-06-14'),
-        status: 'Confirmado',
-        prioridade: 'alta',
-        categoria: 'rendimento'
-      }
-    ];
-
-    return eventosExemplo;
-  }, []);
-
-  // 🆕 Função para salvar dados de exemplo
-  const salvarDadosExemplo = useCallback(() => {
-    try {
-      const dadosExemplo = criarDadosExemplo();
-      localStorage.setItem('agenda_central', JSON.stringify(dadosExemplo));
-      
-      // Recarregar dados
-      carregarEventos();
-      
-      console.log('✅ Dados de exemplo salvos!', dadosExemplo);
-      alert('✅ Dados de exemplo criados com sucesso!');
-    } catch (error) {
-      console.error('❌ Erro ao salvar dados de exemplo:', error);
-      alert('❌ Erro ao criar dados de exemplo');
-    }
-  }, [criarDadosExemplo]);
-
-  // 🔄 Função principal para carregar eventos
+  // 🔄 Função principal para carregar eventos - CORRIGIDA
   const carregarEventos = useCallback(() => {
     if (!ticker) {
       setLoading(false);
@@ -2923,23 +2779,24 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     try {
       setLoading(true);
       
-      // 🔍 DIAGNÓSTICO COMPLETO
-      const agendaCentral = localStorage.getItem('agenda_central');
+      // 🔄 BUSCAR DADOS DA CENTRAL DA AGENDA (CORRIGIDO)
+      const agendaCorporativaCentral = localStorage.getItem('agenda_corporativa_central');
+      
       const debug = {
         ticker,
         isFII,
-        agendaExiste: !!agendaCentral,
-        agendaSize: agendaCentral ? agendaCentral.length : 0,
+        agendaCentralExiste: !!agendaCorporativaCentral,
+        agendaCentralSize: agendaCorporativaCentral ? agendaCorporativaCentral.length : 0,
         dadosRaw: null,
         eventosTicker: null,
         eventosValidos: [],
         erros: []
       };
 
-      console.log(`🔍 [DEBUG] Carregando eventos para ${ticker}:`, debug);
+      console.log(`🔍 [DEBUG] Carregando eventos da CENTRAL para ${ticker}:`, debug);
 
-      if (!agendaCentral) {
-        debug.erros.push('localStorage agenda_central não encontrado');
+      if (!agendaCorporativaCentral) {
+        debug.erros.push('localStorage agenda_corporativa_central não encontrado - use /central-agenda para fazer upload do CSV');
         setDebugInfo(debug);
         setEventos([]);
         setLoading(false);
@@ -2948,7 +2805,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
 
       let dadosAgenda;
       try {
-        dadosAgenda = JSON.parse(agendaCentral);
+        dadosAgenda = JSON.parse(agendaCorporativaCentral);
         debug.dadosRaw = dadosAgenda;
       } catch (parseError) {
         debug.erros.push(`Erro ao fazer parse do JSON: ${parseError.message}`);
@@ -2958,50 +2815,59 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
         return;
       }
 
-      // Buscar eventos do ticker específico
-      const eventosTicker = dadosAgenda[ticker];
+      // 🎯 FILTRAR EVENTOS DO TICKER ESPECÍFICO (CORRIGIDO)
+      const eventosTicker = Array.isArray(dadosAgenda) 
+        ? dadosAgenda.filter((evento: any) => evento.ticker === ticker)
+        : [];
+
       debug.eventosTicker = eventosTicker;
 
-      if (!eventosTicker) {
-        debug.erros.push(`Nenhum evento encontrado para ticker ${ticker}`);
-        debug.tickersDisponiveis = Object.keys(dadosAgenda);
+      if (eventosTicker.length === 0) {
+        debug.erros.push(`Nenhum evento encontrado para ticker ${ticker} na central`);
+        
+        // Mostrar quais tickers estão disponíveis
+        if (Array.isArray(dadosAgenda)) {
+          const tickersDisponiveis = [...new Set(dadosAgenda.map((e: any) => e.ticker))];
+          debug.tickersDisponiveis = tickersDisponiveis;
+        }
+        
         setDebugInfo(debug);
         setEventos([]);
         setLoading(false);
         return;
       }
 
-      if (!Array.isArray(eventosTicker)) {
-        debug.erros.push(`Dados do ticker ${ticker} não são um array`);
-        setDebugInfo(debug);
-        setEventos([]);
-        setLoading(false);
-        return;
-      }
-
-      // Processar e validar eventos
+      // 🔄 PROCESSAR E VALIDAR EVENTOS
       const eventosProcessados = eventosTicker.map((evento: any, index: number) => {
         try {
-          // Garantir que data seja um objeto Date
+          // Converter data_evento para Date
           let dataEvento: Date;
           
-          if (evento.dataObj && evento.dataObj instanceof Date) {
-            dataEvento = evento.dataObj;
+          if (evento.data_evento) {
+            dataEvento = new Date(evento.data_evento);
           } else if (evento.data) {
             dataEvento = new Date(evento.data);
           } else {
-            throw new Error('Data não encontrada');
+            throw new Error('Campo data_evento não encontrado');
           }
 
           if (isNaN(dataEvento.getTime())) {
-            throw new Error(`Data inválida: ${evento.data}`);
+            throw new Error(`Data inválida: ${evento.data_evento || evento.data}`);
           }
 
           return {
-            ...evento,
-            dataObj: dataEvento,
             id: evento.id || `${ticker}-${index}`,
-            estimado: evento.status === 'Estimado'
+            ticker: evento.ticker,
+            tipo: evento.tipo_evento || evento.tipo,
+            titulo: evento.titulo,
+            descricao: evento.descricao,
+            data: evento.data_evento || evento.data,
+            dataObj: dataEvento,
+            status: evento.status,
+            prioridade: evento.prioridade,
+            categoria: evento.tipo_evento || evento.tipo,
+            estimado: evento.status?.toLowerCase() === 'estimado',
+            observacoes: evento.observacoes
           };
         } catch (error) {
           debug.erros.push(`Evento ${index}: ${error.message}`);
@@ -3022,7 +2888,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
       setDebugInfo(debug);
       setEventos(eventosProcessados);
       
-      console.log(`✅ [DEBUG] Eventos carregados para ${ticker}:`, {
+      console.log(`✅ [DEBUG] Eventos carregados da CENTRAL para ${ticker}:`, {
         total: eventosProcessados.length,
         eventos: debug.eventosValidos
       });
@@ -3063,19 +2929,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
             >
               🔍 {showDebug ? 'Ocultar' : 'Debug'}
             </Button>
-            
-            {/* 🆕 Botão para criar dados de exemplo */}
-            {(!eventos || eventos.length === 0) && (
-              <Button
-                size="small"
-                variant="contained"
-                onClick={salvarDadosExemplo}
-                sx={{ fontSize: '0.7rem' }}
-                color="warning"
-              >
-                🛠️ Criar Dados
-              </Button>
-            )}
             
             <IconButton 
               size="small" 
@@ -3140,25 +2993,20 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
               }
             </Typography>
             
-            <Stack direction="row" spacing={2} justifyContent="center">
-              <Button
-                variant="contained"
-                onClick={salvarDadosExemplo}
-                startIcon="🛠️"
-                size="small"
-              >
-                Criar Dados de Exemplo
-              </Button>
-              
-              <Button
-                variant="outlined"
-                onClick={() => setShowDebug(true)}
-                startIcon="🔍"
-                size="small"
-              >
-                Ver Debug
-              </Button>
-            </Stack>
+            {debugInfo?.tickersDisponiveis && (
+              <Typography variant="body2" sx={{ mb: 3, color: 'info.main' }}>
+                📊 Tickers disponíveis na central: {debugInfo.tickersDisponiveis.join(', ')}
+              </Typography>
+            )}
+            
+            <Button
+              variant="outlined"
+              onClick={() => window.location.href = '/dashboard/central-agenda'}
+              startIcon="🛠️"
+              size="small"
+            >
+              Ir para Central da Agenda
+            </Button>
           </Box>
         ) : (
           /* LISTA DE EVENTOS */
@@ -3310,7 +3158,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
         {debugInfo && (
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.secondary">
-              🔍 Debug: {debugInfo.agendaExiste ? '✅' : '❌'} localStorage | 
+              🔍 Debug: {debugInfo.agendaCentralExiste ? '✅' : '❌'} localStorage | 
               📊 Eventos: {eventos.length} | 
               ⚠️ Erros: {debugInfo.erros?.length || 0}
             </Typography>
@@ -3320,7 +3168,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     </Card>
   );
 });
-
 const DadosPosicaoExpandidos = React.memo(({ 
   empresa, 
   dadosFinanceiros, 
