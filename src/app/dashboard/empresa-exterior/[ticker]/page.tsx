@@ -6,7 +6,7 @@ import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
 import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
 import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
 import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
-import { BarChart as BarChartIcon } from '@phosphor-icons/react/dist/ssr/BarChart';
+import { TrendUp as TrendUpIcon } from '@phosphor-icons/react/dist/ssr/TrendUp';
 import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar';
 import { Target as TargetIcon } from '@phosphor-icons/react/dist/ssr/Target';
 import { Warning as WarningIcon } from '@phosphor-icons/react/dist/ssr/Warning';
@@ -341,7 +341,7 @@ export default function EmpresaExteriorDetalhes() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-lg mx-auto mb-3">
-                    <BarChartIcon size={24} className="text-blue-600" />
+                    <TrendUpIcon size={24} className="text-blue-600" />
                   </div>
                   <p className="text-slate-600 text-sm font-medium">Volume</p>
                   <p className="text-slate-900 text-lg font-bold">
