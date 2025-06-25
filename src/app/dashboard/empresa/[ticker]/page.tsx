@@ -3128,28 +3128,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
             )}
           </>
         )}
-
-        {/* INFORMAÇÕES SOBRE OS DADOS */}
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>💡 Sobre os dados:</strong><br/>
-            • 📊 <strong>Fonte:</strong> Planilha central gerenciada via /central-agenda<br/>
-            • 🎯 <strong>Precisão:</strong> Dados verificados e controlados manualmente<br/>
-            • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo<br/>
-            • 🛠️ <strong>Gerenciamento:</strong> Use "Gerenciar" para acessar a página central
-          </Typography>
-        </Alert>
-
-        {/* 🆕 ESTATÍSTICAS DE DEBUG */}
-        {debugInfo && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
-              🔍 Debug: {debugInfo.agendaCentralExiste ? '✅' : '❌'} localStorage | 
-              📊 Eventos: {eventos.length} | 
-              ⚠️ Erros: {debugInfo.erros?.length || 0}
-            </Typography>
-          </Box>
-        )}
       </CardContent>
     </Card>
   );
