@@ -638,7 +638,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                         <TableCell>Título</TableCell>
                         <TableCell>Data</TableCell>
                         <TableCell>Status</TableCell>
-                        <TableCell>Prioridade</TableCell>
+
                         <TableCell align="center">Ações</TableCell>
                       </TableRow>
                     </TableHead>
@@ -705,19 +705,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                                   }}
                                 />
                               </TableCell>
-                              <TableCell>
-                                {evento.prioridade && (
-                                  <Chip
-                                    label={evento.prioridade}
-                                    size="small"
-                                    color={
-                                      evento.prioridade === 'alta' ? 'error' :
-                                      evento.prioridade === 'media' ? 'warning' : 'default'
-                                    }
-                                    sx={{ fontSize: '0.75rem' }}
-                                  />
-                                )}
-                              </TableCell>
+
                               <TableCell align="center">
                                 <Tooltip title="Mais opções">
                                   <IconButton
