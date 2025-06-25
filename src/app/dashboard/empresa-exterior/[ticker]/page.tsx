@@ -61,8 +61,9 @@ const PictureAsPdfIconCustom = () => <span>📄</span>;
 // ========================================
 // CONSTANTES E CONFIGURAÇÕES
 // ========================================
-// Para ativos internacionais, você pode usar Alpha Vantage, Yahoo Finance API, etc.
-const API_TOKEN = 'your_api_token_here'; // Substituir por token real
+// Usando BRAPI como API principal - ela suporta ativos internacionais!
+const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8'; // Mesmo token da página nacional
+const ALPHA_VANTAGE_BACKUP = 'demo'; // Backup apenas se necessário
 
 // ========================================
 // INTERFACES E TIPOS
