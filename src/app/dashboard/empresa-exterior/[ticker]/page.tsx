@@ -42,6 +42,12 @@ function useEmpresaExteriorData(ticker: string, nomeEmpresa: string, moeda: stri
 
   // 🎯 FUNÇÃO DE BUSCA - MÉTODO DA TABELA EXATO
   const fetchRealQuote = React.useCallback(async () => {
+    // ✅ NÃO BUSCAR SE TICKER ESTIVER VAZIO
+    if (!ticker || ticker.length === 0) {
+      console.log('⚠️ Ticker vazio, aguardando...');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -138,29 +144,26 @@ function useEmpresaExteriorData(ticker: string, nomeEmpresa: string, moeda: stri
       // ✅ FALLBACK: EXATAMENTE COMO A TABELA FAZ
       console.log(`🎲 Usando fallback para ${ticker} (igual à tabela)`);
       
-      const fallbackPrices: Record<string, { price: number, change: number, pe?: number, dy?: number }> = {
-        'TSLA': { price: 248.50, change: -8.40, pe: 62.5, dy: 0 },
-        'AAPL': { price: 189.50, change: 2.85, pe: 29.2, dy: 0.5 },
-        'MSFT': { price: 365.20, change: -1.25, pe: 32.1, dy: 0.75 },
-        'GOOGL': { price: 2850.00, change: 15.30, pe: 25.8, dy: 0 },
-        'AMZN': { price: 3200.00, change: 25.50, pe: 45.2, dy: 0 },
-        'META': { price: 485.20, change: 12.30, pe: 24.8, dy: 0 },
-        'NVDA': { price: 875.40, change: -15.60, pe: 65.2, dy: 0.1 },
-        'JPM': { price: 168.75, change: 0.95, pe: 13.2, dy: 2.1 },
-        'BAC': { price: 33.45, change: -0.15, pe: 12.8, dy: 2.8 },
-        'VZ': { price: 42.80, change: 0.35, pe: 9.5, dy: 6.57 },
-        'OXY': { price: 46.45, change: 1.25, pe: 12.8, dy: 2.34 },
-        'O': { price: 56.15, change: 0.85, pe: 18.5, dy: 6.13 },
-        'ADC': { price: 75.20, change: 1.15, pe: 22.1, dy: 5.34 },
-        'AVB': { price: 195.30, change: -2.40, pe: 25.8, dy: 3.96 },
-        'STAG': { price: 35.75, change: 0.65, pe: 16.4, dy: 4.55 }
+      const fallbackPrices: Record<string, { price: number, change: number, pe?: number, dy?: number, open?: number, dayHigh?: number, dayLow?: number, week52High?: number, week52Low?: number }> = {
+        'TSLA': { price: 248.50, change: -8.40, pe: 62.5, dy: 0, open: 250.00, dayHigh: 252.30, dayLow: 245.60, week52High: 415.00, week52Low: 138.80 },
+        'AAPL': { price: 189.50, change: 2.85, pe: 29.2, dy: 0.5, open: 187.20, dayHigh: 191.30, dayLow: 186.90, week52High: 260.10, week52Low: 169.21 },
+        'MSFT': { price: 365.20, change: -1.25, pe: 32.1, dy: 0.75, open: 367.00, dayHigh: 368.50, dayLow: 364.10, week52High: 468.35, week52Low: 309.45 },
+        'GOOGL': { price: 2850.00, change: 15.30, pe: 25.8, dy: 0, open: 2835.00, dayHigh: 2865.00, dayLow: 2832.00, week52High: 3055.00, week52Low: 2193.62 },
+        'AMZN': { price: 3200.00, change: 25.50, pe: 45.2, dy: 0, open: 3180.00, dayHigh: 3215.00, dayLow: 3175.00, week52High: 3773.08, week52Low: 2671.45 },
+        'META': { price: 485.20, change: 12.30, pe: 24.8, dy: 0, open: 478.00, dayHigh: 487.60, dayLow: 476.20, week52High: 542.81, week52Low: 279.49 },
+        'NVDA': { price: 875.40, change: -15.60, pe: 65.2, dy: 0.1, open: 890.00, dayHigh: 892.50, dayLow: 873.20, week52High: 1140.00, week52Low: 390.40 }
       };
 
       const fallbackData = fallbackPrices[ticker] || { 
         price: 125.75, 
         change: 1.25, 
         pe: 20.0, 
-        dy: 2.0 
+        dy: 2.0,
+        open: 124.50,
+        dayHigh: 127.30,
+        dayLow: 124.10,
+        week52High: 150.00,
+        week52Low: 95.50
       };
 
       const dadosProcessados: DadosFinanceirosExterior = {
@@ -173,7 +176,14 @@ function useEmpresaExteriorData(ticker: string, nomeEmpresa: string, moeda: stri
         dividendYield: fallbackData.dy || 0,
         moeda: moeda,
         precoEmUSD: moeda === 'USD' ? fallbackData.price : fallbackData.price * 1.12,
-        cotacaoUSD: moeda === 'USD' ? 1 : 1.12
+        cotacaoUSD: moeda === 'USD' ? 1 : 1.12,
+        regularMarketOpen: fallbackData.open,
+        regularMarketDayHigh: fallbackData.dayHigh,
+        regularMarketDayLow: fallbackData.dayLow,
+        fiftyTwoWeekHigh: fallbackData.week52High,
+        fiftyTwoWeekLow: fallbackData.week52Low,
+        longName: nomeEmpresa,
+        shortName: ticker
       };
 
       console.log(`🎲 Dados fallback aplicados para ${ticker}:`, dadosProcessados);
@@ -183,15 +193,18 @@ function useEmpresaExteriorData(ticker: string, nomeEmpresa: string, moeda: stri
     } finally {
       setLoading(false);
     }
-  }, [ticker, moeda]);
+  }, [ticker, moeda, nomeEmpresa]); // ✅ ADICIONADO nomeEmpresa nas dependências
 
   useEffect(() => {
-    fetchRealQuote();
-    
-    // ✅ AUTO-REFRESH COMO A TABELA (10 minutos)
-    const interval = setInterval(fetchRealQuote, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchRealQuote]);
+    // ✅ SÓ BUSCAR SE TICKER EXISTIR
+    if (ticker && ticker.length > 0) {
+      fetchRealQuote();
+      
+      // ✅ AUTO-REFRESH COMO A TABELA (10 minutos)
+      const interval = setInterval(fetchRealQuote, 10 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchRealQuote, ticker]); // ✅ ADICIONADO ticker como dependência
 
   return {
     dadosFinanceiros,
