@@ -2741,67 +2741,16 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   );
 });
 // ========================================
-// COMPONENTE AGENDA CORPORATIVA ATUALIZADO
-// Agora lê APENAS do localStorage (como os proventos)
+// COMPONENTE AGENDA CORPORATIVA - COM DEBUG AVANÇADO
 // ========================================
-
-// Hook para ler dados da agenda central
-const useAgendaPlanilha = (ticker: string) => {
-  const [eventos, setEventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [ultimaAtualizacao, setUltimaAtualizacao] = useState('');
-
-  const carregarEventos = useCallback(() => {
-    try {
-      setLoading(true);
-      
-      // 🎯 ÚNICA FONTE: localStorage central (igual aos proventos)
-      const dadosSalvos = localStorage.getItem('agenda_corporativa_central');
-      
-      if (dadosSalvos) {
-        const todosEventos = JSON.parse(dadosSalvos);
-        
-        // Filtrar eventos do ticker específico
-        const eventosTicker = todosEventos.filter((evento: any) => 
-          evento.ticker?.toUpperCase() === ticker?.toUpperCase()
-        );
-        
-        // Ordenar por data
-        const eventosOrdenados = eventosTicker.sort((a: any, b: any) => 
-          new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime()
-        );
-        
-        setEventos(eventosOrdenados);
-        
-        // Verificar timestamp da última atualização
-        const timestamp = localStorage.getItem('agenda_corporativa_timestamp');
-        if (timestamp) {
-          setUltimaAtualizacao(new Date(parseInt(timestamp)).toLocaleString('pt-BR'));
-        }
-      } else {
-        setEventos([]);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar eventos da agenda:', error);
-      setEventos([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker]);
-
-  useEffect(() => {
-    carregarEventos();
-  }, [carregarEventos]);
-
-  return { eventos, loading, ultimaAtualizacao, refetch: carregarEventos };
-};
-
-// Componente AgendaCorporativa atualizado (SUBSTITUIR O ATUAL)
 const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
-  const { eventos, loading, ultimaAtualizacao, refetch } = useAgendaPlanilha(ticker);
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
-  const calcularDiasAteEvento = useCallback((dataEvento: Date | string) => {
+  // Função para calcular dias até o evento
+  const calcularDiasAteEvento = useCallback((dataEvento: Date) => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const evento = new Date(dataEvento);
@@ -2813,6 +2762,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     return diffDays;
   }, []);
 
+  // Função para formatar a proximidade do evento
   const formatarProximidade = useCallback((dias: number) => {
     if (dias < 0) return 'Passou';
     if (dias === 0) return 'Hoje';
@@ -2822,34 +2772,279 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     return `Em ${Math.ceil(dias / 30)} meses`;
   }, []);
 
-  // Configurações visuais
-  const TIPOS_EVENTO = {
-    resultado: { icon: '📊', cor: '#3b82f6', label: 'Resultados' },
-    dividendo: { icon: '💰', cor: '#22c55e', label: 'Dividendos' },
-    rendimento: { icon: '💰', cor: '#f59e0b', label: 'Rendimentos' },
-    assembleia: { icon: '🏛️', cor: '#8b5cf6', label: 'Assembleia' },
-    conference_call: { icon: '📞', cor: '#06b6d4', label: 'Conference Call' },
-    relatorio: { icon: '📄', cor: '#64748b', label: 'Relatório' },
-    evento_especial: { icon: '⭐', cor: '#ec4899', label: 'Evento Especial' },
-    fato_relevante: { icon: '⚠️', cor: '#ef4444', label: 'Fato Relevante' }
-  };
-
-  const STATUS_CONFIG = {
-    confirmado: { cor: '#22c55e', label: 'Confirmado' },
-    estimado: { cor: '#f59e0b', label: 'Estimado' },
-    cancelado: { cor: '#ef4444', label: 'Cancelado' },
-    adiado: { cor: '#8b5cf6', label: 'Adiado' }
-  };
-
-  // Filtrar apenas eventos futuros e não cancelados
-  const eventosProximos = useMemo(() => {
+  // 🆕 Função para criar dados de exemplo
+  const criarDadosExemplo = useCallback(() => {
     const hoje = new Date();
-    return eventos.filter((evento: any) => {
-      const dataEvento = new Date(evento.data_evento);
-      return dataEvento >= hoje && evento.status !== 'cancelado';
-    }).slice(0, 4); // Mostrar apenas 4 eventos
-  }, [eventos]);
+    const eventosExemplo: any = {};
 
+    // Dados para VALE3
+    eventosExemplo['VALE3'] = [
+      {
+        id: 'vale-resultado-1t25',
+        ticker: 'VALE3',
+        tipo: 'Resultados',
+        titulo: 'Resultados 1T25',
+        descricao: 'Divulgação dos resultados do primeiro trimestre',
+        data: '2025-05-14',
+        dataObj: new Date('2025-05-14'),
+        status: 'Confirmado',
+        prioridade: 'alta',
+        categoria: 'resultado'
+      },
+      {
+        id: 'vale-comunicado-importante',
+        ticker: 'VALE3',
+        tipo: 'Fato Relevante',
+        titulo: 'Comunicado Importante',
+        descricao: 'Comunicado sobre operações especiais',
+        data: '2025-06-30',
+        dataObj: new Date('2025-06-30'),
+        status: 'Estimado',
+        prioridade: 'baixa',
+        categoria: 'comunicado'
+      }
+    ];
+
+    // Dados para PETR4
+    eventosExemplo['PETR4'] = [
+      {
+        id: 'petr4-dividendos-jun25',
+        ticker: 'PETR4',
+        tipo: 'Dividendos',
+        titulo: 'Ex-Dividendos',
+        descricao: 'Data ex-dividendos referente ao 1º trimestre',
+        data: '2025-06-09',
+        dataObj: new Date('2025-06-09'),
+        status: 'Estimado',
+        prioridade: 'media',
+        categoria: 'dividendo'
+      },
+      {
+        id: 'petr4-resultado-1t25',
+        ticker: 'PETR4',
+        tipo: 'Resultados',
+        titulo: 'Resultados 1T25',
+        descricao: 'Divulgação dos resultados trimestrais',
+        data: '2025-05-08',
+        dataObj: new Date('2025-05-08'),
+        status: 'Confirmado',
+        prioridade: 'alta',
+        categoria: 'resultado'
+      }
+    ];
+
+    // Dados para HSML11 (FII)
+    eventosExemplo['HSML11'] = [
+      {
+        id: 'hsml-assembleia-2025',
+        ticker: 'HSML11',
+        tipo: 'Assembleia',
+        titulo: 'AGO 2025',
+        descricao: 'Assembleia Geral Ordinária do fundo',
+        data: '2025-04-27',
+        dataObj: new Date('2025-04-27'),
+        status: 'Confirmado',
+        prioridade: 'alta',
+        categoria: 'assembleia'
+      },
+      {
+        id: 'hsml-rendimento-jun25',
+        ticker: 'HSML11',
+        tipo: 'Rendimentos',
+        titulo: 'Rendimento Jun/25',
+        descricao: 'Distribuição de rendimentos mensal',
+        data: '2025-06-14',
+        dataObj: new Date('2025-06-14'),
+        status: 'Confirmado',
+        prioridade: 'alta',
+        categoria: 'rendimento'
+      }
+    ];
+
+    // Dados para BTLG11 (FII)
+    eventosExemplo['BTLG11'] = [
+      {
+        id: 'btlg-conference-call',
+        ticker: 'BTLG11',
+        tipo: 'Conference Call',
+        titulo: 'Conference Call 1T25',
+        descricao: 'Apresentação dos resultados às 16h00',
+        data: '2025-05-15',
+        dataObj: new Date('2025-05-15'),
+        status: 'Confirmado',
+        prioridade: 'media',
+        categoria: 'apresentacao'
+      }
+    ];
+
+    // Dados para MALL11 (FII)
+    eventosExemplo['MALL11'] = [
+      {
+        id: 'mall-rendimento-jun25',
+        ticker: 'MALL11',
+        tipo: 'Rendimentos',
+        titulo: 'Rendimento Jun/25',
+        descricao: 'Distribuição de rendimentos do período',
+        data: '2025-06-14',
+        dataObj: new Date('2025-06-14'),
+        status: 'Confirmado',
+        prioridade: 'alta',
+        categoria: 'rendimento'
+      }
+    ];
+
+    return eventosExemplo;
+  }, []);
+
+  // 🆕 Função para salvar dados de exemplo
+  const salvarDadosExemplo = useCallback(() => {
+    try {
+      const dadosExemplo = criarDadosExemplo();
+      localStorage.setItem('agenda_central', JSON.stringify(dadosExemplo));
+      
+      // Recarregar dados
+      carregarEventos();
+      
+      console.log('✅ Dados de exemplo salvos!', dadosExemplo);
+      alert('✅ Dados de exemplo criados com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao salvar dados de exemplo:', error);
+      alert('❌ Erro ao criar dados de exemplo');
+    }
+  }, [criarDadosExemplo]);
+
+  // 🔄 Função principal para carregar eventos
+  const carregarEventos = useCallback(() => {
+    if (!ticker) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // 🔍 DIAGNÓSTICO COMPLETO
+      const agendaCentral = localStorage.getItem('agenda_central');
+      const debug = {
+        ticker,
+        isFII,
+        agendaExiste: !!agendaCentral,
+        agendaSize: agendaCentral ? agendaCentral.length : 0,
+        dadosRaw: null,
+        eventosTicker: null,
+        eventosValidos: [],
+        erros: []
+      };
+
+      console.log(`🔍 [DEBUG] Carregando eventos para ${ticker}:`, debug);
+
+      if (!agendaCentral) {
+        debug.erros.push('localStorage agenda_central não encontrado');
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      let dadosAgenda;
+      try {
+        dadosAgenda = JSON.parse(agendaCentral);
+        debug.dadosRaw = dadosAgenda;
+      } catch (parseError) {
+        debug.erros.push(`Erro ao fazer parse do JSON: ${parseError.message}`);
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar eventos do ticker específico
+      const eventosTicker = dadosAgenda[ticker];
+      debug.eventosTicker = eventosTicker;
+
+      if (!eventosTicker) {
+        debug.erros.push(`Nenhum evento encontrado para ticker ${ticker}`);
+        debug.tickersDisponiveis = Object.keys(dadosAgenda);
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      if (!Array.isArray(eventosTicker)) {
+        debug.erros.push(`Dados do ticker ${ticker} não são um array`);
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      // Processar e validar eventos
+      const eventosProcessados = eventosTicker.map((evento: any, index: number) => {
+        try {
+          // Garantir que data seja um objeto Date
+          let dataEvento: Date;
+          
+          if (evento.dataObj && evento.dataObj instanceof Date) {
+            dataEvento = evento.dataObj;
+          } else if (evento.data) {
+            dataEvento = new Date(evento.data);
+          } else {
+            throw new Error('Data não encontrada');
+          }
+
+          if (isNaN(dataEvento.getTime())) {
+            throw new Error(`Data inválida: ${evento.data}`);
+          }
+
+          return {
+            ...evento,
+            dataObj: dataEvento,
+            id: evento.id || `${ticker}-${index}`,
+            estimado: evento.status === 'Estimado'
+          };
+        } catch (error) {
+          debug.erros.push(`Evento ${index}: ${error.message}`);
+          return null;
+        }
+      }).filter(Boolean);
+
+      // Ordenar eventos por data
+      eventosProcessados.sort((a, b) => a.dataObj.getTime() - b.dataObj.getTime());
+
+      debug.eventosValidos = eventosProcessados.map(e => ({
+        id: e.id,
+        titulo: e.titulo,
+        data: e.dataObj.toISOString(),
+        tipo: e.tipo
+      }));
+
+      setDebugInfo(debug);
+      setEventos(eventosProcessados);
+      
+      console.log(`✅ [DEBUG] Eventos carregados para ${ticker}:`, {
+        total: eventosProcessados.length,
+        eventos: debug.eventosValidos
+      });
+
+    } catch (error) {
+      console.error(`❌ [DEBUG] Erro geral ao carregar eventos:`, error);
+      setDebugInfo({
+        ticker,
+        erros: [`Erro geral: ${error.message}`]
+      });
+      setEventos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker, isFII]);
+
+  // Carregar eventos ao montar o componente
+  useEffect(() => {
+    carregarEventos();
+  }, [carregarEventos]);
+
+  // 🎨 RENDER DO COMPONENTE
   return (
     <Card>
       <CardContent sx={{ p: 4 }}>
@@ -2858,236 +3053,269 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
             📅 Agenda Corporativa
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
-            {ultimaAtualizacao && (
-              <Typography variant="caption" color="text.secondary">
-                {ultimaAtualizacao}
-              </Typography>
-            )}
+            {/* 🆕 Botão de debug */}
             <Button
-              variant="outlined"
               size="small"
-              onClick={() => window.open('/central-agenda', '_blank')}
-              sx={{ fontSize: '0.8rem' }}
+              variant="outlined"
+              onClick={() => setShowDebug(!showDebug)}
+              sx={{ fontSize: '0.7rem' }}
+              color={debugInfo?.erros?.length > 0 ? 'error' : 'info'}
             >
-              ✏️ Gerenciar
+              🔍 {showDebug ? 'Ocultar' : 'Debug'}
             </Button>
+            
+            {/* 🆕 Botão para criar dados de exemplo */}
+            {(!eventos || eventos.length === 0) && (
+              <Button
+                size="small"
+                variant="contained"
+                onClick={salvarDadosExemplo}
+                sx={{ fontSize: '0.7rem' }}
+                color="warning"
+              >
+                🛠️ Criar Dados
+              </Button>
+            )}
+            
             <IconButton 
               size="small" 
-              onClick={refetch} 
+              onClick={carregarEventos} 
               disabled={loading}
-              title="Atualizar eventos"
+              title="Recarregar eventos"
             >
               <RefreshIcon />
             </IconButton>
           </Stack>
         </Stack>
 
+        {/* 🆕 PAINEL DE DEBUG */}
+        {showDebug && debugInfo && (
+          <Alert 
+            severity={debugInfo.erros?.length > 0 ? 'error' : 'info'} 
+            sx={{ mb: 3 }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              🔍 Debug Info para {debugInfo.ticker}:
+            </Typography>
+            
+            <Box component="pre" sx={{ 
+              fontSize: '0.8rem', 
+              backgroundColor: 'rgba(0,0,0,0.05)', 
+              p: 1, 
+              borderRadius: 1,
+              overflow: 'auto',
+              maxHeight: 200
+            }}>
+              {JSON.stringify(debugInfo, null, 2)}
+            </Box>
+            
+            {debugInfo.erros?.length > 0 && (
+              <Typography variant="body2" sx={{ mt: 1, color: 'error.main' }}>
+                <strong>⚠️ Problemas encontrados:</strong><br/>
+                {debugInfo.erros.map((erro, i) => `• ${erro}`).join('\n')}
+              </Typography>
+            )}
+          </Alert>
+        )}
+
+        {/* ESTADO DE LOADING */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
+            <Typography variant="body2" sx={{ ml: 2 }}>
+              Carregando eventos...
+            </Typography>
           </Box>
-        ) : eventosProximos.length === 0 ? (
+        ) : eventos.length === 0 ? (
+          /* ESTADO SEM EVENTOS */
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="body2" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
               📭 Nenhum evento encontrado para {ticker}
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => window.open('/central-agenda', '_blank')}
-              sx={{ fontSize: '0.9rem' }}
-            >
-              ➕ Adicionar Eventos
-            </Button>
+            
+            <Typography variant="body2" sx={{ mb: 3 }}>
+              {debugInfo?.erros?.length > 0 
+                ? `❌ Problemas detectados: ${debugInfo.erros.length}`
+                : `ℹ️ Não há eventos cadastrados para este ticker`
+              }
+            </Typography>
+            
+            <Stack direction="row" spacing={2} justifyContent="center">
+              <Button
+                variant="contained"
+                onClick={salvarDadosExemplo}
+                startIcon="🛠️"
+                size="small"
+              >
+                Criar Dados de Exemplo
+              </Button>
+              
+              <Button
+                variant="outlined"
+                onClick={() => setShowDebug(true)}
+                startIcon="🔍"
+                size="small"
+              >
+                Ver Debug
+              </Button>
+            </Stack>
           </Box>
         ) : (
-          <Stack spacing={3}>
-            {eventosProximos.map((evento: any, index: number) => {
-              const diasAteEvento = calcularDiasAteEvento(evento.data_evento);
-              const proximidade = formatarProximidade(diasAteEvento);
-              const config = TIPOS_EVENTO[evento.tipo_evento as keyof typeof TIPOS_EVENTO] || 
-                           { icon: '📅', cor: '#64748b', label: 'Evento' };
-              const statusConfig = STATUS_CONFIG[evento.status as keyof typeof STATUS_CONFIG] || 
-                                 { cor: '#64748b', label: evento.status };
-              
-              return (
-                <Card key={`${evento.ticker}-${evento.data_evento}-${index}`} sx={{ 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: 2,
-                  backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
-                  '&:hover': { 
-                    backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc',
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  },
-                  transition: 'all 0.2s ease'
-                }}>
-                  <CardContent sx={{ p: 4 }}>
-                    <Stack direction="row" alignItems="center" spacing={4}>
-                      {/* Ícone do tipo de evento */}
-                      <Box sx={{ 
-                        fontSize: '2rem',
-                        minWidth: '60px',
-                        textAlign: 'center'
-                      }}>
-                        {config.icon}
-                      </Box>
-
-                      {/* Conteúdo Principal */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
-                          {/* Título e Descrição */}
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="h6" sx={{ 
-                              fontWeight: 600,
-                              fontSize: '1.1rem',
-                              mb: 1,
-                              color: '#1e293b'
-                            }}>
-                              {evento.titulo}
-                            </Typography>
-                            
-                            <Typography variant="body2" color="text.secondary" sx={{ 
-                              fontSize: '0.9rem',
-                              lineHeight: 1.5,
-                              mb: 2
-                            }}>
-                              {evento.descricao}
-                            </Typography>
-
-                            {/* Observações */}
-                            {evento.observacoes && (
-                              <Typography variant="caption" sx={{ 
-                                display: 'block',
-                                color: '#6b7280',
-                                fontStyle: 'italic',
+          /* LISTA DE EVENTOS */
+          <>
+            <Stack spacing={3}>
+              {eventos.slice(0, 4).map((evento, index) => {
+                const diasAteEvento = calcularDiasAteEvento(evento.dataObj);
+                const proximidade = formatarProximidade(diasAteEvento);
+                
+                return (
+                  <Card key={evento.id} sx={{ 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: 2,
+                    backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
+                    '&:hover': { 
+                      backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    },
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <CardContent sx={{ p: 4 }}>
+                      <Stack direction="row" alignItems="center" spacing={4}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="h6" sx={{ 
+                                fontWeight: 600,
+                                fontSize: '1.1rem',
+                                mb: 1,
+                                color: '#1e293b'
+                              }}>
+                                {evento.titulo}
+                              </Typography>
+                              
+                              <Typography variant="body2" color="text.secondary" sx={{ 
+                                fontSize: '0.9rem',
+                                lineHeight: 1.5,
                                 mb: 2
                               }}>
-                                📝 {evento.observacoes}
+                                {evento.descricao}
                               </Typography>
-                            )}
 
-                            {/* Chips */}
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <Chip 
-                                label={proximidade}
-                                size="medium"
-                                sx={{ 
-                                  backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
-                                  color: 'white',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 500,
-                                  px: 1
-                                }}
-                              />
-                              <Chip 
-                                label={config.label}
-                                size="medium"
-                                sx={{ 
-                                  backgroundColor: config.cor,
-                                  color: 'white',
-                                  fontSize: '0.8rem'
-                                }}
-                              />
-                              <Chip 
-                                label={statusConfig.label}
-                                size="medium"
-                                variant="outlined"
-                                sx={{ 
-                                  borderColor: statusConfig.cor,
-                                  color: statusConfig.cor,
-                                  fontSize: '0.8rem'
-                                }}
-                              />
-                              {evento.prioridade && (
+                              <Stack direction="row" spacing={1} alignItems="center">
                                 <Chip 
-                                  label={`${evento.prioridade}`}
-                                  size="small"
+                                  label={proximidade}
+                                  size="medium"
+                                  sx={{ 
+                                    backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
+                                    color: 'white',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    px: 1
+                                  }}
+                                />
+                                
+                                <Chip 
+                                  label={evento.tipo}
+                                  size="medium"
                                   variant="outlined"
                                   sx={{ 
-                                    fontSize: '0.7rem',
+                                    fontSize: '0.8rem',
                                     borderColor: '#d1d5db',
                                     color: '#6b7280'
                                   }}
                                 />
-                              )}
-                            </Stack>
-                          </Box>
+                                
+                                {evento.estimado && (
+                                  <Chip 
+                                    label="Estimado"
+                                    size="medium"
+                                    variant="outlined"
+                                    sx={{ 
+                                      fontSize: '0.8rem',
+                                      borderColor: '#f59e0b',
+                                      color: '#f59e0b'
+                                    }}
+                                  />
+                                )}
+                              </Stack>
+                            </Box>
 
-                          {/* Data */}
-                          <Box sx={{ 
-                            textAlign: 'right',
-                            minWidth: 120,
-                            flexShrink: 0
-                          }}>
-                            <Typography variant="h5" sx={{ 
-                              fontWeight: 700,
-                              color: config.cor,
-                              fontSize: '1.3rem',
-                              lineHeight: 1
+                            <Box sx={{ 
+                              textAlign: 'right',
+                              minWidth: 140,
+                              flexShrink: 0
                             }}>
-                              {new Date(evento.data_evento).getDate()}
-                            </Typography>
-                            <Typography variant="body2" sx={{ 
-                              fontWeight: 600,
-                              color: '#64748b',
-                              fontSize: '0.9rem',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px'
-                            }}>
-                              {new Date(evento.data_evento).toLocaleDateString('pt-BR', {
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ 
-                              fontSize: '0.75rem',
-                              display: 'block',
-                              mt: 0.5
-                            }}>
-                              {new Date(evento.data_evento).toLocaleDateString('pt-BR', {
-                                weekday: 'long'
-                              })}
-                            </Typography>
-                            
-                            {/* Link externo se disponível */}
-                            {evento.url_externo && (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                sx={{ mt: 1, fontSize: '0.7rem' }}
-                                onClick={() => window.open(evento.url_externo, '_blank')}
-                              >
-                                🔗 Link
-                              </Button>
-                            )}
-                          </Box>
-                        </Stack>
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </Stack>
+                              <Typography variant="h5" sx={{ 
+                                fontWeight: 700,
+                                color: diasAteEvento <= 7 ? '#f59e0b' : '#3b82f6',
+                                fontSize: '1.3rem',
+                                lineHeight: 1
+                              }}>
+                                {evento.dataObj.getDate()}
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                fontWeight: 600,
+                                color: '#64748b',
+                                fontSize: '0.9rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                {evento.dataObj.toLocaleDateString('pt-BR', {
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ 
+                                fontSize: '0.75rem',
+                                display: 'block',
+                                mt: 0.5
+                              }}>
+                                {evento.dataObj.toLocaleDateString('pt-BR', {
+                                  weekday: 'long'
+                                })}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Box>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Stack>
+
+            {eventos.length > 4 && (
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Mostrando os próximos 4 eventos • Total: {eventos.length}
+                </Typography>
+              </Box>
+            )}
+          </>
         )}
 
-        {eventos.length > 4 && (
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Typography variant="caption" color="text.secondary">
-              Mostrando os próximos 4 eventos • Total: {eventos.length}
-            </Typography>
-          </Box>
-        )}
-
+        {/* INFORMAÇÕES SOBRE OS DADOS */}
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
             <strong>💡 Sobre os dados:</strong><br/>
             • 📊 <strong>Fonte:</strong> Planilha central gerenciada via /central-agenda<br/>
             • 🎯 <strong>Precisão:</strong> Dados verificados e controlados manualmente<br/>
             • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo<br/>
-            • ✏️ <strong>Gerenciamento:</strong> Use "Gerenciar" para acessar a página central
+            • 🛠️ <strong>Gerenciamento:</strong> Use "Gerenciar" para acessar a página central
           </Typography>
         </Alert>
+
+        {/* 🆕 ESTATÍSTICAS DE DEBUG */}
+        {debugInfo && (
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              🔍 Debug: {debugInfo.agendaExiste ? '✅' : '❌'} localStorage | 
+              📊 Eventos: {eventos.length} | 
+              ⚠️ Erros: {debugInfo.erros?.length || 0}
+            </Typography>
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
