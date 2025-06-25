@@ -159,23 +159,110 @@ export default function CentralAgendaPage() {
   const [uploading, setUploading] = useState(false);
 
   // Processar upload de CSV
-  const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const arquivo = event.target.files?.[0];
-    if (!arquivo) return;
+const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const arquivo = event.target.files?.[0];
+  if (!arquivo) return;
 
-    setUploading(true);
-    setLoading(true);
+  setUploading(true);
+  setLoading(true);
 
-    try {
-      const texto = await arquivo.text();
-      const linhas = texto.split('\n').filter(linha => linha.trim());
+  try {
+    const texto = await arquivo.text();
+    const linhas = texto.split('\n').filter(linha => linha.trim());
+    
+    if (linhas.length < 2) {
+      throw new Error('Arquivo CSV deve ter pelo menos cabeçalho e uma linha de dados');
+    }
+
+    const cabecalho = linhas[0].split(',').map(col => col.trim());
+    console.log('Cabeçalho encontrado:', cabecalho);
+
+    // Mapeamento de colunas flexível
+    const mapeamentoColunas: { [key: string]: string } = {
+      'tipo': 'tipo_evento',
+      'tipo_evento': 'tipo_evento',
+      'data': 'data_evento', 
+      'data_evento': 'data_evento',
+      'categoria': 'tipo_evento' // caso tenha categoria no lugar de tipo
+    };
+
+    // Validar colunas obrigatórias com mapeamento flexível
+    const colunasObrigatorias = ['ticker', 'titulo', 'descricao', 'status'];
+    const colunasTipoEvento = ['tipo', 'tipo_evento', 'categoria'];
+    const colunasDataEvento = ['data', 'data_evento'];
+
+    const colunasFaltantes = colunasObrigatorias.filter(col => !cabecalho.includes(col));
+    
+    // Verificar se existe pelo menos uma coluna de tipo_evento
+    const temTipoEvento = colunasTipoEvento.some(col => cabecalho.includes(col));
+    if (!temTipoEvento) {
+      colunasFaltantes.push('tipo_evento (ou tipo)');
+    }
+
+    // Verificar se existe pelo menos uma coluna de data_evento  
+    const temDataEvento = colunasDataEvento.some(col => cabecalho.includes(col));
+    if (!temDataEvento) {
+      colunasFaltantes.push('data_evento (ou data)');
+    }
+    
+    if (colunasFaltantes.length > 0) {
+      throw new Error(`Colunas obrigatórias faltantes: ${colunasFaltantes.join(', ')}`);
+    }
+
+    // Processar dados
+    const eventosNovos: EventoCorporativo[] = [];
+    
+    for (let i = 1; i < linhas.length; i++) {
+      const valores = linhas[i].split(',').map(val => val.trim());
       
-      if (linhas.length < 2) {
-        throw new Error('Arquivo CSV deve ter pelo menos cabeçalho e uma linha de dados');
+      if (valores.length < cabecalho.length) {
+        console.warn(`Linha ${i + 1} incompleta, pulando...`);
+        continue;
       }
 
-      const cabecalho = linhas[0].split(',').map(col => col.trim());
-      console.log('Cabeçalho encontrado:', cabecalho);
+      const evento: any = {};
+      
+      // Mapear colunas do CSV para o formato esperado
+      cabecalho.forEach((coluna, index) => {
+        const colunaDestino = mapeamentoColunas[coluna] || coluna;
+        evento[colunaDestino] = valores[index] || '';
+      });
+
+      // Validar dados obrigatórios
+      if (!evento.ticker || !evento.data_evento || !evento.titulo) {
+        console.warn(`Linha ${i + 1} com dados obrigatórios faltantes, pulando...`);
+        continue;
+      }
+
+      // Validar data
+      const dataEvento = new Date(evento.data_evento);
+      if (isNaN(dataEvento.getTime())) {
+        console.warn(`Linha ${i + 1} com data inválida: ${evento.data_evento}`);
+        continue;
+      }
+
+      eventosNovos.push(evento as EventoCorporativo);
+    }
+
+    if (eventosNovos.length === 0) {
+      throw new Error('Nenhum evento válido encontrado no arquivo');
+    }
+
+    // Salvar dados
+    await salvarEventos(eventosNovos);
+    
+    alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}`);
+    
+  } catch (error) {
+    console.error('Erro no upload:', error);
+    alert(`❌ Erro ao processar arquivo:\n${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  } finally {
+    setUploading(false);
+    setLoading(false);
+    // Limpar input
+    event.target.value = '';
+  }
+};
 
       // Validar colunas obrigatórias
       const colunasObrigatorias = ['ticker', 'tipo_evento', 'titulo', 'data_evento', 'descricao', 'status'];
@@ -238,8 +325,8 @@ export default function CentralAgendaPage() {
   };
 
   // Download do template
-  const downloadTemplate = () => {
-    const template = `ticker,tipo_evento,titulo,data_evento,descricao,status,prioridade,url_externo,observacoes
+const downloadTemplate = () => {
+  const template = `ticker,tipo_evento,titulo,data_evento,descricao,status,prioridade,url_externo,observacoes
 VALE3,resultado,Resultados 1T25,2025-05-15,Divulgação dos resultados do primeiro trimestre,confirmado,alta,,
 PETR4,dividendo,Ex-Dividendos,2025-06-10,Data ex-dividendos referente aos resultados,estimado,media,,
 MALL11,rendimento,Rendimento Jun/25,2025-06-15,Distribuição mensal de rendimentos,confirmado,alta,,
@@ -247,15 +334,14 @@ HSML11,assembleia,AGO 2025,2025-04-28,Assembleia Geral de Cotistas,confirmado,al
 BTLG11,conference_call,Conference Call 1T25,2025-05-16,Apresentação dos resultados trimestrais,confirmado,media,,Às 16h00
 VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operações especiais,estimado,baixa,,`;
 
-    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template_agenda_corporativa.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
+  const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'template_agenda_corporativa.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
   // Estatísticas por ticker
   const estatisticasPorTicker = React.useMemo(() => {
     const stats: { [ticker: string]: { total: number; proximos: number } } = {};
