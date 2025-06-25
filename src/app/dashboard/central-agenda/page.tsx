@@ -26,7 +26,12 @@ import {
   DialogActions,
   Tabs,
   Tab,
-  CircularProgress
+  CircularProgress,
+  Tooltip,
+  Menu,
+  MenuItem,
+  Checkbox,
+  Toolbar
 } from '@mui/material';
 
 // Ícones Mock (mantendo consistência com o padrão atual)
@@ -36,6 +41,8 @@ const DeleteIcon = () => <span>🗑️</span>;
 const RefreshIcon = () => <span>🔄</span>;
 const ViewIcon = () => <span>👁️</span>;
 const ArrowLeftIcon = () => <span>←</span>;
+const MoreVertIcon = () => <span>⋮</span>;
+const EditIcon = () => <span>✏️</span>;
 
 // Configurações dos tipos de eventos
 const TIPOS_EVENTO = {
@@ -66,6 +73,7 @@ interface EventoCorporativo {
   prioridade?: string;
   url_externo?: string;
   observacoes?: string;
+  id?: string; // Adicionado para facilitar exclusões
 }
 
 // Hook para gerenciar dados da agenda central
@@ -117,6 +125,24 @@ const useAgendaCentral = () => {
     }
   }, []);
 
+  // 🗑️ NOVA: Função para excluir evento individual
+  const excluirEvento = useCallback((eventoIndex: number) => {
+    const eventosAtualizados = eventos.filter((_, index) => index !== eventoIndex);
+    salvarEventos(eventosAtualizados);
+  }, [eventos, salvarEventos]);
+
+  // 🗑️ NOVA: Função para excluir múltiplos eventos
+  const excluirEventos = useCallback((indices: number[]) => {
+    const eventosAtualizados = eventos.filter((_, index) => !indices.includes(index));
+    salvarEventos(eventosAtualizados);
+  }, [eventos, salvarEventos]);
+
+  // 🗑️ NOVA: Função para excluir todos eventos de um ticker
+  const excluirPorTicker = useCallback((ticker: string) => {
+    const eventosAtualizados = eventos.filter(evento => evento.ticker !== ticker);
+    salvarEventos(eventosAtualizados);
+  }, [eventos, salvarEventos]);
+
   const limparEventos = useCallback(() => {
     localStorage.removeItem('agenda_corporativa_central');
     localStorage.removeItem('agenda_corporativa_timestamp');
@@ -137,6 +163,9 @@ const useAgendaCentral = () => {
     totalTickers,
     salvarEventos,
     limparEventos,
+    excluirEvento,
+    excluirEventos,
+    excluirPorTicker,
     refetch: carregarEventos
   };
 };
@@ -151,15 +180,25 @@ export default function CentralAgendaPage() {
     totalTickers,
     salvarEventos,
     limparEventos,
+    excluirEvento,
+    excluirEventos,
+    excluirPorTicker,
     refetch
   } = useAgendaCentral();
 
   const [tabAtual, setTabAtual] = useState(0);
   const [dialogLimpar, setDialogLimpar] = useState(false);
   const [uploading, setUploading] = useState(false);
+  
+  // 🗑️ NOVO: Estados para exclusão
+  const [eventoParaExcluir, setEventoParaExcluir] = useState<number | null>(null);
+  const [tickerParaExcluir, setTickerParaExcluir] = useState<string | null>(null);
+  const [eventosSelecionados, setEventosSelecionados] = useState<number[]>([]);
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [menuEventoIndex, setMenuEventoIndex] = useState<number | null>(null);
 
   // Processar upload de CSV
-// 1. Função handleUploadCSV (ASYNC)
 const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const arquivo = event.target.files?.[0];
   if (!arquivo) return;
@@ -229,6 +268,9 @@ const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
         evento[colunaDestino] = valores[index] || '';
       });
 
+      // Adicionar ID único
+      evento.id = `${evento.ticker}-${evento.data_evento}-${i}`;
+
       // Validar dados obrigatórios
       if (!evento.ticker || !evento.data_evento || !evento.titulo) {
         console.warn(`Linha ${i + 1} com dados obrigatórios faltantes, pulando...`);
@@ -249,7 +291,7 @@ const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       throw new Error('Nenhum evento válido encontrado no arquivo');
     }
 
-    // Salvar dados (removendo await pois salvarEventos não é async)
+    // Salvar dados
     salvarEventos(eventosNovos);
     
     alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}`);
@@ -260,7 +302,6 @@ const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
   } finally {
     setUploading(false);
     setLoading(false);
-    // Limpar input
     event.target.value = '';
   }
 };
@@ -283,6 +324,69 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
   a.click();
   URL.revokeObjectURL(url);
 };
+
+  // 🗑️ NOVAS: Funções de exclusão
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, index: number) => {
+    setMenuAnchor(event.currentTarget);
+    setMenuEventoIndex(index);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+    setMenuEventoIndex(null);
+  };
+
+  const handleExcluirEvento = (index: number) => {
+    setEventoParaExcluir(index);
+    handleMenuClose();
+  };
+
+  const confirmarExclusaoEvento = () => {
+    if (eventoParaExcluir !== null) {
+      excluirEvento(eventoParaExcluir);
+      setEventoParaExcluir(null);
+      alert('✅ Evento excluído com sucesso!');
+    }
+  };
+
+  const handleExcluirTicker = (ticker: string) => {
+    setTickerParaExcluir(ticker);
+  };
+
+  const confirmarExclusaoTicker = () => {
+    if (tickerParaExcluir) {
+      const eventosDoTicker = eventos.filter(e => e.ticker === tickerParaExcluir).length;
+      excluirPorTicker(tickerParaExcluir);
+      setTickerParaExcluir(null);
+      alert(`✅ ${eventosDoTicker} eventos do ticker ${tickerParaExcluir} excluídos!`);
+    }
+  };
+
+  const handleSelecionar = (index: number) => {
+    setEventosSelecionados(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
+
+  const handleSelecionarTodos = () => {
+    if (eventosSelecionados.length === eventos.length) {
+      setEventosSelecionados([]);
+    } else {
+      setEventosSelecionados(eventos.map((_, index) => index));
+    }
+  };
+
+  const excluirSelecionados = () => {
+    if (eventosSelecionados.length > 0) {
+      excluirEventos(eventosSelecionados);
+      setEventosSelecionados([]);
+      setModoSelecao(false);
+      alert(`✅ ${eventosSelecionados.length} eventos excluídos!`);
+    }
+  };
+
   // Estatísticas por ticker
   const estatisticasPorTicker = React.useMemo(() => {
     const stats: { [ticker: string]: { total: number; proximos: number } } = {};
@@ -484,92 +588,153 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
           <CardContent sx={{ p: 0 }}>
             {/* Tab 1: Lista de Eventos */}
             {tabAtual === 0 && (
-              <TableContainer sx={{ maxHeight: 600 }}>
-                <Table stickyHeader size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Ticker</TableCell>
-                      <TableCell>Tipo</TableCell>
-                      <TableCell>Título</TableCell>
-                      <TableCell>Data</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Prioridade</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {eventos
-                      .sort((a, b) => new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime())
-                      .map((evento, index) => {
-                        const config = TIPOS_EVENTO[evento.tipo_evento as keyof typeof TIPOS_EVENTO] || 
-                                     { icon: '📅', cor: '#64748b', label: evento.tipo_evento };
-                        const statusConfig = STATUS_CONFIG[evento.status as keyof typeof STATUS_CONFIG] || 
-                                            { cor: '#64748b', label: evento.status };
-                        
-                        return (
-                          <TableRow key={index} hover>
-                            <TableCell sx={{ fontWeight: 600 }}>
-                              {evento.ticker}
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                icon={<span>{config.icon}</span>}
-                                label={config.label}
-                                size="small"
-                                sx={{
-                                  backgroundColor: config.cor,
-                                  color: 'white',
-                                  fontSize: '0.75rem'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                  {evento.titulo}
-                                </Typography>
-                                {evento.observacoes && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    📝 {evento.observacoes}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {new Date(evento.data_evento).toLocaleDateString('pt-BR')}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={statusConfig.label}
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                  borderColor: statusConfig.cor,
-                                  color: statusConfig.cor,
-                                  fontSize: '0.75rem'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {evento.prioridade && (
-                                <Chip
-                                  label={evento.prioridade}
-                                  size="small"
-                                  color={
-                                    evento.prioridade === 'alta' ? 'error' :
-                                    evento.prioridade === 'media' ? 'warning' : 'default'
-                                  }
-                                  sx={{ fontSize: '0.75rem' }}
-                                />
+              <>
+                {/* 🗑️ NOVA: Toolbar de ações */}
+                <Toolbar sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                    <Button
+                      size="small"
+                      variant={modoSelecao ? "contained" : "outlined"}
+                      onClick={() => {
+                        setModoSelecao(!modoSelecao);
+                        setEventosSelecionados([]);
+                      }}
+                    >
+                      {modoSelecao ? 'Cancelar Seleção' : 'Selecionar Múltiplos'}
+                    </Button>
+
+                    {modoSelecao && (
+                      <>
+                        <Button
+                          size="small"
+                          onClick={handleSelecionarTodos}
+                        >
+                          {eventosSelecionados.length === eventos.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                        </Button>
+
+                        {eventosSelecionados.length > 0 && (
+                          <Button
+                            size="small"
+                            color="error"
+                            variant="contained"
+                            startIcon={<DeleteIcon />}
+                            onClick={excluirSelecionados}
+                          >
+                            Excluir Selecionados ({eventosSelecionados.length})
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                </Toolbar>
+
+                <TableContainer sx={{ maxHeight: 600 }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        {modoSelecao && <TableCell padding="checkbox">Sel.</TableCell>}
+                        <TableCell>Ticker</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell>Título</TableCell>
+                        <TableCell>Data</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Prioridade</TableCell>
+                        <TableCell align="center">Ações</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {eventos
+                        .sort((a, b) => new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime())
+                        .map((evento, index) => {
+                          const config = TIPOS_EVENTO[evento.tipo_evento as keyof typeof TIPOS_EVENTO] || 
+                                       { icon: '📅', cor: '#64748b', label: evento.tipo_evento };
+                          const statusConfig = STATUS_CONFIG[evento.status as keyof typeof STATUS_CONFIG] || 
+                                              { cor: '#64748b', label: evento.status };
+                          
+                          return (
+                            <TableRow key={index} hover>
+                              {modoSelecao && (
+                                <TableCell padding="checkbox">
+                                  <Checkbox
+                                    checked={eventosSelecionados.includes(index)}
+                                    onChange={() => handleSelecionar(index)}
+                                  />
+                                </TableCell>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                {evento.ticker}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  icon={<span>{config.icon}</span>}
+                                  label={config.label}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: config.cor,
+                                    color: 'white',
+                                    fontSize: '0.75rem'
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                    {evento.titulo}
+                                  </Typography>
+                                  {evento.observacoes && (
+                                    <Typography variant="caption" color="text.secondary">
+                                      📝 {evento.observacoes}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {new Date(evento.data_evento).toLocaleDateString('pt-BR')}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={statusConfig.label}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: statusConfig.cor,
+                                    color: statusConfig.cor,
+                                    fontSize: '0.75rem'
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {evento.prioridade && (
+                                  <Chip
+                                    label={evento.prioridade}
+                                    size="small"
+                                    color={
+                                      evento.prioridade === 'alta' ? 'error' :
+                                      evento.prioridade === 'media' ? 'warning' : 'default'
+                                    }
+                                    sx={{ fontSize: '0.75rem' }}
+                                  />
+                                )}
+                              </TableCell>
+                              <TableCell align="center">
+                                <Tooltip title="Mais opções">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => handleMenuClick(e, index)}
+                                  >
+                                    <MoreVertIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
             )}
 
             {/* Tab 2: Estatísticas por Ticker */}
@@ -584,7 +749,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                             <Typography variant="h6" sx={{ fontWeight: 600 }}>
                               {ticker}
                             </Typography>
-                            <Stack direction="row" spacing={1}>
+                            <Stack direction="row" spacing={1} alignItems="center">
                               <Chip
                                 label={`${total} total`}
                                 size="small"
@@ -597,6 +762,15 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                                   color="warning"
                                 />
                               )}
+                              <Tooltip title="Excluir todos eventos deste ticker">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleExcluirTicker(ticker)}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
                             </Stack>
                           </Stack>
                         </CardContent>
@@ -610,7 +784,78 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
         </Card>
       )}
 
-      {/* Dialog de Confirmação para Limpar */}
+      {/* 🗑️ NOVO: Menu de contexto para ações do evento */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => menuEventoIndex !== null && handleExcluirEvento(menuEventoIndex)}>
+          <DeleteIcon /> &nbsp; Excluir Evento
+        </MenuItem>
+      </Menu>
+
+      {/* 🗑️ NOVO: Dialog de confirmação para exclusão individual */}
+      <Dialog 
+        open={eventoParaExcluir !== null} 
+        onClose={() => setEventoParaExcluir(null)}
+      >
+        <DialogTitle>🗑️ Excluir Evento</DialogTitle>
+        <DialogContent>
+          {eventoParaExcluir !== null && (
+            <Typography>
+              Tem certeza que deseja excluir o evento:
+              <br/><br/>
+              <strong>{eventos[eventoParaExcluir]?.titulo}</strong>
+              <br/>
+              <em>{eventos[eventoParaExcluir]?.ticker} - {new Date(eventos[eventoParaExcluir]?.data_evento).toLocaleDateString('pt-BR')}</em>
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEventoParaExcluir(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="error"
+            onClick={confirmarExclusaoEvento}
+          >
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 🗑️ NOVO: Dialog de confirmação para exclusão por ticker */}
+      <Dialog 
+        open={tickerParaExcluir !== null} 
+        onClose={() => setTickerParaExcluir(null)}
+      >
+        <DialogTitle>🗑️ Excluir Todos Eventos do Ticker</DialogTitle>
+        <DialogContent>
+          {tickerParaExcluir && (
+            <Typography>
+              Tem certeza que deseja excluir todos os{' '}
+              <strong>{eventos.filter(e => e.ticker === tickerParaExcluir).length} eventos</strong>{' '}
+              do ticker <strong>{tickerParaExcluir}</strong>?
+              <br/><br/>
+              Esta ação não pode ser desfeita.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTickerParaExcluir(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="error"
+            onClick={confirmarExclusaoTicker}
+          >
+            Excluir Todos
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Confirmação para Limpar Tudo */}
       <Dialog open={dialogLimpar} onClose={() => setDialogLimpar(false)}>
         <DialogTitle>🗑️ Limpar Todos os Dados</DialogTitle>
         <DialogContent>
