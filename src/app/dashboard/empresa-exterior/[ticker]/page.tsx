@@ -318,9 +318,6 @@ export default function EmpresaExteriorDetalhes() {
           </div>
         )}
 
-        {/* Debug de dados para verificar */}
-        {console.log('🔍 Debug dadosFinanceiros:', dadosFinanceiros)}
-        
         {/* Card Principal de Preço */}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white p-6">
