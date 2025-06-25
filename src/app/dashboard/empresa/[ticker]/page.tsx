@@ -2741,16 +2741,67 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   );
 });
 // ========================================
-// COMPONENTE AGENDA CORPORATIVA
+// COMPONENTE AGENDA CORPORATIVA ATUALIZADO
+// Agora lê APENAS do localStorage (como os proventos)
 // ========================================
-const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
-  const [eventos, setEventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
 
-  // Função para calcular dias até o evento
-  const calcularDiasAteEvento = useCallback((dataEvento: Date) => {
+// Hook para ler dados da agenda central
+const useAgendaPlanilha = (ticker: string) => {
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState('');
+
+  const carregarEventos = useCallback(() => {
+    try {
+      setLoading(true);
+      
+      // 🎯 ÚNICA FONTE: localStorage central (igual aos proventos)
+      const dadosSalvos = localStorage.getItem('agenda_corporativa_central');
+      
+      if (dadosSalvos) {
+        const todosEventos = JSON.parse(dadosSalvos);
+        
+        // Filtrar eventos do ticker específico
+        const eventosTicker = todosEventos.filter((evento: any) => 
+          evento.ticker?.toUpperCase() === ticker?.toUpperCase()
+        );
+        
+        // Ordenar por data
+        const eventosOrdenados = eventosTicker.sort((a: any, b: any) => 
+          new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime()
+        );
+        
+        setEventos(eventosOrdenados);
+        
+        // Verificar timestamp da última atualização
+        const timestamp = localStorage.getItem('agenda_corporativa_timestamp');
+        if (timestamp) {
+          setUltimaAtualizacao(new Date(parseInt(timestamp)).toLocaleString('pt-BR'));
+        }
+      } else {
+        setEventos([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar eventos da agenda:', error);
+      setEventos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker]);
+
+  useEffect(() => {
+    carregarEventos();
+  }, [carregarEventos]);
+
+  return { eventos, loading, ultimaAtualizacao, refetch: carregarEventos };
+};
+
+// Componente AgendaCorporativa atualizado (SUBSTITUIR O ATUAL)
+const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
+  const { eventos, loading, ultimaAtualizacao, refetch } = useAgendaPlanilha(ticker);
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  const calcularDiasAteEvento = useCallback((dataEvento: Date | string) => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const evento = new Date(dataEvento);
@@ -2762,7 +2813,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     return diffDays;
   }, []);
 
-  // Função para formatar a proximidade do evento
   const formatarProximidade = useCallback((dias: number) => {
     if (dias < 0) return 'Passou';
     if (dias === 0) return 'Hoje';
@@ -2772,233 +2822,33 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
     return `Em ${Math.ceil(dias / 30)} meses`;
   }, []);
 
-  // Criar eventos estimados quando não há dados da API
-const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
-  const eventos: any[] = [];
-  const hoje = new Date();
-  
-  if (isFII) {
-    // EVENTOS ESPECÍFICOS PARA FIIs
-    // Próxima distribuição mensal
-    const proximaDistribuicao = new Date(hoje);
-    proximaDistribuicao.setMonth(proximaDistribuicao.getMonth() + 1);
-    proximaDistribuicao.setDate(15);
-    
-    eventos.push({
-      id: 'distribuicao-fii',
-      tipo: 'dividendo',
-      titulo: 'Próxima Distribuição',
-      data: proximaDistribuicao,
-      descricao: 'FIIs distribuem rendimentos mensalmente',
-      estimado: true,
-      icone: '💰',
-      cor: '#f59e0b'
-    });
-    
-    // Relatório mensal
-    const proximoRelatorio = new Date(hoje);
-    proximoRelatorio.setMonth(proximoRelatorio.getMonth() + 1);
-    proximoRelatorio.setDate(10);
-    
-    eventos.push({
-      id: 'relatorio-fii',
-      tipo: 'resultado',
-      titulo: 'Relatório Mensal',
-      data: proximoRelatorio,
-      descricao: 'Relatório gerencial mensal do fundo',
-      estimado: true,
-      icone: '📊',
-      cor: '#f59e0b'
-    });
-    
-  } else {
-    // EVENTOS PARA AÇÕES
-    const mesAtual = hoje.getMonth();
-    const anoAtual = hoje.getFullYear();
-    
-    let proximoResultado: Date;
-    
-    if (mesAtual <= 1) {
-      proximoResultado = new Date(anoAtual, 3, 15);
-    } else if (mesAtual <= 4) {
-      proximoResultado = new Date(anoAtual, 5, 15);
-    } else if (mesAtual <= 7) {
-      proximoResultado = new Date(anoAtual, 8, 15);
-    } else {
-      proximoResultado = new Date(anoAtual, 11, 15);
-    }
-    
-    if (proximoResultado <= hoje) {
-      proximoResultado.setMonth(proximoResultado.getMonth() + 3);
-      if (proximoResultado.getFullYear() > anoAtual) {
-        proximoResultado = new Date(anoAtual + 1, 2, 15);
-      }
-    }
-    
-    eventos.push({
-      id: 'resultado-estimado',
-      tipo: 'resultado',
-      titulo: 'Próximos Resultados',
-      data: proximoResultado,
-      descricao: 'Data estimada para divulgação de resultados trimestrais',
-      estimado: true,
-      icone: '📊',
-      cor: '#3b82f6'
-    });
+  // Configurações visuais
+  const TIPOS_EVENTO = {
+    resultado: { icon: '📊', cor: '#3b82f6', label: 'Resultados' },
+    dividendo: { icon: '💰', cor: '#22c55e', label: 'Dividendos' },
+    rendimento: { icon: '💰', cor: '#f59e0b', label: 'Rendimentos' },
+    assembleia: { icon: '🏛️', cor: '#8b5cf6', label: 'Assembleia' },
+    conference_call: { icon: '📞', cor: '#06b6d4', label: 'Conference Call' },
+    relatorio: { icon: '📄', cor: '#64748b', label: 'Relatório' },
+    evento_especial: { icon: '⭐', cor: '#ec4899', label: 'Evento Especial' },
+    fato_relevante: { icon: '⚠️', cor: '#ef4444', label: 'Fato Relevante' }
+  };
 
-    // Estimativa de dividendos (geralmente 2-3 meses após resultados)
-    const proximoDividendo = new Date(proximoResultado);
-    proximoDividendo.setMonth(proximoDividendo.getMonth() + 2);
-    
-    eventos.push({
-      id: 'dividendo-estimado',
-      tipo: 'dividendo',
-      titulo: 'Possível Data Ex-Dividendos',
-      data: proximoDividendo,
-      descricao: 'Estimativa baseada em padrões típicos do mercado brasileiro',
-      estimado: true,
-      icone: '💰',
-      cor: '#22c55e'
-    });
+  const STATUS_CONFIG = {
+    confirmado: { cor: '#22c55e', label: 'Confirmado' },
+    estimado: { cor: '#f59e0b', label: 'Estimado' },
+    cancelado: { cor: '#ef4444', label: 'Cancelado' },
+    adiado: { cor: '#8b5cf6', label: 'Adiado' }
+  };
 
-    // Assembleia Geral (sempre em abril/maio no Brasil)
-    const dataAssembleia = new Date(anoAtual, 3, 30); // 30 de abril
-    if (dataAssembleia <= hoje) {
-      dataAssembleia.setFullYear(anoAtual + 1); // Próximo ano
-    }
-    
-    eventos.push({
-      id: 'assembleia-geral',
-      tipo: 'assembleia',
-      titulo: 'Assembleia Geral Ordinária',
-      data: dataAssembleia,
-      descricao: 'Data típica para aprovação das contas e eleição do conselho',
-      estimado: true,
-      icone: '🏛️',
-      cor: '#8b5cf6'
-    });
-  }
-
-  // ÚNICO return no final da função
-  return eventos.sort((a, b) => a.data.getTime() - b.data.getTime());
-}, []);
-  // Processar dados reais da API para criar agenda
-  const processarEventos = useCallback((dividendos: any[], ticker: string) => {
-    const eventos: any[] = [];
+  // Filtrar apenas eventos futuros e não cancelados
+  const eventosProximos = useMemo(() => {
     const hoje = new Date();
-    
-    // Analisar padrão de dividendos
-    if (dividendos && dividendos.length > 0) {
-      const dividendosOrdenados = dividendos
-        .map(div => ({
-          ...div,
-          dataObj: new Date(div.date)
-        }))
-        .sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-
-      // Pegar os últimos 4 dividendos para calcular média de intervalo
-      const ultimosDividendos = dividendosOrdenados.slice(0, 4);
-      
-      if (ultimosDividendos.length >= 2) {
-        const intervalos = [];
-        for (let i = 0; i < ultimosDividendos.length - 1; i++) {
-          const diff = ultimosDividendos[i].dataObj.getTime() - ultimosDividendos[i + 1].dataObj.getTime();
-          const meses = diff / (1000 * 60 * 60 * 24 * 30);
-          intervalos.push(meses);
-        }
-        
-        const mediaIntervalo = intervalos.reduce((a, b) => a + b, 0) / intervalos.length;
-        const ultimaData = ultimosDividendos[0].dataObj;
-        
-        // Estimar próximo dividendo
-        const proximaData = new Date(ultimaData);
-        proximaData.setMonth(proximaData.getMonth() + Math.round(mediaIntervalo));
-        
-        if (proximaData > hoje) {
-          eventos.push({
-            id: 'proximo-dividendo',
-            tipo: 'dividendo',
-            titulo: 'Provável Data Ex-Dividendos',
-            data: proximaData,
-            descricao: `Estimativa baseada no histórico (último: ${ultimaData.toLocaleDateString('pt-BR')})`,
-            estimado: true,
-            icone: '💰',
-            cor: '#22c55e'
-          });
-        }
-      }
-    }
-
-    // Adicionar eventos estimados padrão
-    const eventosEstimados = criarEventosEstimados(ticker, isFII);
-    eventos.push(...eventosEstimados);
-
-    // Remover duplicatas e ordenar
-    const eventosUnicos = eventos.filter((evento, index, self) => 
-      index === self.findIndex(e => e.tipo === evento.tipo && 
-        Math.abs(e.data.getTime() - evento.data.getTime()) < 7 * 24 * 60 * 60 * 1000)
-    );
-
-    return eventosUnicos.sort((a, b) => a.data.getTime() - b.data.getTime());
-  }, [criarEventosEstimados]);
-
-  // Função para buscar eventos da API BRAPI
-  const buscarEventos = useCallback(async () => {
-    if (!ticker) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Buscar dividendos históricos
-      const dividendsUrl = `https://brapi.dev/api/quote/${ticker}/dividends?token=${BRAPI_TOKEN}&limit=20`;
-      
-      const response = await fetch(dividendsUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Portfolio-Details-App',
-          'Cache-Control': 'no-cache'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.results && data.results.length > 0) {
-          const eventosProcessados = processarEventos(data.results, ticker);
-          setEventos(eventosProcessados);
-        } else {
-          // Se não há dados, criar eventos estimados
-          const eventosEstimados = criarEventosEstimados(ticker, isFII);
-          setEventos(eventosEstimados);
-        }
-        
-        setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
-      } else {
-        throw new Error(`Erro HTTP ${response.status}`);
-      }
-
-    } catch (err) {
-      console.error('Erro ao buscar eventos:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(errorMessage);
-      
-      // Em caso de erro, mostrar eventos estimados
-      const eventosEstimados = criarEventosEstimados(ticker, isFII);
-      setEventos(eventosEstimados);
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker, processarEventos, criarEventosEstimados]);
-
-  useEffect(() => {
-    buscarEventos();
-    
-    // Atualizar dados a cada 6 horas
-    const interval = setInterval(buscarEventos, 6 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [buscarEventos]);
+    return eventos.filter((evento: any) => {
+      const dataEvento = new Date(evento.data_evento);
+      return dataEvento >= hoje && evento.status !== 'cancelado';
+    }).slice(0, 4); // Mostrar apenas 4 eventos
+  }, [eventos]);
 
   return (
     <Card>
@@ -3013,9 +2863,17 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                 {ultimaAtualizacao}
               </Typography>
             )}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => window.open('/central-agenda', '_blank')}
+              sx={{ fontSize: '0.8rem' }}
+            >
+              ✏️ Gerenciar
+            </Button>
             <IconButton 
               size="small" 
-              onClick={buscarEventos} 
+              onClick={refetch} 
               disabled={loading}
               title="Atualizar eventos"
             >
@@ -3024,32 +2882,35 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
           </Stack>
         </Stack>
 
-        {error && !loading && (
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            <Typography variant="body2">
-              ⚠️ Usando estimativas padrão. {error}
-            </Typography>
-          </Alert>
-        )}
-
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
-        ) : eventos.length === 0 ? (
+        ) : eventosProximos.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ mb: 2 }}>
               📭 Nenhum evento encontrado para {ticker}
             </Typography>
+            <Button
+              variant="contained"
+              onClick={() => window.open('/central-agenda', '_blank')}
+              sx={{ fontSize: '0.9rem' }}
+            >
+              ➕ Adicionar Eventos
+            </Button>
           </Box>
         ) : (
           <Stack spacing={3}>
-            {eventos.slice(0, 4).map((evento, index) => {
-              const diasAteEvento = calcularDiasAteEvento(evento.data);
+            {eventosProximos.map((evento: any, index: number) => {
+              const diasAteEvento = calcularDiasAteEvento(evento.data_evento);
               const proximidade = formatarProximidade(diasAteEvento);
+              const config = TIPOS_EVENTO[evento.tipo_evento as keyof typeof TIPOS_EVENTO] || 
+                           { icon: '📅', cor: '#64748b', label: 'Evento' };
+              const statusConfig = STATUS_CONFIG[evento.status as keyof typeof STATUS_CONFIG] || 
+                                 { cor: '#64748b', label: evento.status };
               
               return (
-                <Card key={evento.id} sx={{ 
+                <Card key={`${evento.ticker}-${evento.data_evento}-${index}`} sx={{ 
                   border: '1px solid #e2e8f0', 
                   borderRadius: 2,
                   backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
@@ -3062,6 +2923,15 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                 }}>
                   <CardContent sx={{ p: 4 }}>
                     <Stack direction="row" alignItems="center" spacing={4}>
+                      {/* Ícone do tipo de evento */}
+                      <Box sx={{ 
+                        fontSize: '2rem',
+                        minWidth: '60px',
+                        textAlign: 'center'
+                      }}>
+                        {config.icon}
+                      </Box>
+
                       {/* Conteúdo Principal */}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
@@ -3084,6 +2954,18 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                               {evento.descricao}
                             </Typography>
 
+                            {/* Observações */}
+                            {evento.observacoes && (
+                              <Typography variant="caption" sx={{ 
+                                display: 'block',
+                                color: '#6b7280',
+                                fontStyle: 'italic',
+                                mb: 2
+                              }}>
+                                📝 {evento.observacoes}
+                              </Typography>
+                            )}
+
                             {/* Chips */}
                             <Stack direction="row" spacing={1} alignItems="center">
                               <Chip 
@@ -3097,13 +2979,32 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                                   px: 1
                                 }}
                               />
-                              {evento.estimado && (
+                              <Chip 
+                                label={config.label}
+                                size="medium"
+                                sx={{ 
+                                  backgroundColor: config.cor,
+                                  color: 'white',
+                                  fontSize: '0.8rem'
+                                }}
+                              />
+                              <Chip 
+                                label={statusConfig.label}
+                                size="medium"
+                                variant="outlined"
+                                sx={{ 
+                                  borderColor: statusConfig.cor,
+                                  color: statusConfig.cor,
+                                  fontSize: '0.8rem'
+                                }}
+                              />
+                              {evento.prioridade && (
                                 <Chip 
-                                  label="Estimado"
-                                  size="medium"
+                                  label={`${evento.prioridade}`}
+                                  size="small"
                                   variant="outlined"
                                   sx={{ 
-                                    fontSize: '0.8rem',
+                                    fontSize: '0.7rem',
                                     borderColor: '#d1d5db',
                                     color: '#6b7280'
                                   }}
@@ -3115,16 +3016,16 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                           {/* Data */}
                           <Box sx={{ 
                             textAlign: 'right',
-                            minWidth: 140,
+                            minWidth: 120,
                             flexShrink: 0
                           }}>
                             <Typography variant="h5" sx={{ 
                               fontWeight: 700,
-                              color: evento.cor,
+                              color: config.cor,
                               fontSize: '1.3rem',
                               lineHeight: 1
                             }}>
-                              {evento.data.getDate()}
+                              {new Date(evento.data_evento).getDate()}
                             </Typography>
                             <Typography variant="body2" sx={{ 
                               fontWeight: 600,
@@ -3133,7 +3034,7 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                               textTransform: 'uppercase',
                               letterSpacing: '0.5px'
                             }}>
-                              {evento.data.toLocaleDateString('pt-BR', {
+                              {new Date(evento.data_evento).toLocaleDateString('pt-BR', {
                                 month: 'short',
                                 year: 'numeric'
                               })}
@@ -3143,10 +3044,22 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
                               display: 'block',
                               mt: 0.5
                             }}>
-                              {evento.data.toLocaleDateString('pt-BR', {
+                              {new Date(evento.data_evento).toLocaleDateString('pt-BR', {
                                 weekday: 'long'
                               })}
                             </Typography>
+                            
+                            {/* Link externo se disponível */}
+                            {evento.url_externo && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                sx={{ mt: 1, fontSize: '0.7rem' }}
+                                onClick={() => window.open(evento.url_externo, '_blank')}
+                              >
+                                🔗 Link
+                              </Button>
+                            )}
                           </Box>
                         </Stack>
                       </Box>
@@ -3159,7 +3072,7 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
         )}
 
         {eventos.length > 4 && (
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Typography variant="caption" color="text.secondary">
               Mostrando os próximos 4 eventos • Total: {eventos.length}
             </Typography>
@@ -3168,10 +3081,11 @@ const criarEventosEstimados = useCallback((ticker: string, isFII: boolean) => {
 
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>ℹ️ Sobre as datas:</strong><br/>
-            • 🎯 <strong>Dados históricos:</strong> Baseados em dividendos reais da API BRAPI<br/>
-            • 📊 <strong>Estimativas:</strong> Calculadas com padrões do mercado brasileiro<br/>
-            • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo
+            <strong>💡 Sobre os dados:</strong><br/>
+            • 📊 <strong>Fonte:</strong> Planilha central gerenciada via /central-agenda<br/>
+            • 🎯 <strong>Precisão:</strong> Dados verificados e controlados manualmente<br/>
+            • ⏰ <strong>Eventos próximos</strong> (≤7 dias) destacados em amarelo<br/>
+            • ✏️ <strong>Gerenciamento:</strong> Use "Gerenciar" para acessar a página central
           </Typography>
         </Alert>
       </CardContent>
