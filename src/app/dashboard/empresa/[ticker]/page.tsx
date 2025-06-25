@@ -3072,19 +3072,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                                     height: 24
                                   }}
                                 />
-                                
-                                {evento.estimado && (
-                                  <Chip 
-                                    label="Estimado"
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ 
-                                      fontSize: '0.75rem',
-                                      borderColor: '#f59e0b',
-                                      color: '#f59e0b',
-                                      height: 24
-                                    }}
-                                  />
                                 )}
                               </Stack>
                             </Box>
