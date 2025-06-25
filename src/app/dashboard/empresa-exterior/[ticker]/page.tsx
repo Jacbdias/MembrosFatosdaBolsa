@@ -204,21 +204,50 @@ function useEmpresaExteriorData(ticker: string, nomeEmpresa: string, moeda: stri
 
 // ✅ COMPONENTE PRINCIPAL
 export default function EmpresaExteriorDetalhes() {
-  // ✅ TESTAR COM AAPL (SABEMOS QUE FUNCIONA)
-  const ticker = 'AAPL';
-  const nomeEmpresa = 'Apple Inc.';
+  // 🎯 PEGAR TICKER DA URL DINÂMICAMENTE
+  const [ticker, setTicker] = useState('');
+  const [nomeEmpresa, setNomeEmpresa] = useState('');
+  
+  // ✅ Extrair ticker da URL atual
+  useEffect(() => {
+    const path = window.location.pathname;
+    const tickerFromUrl = path.split('/').pop() || '';
+    setTicker(tickerFromUrl.toUpperCase());
+    
+    // Mapear nomes das empresas
+    const empresasMap: Record<string, string> = {
+      'AAPL': 'Apple Inc.',
+      'TSLA': 'Tesla Inc.',
+      'MSFT': 'Microsoft Corporation',
+      'GOOGL': 'Alphabet Inc.',
+      'AMZN': 'Amazon.com Inc.',
+      'META': 'Meta Platforms Inc.',
+      'NVDA': 'NVIDIA Corporation',
+      'JPM': 'JPMorgan Chase & Co.',
+      'BAC': 'Bank of America Corp.',
+      'VZ': 'Verizon Communications Inc.',
+      'OXY': 'Occidental Petroleum Corporation',
+      'O': 'Realty Income Corporation',
+      'ADC': 'Agree Realty Corporation',
+      'AVB': 'AvalonBay Communities Inc.',
+      'STAG': 'Stag Industrial Inc.'
+    };
+    
+    setNomeEmpresa(empresasMap[tickerFromUrl.toUpperCase()] || `${tickerFromUrl.toUpperCase()} Corporation`);
+  }, []);
+
   const moeda = 'USD';
 
   const { dadosFinanceiros, loading, error, ultimaAtualizacao, refresh } = useEmpresaExteriorData(ticker, nomeEmpresa, moeda);
 
-  if (loading) {
+  if (loading || !ticker) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-slate-600 font-medium">🌎 Carregando dados de {ticker}...</p>
+              <p className="text-slate-600 font-medium">🌎 Carregando dados de {ticker || 'ações internacionais'}...</p>
               <p className="text-slate-400 text-sm mt-2">Método da tabela em execução</p>
             </div>
           </div>
@@ -410,7 +439,9 @@ export default function EmpresaExteriorDetalhes() {
         {/* Debug Info */}
         <div className="bg-slate-800 text-slate-300 rounded-lg p-4 font-mono text-sm">
           <p className="text-slate-100 font-bold mb-2">🔧 Debug Info:</p>
-          <p>• Ticker: {ticker}</p>
+          <p>• URL: {window.location.pathname}</p>
+          <p>• Ticker extraído: {ticker}</p>
+          <p>• Empresa: {nomeEmpresa}</p>
           <p>• Método: Tabela BRAPI + Fallback</p>
           <p>• Status: {loading ? 'Carregando...' : dadosFinanceiros ? 'Dados carregados' : 'Erro'}</p>
           <p>• Última atualização: {ultimaAtualizacao}</p>
