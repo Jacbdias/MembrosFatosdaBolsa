@@ -318,6 +318,9 @@ export default function EmpresaExteriorDetalhes() {
           </div>
         )}
 
+        {/* Debug de dados para verificar */}
+        {console.log('🔍 Debug dadosFinanceiros:', dadosFinanceiros)}
+        
         {/* Card Principal de Preço */}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white p-6">
@@ -346,134 +349,143 @@ export default function EmpresaExteriorDetalhes() {
             </div>
           </div>
 
-          {/* Métricas Completas */}
-          {dadosFinanceiros && (
-            <div className="p-6">
-              {/* Range do Dia */}
-              {dadosFinanceiros.regularMarketDayHigh && dadosFinanceiros.regularMarketDayLow && (
-                <div className="mb-6 p-4 bg-slate-50 rounded-lg">
-                  <h3 className="text-sm font-semibold text-slate-600 mb-2">Range do Dia</h3>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-900 font-medium">
-                      ${dadosFinanceiros.regularMarketDayLow.toFixed(2)}
-                    </span>
-                    <div className="flex-1 mx-4 h-2 bg-slate-200 rounded-full relative">
-                      <div 
-                        className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-                        style={{
-                          width: `${((dadosFinanceiros.precoAtual - dadosFinanceiros.regularMarketDayLow) / 
-                                   (dadosFinanceiros.regularMarketDayHigh - dadosFinanceiros.regularMarketDayLow)) * 100}%`
-                        }}
-                      />
-                      <div 
-                        className="absolute top-0 w-1 h-full bg-slate-800 rounded-full"
-                        style={{
-                          left: `${((dadosFinanceiros.precoAtual - dadosFinanceiros.regularMarketDayLow) / 
-                                   (dadosFinanceiros.regularMarketDayHigh - dadosFinanceiros.regularMarketDayLow)) * 100}%`
-                        }}
-                      />
+          {/* Métricas Completas - FORÇAR RENDERIZAÇÃO PARA DEBUG */}
+          <div className="p-6">
+            <h3 className="text-lg font-bold text-red-600 mb-4">🔧 TESTE - Layout Rico Carregando...</h3>
+            
+            {dadosFinanceiros ? (
+              <>
+                {/* Range do Dia */}
+                {dadosFinanceiros.regularMarketDayHigh && dadosFinanceiros.regularMarketDayLow ? (
+                  <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                    <h3 className="text-sm font-semibold text-slate-600 mb-2">Range do Dia</h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-900 font-medium">
+                        ${dadosFinanceiros.regularMarketDayLow.toFixed(2)}
+                      </span>
+                      <div className="flex-1 mx-4 h-2 bg-slate-200 rounded-full relative">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
+                          style={{
+                            width: `${((dadosFinanceiros.precoAtual - dadosFinanceiros.regularMarketDayLow) / 
+                                     (dadosFinanceiros.regularMarketDayHigh - dadosFinanceiros.regularMarketDayLow)) * 100}%`
+                          }}
+                        />
+                        <div 
+                          className="absolute top-0 w-1 h-full bg-slate-800 rounded-full"
+                          style={{
+                            left: `${((dadosFinanceiros.precoAtual - dadosFinanceiros.regularMarketDayLow) / 
+                                     (dadosFinanceiros.regularMarketDayHigh - dadosFinanceiros.regularMarketDayLow)) * 100}%`
+                          }}
+                        />
+                      </div>
+                      <span className="text-slate-900 font-medium">
+                        ${dadosFinanceiros.regularMarketDayHigh.toFixed(2)}
+                      </span>
                     </div>
-                    <span className="text-slate-900 font-medium">
-                      ${dadosFinanceiros.regularMarketDayHigh.toFixed(2)}
-                    </span>
                   </div>
-                </div>
-              )}
-
-              {/* Grid de Métricas */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div className="text-center">
-                  <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-lg mx-auto mb-3">
-                    <TrendUpIcon size={24} className="text-blue-600" />
+                ) : (
+                  <div className="mb-6 p-4 bg-red-50 rounded-lg">
+                    <p className="text-red-600">⚠️ Range do dia não disponível</p>
+                    <p className="text-xs text-red-500">
+                      High: {dadosFinanceiros.regularMarketDayHigh || 'null'} | 
+                      Low: {dadosFinanceiros.regularMarketDayLow || 'null'}
+                    </p>
                   </div>
-                  <p className="text-slate-600 text-sm font-medium">Volume</p>
-                  <p className="text-slate-900 text-lg font-bold">
-                    {(dadosFinanceiros.volume / 1000000).toFixed(1)}M
-                  </p>
-                </div>
+                )}
 
-                {dadosFinanceiros.regularMarketOpen && (
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-12 h-12 bg-green-50 rounded-lg mx-auto mb-3">
+                {/* Grid de Métricas - SEMPRE RENDERIZAR */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                    <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-3">
+                      <TrendUpIcon size={24} className="text-blue-600" />
+                    </div>
+                    <p className="text-slate-600 text-sm font-medium">Volume</p>
+                    <p className="text-slate-900 text-lg font-bold">
+                      {(dadosFinanceiros.volume / 1000000).toFixed(1)}M
+                    </p>
+                  </div>
+
+                  <div className="text-center p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                    <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-3">
                       <CurrencyDollarIcon size={24} className="text-green-600" />
                     </div>
                     <p className="text-slate-600 text-sm font-medium">Abertura</p>
                     <p className="text-slate-900 text-lg font-bold">
-                      ${dadosFinanceiros.regularMarketOpen.toFixed(2)}
+                      ${dadosFinanceiros.regularMarketOpen ? dadosFinanceiros.regularMarketOpen.toFixed(2) : 'N/A'}
                     </p>
                   </div>
-                )}
 
-                {dadosFinanceiros.fiftyTwoWeekHigh && (
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-12 h-12 bg-purple-50 rounded-lg mx-auto mb-3">
+                  <div className="text-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+                    <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-3">
                       <ArrowUpIcon size={24} className="text-purple-600" />
                     </div>
                     <p className="text-slate-600 text-sm font-medium">Máx. 52s</p>
                     <p className="text-slate-900 text-lg font-bold">
-                      ${dadosFinanceiros.fiftyTwoWeekHigh.toFixed(2)}
+                      ${dadosFinanceiros.fiftyTwoWeekHigh ? dadosFinanceiros.fiftyTwoWeekHigh.toFixed(2) : 'N/A'}
                     </p>
                   </div>
-                )}
 
-                {dadosFinanceiros.fiftyTwoWeekLow && (
-                  <div className="text-center">
-                    <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-lg mx-auto mb-3">
+                  <div className="text-center p-4 bg-red-50 rounded-lg border-2 border-red-200">
+                    <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg mx-auto mb-3">
                       <ArrowDownIcon size={24} className="text-red-600" />
                     </div>
                     <p className="text-slate-600 text-sm font-medium">Mín. 52s</p>
                     <p className="text-slate-900 text-lg font-bold">
-                      ${dadosFinanceiros.fiftyTwoWeekLow.toFixed(2)}
+                      ${dadosFinanceiros.fiftyTwoWeekLow ? dadosFinanceiros.fiftyTwoWeekLow.toFixed(2) : 'N/A'}
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Métricas Financeiras Adicionais */}
-              {(dadosFinanceiros.marketCap || dadosFinanceiros.pe || dadosFinanceiros.dividendYield) && (
+                {/* Métricas Financeiras Adicionais - SEMPRE RENDERIZAR */}
                 <div className="mt-6 pt-6 border-t border-slate-200">
                   <h3 className="text-lg font-semibold text-slate-900 mb-4">Indicadores Financeiros</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {dadosFinanceiros.marketCap && (
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-3">
-                          <GlobeIcon size={24} className="text-green-600" />
-                        </div>
-                        <p className="text-slate-600 text-sm font-medium">Market Cap</p>
-                        <p className="text-slate-900 text-xl font-bold">
-                          ${(dadosFinanceiros.marketCap / 1000000000).toFixed(1)}B
-                        </p>
+                    <div className="text-center p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                      <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-3">
+                        <GlobeIcon size={24} className="text-green-600" />
                       </div>
-                    )}
+                      <p className="text-slate-600 text-sm font-medium">Market Cap</p>
+                      <p className="text-slate-900 text-xl font-bold">
+                        {dadosFinanceiros.marketCap ? 
+                          `${(dadosFinanceiros.marketCap / 1000000000).toFixed(1)}B` : 
+                          'N/A'
+                        }
+                      </p>
+                    </div>
 
-                    {dadosFinanceiros.pe && (
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-3">
-                          <TargetIcon size={24} className="text-purple-600" />
-                        </div>
-                        <p className="text-slate-600 text-sm font-medium">P/E Ratio</p>
-                        <p className="text-slate-900 text-xl font-bold">
-                          {dadosFinanceiros.pe.toFixed(1)}
-                        </p>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+                      <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-3">
+                        <TargetIcon size={24} className="text-purple-600" />
                       </div>
-                    )}
+                      <p className="text-slate-600 text-sm font-medium">P/E Ratio</p>
+                      <p className="text-slate-900 text-xl font-bold">
+                        {dadosFinanceiros.pe ? dadosFinanceiros.pe.toFixed(1) : 'N/A'}
+                      </p>
+                    </div>
 
-                    {dadosFinanceiros.dividendYield !== undefined && dadosFinanceiros.dividendYield > 0 && (
-                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                        <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mx-auto mb-3">
-                          <CurrencyDollarIcon size={24} className="text-yellow-600" />
-                        </div>
-                        <p className="text-slate-600 text-sm font-medium">Dividend Yield</p>
-                        <p className="text-slate-900 text-xl font-bold">
-                          {dadosFinanceiros.dividendYield.toFixed(2)}%
-                        </p>
+                    <div className="text-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+                      <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mx-auto mb-3">
+                        <CurrencyDollarIcon size={24} className="text-yellow-600" />
                       </div>
-                    )}
+                      <p className="text-slate-600 text-sm font-medium">Dividend Yield</p>
+                      <p className="text-slate-900 text-xl font-bold">
+                        {dadosFinanceiros.dividendYield ? 
+                          `${dadosFinanceiros.dividendYield.toFixed(2)}%` : 
+                          '0.00%'
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+              </>
+            ) : (
+              <div className="p-8 bg-red-50 rounded-lg border-2 border-red-200">
+                <h3 className="text-red-600 font-bold text-lg">❌ Dados não carregados!</h3>
+                <p className="text-red-500 mt-2">dadosFinanceiros é null ou undefined</p>
+              </div>
+            )}
+          </div>
 
           {/* Footer com timestamp */}
           <div className="bg-slate-50 px-6 py-4 border-t border-slate-200">
