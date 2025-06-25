@@ -333,7 +333,7 @@ export default function EmpresaExteriorDetalhes() {
             </div>
           </div>
 
-          {/* Métricas */}
+          {/* Métricas Completas */}
           {dadosFinanceiros && (
             <div className="p-6">
               {/* Range do Dia */}
@@ -367,6 +367,7 @@ export default function EmpresaExteriorDetalhes() {
                 </div>
               )}
 
+              {/* Grid de Métricas */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-lg mx-auto mb-3">
@@ -414,6 +415,50 @@ export default function EmpresaExteriorDetalhes() {
                   </div>
                 )}
               </div>
+
+              {/* Métricas Financeiras Adicionais */}
+              {(dadosFinanceiros.marketCap || dadosFinanceiros.pe || dadosFinanceiros.dividendYield) && (
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Indicadores Financeiros</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {dadosFinanceiros.marketCap && (
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-3">
+                          <GlobeIcon size={24} className="text-green-600" />
+                        </div>
+                        <p className="text-slate-600 text-sm font-medium">Market Cap</p>
+                        <p className="text-slate-900 text-xl font-bold">
+                          ${(dadosFinanceiros.marketCap / 1000000000).toFixed(1)}B
+                        </p>
+                      </div>
+                    )}
+
+                    {dadosFinanceiros.pe && (
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-3">
+                          <TargetIcon size={24} className="text-purple-600" />
+                        </div>
+                        <p className="text-slate-600 text-sm font-medium">P/E Ratio</p>
+                        <p className="text-slate-900 text-xl font-bold">
+                          {dadosFinanceiros.pe.toFixed(1)}
+                        </p>
+                      </div>
+                    )}
+
+                    {dadosFinanceiros.dividendYield !== undefined && dadosFinanceiros.dividendYield > 0 && (
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mx-auto mb-3">
+                          <CurrencyDollarIcon size={24} className="text-yellow-600" />
+                        </div>
+                        <p className="text-slate-600 text-sm font-medium">Dividend Yield</p>
+                        <p className="text-slate-900 text-xl font-bold">
+                          {dadosFinanceiros.dividendYield.toFixed(2)}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
