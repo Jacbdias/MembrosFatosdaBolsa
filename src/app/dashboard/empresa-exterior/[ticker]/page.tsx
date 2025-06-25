@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowUp, ArrowDown, Globe, DollarSign, BarChart3, Calendar, Target, AlertCircle } from 'lucide-react';
+import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
+import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
+import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
+import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
+import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
+import { BarChart as BarChartIcon } from '@phosphor-icons/react/dist/ssr/BarChart';
+import { Calendar as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar';
+import { Target as TargetIcon } from '@phosphor-icons/react/dist/ssr/Target';
+import { Warning as WarningIcon } from '@phosphor-icons/react/dist/ssr/Warning';
 
 // 🎯 VERSÃO MELHORADA - USANDO ESTRATÉGIA DA TABELA + RETRY LOGIC
 interface DadosFinanceirosExterior {
@@ -220,7 +228,7 @@ export default function EmpresaExteriorDetalhes() {
   }
 
   const isPositive = dadosFinanceiros ? dadosFinanceiros.variacao >= 0 : false;
-  const TrendIcon = isPositive ? ArrowUp : ArrowDown;
+  const TrendIcon = isPositive ? ArrowUpIcon : ArrowDownIcon;
   const trendColor = isPositive ? 'text-green-600' : 'text-red-600';
   const trendBg = isPositive ? 'bg-green-50' : 'bg-red-50';
 
@@ -234,7 +242,7 @@ export default function EmpresaExteriorDetalhes() {
               onClick={() => window.history.back()}
               className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeftIcon size={20} />
               <span>Voltar</span>
             </button>
             <div className="h-6 w-px bg-slate-300"></div>
@@ -255,7 +263,7 @@ export default function EmpresaExteriorDetalhes() {
         {error && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-center space-x-2">
-              <AlertCircle size={20} className="text-yellow-600" />
+              <WarningIcon size={20} className="text-yellow-600" />
               <p className="text-yellow-800 font-medium">Status da API</p>
             </div>
             <p className="text-yellow-700 mt-1">{error}</p>
@@ -333,7 +341,7 @@ export default function EmpresaExteriorDetalhes() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-lg mx-auto mb-3">
-                    <BarChart3 size={24} className="text-blue-600" />
+                    <BarChartIcon size={24} className="text-blue-600" />
                   </div>
                   <p className="text-slate-600 text-sm font-medium">Volume</p>
                   <p className="text-slate-900 text-lg font-bold">
@@ -344,7 +352,7 @@ export default function EmpresaExteriorDetalhes() {
                 {dadosFinanceiros.regularMarketOpen && (
                   <div className="text-center">
                     <div className="flex items-center justify-center w-12 h-12 bg-green-50 rounded-lg mx-auto mb-3">
-                      <DollarSign size={24} className="text-green-600" />
+                      <CurrencyDollarIcon size={24} className="text-green-600" />
                     </div>
                     <p className="text-slate-600 text-sm font-medium">Abertura</p>
                     <p className="text-slate-900 text-lg font-bold">
@@ -356,7 +364,7 @@ export default function EmpresaExteriorDetalhes() {
                 {dadosFinanceiros.fiftyTwoWeekHigh && (
                   <div className="text-center">
                     <div className="flex items-center justify-center w-12 h-12 bg-purple-50 rounded-lg mx-auto mb-3">
-                      <ArrowUp size={24} className="text-purple-600" />
+                      <ArrowUpIcon size={24} className="text-purple-600" />
                     </div>
                     <p className="text-slate-600 text-sm font-medium">Máx. 52s</p>
                     <p className="text-slate-900 text-lg font-bold">
@@ -368,7 +376,7 @@ export default function EmpresaExteriorDetalhes() {
                 {dadosFinanceiros.fiftyTwoWeekLow && (
                   <div className="text-center">
                     <div className="flex items-center justify-center w-12 h-12 bg-red-50 rounded-lg mx-auto mb-3">
-                      <ArrowDown size={24} className="text-red-600" />
+                      <ArrowDownIcon size={24} className="text-red-600" />
                     </div>
                     <p className="text-slate-600 text-sm font-medium">Mín. 52s</p>
                     <p className="text-slate-900 text-lg font-bold">
@@ -384,7 +392,7 @@ export default function EmpresaExteriorDetalhes() {
           <div className="bg-slate-50 px-6 py-4 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-slate-600">
-                <Calendar size={16} />
+                <CalendarIcon size={16} />
                 <span className="text-sm">
                   {ultimaAtualizacao || 'Carregando...'}
                 </span>
