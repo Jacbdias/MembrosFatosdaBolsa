@@ -2847,7 +2847,17 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
           let dataEvento: Date;
           
           if (evento.data_evento) {
-            dataEvento = new Date(evento.data_evento + 'T12:00:00.000Z');
+            // Converter formato YYYY-DD-MM para YYYY-MM-DD
+let dataFormatada = evento.data_evento;
+if (evento.data_evento && evento.data_evento.includes('-')) {
+  const partes = evento.data_evento.split('-');
+  if (partes.length === 3) {
+    // Reorganizar de YYYY-DD-MM para YYYY-MM-DD
+    const [ano, dia, mes] = partes;
+    dataFormatada = `${ano}-${mes}-${dia}`;
+  }
+}
+dataEvento = new Date(dataFormatada + 'T12:00:00.000Z');
           } else if (evento.data) {
             dataEvento = new Date(evento.data);
           } else {
