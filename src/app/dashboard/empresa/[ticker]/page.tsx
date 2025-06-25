@@ -2185,7 +2185,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                         />
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                        {provento.dividendYield ? `${provento.dividendYield.toFixed(2)}%` : '-'}
+                          {provento.dividendYield ? `${(!isFII && provento.dividendYield > 0 && provento.dividendYield < 1 ? provento.dividendYield * 100 : provento.dividendYield).toFixed(2)}%` : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
