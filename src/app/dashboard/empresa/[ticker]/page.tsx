@@ -2921,59 +2921,15 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             📅 Agenda Corporativa
           </Typography>
-          <Stack direction="row" spacing={1} alignItems="center">
-            {/* 🆕 Botão de debug */}
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => setShowDebug(!showDebug)}
-              sx={{ fontSize: '0.7rem' }}
-              color={debugInfo?.erros?.length > 0 ? 'error' : 'info'}
-            >
-              🔍 {showDebug ? 'Ocultar' : 'Debug'}
-            </Button>
-            
-            <IconButton 
-              size="small" 
-              onClick={carregarEventos} 
-              disabled={loading}
-              title="Recarregar eventos"
-            >
-              <RefreshIcon />
-            </IconButton>
-          </Stack>
+<IconButton 
+  size="small" 
+  onClick={carregarEventos} 
+  disabled={loading}
+  title="Recarregar eventos"
+>
+  <RefreshIcon />
+</IconButton>
         </Stack>
-
-        {/* 🆕 PAINEL DE DEBUG */}
-        {showDebug && debugInfo && (
-          <Alert 
-            severity={debugInfo.erros?.length > 0 ? 'error' : 'info'} 
-            sx={{ mb: 3 }}
-          >
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-              🔍 Debug Info para {debugInfo.ticker}:
-            </Typography>
-            
-            <Box component="pre" sx={{ 
-              fontSize: '0.8rem', 
-              backgroundColor: 'rgba(0,0,0,0.05)', 
-              p: 1, 
-              borderRadius: 1,
-              overflow: 'auto',
-              maxHeight: 200
-            }}>
-              {JSON.stringify(debugInfo, null, 2)}
-            </Box>
-            
-            {debugInfo.erros?.length > 0 && (
-              <Typography variant="body2" sx={{ mt: 1, color: 'error.main' }}>
-                <strong>⚠️ Problemas encontrados:</strong><br/>
-                {debugInfo.erros.map((erro, i) => `• ${erro}`).join('\n')}
-              </Typography>
-            )}
-          </Alert>
-        )}
-
         {/* ESTADO DE LOADING */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
