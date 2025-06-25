@@ -2847,17 +2847,80 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
           let dataEvento: Date;
           
           if (evento.data_evento) {
-            // Converter formato YYYY-DD-MM para YYYY-MM-DD
-let dataFormatada = evento.data_evento;
-if (evento.data_evento && evento.data_evento.includes('-')) {
-  const partes = evento.data_evento.split('-');
-  if (partes.length === 3) {
-    // Reorganizar de YYYY-DD-MM para YYYY-MM-DD
-    const [ano, dia, mes] = partes;
-    dataFormatada = `${ano}-${mes}-${dia}`;
+// Parser inteligente de datas - aceita múltiplos formatos
+const parseDataInteligente = (dataString) => {
+  if (!dataString) return null;
+  
+  // Remover espaços e normalizar separadores
+  const data = dataString.trim().replace(/\//g, '-').replace(/\./g, '-');
+  
+  // Diferentes padrões de data
+  const padroes = [
+    // ISO: YYYY-MM-DD
+    /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
+    // Brasileiro: DD-MM-YYYY
+    /^(\d{1,2})-(\d{1,2})-(\d{4})$/,
+    // Americano: MM-DD-YYYY
+    /^(\d{1,2})-(\d{1,2})-(\d{4})$/,
+    // Seu formato: YYYY-DD-MM
+    /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+  ];
+  
+  const match = data.match(/^(\d{1,4})-(\d{1,2})-(\d{1,2})$/);
+  if (!match) return null;
+  
+  const [, parte1, parte2, parte3] = match;
+  let ano, mes, dia;
+  
+  // Detectar formato baseado nos valores
+  if (parte1.length === 4) {
+    // Começa com ano (4 dígitos)
+    ano = parseInt(parte1);
+    
+    if (parseInt(parte2) > 12) {
+      // YYYY-DD-MM (seu formato preferido)
+      dia = parseInt(parte2);
+      mes = parseInt(parte3);
+    } else if (parseInt(parte3) > 12) {
+      // YYYY-MM-DD (formato ISO)
+      mes = parseInt(parte2);
+      dia = parseInt(parte3);
+    } else {
+      // Ambos podem ser mês/dia, assumir YYYY-MM-DD como padrão
+      mes = parseInt(parte2);
+      dia = parseInt(parte3);
+    }
+  } else {
+    // Não começa com ano
+    ano = parseInt(parte3);
+    
+    if (parseInt(parte1) > 12) {
+      // DD-MM-YYYY (formato brasileiro)
+      dia = parseInt(parte1);
+      mes = parseInt(parte2);
+    } else {
+      // MM-DD-YYYY (formato americano) ou DD-MM-YYYY
+      // Assumir formato brasileiro como padrão para Brasil
+      dia = parseInt(parte1);
+      mes = parseInt(parte2);
+    }
   }
+  
+  // Validar valores
+  if (ano < 1900 || ano > 2100) return null;
+  if (mes < 1 || mes > 12) return null;
+  if (dia < 1 || dia > 31) return null;
+  
+  // Criar data com horário fixo para evitar problemas de timezone
+  return new Date(ano, mes - 1, dia, 12, 0, 0);
+};
+
+// Usar o parser inteligente
+dataEvento = parseDataInteligente(evento.data_evento);
+if (!dataEvento) {
+  console.error(`Data inválida: ${evento.data_evento}`);
+  return null;
 }
-dataEvento = new Date(dataFormatada + 'T12:00:00.000Z');
           } else if (evento.data) {
             dataEvento = new Date(evento.data);
           } else {
