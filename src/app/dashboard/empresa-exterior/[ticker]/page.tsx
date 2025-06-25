@@ -64,7 +64,7 @@ const PictureAsPdfIconCustom = () => <span>📄</span>;
 // Importa o token da API do arquivo original
 // Assuming BRAPI_TOKEN is a constant defined elsewhere, e.g., in a config file
 // For demonstration, we'll define it here. In a real app, manage this securely.
-const BRAPI_TOKEN = 'YOUR_BRAPI_TOKEN_HERE'; // Replace with your actual token if needed
+const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8'; // Replace with your actual token if needed
 
 // ========================================
 // INTERFACES E TIPOS
