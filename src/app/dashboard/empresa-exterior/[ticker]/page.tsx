@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowUp, ArrowDown, Globe, DollarSign, BarChart3, Calendar, Target, AlertCircle } from 'lucide-react';
 
