@@ -2917,19 +2917,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
   return (
     <Card>
       <CardContent sx={{ p: 4 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            📅 Agenda Corporativa
-          </Typography>
-<IconButton 
-  size="small" 
-  onClick={carregarEventos} 
-  disabled={loading}
-  title="Recarregar eventos"
->
-  <RefreshIcon />
-</IconButton>
-        </Stack>
         {/* ESTADO DE LOADING */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
