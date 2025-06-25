@@ -159,6 +159,7 @@ export default function CentralAgendaPage() {
   const [uploading, setUploading] = useState(false);
 
   // Processar upload de CSV
+// 1. Função handleUploadCSV (ASYNC)
 const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const arquivo = event.target.files?.[0];
   if (!arquivo) return;
@@ -183,7 +184,7 @@ const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       'tipo_evento': 'tipo_evento',
       'data': 'data_evento', 
       'data_evento': 'data_evento',
-      'categoria': 'tipo_evento' // caso tenha categoria no lugar de tipo
+      'categoria': 'tipo_evento'
     };
 
     // Validar colunas obrigatórias com mapeamento flexível
@@ -248,8 +249,8 @@ const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
       throw new Error('Nenhum evento válido encontrado no arquivo');
     }
 
-    // Salvar dados
-    await salvarEventos(eventosNovos);
+    // Salvar dados (removendo await pois salvarEventos não é async)
+    salvarEventos(eventosNovos);
     
     alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}`);
     
@@ -263,66 +264,6 @@ const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.target.value = '';
   }
 };
-
-      // Validar colunas obrigatórias
-      const colunasObrigatorias = ['ticker', 'tipo_evento', 'titulo', 'data_evento', 'descricao', 'status'];
-      const colunasFaltantes = colunasObrigatorias.filter(col => !cabecalho.includes(col));
-      
-      if (colunasFaltantes.length > 0) {
-        throw new Error(`Colunas obrigatórias faltantes: ${colunasFaltantes.join(', ')}`);
-      }
-
-      // Processar dados
-      const eventosNovos: EventoCorporativo[] = [];
-      
-      for (let i = 1; i < linhas.length; i++) {
-        const valores = linhas[i].split(',').map(val => val.trim());
-        
-        if (valores.length < cabecalho.length) {
-          console.warn(`Linha ${i + 1} incompleta, pulando...`);
-          continue;
-        }
-
-        const evento: any = {};
-        cabecalho.forEach((coluna, index) => {
-          evento[coluna] = valores[index] || '';
-        });
-
-        // Validar dados obrigatórios
-        if (!evento.ticker || !evento.data_evento || !evento.titulo) {
-          console.warn(`Linha ${i + 1} com dados obrigatórios faltantes, pulando...`);
-          continue;
-        }
-
-        // Validar data
-        const dataEvento = new Date(evento.data_evento);
-        if (isNaN(dataEvento.getTime())) {
-          console.warn(`Linha ${i + 1} com data inválida: ${evento.data_evento}`);
-          continue;
-        }
-
-        eventosNovos.push(evento as EventoCorporativo);
-      }
-
-      if (eventosNovos.length === 0) {
-        throw new Error('Nenhum evento válido encontrado no arquivo');
-      }
-
-      // Salvar dados
-      await salvarEventos(eventosNovos);
-      
-      alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}`);
-      
-    } catch (error) {
-      console.error('Erro no upload:', error);
-      alert(`❌ Erro ao processar arquivo:\n${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-    } finally {
-      setUploading(false);
-      setLoading(false);
-      // Limpar input
-      event.target.value = '';
-    }
-  };
 
   // Download do template
 const downloadTemplate = () => {
