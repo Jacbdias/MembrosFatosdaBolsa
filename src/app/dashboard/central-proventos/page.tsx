@@ -105,7 +105,7 @@ export default function CentralProventos() {
     setArquivoSelecionado(file);
   };
 
-  // ✅ FUNÇÃO PROCESSARCSV CORRIGIDA
+  // ✅ FUNÇÃO PROCESSARCSV CORRIGIDA - PROBLEMA DE DATA RESOLVIDO
   const processarCSV = useCallback(async () => {
     if (!arquivoSelecionado) return;
 
@@ -151,13 +151,23 @@ export default function CentralProventos() {
               continue;
             }
 
-            // ✅ CORRIGIDO: Usar dataCom em vez de variável 'data' inexistente
+            // ✅ CORRIGIDO: Parsing de data com horário específico para evitar problema de fuso horário
             let dataObj: Date;
             if (dataCom.includes('/')) {
               const [d, m, a] = dataCom.split('/');
-              dataObj = new Date(+a, +m - 1, +d);
+              dataObj = new Date(+a, +m - 1, +d, 12, 0, 0); // meio-dia para evitar mudança de dia
+            } else if (dataCom.includes('-')) {
+              const partes = dataCom.split('-');
+              if (partes[0].length === 4) {
+                // YYYY-MM-DD
+                dataObj = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
+              } else {
+                // DD-MM-YYYY
+                dataObj = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
+              }
             } else {
-              dataObj = new Date(dataCom);
+              const tempDate = new Date(dataCom);
+              dataObj = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 12, 0, 0);
             }
             if (isNaN(dataObj.getTime())) {
               errosProcessamento++;
@@ -173,15 +183,23 @@ export default function CentralProventos() {
               }
             }
 
-            // Processar data pagamento (opcional)
+            // ✅ CORRIGIDO: Processar data pagamento com horário específico
             let dataPagamentoFormatada: string | undefined;
             if (dataPagamento && dataPagamento !== '') {
               let dataPagamentoObj: Date;
               if (dataPagamento.includes('/')) {
                 const [d, m, a] = dataPagamento.split('/');
-                dataPagamentoObj = new Date(+a, +m - 1, +d);
+                dataPagamentoObj = new Date(+a, +m - 1, +d, 12, 0, 0);
+              } else if (dataPagamento.includes('-')) {
+                const partes = dataPagamento.split('-');
+                if (partes[0].length === 4) {
+                  dataPagamentoObj = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
+                } else {
+                  dataPagamentoObj = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
+                }
               } else {
-                dataPagamentoObj = new Date(dataPagamento);
+                const tempDate = new Date(dataPagamento);
+                dataPagamentoObj = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 12, 0, 0);
               }
               if (!isNaN(dataPagamentoObj.getTime())) {
                 dataPagamentoFormatada = dataPagamentoObj.toLocaleDateString('pt-BR');
@@ -190,7 +208,7 @@ export default function CentralProventos() {
 
             proventos.push({
               ticker,
-              data: dataCom, // ✅ CORRIGIDO: Usar dataCom como data principal
+              data: dataCom,
               dataObj,
               valor,
               tipo,
@@ -205,7 +223,7 @@ export default function CentralProventos() {
             });
 
           } else if (partes.length >= 4) {
-            // 🔄 FALLBACK PARA FORMATO ANTIGO (4 colunas)
+            // ✅ CORRIGIDO: FALLBACK PARA FORMATO ANTIGO (4 colunas)
             const [ticker, data, valorRaw, tipo] = partes.map(p => p.trim());
             
             let valor = parseFloat(
@@ -216,12 +234,21 @@ export default function CentralProventos() {
               continue;
             }
 
+            // ✅ CORRIGIDO: Parsing de data com horário específico
             let dataObj: Date;
             if (data.includes('/')) {
               const [d, m, a] = data.split('/');
-              dataObj = new Date(+a, +m - 1, +d);
+              dataObj = new Date(+a, +m - 1, +d, 12, 0, 0); // meio-dia
+            } else if (data.includes('-')) {
+              const partes = data.split('-');
+              if (partes[0].length === 4) {
+                dataObj = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
+              } else {
+                dataObj = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
+              }
             } else {
-              dataObj = new Date(data);
+              const tempDate = new Date(data);
+              dataObj = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 12, 0, 0);
             }
             if (isNaN(dataObj.getTime())) {
               errosProcessamento++;
