@@ -137,54 +137,52 @@ interface DadosFII { // Pode ser adaptado para REITs ou outros equivalentes
 // DADOS DE FALLBACK PARA ATIVOS NO EXTERIOR
 // ========================================
 const dadosFallbackForeign: { [key: string]: EmpresaCompleta } = {
-  // Preencha esta seção com os seus dados de ativos no exterior.
-  // Exemplo:
-  // 'AAPL': {
-  //   ticker: 'AAPL',
-  //   nomeCompleto: 'Apple Inc.',
-  //   setor: 'Tecnologia',
-  //   descricao: 'Empresa multinacional americana de tecnologia com foco em eletrônicos de consumo, software e serviços online.',
-  //   avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/apple_logo_icon_145913.png',
-  //   dataEntrada: '01/01/2023',
-  //   precoIniciou: '$150.00',
-  //   precoTeto: '$200.00',
-  //   viesAtual: 'Comprar',
-  //   referenciaIndiceEpoca: 'S&P 500: 4500', // Exemplo de referência de índice estrangeiro
-  //   percentualCarteira: '5.0%',
-  //   tipo: 'Stock',
-  //   dadosFinanceiros: {
-  //     precoAtual: 180.00,
-  //     variacao: 2.50,
-  //     variacaoPercent: 1.41,
-  //     volume: 80000000,
-  //     marketCap: 2800000000000,
-  //     pl: 30,
-  //     dy: 0.5
-  //   }
-  // },
-  // 'MSFT': {
-  //   ticker: 'MSFT',
-  //   nomeCompleto: 'Microsoft Corp.',
-  //   setor: 'Tecnologia',
-  //   descricao: 'Empresa multinacional americana de tecnologia que desenvolve, fabrica, licencia, oferece suporte e vende software de computador, eletrônicos de consumo, computadores pessoais e serviços relacionados.',
-  //   avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/microsoft_logo_icon_145920.png',
-  //   dataEntrada: '15/02/2023',
-  //   precoIniciou: '$250.00',
-  //   precoTeto: '$350.00',
-  //   viesAtual: 'Comprar',
-  //   referenciaIndiceEpoca: 'NASDAQ: 15000',
-  //   percentualCarteira: '4.5%',
-  //   tipo: 'Stock',
-  //   dadosFinanceiros: {
-  //     precoAtual: 300.00,
-  //     variacao: 5.00,
-  //     variacaoPercent: 1.69,
-  //     volume: 60000000,
-  //     marketCap: 2200000000000,
-  //     pl: 35,
-  //     dy: 0.7
-  //   }
-  // }
+    'AAPL': {
+        ticker: 'AAPL',
+        nomeCompleto: 'Apple Inc.',
+        setor: 'Tecnologia',
+        descricao: 'Empresa multinacional americana de tecnologia com foco em eletrônicos de consumo, software e serviços online.',
+        avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/apple_logo_icon_145913.png',
+        dataEntrada: '01/01/2023',
+        precoIniciou: '$150.00',
+        precoTeto: '$200.00',
+        viesAtual: 'Comprar',
+        referenciaIndiceEpoca: 'S&P 500: 4500',
+        percentualCarteira: '5.0%',
+        tipo: 'Stock',
+        dadosFinanceiros: {
+            precoAtual: 180.00,
+            variacao: 2.50,
+            variacaoPercent: 1.41,
+            volume: 80000000,
+            marketCap: 2800000000000,
+            pl: 30,
+            dy: 0.5
+        }
+    },
+    'MSFT': {
+        ticker: 'MSFT',
+        nomeCompleto: 'Microsoft Corp.',
+        setor: 'Tecnologia',
+        descricao: 'Empresa multinacional americana de tecnologia que desenvolve, fabrica, licencia, oferece suporte e vende software de computador, eletrônicos de consumo, computadores pessoais e serviços relacionados.',
+        avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/microsoft_logo_icon_145920.png',
+        dataEntrada: '15/02/2023',
+        precoIniciou: '$250.00',
+        precoTeto: '$350.00',
+        viesAtual: 'Comprar',
+        referenciaIndiceEpoca: 'NASDAQ: 15000',
+        percentualCarteira: '4.5%',
+        tipo: 'Stock',
+        dadosFinanceiros: {
+            precoAtual: 300.00,
+            variacao: 5.00,
+            variacaoPercent: 1.69,
+            volume: 60000000,
+            marketCap: 2200000000000,
+            pl: 35,
+            dy: 0.7
+        }
+    }
 };
 
 const formatCurrency = (value: number, currency: string = 'USD') => {
