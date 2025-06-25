@@ -3072,7 +3072,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                                     height: 24
                                   }}
                                 />
-                                )}
                               </Stack>
                             </Box>
 
