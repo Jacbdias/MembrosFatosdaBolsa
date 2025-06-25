@@ -44,6 +44,53 @@ const ArrowLeftIcon = () => <span>←</span>;
 const MoreVertIcon = () => <span>⋮</span>;
 const EditIcon = () => <span>✏️</span>;
 
+// 🆕 PARSER INTELIGENTE DE DATAS - ACEITA MÚLTIPLOS FORMATOS
+const parseDataInteligente = (dataString: string): Date | null => {
+  if (!dataString) return null;
+  
+  // Remover espaços e normalizar separadores
+  const data = dataString.trim().replace(/\//g, '-').replace(/\./g, '-');
+  
+  const match = data.match(/^(\d{1,4})-(\d{1,2})-(\d{1,2})$/);
+  if (!match) return null;
+  
+  const [, parte1, parte2, parte3] = match;
+  let ano: number, mes: number, dia: number;
+  
+  // Detectar formato baseado nos valores
+  if (parte1.length === 4) {
+    // Começa com ano (4 dígitos)
+    ano = parseInt(parte1);
+    
+    if (parseInt(parte2) > 12) {
+      // YYYY-DD-MM (formato brasileiro adaptado)
+      dia = parseInt(parte2);
+      mes = parseInt(parte3);
+    } else if (parseInt(parte3) > 12) {
+      // YYYY-MM-DD (formato ISO)
+      mes = parseInt(parte2);
+      dia = parseInt(parte3);
+    } else {
+      // Ambos podem ser mês/dia, assumir YYYY-MM-DD como padrão
+      mes = parseInt(parte2);
+      dia = parseInt(parte3);
+    }
+  } else {
+    // Não começa com ano - formato brasileiro DD-MM-YYYY
+    dia = parseInt(parte1);
+    mes = parseInt(parte2);
+    ano = parseInt(parte3);
+  }
+  
+  // Validar valores
+  if (ano < 1900 || ano > 2100) return null;
+  if (mes < 1 || mes > 12) return null;
+  if (dia < 1 || dia > 31) return null;
+  
+  // Criar data com horário fixo para evitar problemas de timezone
+  return new Date(ano, mes - 1, dia, 12, 0, 0);
+};
+
 // Configurações dos tipos de eventos
 const TIPOS_EVENTO = {
   resultado: { icon: '📊', cor: '#3b82f6', label: 'Resultados' },
@@ -198,117 +245,120 @@ export default function CentralAgendaPage() {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuEventoIndex, setMenuEventoIndex] = useState<number | null>(null);
 
-  // Processar upload de CSV
-const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  const arquivo = event.target.files?.[0];
-  if (!arquivo) return;
+  // 🆕 PROCESSAR UPLOAD DE CSV COM PARSER INTELIGENTE
+  const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = event.target.files?.[0];
+    if (!arquivo) return;
 
-  setUploading(true);
-  setLoading(true);
+    setUploading(true);
+    setLoading(true);
 
-  try {
-    const texto = await arquivo.text();
-    const linhas = texto.split('\n').filter(linha => linha.trim());
-    
-    if (linhas.length < 2) {
-      throw new Error('Arquivo CSV deve ter pelo menos cabeçalho e uma linha de dados');
-    }
-
-    const cabecalho = linhas[0].split(',').map(col => col.trim());
-    console.log('Cabeçalho encontrado:', cabecalho);
-
-    // Mapeamento de colunas flexível
-    const mapeamentoColunas: { [key: string]: string } = {
-      'tipo': 'tipo_evento',
-      'tipo_evento': 'tipo_evento',
-      'data': 'data_evento', 
-      'data_evento': 'data_evento',
-      'categoria': 'tipo_evento'
-    };
-
-    // Validar colunas obrigatórias com mapeamento flexível
-    const colunasObrigatorias = ['ticker', 'titulo', 'descricao', 'status'];
-    const colunasTipoEvento = ['tipo', 'tipo_evento', 'categoria'];
-    const colunasDataEvento = ['data', 'data_evento'];
-
-    const colunasFaltantes = colunasObrigatorias.filter(col => !cabecalho.includes(col));
-    
-    // Verificar se existe pelo menos uma coluna de tipo_evento
-    const temTipoEvento = colunasTipoEvento.some(col => cabecalho.includes(col));
-    if (!temTipoEvento) {
-      colunasFaltantes.push('tipo_evento (ou tipo)');
-    }
-
-    // Verificar se existe pelo menos uma coluna de data_evento  
-    const temDataEvento = colunasDataEvento.some(col => cabecalho.includes(col));
-    if (!temDataEvento) {
-      colunasFaltantes.push('data_evento (ou data)');
-    }
-    
-    if (colunasFaltantes.length > 0) {
-      throw new Error(`Colunas obrigatórias faltantes: ${colunasFaltantes.join(', ')}`);
-    }
-
-    // Processar dados
-    const eventosNovos: EventoCorporativo[] = [];
-    
-    for (let i = 1; i < linhas.length; i++) {
-      const valores = linhas[i].split(',').map(val => val.trim());
+    try {
+      const texto = await arquivo.text();
+      const linhas = texto.split('\n').filter(linha => linha.trim());
       
-      if (valores.length < cabecalho.length) {
-        console.warn(`Linha ${i + 1} incompleta, pulando...`);
-        continue;
+      if (linhas.length < 2) {
+        throw new Error('Arquivo CSV deve ter pelo menos cabeçalho e uma linha de dados');
       }
 
-      const evento: any = {};
+      const cabecalho = linhas[0].split(',').map(col => col.trim());
+      console.log('Cabeçalho encontrado:', cabecalho);
+
+      // Mapeamento de colunas flexível
+      const mapeamentoColunas: { [key: string]: string } = {
+        'tipo': 'tipo_evento',
+        'tipo_evento': 'tipo_evento',
+        'data': 'data_evento', 
+        'data_evento': 'data_evento',
+        'categoria': 'tipo_evento'
+      };
+
+      // Validar colunas obrigatórias com mapeamento flexível
+      const colunasObrigatorias = ['ticker', 'titulo', 'descricao', 'status'];
+      const colunasTipoEvento = ['tipo', 'tipo_evento', 'categoria'];
+      const colunasDataEvento = ['data', 'data_evento'];
+
+      const colunasFaltantes = colunasObrigatorias.filter(col => !cabecalho.includes(col));
       
-      // Mapear colunas do CSV para o formato esperado
-      cabecalho.forEach((coluna, index) => {
-        const colunaDestino = mapeamentoColunas[coluna] || coluna;
-        evento[colunaDestino] = valores[index] || '';
-      });
-
-      // Adicionar ID único
-      evento.id = `${evento.ticker}-${evento.data_evento}-${i}`;
-
-      // Validar dados obrigatórios
-      if (!evento.ticker || !evento.data_evento || !evento.titulo) {
-        console.warn(`Linha ${i + 1} com dados obrigatórios faltantes, pulando...`);
-        continue;
+      // Verificar se existe pelo menos uma coluna de tipo_evento
+      const temTipoEvento = colunasTipoEvento.some(col => cabecalho.includes(col));
+      if (!temTipoEvento) {
+        colunasFaltantes.push('tipo_evento (ou tipo)');
       }
 
-      // Validar data
-      const dataEvento = new Date(evento.data_evento);
-      if (isNaN(dataEvento.getTime())) {
-        console.warn(`Linha ${i + 1} com data inválida: ${evento.data_evento}`);
-        continue;
+      // Verificar se existe pelo menos uma coluna de data_evento  
+      const temDataEvento = colunasDataEvento.some(col => cabecalho.includes(col));
+      if (!temDataEvento) {
+        colunasFaltantes.push('data_evento (ou data)');
+      }
+      
+      if (colunasFaltantes.length > 0) {
+        throw new Error(`Colunas obrigatórias faltantes: ${colunasFaltantes.join(', ')}`);
       }
 
-      eventosNovos.push(evento as EventoCorporativo);
-    }
+      // Processar dados
+      const eventosNovos: EventoCorporativo[] = [];
+      
+      for (let i = 1; i < linhas.length; i++) {
+        const valores = linhas[i].split(',').map(val => val.trim());
+        
+        if (valores.length < cabecalho.length) {
+          console.warn(`Linha ${i + 1} incompleta, pulando...`);
+          continue;
+        }
 
-    if (eventosNovos.length === 0) {
-      throw new Error('Nenhum evento válido encontrado no arquivo');
-    }
+        const evento: any = {};
+        
+        // Mapear colunas do CSV para o formato esperado
+        cabecalho.forEach((coluna, index) => {
+          const colunaDestino = mapeamentoColunas[coluna] || coluna;
+          evento[colunaDestino] = valores[index] || '';
+        });
 
-    // Salvar dados
-    salvarEventos(eventosNovos);
-    
-    alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}`);
-    
-  } catch (error) {
-    console.error('Erro no upload:', error);
-    alert(`❌ Erro ao processar arquivo:\n${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-  } finally {
-    setUploading(false);
-    setLoading(false);
-    event.target.value = '';
-  }
-};
+        // Adicionar ID único
+        evento.id = `${evento.ticker}-${evento.data_evento}-${i}`;
+
+        // Validar dados obrigatórios
+        if (!evento.ticker || !evento.data_evento || !evento.titulo) {
+          console.warn(`Linha ${i + 1} com dados obrigatórios faltantes, pulando...`);
+          continue;
+        }
+
+        // 🆕 VALIDAR DATA USANDO PARSER INTELIGENTE
+        const dataEvento = parseDataInteligente(evento.data_evento);
+        if (!dataEvento) {
+          console.warn(`Linha ${i + 1} com data inválida: ${evento.data_evento}`);
+          continue;
+        }
+
+        // Normalizar a data no formato ISO para armazenamento
+        evento.data_evento = dataEvento.toISOString().split('T')[0]; // YYYY-MM-DD
+
+        eventosNovos.push(evento as EventoCorporativo);
+      }
+
+      if (eventosNovos.length === 0) {
+        throw new Error('Nenhum evento válido encontrado no arquivo');
+      }
+
+      // Salvar dados
+      salvarEventos(eventosNovos);
+      
+      alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}\n\n📅 Formatos de data aceitos: DD/MM/YYYY, YYYY-MM-DD, YYYY-DD-MM`);
+      
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      alert(`❌ Erro ao processar arquivo:\n${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setUploading(false);
+      setLoading(false);
+      event.target.value = '';
+    }
+  };
 
   // Download do template
-const downloadTemplate = () => {
-  const template = `ticker,tipo_evento,titulo,data_evento,descricao,status,prioridade,url_externo,observacoes
+  const downloadTemplate = () => {
+    const template = `ticker,tipo_evento,titulo,data_evento,descricao,status,prioridade,url_externo,observacoes
 VALE3,resultado,Resultados 1T25,2025-05-15,Divulgação dos resultados do primeiro trimestre,confirmado,alta,,
 PETR4,dividendo,Ex-Dividendos,2025-06-10,Data ex-dividendos referente aos resultados,estimado,media,,
 MALL11,rendimento,Rendimento Jun/25,2025-06-15,Distribuição mensal de rendimentos,confirmado,alta,,
@@ -316,14 +366,14 @@ HSML11,assembleia,AGO 2025,2025-04-28,Assembleia Geral de Cotistas,confirmado,al
 BTLG11,conference_call,Conference Call 1T25,2025-05-16,Apresentação dos resultados trimestrais,confirmado,media,,Às 16h00
 VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operações especiais,estimado,baixa,,`;
 
-  const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'template_agenda_corporativa.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-};
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_agenda_corporativa.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // 🗑️ NOVAS: Funções de exclusão
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, index: number) => {
@@ -528,7 +578,9 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                 1. Baixe o template CSV abaixo<br/>
                 2. Preencha com os dados dos eventos corporativos<br/>
                 3. Faça upload do arquivo preenchido<br/>
-                4. Os dados aparecerão automaticamente nas páginas dos ativos
+                4. Os dados aparecerão automaticamente nas páginas dos ativos<br/>
+                <br/>
+                <strong>📅 Formatos de data aceitos:</strong> YYYY-MM-DD, DD/MM/YYYY, YYYY-DD-MM, DD.MM.YYYY
               </Typography>
             </Alert>
 
@@ -638,7 +690,6 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                         <TableCell>Título</TableCell>
                         <TableCell>Data</TableCell>
                         <TableCell>Status</TableCell>
-
                         <TableCell align="center">Ações</TableCell>
                       </TableRow>
                     </TableHead>
