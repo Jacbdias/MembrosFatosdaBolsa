@@ -62,7 +62,9 @@ const PictureAsPdfIconCustom = () => <span>📄</span>;
 // CONSTANTES E CONFIGURAÇÕES
 // ========================================
 // Importa o token da API do arquivo original
-import { BRAPI_TOKEN } from '../../empresa/[ticker]/page'; // Ajuste o caminho conforme a localização real do seu arquivo original
+// Assuming BRAPI_TOKEN is a constant defined elsewhere, e.g., in a config file
+// For demonstration, we'll define it here. In a real app, manage this securely.
+const BRAPI_TOKEN = 'YOUR_BRAPI_TOKEN_HERE'; // Replace with your actual token if needed
 
 // ========================================
 // INTERFACES E TIPOS
@@ -137,52 +139,78 @@ interface DadosFII { // Pode ser adaptado para REITs ou outros equivalentes
 // DADOS DE FALLBACK PARA ATIVOS NO EXTERIOR
 // ========================================
 const dadosFallbackForeign: { [key: string]: EmpresaCompleta } = {
-    'AAPL': {
-        ticker: 'AAPL',
-        nomeCompleto: 'Apple Inc.',
-        setor: 'Tecnologia',
-        descricao: 'Empresa multinacional americana de tecnologia com foco em eletrônicos de consumo, software e serviços online.',
-        avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/apple_logo_icon_145913.png',
-        dataEntrada: '01/01/2023',
-        precoIniciou: '$150.00',
-        precoTeto: '$200.00',
-        viesAtual: 'Comprar',
-        referenciaIndiceEpoca: 'S&P 500: 4500',
-        percentualCarteira: '5.0%',
-        tipo: 'Stock',
-        dadosFinanceiros: {
-            precoAtual: 180.00,
-            variacao: 2.50,
-            variacaoPercent: 1.41,
-            volume: 80000000,
-            marketCap: 2800000000000,
-            pl: 30,
-            dy: 0.5
-        }
-    },
-    'MSFT': {
-        ticker: 'MSFT',
-        nomeCompleto: 'Microsoft Corp.',
-        setor: 'Tecnologia',
-        descricao: 'Empresa multinacional americana de tecnologia que desenvolve, fabrica, licencia, oferece suporte e vende software de computador, eletrônicos de consumo, computadores pessoais e serviços relacionados.',
-        avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/microsoft_logo_icon_145920.png',
-        dataEntrada: '15/02/2023',
-        precoIniciou: '$250.00',
-        precoTeto: '$350.00',
-        viesAtual: 'Comprar',
-        referenciaIndiceEpoca: 'NASDAQ: 15000',
-        percentualCarteira: '4.5%',
-        tipo: 'Stock',
-        dadosFinanceiros: {
-            precoAtual: 300.00,
-            variacao: 5.00,
-            variacaoPercent: 1.69,
-            volume: 60000000,
-            marketCap: 2200000000000,
-            pl: 35,
-            dy: 0.7
-        }
+  // Preencha esta seção com os seus dados de ativos no exterior.
+  // Exemplo:
+  'AAPL': {
+    ticker: 'AAPL',
+    nomeCompleto: 'Apple Inc.',
+    setor: 'Tecnologia',
+    descricao: 'Empresa multinacional americana de tecnologia com foco em eletrônicos de consumo, software e serviços online.',
+    avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/apple_logo_icon_145913.png',
+    dataEntrada: '01/01/2023',
+    precoIniciou: '$150.00',
+    precoTeto: '$200.00',
+    viesAtual: 'Comprar',
+    referenciaIndiceEpoca: 'S&P 500: 4500', // Exemplo de referência de índice estrangeiro
+    percentualCarteira: '5.0%',
+    tipo: 'Stock',
+    dadosFinanceiros: {
+      precoAtual: 180.00,
+      variacao: 2.50,
+      variacaoPercent: 1.41,
+      volume: 80000000,
+      marketCap: 2800000000000,
+      pl: 30,
+      dy: 0.5
     }
+  },
+  'MSFT': {
+    ticker: 'MSFT',
+    nomeCompleto: 'Microsoft Corp.',
+    setor: 'Tecnologia',
+    descricao: 'Empresa multinacional americana de tecnologia que desenvolve, fabrica, licencia, oferece suporte e vende software de computador, eletrônicos de consumo, computadores pessoais e serviços relacionados.',
+    avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/microsoft_logo_icon_145920.png',
+    dataEntrada: '15/02/2023',
+    precoIniciou: '$250.00',
+    precoTeto: '$350.00',
+    viesAtual: 'Comprar',
+    referenciaIndiceEpoca: 'NASDAQ: 15000',
+    percentualCarteira: '4.5%',
+    tipo: 'Stock',
+    dadosFinanceiros: {
+      precoAtual: 300.00,
+      variacao: 5.00,
+      variacaoPercent: 1.69,
+      volume: 60000000,
+      marketCap: 2200000000000,
+      pl: 35,
+      dy: 0.7
+    }
+  },
+  'PLD': { // Example REIT
+    ticker: 'PLD',
+    nomeCompleto: 'Prologis Inc.',
+    setor: 'Real Estate',
+    descricao: 'Prologis is the global leader in logistics real estate with a focus on high-barrier, high-growth markets.',
+    avatar: 'https://cdn.icon-icons.com/icons2/2402/PNG/512/building_icon_145914.png', // Placeholder icon
+    dataEntrada: '01/03/2024',
+    precoIniciou: '$120.00',
+    precoTeto: '$140.00',
+    viesAtual: 'Comprar',
+    referenciaIndiceEpoca: 'S&P 500: 5000',
+    percentualCarteira: '3.0%',
+    tipo: 'REIT',
+    gestora: 'Prologis Management LLC',
+    dadosFinanceiros: {
+      precoAtual: 130.50,
+      variacao: -1.20,
+      variacaoPercent: -0.91,
+      volume: 5000000,
+      marketCap: 120000000000,
+      pl: 25,
+      dy: 2.8
+    }
+  }
 };
 
 const formatCurrency = (value: number, currency: string = 'USD') => {
@@ -242,37 +270,42 @@ export default function ForeignAssetDetails(): React.JSX.Element {
       if (foundAtivo) {
         setAtivo(foundAtivo);
 
-        // Exemplo de como você usaria o BRAPI_TOKEN para buscar dados estrangeiros
-        // Adapte a URL da API para o endpoint de dados estrangeiros
-        // const response = await fetch(`SUA_API_DE_DADOS_ESTRANGEIROS/${ticker}?token=${BRAPI_TOKEN}`);
-        // if (!response.ok) {
-        //   throw new Error('Erro ao buscar dados financeiros do ativo estrangeiro.');
-        // }
-        // const apiData = await response.json();
-        // setAtivo(prev => ({
-        //   ...prev,
-        //   dadosFinanceiros: {
-        //     precoAtual: apiData.price,
-        //     variacao: apiData.change,
-        //     variacaoPercent: apiData.changesPercentage,
-        //     volume: apiData.volume,
-        //     marketCap: apiData.marketCap,
-        //     pl: apiData.pe,
-        //     dy: apiData.dividendYield,
-        //   },
-        //   statusApi: 'Dados em tempo real',
-        //   ultimaAtualizacao: new Date().toLocaleString(),
-        // }));
-
-        // Se não houver API real para dados estrangeiros, usa dados de fallback
-        setAtivo(foundAtivo);
+        // --- Start of API Integration Example (Uncomment and modify if you have a real API) ---
+        // This is a placeholder. You'll need to replace `SUA_API_DE_DADOS_ESTRANGEIROS`
+        // with your actual API endpoint and adjust the parsing of `apiData`.
+        /*
+        const response = await fetch(`SUA_API_DE_DADOS_ESTRANGEIROS/${ticker}?token=${BRAPI_TOKEN}`);
+        if (!response.ok) {
+           throw new Error('Erro ao buscar dados financeiros do ativo estrangeiro da API.');
+        }
+        const apiData = await response.json();
         setAtivo(prev => ({
-          ...prev,
+           ...prev,
+           dadosFinanceiros: {
+             precoAtual: apiData.price,
+             variacao: apiData.change,
+             variacaoPercent: apiData.changesPercentage,
+             volume: apiData.volume,
+             marketCap: apiData.marketCap,
+             pl: apiData.pe,
+             dy: apiData.dividendYield,
+           },
+           statusApi: 'Dados em tempo real',
+           ultimaAtualizacao: new Date().toLocaleString(),
+        }));
+        */
+        // --- End of API Integration Example ---
+
+        // If no real API for foreign data, or if API integration is commented out,
+        // use fallback data and mark status as static.
+        setAtivo(prev => ({
+          ...foundAtivo, // Ensure all original fallback data is kept
           statusApi: 'Dados estáticos (fallback)',
           ultimaAtualizacao: new Date().toLocaleString(),
         }));
+
       } else {
-        setError('Ativo não encontrado.');
+        setError('Ativo não encontrado. Verifique o ticker na URL ou adicione-o aos dados de fallback.');
       }
     } catch (err) {
       console.error("Erro ao buscar dados do ativo:", err);
@@ -304,6 +337,7 @@ export default function ForeignAssetDetails(): React.JSX.Element {
           dataUpload: '2024-03-15',
           dataReferencia: '2023-12-31',
           tipoVisualizacao: 'pdf',
+          arquivoPdf: `/reports/${ticker}_Relatorio_Anual_2023.pdf`, // Example path, adjust as needed
           nomeArquivoPdf: `${ticker}_Relatorio_Anual_2023.pdf`,
           tamanhoArquivo: 5242880, // 5MB
           dataUploadPdf: '2024-03-15T10:00:00Z',
@@ -343,22 +377,22 @@ export default function ForeignAssetDetails(): React.JSX.Element {
       // Se houver uma API de REITs que use o mesmo token, adicione a lógica aqui.
       // const response = await fetch(`SUA_API_DE_REITS/${ticker}?token=${BRAPI_TOKEN}`);
       // if (!response.ok) {
-      //   throw new Error('Erro ao buscar dados do REIT.');
+      //    throw new Error('Erro ao buscar dados do REIT.');
       // }
       // const apiData = await response.json();
       // setDadosFII({
-      //   valorPatrimonial: apiData.bookValue,
-      //   patrimonio: apiData.bookValue * apiData.sharesOutstanding,
-      //   pvp: apiData.priceToBook,
-      //   valorMercado: apiData.marketCap,
-      //   valorCaixa: apiData.totalCash,
-      //   numeroCotas: apiData.sharesOutstanding,
-      //   ultimoRendimento: apiData.lastDividendValue,
-      //   dataUltimoRendimento: apiData.lastDividendDate,
-      //   dyCagr3Anos: 0, // Placeholder
-      //   numeroCotistas: 0, // Placeholder
-      //   fonte: 'api',
-      //   ultimaAtualizacao: new Date().toLocaleString(),
+      //    valorPatrimonial: apiData.bookValue,
+      //    patrimonio: apiData.bookValue * apiData.sharesOutstanding,
+      //    pvp: apiData.priceToBook,
+      //    valorMercado: apiData.marketCap,
+      //    valorCaixa: apiData.totalCash,
+      //    numeroCotas: apiData.sharesOutstanding,
+      //    ultimoRendimento: apiData.lastDividendValue,
+      //    dataUltimoRendimento: apiData.lastDividendDate,
+      //    dyCagr3Anos: 0, // Placeholder
+      //    numeroCotistas: 0, // Placeholder
+      //    fonte: 'api',
+      //    ultimaAtualizacao: new Date().toLocaleString(),
       // });
 
       // Dados mock para REITs
@@ -376,6 +410,9 @@ export default function ForeignAssetDetails(): React.JSX.Element {
         fonte: 'manual',
         ultimaAtualizacao: new Date().toLocaleString(),
       });
+    } else {
+        // Clear REIT data if asset is not a REIT
+        setDadosFII(null);
     }
   }, [ativo?.tipo, ticker]);
 
