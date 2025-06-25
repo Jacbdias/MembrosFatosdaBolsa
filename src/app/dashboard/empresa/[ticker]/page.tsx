@@ -1941,11 +1941,24 @@ const MetricCard = React.memo(({
 ));
 
 // ========================================
-// COMPONENTE HISTÓRICO DE DIVIDENDOS
+// COMPONENTE HISTÓRICO DE DIVIDENDOS - CORRIGIDO
 // ========================================
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: { ticker: string; dataEntrada: string; isFII?: boolean }) => {
   const [proventos, setProventos] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
+
+  // ✅ FUNÇÃO HELPER PARA CORRIGIR DIVIDEND YIELD
+  const formatarDividendYield = (dy: number | undefined): string => {
+    if (!dy) return '-';
+    
+    // Se valor < 1, provavelmente veio como decimal (ex: 0.0138 em vez de 1.38)
+    let dividendYield = dy;
+    if (dy < 1 && dy > 0) {
+      dividendYield = dy * 100;
+    }
+    
+    return `${dividendYield.toFixed(2)}%`;
+  };
 
   useEffect(() => {
     if (ticker && typeof window !== 'undefined') {
@@ -2054,7 +2067,11 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                 isFII,
                 keysEncontradas: keys,
                 dadosProventos: proventos.length,
-                exemploProvento: proventos[0]
+                exemploProvento: proventos[0],
+                exemplosDY: proventos.slice(0, 3).map(p => ({
+                  original: p.dividendYield,
+                  formatado: formatarDividendYield(p.dividendYield)
+                }))
               });
               alert(`Debug: ${keys.length} chaves encontradas. Ver console (F12) para detalhes.`);
             }}
@@ -2185,7 +2202,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                         />
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                        {provento.dividendYield ? `${provento.dividendYield.toFixed(2)}%` : '-'}
+                        {formatarDividendYield(provento.dividendYield)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -2209,7 +2226,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
     </Card>
   );
 });
-
 // ========================================
 // COMPONENTE GERENCIADOR DE RELATÓRIOS
 // ========================================
