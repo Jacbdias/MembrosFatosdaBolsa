@@ -62,7 +62,7 @@ const PictureAsPdfIconCustom = () => <span>📄</span>;
 // CONSTANTES E CONFIGURAÇÕES
 // ========================================
 // Importa o token da API do arquivo original
-import { BRAPI_TOKEN } from '../../empresa-exterior/[ticker]/page'; // Ajuste o caminho conforme a localização real do seu arquivo original
+import { BRAPI_TOKEN } from '../../empresa/[ticker]/page'; // Ajuste o caminho conforme a localização real do seu arquivo original
 
 // ========================================
 // INTERFACES E TIPOS
