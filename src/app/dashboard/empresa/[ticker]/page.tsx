@@ -2740,6 +2740,9 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
 // ========================================
 // COMPONENTE AGENDA CORPORATIVA - CORRIGIDO PARA USAR CENTRAL
 // ========================================
+// ========================================
+// COMPONENTE AGENDA CORPORATIVA - CORRIGIDO PARA USAR CENTRAL
+// ========================================
 const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -3011,7 +3014,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
         ) : (
           /* LISTA DE EVENTOS */
           <>
-            <Stack spacing={3}>
+            <Stack spacing={2}>
               {eventos.slice(0, 4).map((evento, index) => {
                 const diasAteEvento = calcularDiasAteEvento(evento.dataObj);
                 const proximidade = formatarProximidade(diasAteEvento);
@@ -3020,32 +3023,27 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                   <Card key={evento.id} sx={{ 
                     border: '1px solid #e2e8f0', 
                     borderRadius: 2,
-                    backgroundColor: diasAteEvento <= 7 ? '#fef3c7' : 'white',
-                    '&:hover': { 
-                      backgroundColor: diasAteEvento <= 7 ? '#fde68a' : '#f8fafc',
-                      transform: 'translateY(-1px)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                    },
-                    transition: 'all 0.2s ease'
+                    backgroundColor: 'white',
+                    cursor: 'default'
                   }}>
-                    <CardContent sx={{ p: 4 }}>
-                      <Stack direction="row" alignItems="center" spacing={4}>
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Stack direction="row" alignItems="center" spacing={3}>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={3}>
+                          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography variant="h6" sx={{ 
                                 fontWeight: 600,
-                                fontSize: '1.1rem',
-                                mb: 1,
+                                fontSize: '1rem',
+                                mb: 0.5,
                                 color: '#1e293b'
                               }}>
                                 {evento.titulo}
                               </Typography>
                               
                               <Typography variant="body2" color="text.secondary" sx={{ 
-                                fontSize: '0.9rem',
-                                lineHeight: 1.5,
-                                mb: 2
+                                fontSize: '0.85rem',
+                                lineHeight: 1.4,
+                                mb: 1.5
                               }}>
                                 {evento.descricao}
                               </Typography>
@@ -3053,36 +3051,38 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                               <Stack direction="row" spacing={1} alignItems="center">
                                 <Chip 
                                   label={proximidade}
-                                  size="medium"
+                                  size="small"
                                   sx={{ 
                                     backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
                                     color: 'white',
-                                    fontSize: '0.8rem',
+                                    fontSize: '0.75rem',
                                     fontWeight: 500,
-                                    px: 1
+                                    height: 24
                                   }}
                                 />
                                 
                                 <Chip 
                                   label={evento.tipo}
-                                  size="medium"
+                                  size="small"
                                   variant="outlined"
                                   sx={{ 
-                                    fontSize: '0.8rem',
+                                    fontSize: '0.75rem',
                                     borderColor: '#d1d5db',
-                                    color: '#6b7280'
+                                    color: '#6b7280',
+                                    height: 24
                                   }}
                                 />
                                 
                                 {evento.estimado && (
                                   <Chip 
                                     label="Estimado"
-                                    size="medium"
+                                    size="small"
                                     variant="outlined"
                                     sx={{ 
-                                      fontSize: '0.8rem',
+                                      fontSize: '0.75rem',
                                       borderColor: '#f59e0b',
-                                      color: '#f59e0b'
+                                      color: '#f59e0b',
+                                      height: 24
                                     }}
                                   />
                                 )}
@@ -3091,13 +3091,13 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
 
                             <Box sx={{ 
                               textAlign: 'right',
-                              minWidth: 140,
+                              minWidth: 120,
                               flexShrink: 0
                             }}>
                               <Typography variant="h5" sx={{ 
                                 fontWeight: 700,
                                 color: diasAteEvento <= 7 ? '#f59e0b' : '#3b82f6',
-                                fontSize: '1.3rem',
+                                fontSize: '1.2rem',
                                 lineHeight: 1
                               }}>
                                 {evento.dataObj.getDate()}
@@ -3105,7 +3105,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                               <Typography variant="body2" sx={{ 
                                 fontWeight: 600,
                                 color: '#64748b',
-                                fontSize: '0.9rem',
+                                fontSize: '0.85rem',
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.5px'
                               }}>
@@ -3115,7 +3115,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                                 })}
                               </Typography>
                               <Typography variant="caption" color="text.secondary" sx={{ 
-                                fontSize: '0.75rem',
+                                fontSize: '0.7rem',
                                 display: 'block',
                                 mt: 0.5
                               }}>
