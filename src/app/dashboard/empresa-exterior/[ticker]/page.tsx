@@ -103,10 +103,9 @@ export default function EmpresaExteriorDetalhes() {
       avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
     }
   };
-  
+
   // 🎨 FUNÇÃO PARA OBTER AVATAR/ÍCONE DA EMPRESA
   const getCompanyAvatar = (symbol, companyName) => {
-    // 1. Primeiro tenta logos conhecidos por ticker
     const knownLogos = {
       'MSFT': 'https://logo.clearbit.com/microsoft.com',
       'NVDA': 'https://logo.clearbit.com/nvidia.com',
@@ -115,7 +114,6 @@ export default function EmpresaExteriorDetalhes() {
       'UBER': 'https://logo.clearbit.com/uber.com',
       'SPOT': 'https://logo.clearbit.com/spotify.com',
       'SHOP': 'https://logo.clearbit.com/shopify.com',
-      'SQ': 'https://logo.clearbit.com/squareup.com',
       'PYPL': 'https://logo.clearbit.com/paypal.com',
       'ADBE': 'https://logo.clearbit.com/adobe.com',
       'CRM': 'https://logo.clearbit.com/salesforce.com',
@@ -125,7 +123,6 @@ export default function EmpresaExteriorDetalhes() {
       'SNAP': 'https://logo.clearbit.com/snapchat.com',
       'TWTR': 'https://logo.clearbit.com/twitter.com',
       'PINS': 'https://logo.clearbit.com/pinterest.com',
-      'SQ': 'https://logo.clearbit.com/squareup.com',
       'PLTR': 'https://logo.clearbit.com/palantir.com',
       'CRWD': 'https://logo.clearbit.com/crowdstrike.com',
       'ZM': 'https://logo.clearbit.com/zoom.us',
@@ -187,7 +184,6 @@ export default function EmpresaExteriorDetalhes() {
       return knownLogos[symbol];
     }
 
-    // 2. Tenta inferir domínio pelo nome da empresa
     if (companyName) {
       const companyDomains = {
         'microsoft': 'microsoft.com',
@@ -244,256 +240,93 @@ export default function EmpresaExteriorDetalhes() {
       }
     }
 
-    // 3. Tenta domínio genérico baseado no ticker
-    const genericDomains = [
-      `${symbol.toLowerCase()}.com`,
-      `${symbol.toLowerCase()}.co`,
-      `${symbol.toLowerCase()}.net`,
-      `${symbol.toLowerCase()}.org`
-    ];
-
-    // Retorna o primeiro domínio genérico (será testado com onError)
-    return `https://logo.clearbit.com/${genericDomains[0]}`;
+    return `https://logo.clearbit.com/${symbol.toLowerCase()}.com`;
   };
   
-  // 🎨 FUNÇÃO PARA OBTER AVATAR/ÍCONE DA EMPRESA
-  const getCompanyAvatar = (symbol, companyName) => {
-    // 1. Primeiro tenta logos conhecidos por ticker
-    const knownLogos = {
-      'MSFT': 'https://logo.clearbit.com/microsoft.com',
-      'NVDA': 'https://logo.clearbit.com/nvidia.com',
-      'TSLA': 'https://logo.clearbit.com/tesla.com',
-      'NFLX': 'https://logo.clearbit.com/netflix.com',
-      'UBER': 'https://logo.clearbit.com/uber.com',
-      'SPOT': 'https://logo.clearbit.com/spotify.com',
-      'SHOP': 'https://logo.clearbit.com/shopify.com',
-      'SQ': 'https://logo.clearbit.com/squareup.com',
-      'PYPL': 'https://logo.clearbit.com/paypal.com',
-      'ADBE': 'https://logo.clearbit.com/adobe.com',
-      'CRM': 'https://logo.clearbit.com/salesforce.com',
-      'ZOOM': 'https://logo.clearbit.com/zoom.us',
-      'DOCU': 'https://logo.clearbit.com/docusign.com',
-      'ROKU': 'https://logo.clearbit.com/roku.com',
-      'SNAP': 'https://logo.clearbit.com/snapchat.com',
-      'TWTR': 'https://logo.clearbit.com/twitter.com',
-      'PINS': 'https://logo.clearbit.com/pinterest.com',
-      'SQ': 'https://logo.clearbit.com/squareup.com',
-      'PLTR': 'https://logo.clearbit.com/palantir.com',
-      'CRWD': 'https://logo.clearbit.com/crowdstrike.com',
-      'ZM': 'https://logo.clearbit.com/zoom.us',
-      'OKTA': 'https://logo.clearbit.com/okta.com',
-      'SNOW': 'https://logo.clearbit.com/snowflake.com',
-      'DDOG': 'https://logo.clearbit.com/datadoghq.com',
-      'NET': 'https://logo.clearbit.com/cloudflare.com',
-      'FTNT': 'https://logo.clearbit.com/fortinet.com',
-      'PANW': 'https://logo.clearbit.com/paloaltonetworks.com',
-      'WDAY': 'https://logo.clearbit.com/workday.com',
-      'VEEV': 'https://logo.clearbit.com/veeva.com',
-      'SPLK': 'https://logo.clearbit.com/splunk.com',
-      'TEAM': 'https://logo.clearbit.com/atlassian.com',
-      'ZS': 'https://logo.clearbit.com/zscaler.com',
-      'ESTC': 'https://logo.clearbit.com/elastic.co',
-      'MDB': 'https://logo.clearbit.com/mongodb.com',
-      'COIN': 'https://logo.clearbit.com/coinbase.com',
-      'SQ': 'https://logo.clearbit.com/squareup.com',
-      'ABNB': 'https://logo.clearbit.com/airbnb.com',
-      'DASH': 'https://logo.clearbit.com/doordash.com',
-      'LYFT': 'https://logo.clearbit.com/lyft.com',
-      'RBLX': 'https://logo.clearbit.com/roblox.com',
-      'U': 'https://logo.clearbit.com/unity.com',
-      'HOOD': 'https://logo.clearbit.com/robinhood.com',
-      'SOFI': 'https://logo.clearbit.com/sofi.com',
-      'UPST': 'https://logo.clearbit.com/upstart.com',
-      'AFRM': 'https://logo.clearbit.com/affirm.com',
-      'PTON': 'https://logo.clearbit.com/onepeloton.com',
-      'ZG': 'https://logo.clearbit.com/zillow.com',
-      'CHWY': 'https://logo.clearbit.com/chewy.com',
-      'ETSY': 'https://logo.clearbit.com/etsy.com',
-      'EBAY': 'https://logo.clearbit.com/ebay.com',
-      'AMZN': 'https://logo.clearbit.com/amazon.com',
-      'WMT': 'https://logo.clearbit.com/walmart.com',
-      'TGT': 'https://logo.clearbit.com/target.com',
-      'NKE': 'https://logo.clearbit.com/nike.com',
-      'SBUX': 'https://logo.clearbit.com/starbucks.com',
-      'MCD': 'https://logo.clearbit.com/mcdonalds.com',
-      'KO': 'https://logo.clearbit.com/coca-cola.com',
-      'PEP': 'https://logo.clearbit.com/pepsico.com',
-      'DIS': 'https://logo.clearbit.com/disney.com',
-      'BA': 'https://logo.clearbit.com/boeing.com',
-      'CAT': 'https://logo.clearbit.com/caterpillar.com',
-      'MMM': 'https://logo.clearbit.com/3m.com',
-      'GE': 'https://logo.clearbit.com/ge.com',
-      'F': 'https://logo.clearbit.com/ford.com',
-      'GM': 'https://logo.clearbit.com/gm.com',
-      'JPM': 'https://logo.clearbit.com/jpmorganchase.com',
-      'BAC': 'https://logo.clearbit.com/bankofamerica.com',
-      'WFC': 'https://logo.clearbit.com/wellsfargo.com',
-      'GS': 'https://logo.clearbit.com/goldmansachs.com',
-      'MS': 'https://logo.clearbit.com/morganstanley.com',
-      'V': 'https://logo.clearbit.com/visa.com',
-      'MA': 'https://logo.clearbit.com/mastercard.com',
-      'AXP': 'https://logo.clearbit.com/americanexpress.com'
-    };
+  useEffect(() => {
+    setMounted(true);
+    const path = window.location.pathname;
+    const tickerFromUrl = path.split('/').pop() || '';
+    const cleanTicker = tickerFromUrl.toUpperCase();
+    setTicker(cleanTicker);
 
-    if (knownLogos[symbol]) {
-      return knownLogos[symbol];
+    const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
+    setStaticData(staticInfo);
+
+    if (cleanTicker) {
+      fetchStockData(cleanTicker, staticInfo);
     }
+  }, []);
+  
+  const fetchStockData = async (tickerSymbol, staticInfo) => {
+    setLoading(true);
+    setError(null);
 
-    // 2. Tenta inferir domínio pelo nome da empresa
-    if (companyName) {
-      const companyDomains = {
-        'microsoft': 'microsoft.com',
-        'apple': 'apple.com',
-        'google': 'google.com',
-        'alphabet': 'google.com',
-        'amazon': 'amazon.com',
-        'tesla': 'tesla.com',
-        'netflix': 'netflix.com',
-        'meta': 'meta.com',
-        'facebook': 'meta.com',
-        'nvidia': 'nvidia.com',
-        'intel': 'intel.com',
-        'amd': 'amd.com',
-        'oracle': 'oracle.com',
-        'salesforce': 'salesforce.com',
-        'adobe': 'adobe.com',
-        'uber': 'uber.com',
-        'airbnb': 'airbnb.com',
-        'spotify': 'spotify.com',
-        'zoom': 'zoom.us',
-        'slack': 'slack.com',
-        'twitter': 'twitter.com',
-        'snapchat': 'snapchat.com',
-        'pinterest': 'pinterest.com',
-        'linkedin': 'linkedin.com',
-        'paypal': 'paypal.com',
-        'square': 'squareup.com',
-        'shopify': 'shopify.com',
-        'coinbase': 'coinbase.com',
-        'robinhood': 'robinhood.com',
-        'peloton': 'onepeloton.com',
-        'zillow': 'zillow.com',
-        'chewy': 'chewy.com',
-        'etsy': 'etsy.com',
-        'ebay': 'ebay.com',
-        'walmart': 'walmart.com',
-        'target': 'target.com',
-        'nike': 'nike.com',
-        'starbucks': 'starbucks.com',
-        'mcdonalds': 'mcdonalds.com',
-        'disney': 'disney.com',
-        'boeing': 'boeing.com',
-        'ford': 'ford.com',
-        'visa': 'visa.com',
-        'mastercard': 'mastercard.com'
+    try {
+      const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
+      const data = await response.json();
+
+      if (!data || !data.results || data.results.length === 0) {
+        throw new Error('Sem dados da API');
+      }
+
+      const result = data.results[0];
+      const precoAtual = result.regularMarketPrice || 0;
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
+      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
+
+      const change = precoAtual - precoIniciou;
+      const changePercent = (change / precoIniciou) * 100;
+
+      const realData = {
+        name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
+        rank: staticInfo?.rank || null,
+        setor: staticInfo?.setor || result.sector || 'Setor não identificado',
+        dataEntrada: staticInfo?.dataEntrada || 'N/A',
+        precoQueIniciou: staticInfo?.precoQueIniciou || `US$${precoAtual.toFixed(2)}`,
+        precoTeto: staticInfo?.precoTeto || `US$${(precoAtual * 1.2).toFixed(2)}`,
+        avatar: staticInfo?.avatar || result.logourl || getCompanyAvatar(tickerSymbol, result.shortName || result.longName),
+        price: precoAtual,
+        change: Number(change.toFixed(2)),
+        changePercent: Number(changePercent.toFixed(2)),
+        dayLow: result.regularMarketDayLow || precoAtual * 0.98,
+        dayHigh: result.regularMarketDayHigh || precoAtual * 1.02,
+        open: result.regularMarketOpen || precoAtual,
+        volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : `${(Math.random() * 50 + 5).toFixed(1)}M`,
+        week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
+        week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
+        marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
+          ? `$${(result.marketCap / 1e9).toFixed(2)}B`
+          : generateMarketCap(tickerSymbol),
+        peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
+          ? Number(result.trailingPE.toFixed(2))
+          : Number((Math.random() * 30 + 15).toFixed(1)),
+        dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
+          ? `${(result.dividendYield * 100).toFixed(2)}%`
+          : generateDividendYield(staticInfo?.setor || 'Diversos'),
+        isPositive: change >= 0,
+        performanceVsInicio: staticInfo ? changePercent : 0,
+        distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
+        vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
       };
 
-      const lowerName = companyName.toLowerCase();
-      for (const [key, domain] of Object.entries(companyDomains)) {
-        if (lowerName.includes(key)) {
-          return `https://logo.clearbit.com/${domain}`;
-        }
-      }
+      setStockData(realData);
+    } catch (err) {
+      console.error('Erro na API, usando dados simulados:', err);
+      const mockData = generateMockData(tickerSymbol, staticInfo);
+      setStockData(mockData);
+      setError(null);
+    } finally {
+      setLoading(false);
     }
-
-    // 3. Tenta domínio genérico baseado no ticker
-    const genericDomains = [
-      `${symbol.toLowerCase()}.com`,
-      `${symbol.toLowerCase()}.co`,
-      `${symbol.toLowerCase()}.net`,
-      `${symbol.toLowerCase()}.org`
-    ];
-
-    // Retorna o primeiro domínio genérico (será testado com onError)
-    return `https://logo.clearbit.com/${genericDomains[0]}`;
   };
-  setMounted(true);
-  const path = window.location.pathname;
-  const tickerFromUrl = path.split('/').pop() || '';
-  const cleanTicker = tickerFromUrl.toUpperCase();
-  setTicker(cleanTicker);
-
-  const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
-  setStaticData(staticInfo);
-
-  if (cleanTicker) {
-    fetchStockData(cleanTicker, staticInfo);
-  }
-}, []);
-  
-const fetchStockData = async (tickerSymbol, staticInfo) => {
-  setLoading(true);
-  setError(null);
-
-  try {
-    const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
-    const data = await response.json();
-
-    if (!data || !data.results || data.results.length === 0) {
-      throw new Error('Sem dados da API');
-    }
-
-    const result = data.results[0];
-    const precoAtual = result.regularMarketPrice || 0;
-    const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
-    const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
-
-    const change = precoAtual - precoIniciou;
-    const changePercent = (change / precoIniciou) * 100;
-
-    const realData = {
-      name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
-      rank: staticInfo?.rank || null,
-      setor: staticInfo?.setor || result.sector || 'Setor não identificado',
-      dataEntrada: staticInfo?.dataEntrada || 'N/A',
-      precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
-      precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
-      avatar: staticInfo?.avatar || result.logourl || getCompanyAvatar(tickerSymbol, result.shortName || result.longName),
-      price: precoAtual,
-      change: Number(change.toFixed(2)),
-      changePercent: Number(changePercent.toFixed(2)),
-      dayLow: result.regularMarketDayLow || precoAtual * 0.98,
-      dayHigh: result.regularMarketDayHigh || precoAtual * 1.02,
-      open: result.regularMarketOpen || precoAtual,
-      volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : `${(Math.random() * 50 + 5).toFixed(1)}M`,
-      week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
-      week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
-      marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
-        ? `${(result.marketCap / 1e9).toFixed(2)}B`
-        : generateMarketCap(tickerSymbol),
-      peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
-        ? Number(result.trailingPE.toFixed(2))
-        : Number((Math.random() * 30 + 15).toFixed(1)),
-      dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
-        ? `${(result.dividendYield * 100).toFixed(2)}%`
-        : generateDividendYield(staticInfo?.setor || 'Diversos'),
-      isPositive: change >= 0,
-      performanceVsInicio: staticInfo ? changePercent : 0,
-      distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
-      vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
-    };
-
-    setStockData(realData);
-  } catch (err) {
-    console.error('Erro na API, usando dados simulados:', err);
-    
-    // 🎲 Usar dados simulados quando API falha
-    const mockData = generateMockData(tickerSymbol, staticInfo);
-    setStockData(mockData);
-    setError(null); // Limpar erro já que temos dados simulados
-  } finally {
-    setLoading(false);
-  }
-};
 
   const generateMockData = (symbol, staticInfo) => {
-    // 🏢 Se tem dados estáticos da empresa, usar como base
     if (staticInfo) {
       const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
       const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
       
-      // 📈 Simular preço atual baseado no range histórico
-      const variacao = (Math.random() - 0.3) * 0.4; // -30% a +40%
+      const variacao = (Math.random() - 0.3) * 0.4;
       const precoAtual = precoIniciou * (1 + variacao);
       const change = precoAtual - precoIniciou;
       const changePercent = (change / precoIniciou) * 100;
@@ -519,14 +352,12 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
         peRatio: Number((Math.random() * 30 + 15).toFixed(1)),
         dividendYield: generateDividendYield(staticInfo.setor),
         isPositive: change >= 0,
-        // 📊 Cálculos de performance
         performanceVsInicio: changePercent,
         distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
         vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
       };
     }
 
-    // 🎲 Fallback para tickers não cadastrados
     const basePrice = Math.random() * 300 + 50;
     const change = (Math.random() - 0.5) * 20;
     const isPositive = change > 0;
@@ -588,7 +419,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
     return yields[setor] ? yields[setor]() : `${(Math.random() * 2 + 0.5).toFixed(2)}%`;
   };
 
-  // Loading state
   if (!mounted || loading) {
     return (
       <div style={{ 
@@ -719,14 +549,12 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
     gap: '16px'
   };
 
-  // Calcula posição no range do dia
   const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHigh - stockData.dayLow)) * 100;
 
   return (
     <div style={containerStyle}>
       <div style={maxWidthStyle}>
         
-        {/* Header */}
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
             {stockData.avatar ? (
@@ -740,7 +568,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                   border: '2px solid #e2e8f0'
                 }}
                 onError={(e) => {
-                  // Fallback: tenta outros domínios ou mostra ícone genérico
                   const currentSrc = e.target.src;
                   
                   if (currentSrc.includes('.com')) {
@@ -748,8 +575,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                   } else if (currentSrc.includes('.co')) {
                     e.target.src = currentSrc.replace('.co', '.net');
                   } else if (currentSrc.includes('.net')) {
-                    // Se todos falharam, usa um ícone genérico com as iniciais
-                    const initials = ticker.slice(0, 2).toUpperCase();
                     e.target.style.display = 'none';
                     e.target.nextElementSibling.style.display = 'flex';
                   } else {
@@ -760,7 +585,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
               />
             ) : null}
             
-            {/* Fallback: Ícone genérico com iniciais */}
             <div 
               style={{ 
                 width: '48px', 
@@ -778,6 +602,7 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
             >
               {ticker.slice(0, 2)}
             </div>
+            
             <div>
               <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#1f2937' }}>
                 {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
@@ -788,23 +613,21 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
             </div>
           </div>
 
-          {/* Aviso para empresa sem cobertura */}
-{!staticData && (
-  <div style={{
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    padding: '16px',
-    borderRadius: '8px',
-    color: '#b91c1c',
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: '24px'
-  }}>
-    ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
-  </div>
-)}
+          {!staticData && (
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              padding: '16px',
+              borderRadius: '8px',
+              color: '#b91c1c',
+              fontWeight: '600',
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
+            </div>
+          )}
           
-          {/* 📊 Informações da Carteira */}
           {staticData && (
             <div style={{
               background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
@@ -865,7 +688,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
           )}
         </div>
 
-        {/* Preço Principal */}
         <div style={priceCardStyle}>
           <div style={priceHeaderStyle}>
             <div style={priceFlexStyle}>
@@ -892,10 +714,8 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
             </div>
           </div>
 
-          {/* Métricas */}
           <div style={{ padding: '24px' }}>
             
-            {/* Performance vs Entrada */}
             {staticData && stockData.performanceVsInicio !== 0 && (
               <div style={{
                 background: stockData.performanceVsInicio >= 0 ? '#ecfdf5' : '#fef2f2',
@@ -924,7 +744,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
               </div>
             )}
 
-            {/* Range do Dia */}
             <div style={{
               background: '#f8fafc',
               padding: '16px',
@@ -974,7 +793,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
               </div>
             </div>
 
-            {/* Grid de Métricas */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -982,7 +800,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
               marginBottom: '32px'
             }}>
               
-              {/* Volume */}
               <div style={{
                 background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                 padding: '20px',
@@ -1006,7 +823,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                 <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{stockData.volume}</p>
               </div>
 
-              {/* Abertura */}
               <div style={{
                 background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
                 padding: '20px',
@@ -1030,7 +846,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                 <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.open}</p>
               </div>
 
-              {/* Máxima 52s */}
               <div style={{
                 background: 'linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)',
                 padding: '20px',
@@ -1054,7 +869,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                 <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52High}</p>
               </div>
 
-              {/* Mínima 52s */}
               <div style={{
                 background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
                 padding: '20px',
@@ -1079,7 +893,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
               </div>
             </div>
 
-            {/* Indicadores Financeiros */}
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
                 💼 Indicadores Financeiros
@@ -1091,7 +904,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                 gap: '24px'
               }}>
                 
-                {/* Market Cap */}
                 <div style={{
                   background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
                   padding: '24px',
@@ -1116,7 +928,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                   <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
                 </div>
 
-                {/* P/E Ratio */}
                 <div style={{
                   background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
                   padding: '24px',
@@ -1141,7 +952,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
                   <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
                 </div>
 
-                {/* Dividend Yield */}
                 <div style={{
                   background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
                   padding: '24px',
@@ -1170,7 +980,6 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
           </div>
         </div>
 
-        {/* Status */}
         <div style={{
           background: 'white',
           padding: '16px 24px',
