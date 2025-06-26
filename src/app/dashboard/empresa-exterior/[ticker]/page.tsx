@@ -255,6 +255,158 @@ export default function EmpresaExteriorDetalhes() {
     // Retorna o primeiro domínio genérico (será testado com onError)
     return `https://logo.clearbit.com/${genericDomains[0]}`;
   };
+  
+  // 🎨 FUNÇÃO PARA OBTER AVATAR/ÍCONE DA EMPRESA
+  const getCompanyAvatar = (symbol, companyName) => {
+    // 1. Primeiro tenta logos conhecidos por ticker
+    const knownLogos = {
+      'MSFT': 'https://logo.clearbit.com/microsoft.com',
+      'NVDA': 'https://logo.clearbit.com/nvidia.com',
+      'TSLA': 'https://logo.clearbit.com/tesla.com',
+      'NFLX': 'https://logo.clearbit.com/netflix.com',
+      'UBER': 'https://logo.clearbit.com/uber.com',
+      'SPOT': 'https://logo.clearbit.com/spotify.com',
+      'SHOP': 'https://logo.clearbit.com/shopify.com',
+      'SQ': 'https://logo.clearbit.com/squareup.com',
+      'PYPL': 'https://logo.clearbit.com/paypal.com',
+      'ADBE': 'https://logo.clearbit.com/adobe.com',
+      'CRM': 'https://logo.clearbit.com/salesforce.com',
+      'ZOOM': 'https://logo.clearbit.com/zoom.us',
+      'DOCU': 'https://logo.clearbit.com/docusign.com',
+      'ROKU': 'https://logo.clearbit.com/roku.com',
+      'SNAP': 'https://logo.clearbit.com/snapchat.com',
+      'TWTR': 'https://logo.clearbit.com/twitter.com',
+      'PINS': 'https://logo.clearbit.com/pinterest.com',
+      'SQ': 'https://logo.clearbit.com/squareup.com',
+      'PLTR': 'https://logo.clearbit.com/palantir.com',
+      'CRWD': 'https://logo.clearbit.com/crowdstrike.com',
+      'ZM': 'https://logo.clearbit.com/zoom.us',
+      'OKTA': 'https://logo.clearbit.com/okta.com',
+      'SNOW': 'https://logo.clearbit.com/snowflake.com',
+      'DDOG': 'https://logo.clearbit.com/datadoghq.com',
+      'NET': 'https://logo.clearbit.com/cloudflare.com',
+      'FTNT': 'https://logo.clearbit.com/fortinet.com',
+      'PANW': 'https://logo.clearbit.com/paloaltonetworks.com',
+      'WDAY': 'https://logo.clearbit.com/workday.com',
+      'VEEV': 'https://logo.clearbit.com/veeva.com',
+      'SPLK': 'https://logo.clearbit.com/splunk.com',
+      'TEAM': 'https://logo.clearbit.com/atlassian.com',
+      'ZS': 'https://logo.clearbit.com/zscaler.com',
+      'ESTC': 'https://logo.clearbit.com/elastic.co',
+      'MDB': 'https://logo.clearbit.com/mongodb.com',
+      'COIN': 'https://logo.clearbit.com/coinbase.com',
+      'SQ': 'https://logo.clearbit.com/squareup.com',
+      'ABNB': 'https://logo.clearbit.com/airbnb.com',
+      'DASH': 'https://logo.clearbit.com/doordash.com',
+      'LYFT': 'https://logo.clearbit.com/lyft.com',
+      'RBLX': 'https://logo.clearbit.com/roblox.com',
+      'U': 'https://logo.clearbit.com/unity.com',
+      'HOOD': 'https://logo.clearbit.com/robinhood.com',
+      'SOFI': 'https://logo.clearbit.com/sofi.com',
+      'UPST': 'https://logo.clearbit.com/upstart.com',
+      'AFRM': 'https://logo.clearbit.com/affirm.com',
+      'PTON': 'https://logo.clearbit.com/onepeloton.com',
+      'ZG': 'https://logo.clearbit.com/zillow.com',
+      'CHWY': 'https://logo.clearbit.com/chewy.com',
+      'ETSY': 'https://logo.clearbit.com/etsy.com',
+      'EBAY': 'https://logo.clearbit.com/ebay.com',
+      'AMZN': 'https://logo.clearbit.com/amazon.com',
+      'WMT': 'https://logo.clearbit.com/walmart.com',
+      'TGT': 'https://logo.clearbit.com/target.com',
+      'NKE': 'https://logo.clearbit.com/nike.com',
+      'SBUX': 'https://logo.clearbit.com/starbucks.com',
+      'MCD': 'https://logo.clearbit.com/mcdonalds.com',
+      'KO': 'https://logo.clearbit.com/coca-cola.com',
+      'PEP': 'https://logo.clearbit.com/pepsico.com',
+      'DIS': 'https://logo.clearbit.com/disney.com',
+      'BA': 'https://logo.clearbit.com/boeing.com',
+      'CAT': 'https://logo.clearbit.com/caterpillar.com',
+      'MMM': 'https://logo.clearbit.com/3m.com',
+      'GE': 'https://logo.clearbit.com/ge.com',
+      'F': 'https://logo.clearbit.com/ford.com',
+      'GM': 'https://logo.clearbit.com/gm.com',
+      'JPM': 'https://logo.clearbit.com/jpmorganchase.com',
+      'BAC': 'https://logo.clearbit.com/bankofamerica.com',
+      'WFC': 'https://logo.clearbit.com/wellsfargo.com',
+      'GS': 'https://logo.clearbit.com/goldmansachs.com',
+      'MS': 'https://logo.clearbit.com/morganstanley.com',
+      'V': 'https://logo.clearbit.com/visa.com',
+      'MA': 'https://logo.clearbit.com/mastercard.com',
+      'AXP': 'https://logo.clearbit.com/americanexpress.com'
+    };
+
+    if (knownLogos[symbol]) {
+      return knownLogos[symbol];
+    }
+
+    // 2. Tenta inferir domínio pelo nome da empresa
+    if (companyName) {
+      const companyDomains = {
+        'microsoft': 'microsoft.com',
+        'apple': 'apple.com',
+        'google': 'google.com',
+        'alphabet': 'google.com',
+        'amazon': 'amazon.com',
+        'tesla': 'tesla.com',
+        'netflix': 'netflix.com',
+        'meta': 'meta.com',
+        'facebook': 'meta.com',
+        'nvidia': 'nvidia.com',
+        'intel': 'intel.com',
+        'amd': 'amd.com',
+        'oracle': 'oracle.com',
+        'salesforce': 'salesforce.com',
+        'adobe': 'adobe.com',
+        'uber': 'uber.com',
+        'airbnb': 'airbnb.com',
+        'spotify': 'spotify.com',
+        'zoom': 'zoom.us',
+        'slack': 'slack.com',
+        'twitter': 'twitter.com',
+        'snapchat': 'snapchat.com',
+        'pinterest': 'pinterest.com',
+        'linkedin': 'linkedin.com',
+        'paypal': 'paypal.com',
+        'square': 'squareup.com',
+        'shopify': 'shopify.com',
+        'coinbase': 'coinbase.com',
+        'robinhood': 'robinhood.com',
+        'peloton': 'onepeloton.com',
+        'zillow': 'zillow.com',
+        'chewy': 'chewy.com',
+        'etsy': 'etsy.com',
+        'ebay': 'ebay.com',
+        'walmart': 'walmart.com',
+        'target': 'target.com',
+        'nike': 'nike.com',
+        'starbucks': 'starbucks.com',
+        'mcdonalds': 'mcdonalds.com',
+        'disney': 'disney.com',
+        'boeing': 'boeing.com',
+        'ford': 'ford.com',
+        'visa': 'visa.com',
+        'mastercard': 'mastercard.com'
+      };
+
+      const lowerName = companyName.toLowerCase();
+      for (const [key, domain] of Object.entries(companyDomains)) {
+        if (lowerName.includes(key)) {
+          return `https://logo.clearbit.com/${domain}`;
+        }
+      }
+    }
+
+    // 3. Tenta domínio genérico baseado no ticker
+    const genericDomains = [
+      `${symbol.toLowerCase()}.com`,
+      `${symbol.toLowerCase()}.co`,
+      `${symbol.toLowerCase()}.net`,
+      `${symbol.toLowerCase()}.org`
+    ];
+
+    // Retorna o primeiro domínio genérico (será testado com onError)
+    return `https://logo.clearbit.com/${genericDomains[0]}`;
+  };
   setMounted(true);
   const path = window.location.pathname;
   const tickerFromUrl = path.split('/').pop() || '';
