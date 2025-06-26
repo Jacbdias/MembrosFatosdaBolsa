@@ -1085,151 +1085,93 @@ useEffect(() => {
             </div>
           )}
           
-          {staticData && (
-            <div style={{
-              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              marginTop: '16px'
-            }}>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '16px' 
-              }}>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    DATA DE ENTRADA
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                    {stockData.dataEntrada}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    PREÇO DE ENTRADA
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                    {stockData.precoQueIniciou}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    PREÇO TETO
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                    {stockData.precoTeto}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    VIÉS ATUAL
-                  </p>
-                  <div style={{
-                    display: 'inline-block',
-                    background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                    color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    border: '1px solid',
-                    borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
-                  }}>
-                    {stockData.vies}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-                    {staticData?.bdr && (
-            <div style={{
-              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid #a7f3d0',
-              marginTop: '16px'
-            }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#059669', margin: '0 0 12px 0' }}>
-                🇧🇷 Disponível também via BDR
-              </h3>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '16px' 
-              }}>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    TICKER BDR
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#059669', margin: 0 }}>
-                    {staticData.bdr}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    PREÇO ATUAL (BDR)
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#059669', margin: 0 }}>
-                    {bdrLoading ? 'Carregando...' : (bdrData ? `R$ ${bdrData.price.toFixed(2)}` : 'N/A')}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    PREÇO TETO (BDR)
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#059669', margin: 0 }}>
-                    {staticData.bdrTeto}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
-                    VARIAÇÃO (BDR)
-                  </p>
-                  <p style={{ 
-                    fontSize: '14px', 
-                    fontWeight: 'bold', 
-                    color: !bdrData ? '#6b7280' : (bdrData.changePercent >= 0 ? '#059669' : '#dc2626'),
-                    margin: 0 
-                  }}>
-                    {bdrLoading ? 'Carregando...' : (bdrData ? `${bdrData.changePercent >= 0 ? '+' : ''}${bdrData.changePercent.toFixed(2)}%` : 'N/A')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+{staticData && (
+  <div style={{
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    padding: '16px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    marginTop: '16px'
+  }}>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+      gap: '16px' 
+    }}>
+      <div>
+        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+          DATA DE ENTRADA
+        </p>
+        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+          {stockData.dataEntrada}
+        </p>
+      </div>
+      <div>
+        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+          PREÇO DE ENTRADA
+        </p>
+        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+          {stockData.precoQueIniciou}
+        </p>
+      </div>
+      <div>
+        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+          PREÇO TETO
+        </p>
+        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+          {stockData.precoTeto}
+        </p>
+      </div>
+      <div>
+        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+          VIÉS ATUAL
+        </p>
+        <div style={{
+          display: 'inline-block',
+          background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+          color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          border: '1px solid',
+          borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+        }}>
+          {stockData.vies}
         </div>
-
-        <div style={priceCardStyle}>
+      </div>
+      {/* 🆕 NOVO CAMPO - VARIAÇÃO DO DIA */}
+      <div>
+        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+          VARIAÇÃO DO DIA
+        </p>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '6px' 
+        }}>
+          <span style={{
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: stockData.isPositive ? '#059669' : '#dc2626'
+          }}>
+            {stockData.isPositive ? '+' : ''}{stockData.change}
+          </span>
+          <span style={{
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: stockData.isPositive ? '#059669' : '#dc2626'
+          }}>
+            ({stockData.isPositive ? '+' : ''}{stockData.changePercent}%)
+          </span>
+          <span style={{ fontSize: '16px' }}>
+            {stockData.isPositive ? '↗️' : '↘️'}
+          </span>
         </div>
-
-        <div style={priceCardStyle}>
-          <div style={priceHeaderStyle}>
-            <div style={priceFlexStyle}>
-              <div>
-                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{ticker}</h2>
-                <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0 }}>{stockData.name}</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '32px', fontWeight: 'bold' }}>${stockData.price}</div>
-                <div style={{ 
-                  color: stockData.isPositive ? '#10b981' : '#ef4444',
-                  marginTop: '8px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'flex-end',
-                  gap: '8px'
-                }}>
-                  <span>{stockData.isPositive ? '↗' : '↘'}</span>
-                  <span style={{ fontWeight: '600' }}>
-                    {stockData.isPositive ? '+' : ''}{stockData.change} ({stockData.changePercent}%)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
+      </div>
+    </div>
+  </div>
+)}
           <div style={{ padding: '24px' }}>
             
             {staticData && stockData.performanceVsInicio !== 0 && (
