@@ -520,7 +520,7 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            {/* Container do avatar com useState */}
+            {/* Container do avatar - versão simplificada */}
             <div
               style={{
                 width: '48px',
@@ -537,43 +537,51 @@ export default function EmpresaExteriorDetalhes() {
                 position: 'relative'
               }}
             >
-              {/* Fallback com iniciais */}
-              {(!avatarLoaded || avatarError) && (
-                <span style={{ position: 'absolute', zIndex: 1 }}>
-                  {ticker.slice(0, 2)}
-                </span>
-              )}
+              {/* Fallback com iniciais - sempre presente inicialmente */}
+              <span 
+                style={{ 
+                  position: 'absolute', 
+                  zIndex: 1,
+                  display: (avatarLoaded && !avatarError) ? 'none' : 'block'
+                }}
+              >
+                {ticker.slice(0, 2)}
+              </span>
+              
               {/* Imagem da logo */}
-              <img
-                src={stockData.avatar}
-                alt={stockData.name}
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '8px',
-                  position: 'absolute',
-                  top: '-2px',
-                  left: '-2px',
-                  zIndex: 2,
-                  border: '2px solid #e2e8f0',
-                  display: avatarError ? 'none' : 'block'
-                }}
-                onLoad={(e) => {
-                  const valid = e.target.naturalWidth > 1 && e.target.naturalHeight > 1;
-                  if (valid) {
-                    setAvatarLoaded(true);
-                    setAvatarError(false);
-                    console.log('✅ Avatar carregado:', e.target.src);
-                  } else {
+              {stockData?.avatar && (
+                <img
+                  src={stockData.avatar}
+                  alt={stockData.name}
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '8px',
+                    position: 'absolute',
+                    top: '-2px',
+                    left: '-2px',
+                    zIndex: 2,
+                    border: '2px solid #e2e8f0',
+                    display: avatarError ? 'none' : 'block'
+                  }}
+                  onLoad={(e) => {
+                    const valid = e.target.naturalWidth > 1 && e.target.naturalHeight > 1;
+                    console.log('📸 Avatar carregou:', e.target.src, `${e.target.naturalWidth}x${e.target.naturalHeight}`, 'válido:', valid);
+                    if (valid) {
+                      setAvatarLoaded(true);
+                      setAvatarError(false);
+                    } else {
+                      setAvatarLoaded(false);
+                      setAvatarError(true);
+                    }
+                  }}
+                  onError={(e) => {
+                    console.log('❌ Avatar falhou:', e.target.src);
+                    setAvatarLoaded(false);
                     setAvatarError(true);
-                  }
-                }}
-                onError={(e) => {
-                  console.log('❌ Avatar falhou:', e.target.src);
-                  setAvatarError(true);
-                  setAvatarLoaded(false);
-                }}
-              />
+                  }}
+                />
+              )}
             </div>
             
             <div>
