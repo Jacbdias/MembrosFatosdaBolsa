@@ -200,7 +200,7 @@ function useExteriorStocks() {
       precoQueIniciou: 'US$286,35',
       precoAtual: 'US$295,80', // fallback estático
       precoTeto: 'US$330,00',
-      avatar: 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png',
+      avatar: 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
     }
   ];
 
