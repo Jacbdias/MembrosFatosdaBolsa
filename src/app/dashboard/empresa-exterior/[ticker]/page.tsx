@@ -180,10 +180,12 @@ export default function EmpresaExteriorDetalhes() {
       'AXP': 'https://logo.clearbit.com/americanexpress.com'
     };
 
+    // 1. Se o ticker tem logo conhecido, retorna
     if (knownLogos[symbol]) {
       return knownLogos[symbol];
     }
 
+    // 2. Tenta detectar pelo nome da empresa
     if (companyName) {
       const companyDomains = {
         'microsoft': 'microsoft.com',
@@ -240,6 +242,8 @@ export default function EmpresaExteriorDetalhes() {
       }
     }
 
+    // 3. Para tickers desconhecidos, tenta URL genérica
+    // Mas se falhar, o onError vai mostrar o fallback com iniciais
     return `https://logo.clearbit.com/${symbol.toLowerCase()}.com`;
   };
   
@@ -557,43 +561,32 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            {stockData.avatar ? (
-              <img 
-                src={stockData.avatar} 
-                alt={stockData.name}
-                style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '8px',
-                  border: '2px solid #e2e8f0'
-                }}
-                onError={(e) => {
-                  const currentSrc = e.target.src;
-                  
-                  if (currentSrc.includes('.com')) {
-                    e.target.src = currentSrc.replace('.com', '.co');
-                  } else if (currentSrc.includes('.co')) {
-                    e.target.src = currentSrc.replace('.co', '.net');
-                  } else if (currentSrc.includes('.net')) {
-                    e.target.style.display = 'none';
-                    e.target.nextElementSibling.style.display = 'flex';
-                  } else {
-                    e.target.style.display = 'none';
-                    e.target.nextElementSibling.style.display = 'flex';
-                  }
-                }}
-              />
-            ) : null}
+            <img 
+              src={stockData.avatar} 
+              alt={stockData.name}
+              style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '8px',
+                border: '2px solid #e2e8f0'
+              }}
+              onError={(e) => {
+                // Hide image and show fallback
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+              }}
+            />
             
+            {/* Fallback: Ícone genérico com iniciais */}
             <div 
               style={{ 
                 width: '48px', 
                 height: '48px', 
                 borderRadius: '8px',
                 border: '2px solid #e2e8f0',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                 color: 'white',
-                display: stockData.avatar ? 'none' : 'flex',
+                display: 'none', // Initially hidden, shown via onError
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '16px',
