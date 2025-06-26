@@ -2,6 +2,47 @@
 
 import React, { useState, useEffect } from 'react';
 
+// 🔥 HOOK PARA BUSCAR DADOS REAIS DOS BDRs
+function useBDRDataAPI(bdrTicker) {
+  const [bdrData, setBDRData] = React.useState(null);
+  const [bdrLoading, setBDRLoading] = React.useState(true);
+
+  const fetchBDRData = React.useCallback(async () => {
+    if (!bdrTicker) {
+      setBDRLoading(false);
+      return;
+    }
+
+    try {
+      console.log(`🇧🇷 Buscando cotação do BDR: ${bdrTicker}...`);
+      
+      const response = await fetch(`https://brapi.dev/api/quote/${bdrTicker}?token=jJrMYVy9MATGEicx3GxBp8`);
+      const data = await response.json();
+
+      if (data?.results?.[0]) {
+        const result = data.results[0];
+        setBDRData({
+          symbol: result.symbol,
+          price: result.regularMarketPrice,
+          change: result.regularMarketChange,
+          changePercent: result.regularMarketChangePercent
+        });
+        console.log(`✅ BDR ${bdrTicker}: R$ ${result.regularMarketPrice}`);
+      }
+    } catch (err) {
+      console.error(`❌ Erro BDR ${bdrTicker}:`, err);
+    } finally {
+      setBDRLoading(false);
+    }
+  }, [bdrTicker]);
+
+  React.useEffect(() => {
+    fetchBDRData();
+  }, [fetchBDRData]);
+
+  return { bdrData, bdrLoading };
+}
+
 export default function EmpresaExteriorDetalhes() {
   const [ticker, setTicker] = useState('');
   const [stockData, setStockData] = useState(null);
@@ -11,111 +52,87 @@ export default function EmpresaExteriorDetalhes() {
   const [mounted, setMounted] = useState(false);
   const [apiData, setApiData] = useState({ stocks: [], dividends: [] });
   
+  // 🇧🇷 Buscar dados do BDR se existir
+  const { bdrData, bdrLoading } = useBDRDataAPI(staticData?.bdr);
+  
   // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
-  const exteriorStocksDatabase = {
-    'AMD': {
-      rank: '1º',
-      name: 'Advanced Micro Devices Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '29/05/2025',
-      precoQueIniciou: 'US$112,86',
-      precoTeto: 'US$135,20',
-      avatar: 'https://logo.clearbit.com/amd.com',
-      tipo: 'STOCK',
-    },
-    'XP': {
-      rank: '2º',
-      name: 'XP Inc.',
-      setor: 'Financial Services',
-      dataEntrada: '26/05/2023',
-      precoQueIniciou: 'US$18,41',
-      precoTeto: 'US$24,34',
-      avatar: 'https://logo.clearbit.com/xpi.com.br',
-      tipo: 'STOCK',
-    },
-    'HD': {
-      rank: '3º',
-      name: 'Home Depot Inc.',
-      setor: 'Varejo',
-      dataEntrada: '24/02/2023',
-      precoQueIniciou: 'US$299,31',
-      precoTeto: 'US$366,78',
-      avatar: 'https://logo.clearbit.com/homedepot.com',
-      tipo: 'STOCK',
-    },
-    'AAPL': {
-      rank: '4º',
-      name: 'Apple Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '05/05/2022',
-      precoQueIniciou: 'US$156,77',
-      precoTeto: 'US$170,00',
-      avatar: 'https://logo.clearbit.com/apple.com',
-      tipo: 'STOCK',
-    },
-    'FIVE': {
-      rank: '5º',
-      name: 'Five Below Inc.',
-      setor: 'Varejo',
-      dataEntrada: '17/03/2022',
-      precoQueIniciou: 'US$163,41',
-      precoTeto: 'US$179,00',
-      avatar: 'https://logo.clearbit.com/fivebelow.com',
-      tipo: 'STOCK',
-    },
-    'AMAT': {
-      rank: '6º',
-      name: 'Applied Materials Inc.',
-      setor: 'Semicondutores',
-      dataEntrada: '07/04/2022',
-      precoQueIniciou: 'US$122,40',
-      precoTeto: 'US$151,30',
-      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
-      tipo: 'STOCK',
-    },
-    'COST': {
-      rank: '7º',
-      name: 'Costco Wholesale Corporation',
-      setor: 'Consumer Discretionary',
-      dataEntrada: '23/06/2022',
-      precoQueIniciou: 'US$459,00',
-      precoTeto: 'US$571,00',
-      avatar: 'https://logo.clearbit.com/costco.com',
-      tipo: 'STOCK',
-    },
-    'GOOGL': {
-      rank: '8º',
-      name: 'Alphabet Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '06/03/2022',
-      precoQueIniciou: 'US$131,83',
-      precoTeto: 'US$153,29',
-      avatar: 'https://logo.clearbit.com/google.com',
-      tipo: 'STOCK',
-    },
-    'META': {
-      rank: '9º',
-      name: 'Meta Platforms Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '17/02/2022',
-      precoQueIniciou: 'US$213,92',
-      precoTeto: 'US$322,00',
-      avatar: 'https://logo.clearbit.com/meta.com',
-      tipo: 'STOCK',
-    },
-    'BRK-B': {
-      rank: '10º',
-      name: 'Berkshire Hathaway Inc.',
-      setor: 'Holding',
-      dataEntrada: '11/05/2021',
-      precoQueIniciou: 'US$286,35',
-      precoTeto: 'US$330,00',
-      avatar: 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
-      tipo: 'STOCK',
-    }
-  };
+const exteriorStocksDatabase = {
+  'AMD': {
+    rank: '1º',
+    name: 'Advanced Micro Devices Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '29/05/2025',
+    precoQueIniciou: 'US$112,86',
+    precoTeto: 'US$135,20',
+    avatar: 'https://logo.clearbit.com/amd.com',
+    tipo: 'STOCK',
+    bdr: 'AMDD34',
+    bdrTeto: 'R$ 93,20' // 🇧🇷 NOVO
+  },
+  'AAPL': {
+    rank: '4º',
+    name: 'Apple Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '05/05/2022',
+    precoQueIniciou: 'US$156,77',
+    precoTeto: 'US$170,00',
+    avatar: 'https://logo.clearbit.com/apple.com',
+    tipo: 'STOCK',
+    bdr: 'AAPL34',
+    bdrTeto: 'R$ 42,39' // 🇧🇷 NOVO
+  },
+  'GOOGL': {
+    rank: '8º',
+    name: 'Alphabet Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '06/03/2022',
+    precoQueIniciou: 'US$131,83',
+    precoTeto: 'US$153,29',
+    avatar: 'https://logo.clearbit.com/google.com',
+    tipo: 'STOCK',
+    bdr: 'GOGL34',
+    bdrTeto: 'R$ 31,90' // 🇧🇷 NOVO
+  },
+  'META': {
+    rank: '9º',
+    name: 'Meta Platforms Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '17/02/2022',
+    precoQueIniciou: 'US$213,92',
+    precoTeto: 'US$322,00',
+    avatar: 'https://logo.clearbit.com/meta.com',
+    tipo: 'STOCK',
+    bdr: 'FBOK34',
+    bdrTeto: 'R$ 54,45' // 🇧🇷 NOVO (assumindo que é M1TA34)
+  },
+  'HD': {
+    rank: '3º',
+    name: 'Home Depot Inc.',
+    setor: 'Varejo',
+    dataEntrada: '24/02/2023',
+    precoQueIniciou: 'US$299,31',
+    precoTeto: 'US$366,78',
+    avatar: 'https://logo.clearbit.com/homedepot.com',
+    tipo: 'STOCK',
+    bdr: 'HOME34',
+    bdrTeto: 'R$ 65,88' // 🇧🇷 NOVO
+  },
+  'COST': {
+    rank: '7º',
+    name: 'Costco Wholesale Corporation',
+    setor: 'Consumer Discretionary',
+    dataEntrada: '23/06/2022',
+    precoQueIniciou: 'US$459,00',
+    precoTeto: 'US$571,00',
+    avatar: 'https://logo.clearbit.com/costco.com',
+    tipo: 'STOCK',
+    bdr: 'COWC34',
+    bdrTeto: 'R$ 71,91' // 🇧🇷 NOVO
+  },
+};
 
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS DIVIDENDOS INTERNACIONAIS
+const exteriorDividendsDatabase = {
 const exteriorDividendsDatabase = {
   'OXY': {
     rank: '1º',
@@ -126,18 +143,9 @@ const exteriorDividendsDatabase = {
     precoTeto: 'US$60,10',
     avatar: 'https://logo.clearbit.com/oxy.com',
     tipo: 'DIVIDEND',
-    dy: '2,34%'
-  },
-  'ADC': {
-    rank: '2º',
-    name: 'Agree Realty Corporation',
-    setor: 'REIT - Retail',
-    dataEntrada: '19/01/2023',
-    precoQueIniciou: 'US$73,74',
-    precoTeto: 'US$99,01',
-    avatar: 'https://logo.clearbit.com/agreerealty.com',
-    tipo: 'DIVIDEND',
-    dy: '5,34%'
+    dy: '2,34%',
+    bdr: 'OXYP34',
+    bdrTeto: 'R$ 58,54' // 🇧🇷 NOVO
   },
   'VZ': {
     rank: '3º',
@@ -148,7 +156,9 @@ const exteriorDividendsDatabase = {
     precoTeto: 'US$51,12',
     avatar: 'https://logo.clearbit.com/verizon.com',
     tipo: 'DIVIDEND',
-    dy: '6,57%'
+    dy: '6,57%',
+    bdr: 'VERZ34',
+    bdrTeto: 'R$ 44,39' // 🇧🇷 NOVO
   },
   'O': {
     rank: '4º',
@@ -159,7 +169,9 @@ const exteriorDividendsDatabase = {
     precoTeto: 'US$58,91',
     avatar: 'https://logo.clearbit.com/realtyincome.com',
     tipo: 'DIVIDEND',
-    dy: '6,13%'
+    dy: '6,13%',
+    bdr: 'R1IN34',
+    bdrTeto: 'R$ 146,30' // 🇧🇷 NOVO
   },
   'AVB': {
     rank: '5º',
@@ -170,7 +182,9 @@ const exteriorDividendsDatabase = {
     precoTeto: 'US$340,00',
     avatar: 'https://logo.clearbit.com/avalonbay.com',
     tipo: 'DIVIDEND',
-    dy: '3,96%'
+    dy: '3,96%',
+    bdr: 'A1VB34',
+    bdrTeto: 'R$ 445,86' // 🇧🇷 NOVO
   },
   'STAG': {
     rank: '6º',
@@ -181,10 +195,12 @@ const exteriorDividendsDatabase = {
     precoTeto: 'US$42,87',
     avatar: 'https://logo.clearbit.com/stagindustrial.com',
     tipo: 'DIVIDEND',
-    dy: '4,55%'
+    dy: '4,55%',
+    bdr: 'S2TA34',
+    bdrTeto: 'R$ 44,06' // 🇧🇷 NOVO
   }
 };
-
+  
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS ETFs INTERNACIONAIS
 const exteriorETFsDatabase = {
   'VOO': {
@@ -1070,6 +1086,65 @@ useEffect(() => {
               </div>
             </div>
           )}
+                    {staticData?.bdr && (
+            <div style={{
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #a7f3d0',
+              marginTop: '16px'
+            }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#059669', margin: '0 0 12px 0' }}>
+                🇧🇷 Disponível também via BDR
+              </h3>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px' 
+              }}>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    TICKER BDR
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#059669', margin: 0 }}>
+                    {staticData.bdr}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    PREÇO ATUAL (BDR)
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#059669', margin: 0 }}>
+                    {bdrLoading ? 'Carregando...' : (bdrData ? `R$ ${bdrData.price.toFixed(2)}` : 'N/A')}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    PREÇO TETO (BDR)
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#059669', margin: 0 }}>
+                    {staticData.bdrTeto}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#064e3b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    VARIAÇÃO (BDR)
+                  </p>
+                  <p style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 'bold', 
+                    color: !bdrData ? '#6b7280' : (bdrData.changePercent >= 0 ? '#059669' : '#dc2626'),
+                    margin: 0 
+                  }}>
+                    {bdrLoading ? 'Carregando...' : (bdrData ? `${bdrData.changePercent >= 0 ? '+' : ''}${bdrData.changePercent.toFixed(2)}%` : 'N/A')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={priceCardStyle}>
         </div>
 
         <div style={priceCardStyle}>
