@@ -66,44 +66,20 @@ const exteriorStocksDatabase = {
     precoTeto: 'US$135,20',
     avatar: 'https://logo.clearbit.com/amd.com',
     tipo: 'STOCK',
-    bdr: 'AMDD34',
-    bdrTeto: 'R$ 93,20' // 🇧🇷 NOVO
+    bdr: 'A1MD34',
+    bdrTeto: 'R$ 93,20'
   },
-  'AAPL': {
-    rank: '4º',
-    name: 'Apple Inc.',
-    setor: 'Tecnologia',
-    dataEntrada: '05/05/2022',
-    precoQueIniciou: 'US$156,77',
-    precoTeto: 'US$170,00',
-    avatar: 'https://logo.clearbit.com/apple.com',
+  'XP': {
+    rank: '2º',
+    name: 'XP Inc.',
+    setor: 'Financial Services',
+    dataEntrada: '26/05/2023',
+    precoQueIniciou: 'US$18,41',
+    precoTeto: 'US$24,34',
+    avatar: 'https://logo.clearbit.com/xpi.com.br',
     tipo: 'STOCK',
-    bdr: 'AAPL34',
-    bdrTeto: 'R$ 42,39' // 🇧🇷 NOVO
-  },
-  'GOOGL': {
-    rank: '8º',
-    name: 'Alphabet Inc.',
-    setor: 'Tecnologia',
-    dataEntrada: '06/03/2022',
-    precoQueIniciou: 'US$131,83',
-    precoTeto: 'US$153,29',
-    avatar: 'https://logo.clearbit.com/google.com',
-    tipo: 'STOCK',
-    bdr: 'GOGL34',
-    bdrTeto: 'R$ 31,90' // 🇧🇷 NOVO
-  },
-  'META': {
-    rank: '9º',
-    name: 'Meta Platforms Inc.',
-    setor: 'Tecnologia',
-    dataEntrada: '17/02/2022',
-    precoQueIniciou: 'US$213,92',
-    precoTeto: 'US$322,00',
-    avatar: 'https://logo.clearbit.com/meta.com',
-    tipo: 'STOCK',
-    bdr: 'FBOK34',
-    bdrTeto: 'R$ 54,45' // 🇧🇷 NOVO (assumindo que é M1TA34)
+    bdr: 'XPBR31',
+    bdrTeto: 'R$ 119,00'
   },
   'HD': {
     rank: '3º',
@@ -115,7 +91,41 @@ const exteriorStocksDatabase = {
     avatar: 'https://logo.clearbit.com/homedepot.com',
     tipo: 'STOCK',
     bdr: 'HOME34',
-    bdrTeto: 'R$ 65,88' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 65,88'
+  },
+  'AAPL': {
+    rank: '4º',
+    name: 'Apple Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '05/05/2022',
+    precoQueIniciou: 'US$156,77',
+    precoTeto: 'US$170,00',
+    avatar: 'https://logo.clearbit.com/apple.com',
+    tipo: 'STOCK',
+    bdr: 'AAPL34',
+    bdrTeto: 'R$ 42,39'
+  },
+  'FIVE': {
+    rank: '5º',
+    name: 'Five Below Inc.',
+    setor: 'Varejo',
+    dataEntrada: '17/03/2022',
+    precoQueIniciou: 'US$163,41',
+    precoTeto: 'US$179,00',
+    avatar: 'https://logo.clearbit.com/fivebelow.com',
+    tipo: 'STOCK'
+  },
+  'AMAT': {
+    rank: '6º',
+    name: 'Applied Materials Inc.',
+    setor: 'Semicondutores',
+    dataEntrada: '07/04/2022',
+    precoQueIniciou: 'US$122,40',
+    precoTeto: 'US$151,30',
+    avatar: 'https://logo.clearbit.com/appliedmaterials.com',
+    tipo: 'STOCK',
+    bdr: 'A1MT34',
+    bdrTeto: 'R$ 74,00'
   },
   'COST': {
     rank: '7º',
@@ -127,10 +137,44 @@ const exteriorStocksDatabase = {
     avatar: 'https://logo.clearbit.com/costco.com',
     tipo: 'STOCK',
     bdr: 'COWC34',
-    bdrTeto: 'R$ 71,91' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 71,91'
   },
-};
-
+  'GOOGL': {
+    rank: '8º',
+    name: 'Alphabet Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '06/03/2022',
+    precoQueIniciou: 'US$131,83',
+    precoTeto: 'US$153,29',
+    avatar: 'https://logo.clearbit.com/google.com',
+    tipo: 'STOCK',
+    bdr: 'GOGL34',
+    bdrTeto: 'R$ 54,60'
+  },
+  'META': {
+    rank: '9º',
+    name: 'Meta Platforms Inc.',
+    setor: 'Tecnologia',
+    dataEntrada: '17/02/2022',
+    precoQueIniciou: 'US$213,92',
+    precoTeto: 'US$322,00',
+    avatar: 'https://logo.clearbit.com/meta.com',
+    tipo: 'STOCK',
+    bdr: 'M1TA34',
+    bdrTeto: 'R$ 54,45'
+  },
+  'BRK.B': {
+    rank: '10º',
+    name: 'Berkshire Hathaway Inc.',
+    setor: 'Holding',
+    dataEntrada: '11/05/2021',
+    precoQueIniciou: 'US$286,35',
+    precoTeto: 'US$330,00',
+    avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
+    tipo: 'STOCK',
+    bdr: 'BERK34',
+    bdrTeto: 'R$ 71,34'
+  },
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS DIVIDENDOS INTERNACIONAIS
 const exteriorDividendsDatabase = {
   'OXY': {
