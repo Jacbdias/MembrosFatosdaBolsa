@@ -121,22 +121,60 @@ export default function EmpresaExteriorDetalhes() {
     }
   }, []);
 
-  const fetchStockData = async (tickerSymbol, staticInfo) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // 🎯 Gerar dados dinâmicos baseados nos estáticos
-      const mockData = generateMockData(tickerSymbol, staticInfo);
-      setStockData(mockData);
-    } catch (err) {
-      setError('Erro ao carregar dados da ação');
-    } finally {
-      setLoading(false);
+const fetchStockData = async (tickerSymbol, staticInfo) => {
+  setLoading(true);
+  setError(null);
+
+  try {
+    const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
+    const data = await response.json();
+
+    if (!data || !data.results || data.results.length === 0) {
+      throw new Error('Sem dados da API');
     }
-  };
+
+    const result = data.results[0];
+    const precoAtual = result.regularMarketPrice;
+    const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
+    const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
+
+    const change = precoAtual - precoIniciou;
+    const changePercent = (change / precoIniciou) * 100;
+
+    const realData = {
+      name: staticInfo.name,
+      rank: staticInfo.rank,
+      setor: staticInfo.setor,
+      dataEntrada: staticInfo.dataEntrada,
+      precoQueIniciou: staticInfo.precoQueIniciou,
+      precoTeto: staticInfo.precoTeto,
+      avatar: staticInfo.avatar,
+      price: precoAtual,
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      dayLow: result.regularMarketDayLow,
+      dayHigh: result.regularMarketDayHigh,
+      open: result.regularMarketOpen,
+      volume: `${(result.regularMarketVolume / 1e6).toFixed(1)}M`,
+      week52High: result.fiftyTwoWeekHigh,
+      week52Low: result.fiftyTwoWeekLow,
+      marketCap: result.marketCap ? `$${(result.marketCap / 1e9).toFixed(0)}B` : 'N/A',
+      peRatio: result.trailingPE || 0,
+      dividendYield: result.dividendYield ? `${(result.dividendYield * 100).toFixed(2)}%` : '0%',
+      isPositive: change >= 0,
+      performanceVsInicio: changePercent,
+      distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
+      vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+    };
+
+    setStockData(realData);
+  } catch (err) {
+    console.error(err);
+    setError('Erro ao buscar dados da BRAPI');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const generateMockData = (symbol, staticInfo) => {
     // 🏢 Se tem dados estáticos da empresa, usar como base
