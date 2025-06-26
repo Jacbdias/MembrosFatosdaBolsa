@@ -110,7 +110,7 @@ export default function EmpresaExteriorDetalhes() {
       dataEntrada: '11/05/2021',
       precoQueIniciou: 'US$286,35',
       precoTeto: 'US$330,00',
-      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
+      avatar: 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png',
       tipo: 'STOCK',
     }
   };
