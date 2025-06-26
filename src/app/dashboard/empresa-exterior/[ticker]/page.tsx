@@ -107,9 +107,22 @@ export default function EmpresaExteriorDetalhes() {
   // 🎨 FUNÇÃO PARA OBTER AVATAR/ÍCONE DA EMPRESA
   const getCompanyAvatar = (symbol, companyName) => {
     const knownLogos = {
+      // Empresas já na cobertura
+      'AMD': 'https://logo.clearbit.com/amd.com',
+      'AAPL': 'https://logo.clearbit.com/apple.com',
+      'GOOGL': 'https://logo.clearbit.com/google.com',
+      'META': 'https://logo.clearbit.com/meta.com',
+      'HD': 'https://logo.clearbit.com/homedepot.com',
+      'COST': 'https://logo.clearbit.com/costco.com',
+      'AMAT': 'https://logo.clearbit.com/appliedmaterials.com',
+      'XP': 'https://logo.clearbit.com/xpi.com.br',
+      'FIVE': 'https://logo.clearbit.com/fivebelow.com',
+      'BRK.B': 'https://logo.clearbit.com/berkshirehathaway.com',
+      
+      // Empresas populares sem cobertura
+      'TSLA': 'https://logo.clearbit.com/tesla.com',
       'MSFT': 'https://logo.clearbit.com/microsoft.com',
       'NVDA': 'https://logo.clearbit.com/nvidia.com',
-      'TSLA': 'https://logo.clearbit.com/tesla.com',
       'NFLX': 'https://logo.clearbit.com/netflix.com',
       'UBER': 'https://logo.clearbit.com/uber.com',
       'SPOT': 'https://logo.clearbit.com/spotify.com',
@@ -180,71 +193,13 @@ export default function EmpresaExteriorDetalhes() {
       'AXP': 'https://logo.clearbit.com/americanexpress.com'
     };
 
-    // 1. Se o ticker tem logo conhecido, retorna
+    // 1. Se o ticker tem logo conhecido, retorna (MESMA LÓGICA das empresas com cobertura)
     if (knownLogos[symbol]) {
       return knownLogos[symbol];
     }
 
-    // 2. Tenta detectar pelo nome da empresa
-    if (companyName) {
-      const companyDomains = {
-        'microsoft': 'microsoft.com',
-        'apple': 'apple.com',
-        'google': 'google.com',
-        'alphabet': 'google.com',
-        'amazon': 'amazon.com',
-        'tesla': 'tesla.com',
-        'netflix': 'netflix.com',
-        'meta': 'meta.com',
-        'facebook': 'meta.com',
-        'nvidia': 'nvidia.com',
-        'intel': 'intel.com',
-        'amd': 'amd.com',
-        'oracle': 'oracle.com',
-        'salesforce': 'salesforce.com',
-        'adobe': 'adobe.com',
-        'uber': 'uber.com',
-        'airbnb': 'airbnb.com',
-        'spotify': 'spotify.com',
-        'zoom': 'zoom.us',
-        'slack': 'slack.com',
-        'twitter': 'twitter.com',
-        'snapchat': 'snapchat.com',
-        'pinterest': 'pinterest.com',
-        'linkedin': 'linkedin.com',
-        'paypal': 'paypal.com',
-        'square': 'squareup.com',
-        'shopify': 'shopify.com',
-        'coinbase': 'coinbase.com',
-        'robinhood': 'robinhood.com',
-        'peloton': 'onepeloton.com',
-        'zillow': 'zillow.com',
-        'chewy': 'chewy.com',
-        'etsy': 'etsy.com',
-        'ebay': 'ebay.com',
-        'walmart': 'walmart.com',
-        'target': 'target.com',
-        'nike': 'nike.com',
-        'starbucks': 'starbucks.com',
-        'mcdonalds': 'mcdonalds.com',
-        'disney': 'disney.com',
-        'boeing': 'boeing.com',
-        'ford': 'ford.com',
-        'visa': 'visa.com',
-        'mastercard': 'mastercard.com'
-      };
-
-      const lowerName = companyName.toLowerCase();
-      for (const [key, domain] of Object.entries(companyDomains)) {
-        if (lowerName.includes(key)) {
-          return `https://logo.clearbit.com/${domain}`;
-        }
-      }
-    }
-
-    // 3. Para tickers desconhecidos, tenta URL genérica
-    // Mas se falhar, o onError vai mostrar o fallback com iniciais
-    return `https://logo.clearbit.com/${symbol.toLowerCase()}.com`;
+    // 2. Se não tem logo conhecido, usa fallback (ícone com iniciais)
+    return null; // Retorna null para forçar uso do fallback
   };
   
   useEffect(() => {
@@ -561,58 +516,75 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            {/* Sempre mostra o fallback primeiro, depois tenta carregar a imagem */}
-            <div 
-              style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '8px',
-                border: '2px solid #e2e8f0',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                position: 'relative'
-              }}
-            >
-              {/* Ícone com iniciais (sempre visível como background) */}
-              <span style={{ position: 'absolute', zIndex: 1 }}>
-                {ticker.slice(0, 2)}
-              </span>
-              
-              {/* Imagem por cima (se carregar, esconde o fundo) */}
-              <img 
-                src={stockData.avatar} 
-                alt={stockData.name}
+            {stockData.avatar ? (
+              // Se tem URL de avatar, tenta carregar
+              <div 
                 style={{ 
                   width: '48px', 
                   height: '48px', 
                   borderRadius: '8px',
-                  position: 'absolute',
-                  top: '-2px',
-                  left: '-2px',
-                  zIndex: 2,
-                  border: '2px solid #e2e8f0'
+                  border: '2px solid #e2e8f0',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  position: 'relative'
                 }}
-                onLoad={(e) => {
-                  // Só esconde o fallback se a imagem for grande o suficiente
-                  if (e.target.naturalWidth > 20 && e.target.naturalHeight > 20) {
-                    e.target.previousElementSibling.style.display = 'none';
-                  } else {
-                    // Imagem muito pequena, remove ela e mantém o fallback
+              >
+                <span style={{ position: 'absolute', zIndex: 1 }}>
+                  {ticker.slice(0, 2)}
+                </span>
+                
+                <img 
+                  src={stockData.avatar} 
+                  alt={stockData.name}
+                  style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    borderRadius: '8px',
+                    position: 'absolute',
+                    top: '-2px',
+                    left: '-2px',
+                    zIndex: 2,
+                    border: '2px solid #e2e8f0'
+                  }}
+                  onLoad={(e) => {
+                    // Só esconde o fallback se a imagem for grande o suficiente
+                    if (e.target.naturalWidth > 20 && e.target.naturalHeight > 20) {
+                      e.target.previousElementSibling.style.display = 'none';
+                    } else {
+                      e.target.style.display = 'none';
+                    }
+                  }}
+                  onError={(e) => {
                     e.target.style.display = 'none';
-                  }
+                    e.target.previousElementSibling.style.display = 'block';
+                  }}
+                />
+              </div>
+            ) : (
+              // Se não tem URL, mostra só o fallback
+              <div 
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '8px',
+                  border: '2px solid #e2e8f0',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
                 }}
-                onError={(e) => {
-                  // Se a imagem falhou, remove ela e mantém o fundo
-                  e.target.style.display = 'none';
-                  e.target.previousElementSibling.style.display = 'block';
-                }}
-              />
-            </div>
+              >
+                {ticker.slice(0, 2)}
+              </div>
+            )}
             
             <div>
               <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#1f2937' }}>
