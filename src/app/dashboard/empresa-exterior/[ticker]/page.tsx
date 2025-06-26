@@ -244,7 +244,7 @@ export default function EmpresaExteriorDetalhes() {
         dataEntrada: staticInfo?.dataEntrada || 'N/A',
         precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
         precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
-        avatar: staticInfo?.avatar || result.logourl || getCompanyAvatar(tickerSymbol, result.shortName || result.longName),
+        avatar: staticInfo?.avatar || getCompanyAvatar(tickerSymbol, result.shortName || result.longName) || result.logourl,
         price: precoAtual,
         change: Number(change.toFixed(2)),
         changePercent: Number(changePercent.toFixed(2)),
@@ -570,9 +570,14 @@ export default function EmpresaExteriorDetalhes() {
                     if (valid) {
                       // Esconde o fallback se imagem é válida
                       const fallback = document.getElementById('avatar-fallback');
-                      if (fallback) fallback.style.display = 'none';
+                      console.log('🎯 Tentando esconder fallback:', !!fallback);
+                      if (fallback) {
+                        fallback.style.display = 'none';
+                        console.log('✅ Fallback escondido! Display:', fallback.style.display);
+                      }
                     } else {
                       // Remove a imagem se for inválida (1x1px, etc)
+                      console.log('❌ Imagem inválida, removendo');
                       e.target.style.display = 'none';
                     }
                   }}
@@ -580,6 +585,7 @@ export default function EmpresaExteriorDetalhes() {
                     console.log('❌ Avatar falhou:', e.target.src);
                     // Remove a imagem se erro
                     e.target.style.display = 'none';
+                    console.log('🔄 Imagem removida, fallback deve estar visível');
                   }}
                 />
               )}
