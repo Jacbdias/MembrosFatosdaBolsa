@@ -139,42 +139,40 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
     const change = precoAtual - precoIniciou;
     const changePercent = (change / precoIniciou) * 100;
 
-    const realData = {
-      name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
-      rank: staticInfo?.rank || null,
-      setor: staticInfo?.setor || result.sector || 'Setor não identificado',
-      dataEntrada: staticInfo?.dataEntrada || 'N/A',
-      precoQueIniciou: staticInfo?.precoQueIniciou || `US$${precoAtual.toFixed(2)}`,
-      precoTeto: staticInfo?.precoTeto || `US$${(precoAtual * 1.2).toFixed(2)}`,
-      avatar: staticInfo?.avatar || result.logourl || `https://logo.clearbit.com/${tickerSymbol.toLowerCase()}.com`,
-      price: precoAtual,
-      change: Number(change.toFixed(2)),
-      changePercent: Number(changePercent.toFixed(2)),
-      dayLow: result.regularMarketDayLow,
-      dayHigh: result.regularMarketDayHigh,
-      open: result.regularMarketOpen,
-      volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : 'N/A',
-      week52High: result.fiftyTwoWeekHigh,
-      week52Low: result.fiftyTwoWeekLow,
-marketCap:
-  typeof result.marketCap === 'number' && isFinite(result.marketCap)
+const realData = {
+  // Dados estáticos da sua carteira (quando houver)
+  name: staticInfo?.nomeCompleto || result.shortName || result.longName || ticker,
+  setor: staticInfo?.setor || result.sector || '—',
+  avatar: staticInfo?.avatar || result.logourl || '',
+  precoQueIniciou: staticInfo?.precoQueIniciou || `US$${(result.regularMarketPrice || 0).toFixed(2)}`,
+  precoTeto: staticInfo?.precoTeto || `US$${((result.regularMarketPrice || 0) * 1.2).toFixed(2)}`,
+  dataEntrada: staticInfo?.dataEntrada || '—',
+  rank: staticInfo?.rank || '',
+  viesAtual: staticInfo?.viesAtual || '',
+  performanceVsInicio: 0,
+
+  // Dados dinâmicos da API
+  price: result.regularMarketPrice || 0,
+  volume: result.regularMarketVolume || 0,
+  open: result.regularMarketOpen || 0,
+  dayHigh: result.regularMarketDayHigh || 0,
+  dayLow: result.regularMarketDayLow || 0,
+  week52High: result.fiftyTwoWeekHigh || 0,
+  week52Low: result.fiftyTwoWeekLow || 0,
+
+  // Indicadores financeiros da API com fallback seguro
+  marketCap: typeof result.marketCap === 'number' && isFinite(result.marketCap)
     ? `$${(result.marketCap / 1e9).toFixed(2)}B`
-    : 'N/A',
+    : '—',
 
-peRatio:
-  typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
-    ? Number(result.trailingPE.toFixed(2))
-    : 'N/A',
+  peRatio: typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
+    ? result.trailingPE.toFixed(2)
+    : '—',
 
-dividendYield:
-  typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
+  dividendYield: typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
     ? `${(result.dividendYield * 100).toFixed(2)}%`
     : '0%',
-      isPositive: change >= 0,
-      performanceVsInicio: staticInfo ? changePercent : 0,
-      distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
-      vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
-    };
+};
 
     setStockData(realData);
   } catch (err) {
