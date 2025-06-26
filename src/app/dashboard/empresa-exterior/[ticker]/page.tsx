@@ -9,6 +9,7 @@ export default function EmpresaExteriorDetalhes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const [apiData, setApiData] = useState({ stocks: [], dividends: [] });
   
   // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
   const exteriorStocksDatabase = {
@@ -20,6 +21,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$112,86',
       precoTeto: 'US$135,20',
       avatar: 'https://logo.clearbit.com/amd.com',
+      tipo: 'STOCK',
     },
     'XP': {
       rank: '2º',
@@ -29,6 +31,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$18,41',
       precoTeto: 'US$24,34',
       avatar: 'https://logo.clearbit.com/xpi.com.br',
+      tipo: 'STOCK',
     },
     'HD': {
       rank: '3º',
@@ -38,6 +41,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$299,31',
       precoTeto: 'US$366,78',
       avatar: 'https://logo.clearbit.com/homedepot.com',
+      tipo: 'STOCK',
     },
     'AAPL': {
       rank: '4º',
@@ -47,6 +51,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$156,77',
       precoTeto: 'US$170,00',
       avatar: 'https://logo.clearbit.com/apple.com',
+      tipo: 'STOCK',
     },
     'FIVE': {
       rank: '5º',
@@ -56,6 +61,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$163,41',
       precoTeto: 'US$179,00',
       avatar: 'https://logo.clearbit.com/fivebelow.com',
+      tipo: 'STOCK',
     },
     'AMAT': {
       rank: '6º',
@@ -65,6 +71,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$122,40',
       precoTeto: 'US$151,30',
       avatar: 'https://logo.clearbit.com/appliedmaterials.com',
+      tipo: 'STOCK',
     },
     'COST': {
       rank: '7º',
@@ -74,6 +81,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$459,00',
       precoTeto: 'US$571,00',
       avatar: 'https://logo.clearbit.com/costco.com',
+      tipo: 'STOCK',
     },
     'GOOGL': {
       rank: '8º',
@@ -83,6 +91,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$131,83',
       precoTeto: 'US$153,29',
       avatar: 'https://logo.clearbit.com/google.com',
+      tipo: 'STOCK',
     },
     'META': {
       rank: '9º',
@@ -92,6 +101,7 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$213,92',
       precoTeto: 'US$322,00',
       avatar: 'https://logo.clearbit.com/meta.com',
+      tipo: 'STOCK',
     },
     'BRK.B': {
       rank: '10º',
@@ -101,9 +111,189 @@ export default function EmpresaExteriorDetalhes() {
       precoQueIniciou: 'US$286,35',
       precoTeto: 'US$330,00',
       avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
+      tipo: 'STOCK',
     }
   };
 
+  // 🗄️ BANCO DE DADOS ESTÁTICO DOS DIVIDENDOS INTERNACIONAIS
+const exteriorDividendsDatabase = {
+  'OXY': {
+    rank: 'D1º',
+    name: 'Occidental Petroleum Corporation',
+    setor: 'STOCK - Petroleum',
+    dataEntrada: '14/04/2023',
+    precoQueIniciou: 'US$37,92',
+    precoTeto: 'US$60,10',
+    avatar: 'https://logo.clearbit.com/oxy.com',
+    tipo: 'DIVIDEND',
+    dy: '2,34%'
+  },
+  'ADC': {
+    rank: 'D2º',
+    name: 'Agree Realty Corporation',
+    setor: 'REIT - Retail',
+    dataEntrada: '19/01/2023',
+    precoQueIniciou: 'US$73,74',
+    precoTeto: 'US$99,01',
+    avatar: 'https://logo.clearbit.com/agreerealty.com',
+    tipo: 'DIVIDEND',
+    dy: '5,34%'
+  },
+  'VZ': {
+    rank: 'D3º',
+    name: 'Verizon Communications Inc.',
+    setor: 'Stock - Telecom',
+    dataEntrada: '28/03/2022',
+    precoQueIniciou: 'US$51,17',
+    precoTeto: 'US$51,12',
+    avatar: 'https://logo.clearbit.com/verizon.com',
+    tipo: 'DIVIDEND',
+    dy: '6,57%'
+  },
+  'O': {
+    rank: 'D4º',
+    name: 'Realty Income Corporation',
+    setor: 'REIT - Net Lease',
+    dataEntrada: '01/02/2024',
+    precoQueIniciou: 'US$54,39',
+    precoTeto: 'US$58,91',
+    avatar: 'https://logo.clearbit.com/realtyincome.com',
+    tipo: 'DIVIDEND',
+    dy: '6,13%'
+  },
+  'AVB': {
+    rank: 'D5º',
+    name: 'AvalonBay Communities Inc.',
+    setor: 'REIT - Apartamentos',
+    dataEntrada: '10/02/2022',
+    precoQueIniciou: 'US$242,00',
+    precoTeto: 'US$340,00',
+    avatar: 'https://logo.clearbit.com/avalonbay.com',
+    tipo: 'DIVIDEND',
+    dy: '3,96%'
+  },
+  'STAG': {
+    rank: 'D6º',
+    name: 'Stag Industrial Inc.',
+    setor: 'REIT - Industrial',
+    dataEntrada: '24/03/2022',
+    precoQueIniciou: 'US$40,51',
+    precoTeto: 'US$42,87',
+    avatar: 'https://logo.clearbit.com/stagindustrial.com',
+    tipo: 'DIVIDEND',
+    dy: '4,55%'
+  }
+};
+
+  // 🔗 FUNÇÃO PARA BUSCAR DADOS DAS APIs
+const fetchAPIData = async () => {
+  console.log('🔍 Buscando dados das APIs...');
+  
+  try {
+    // Buscar dados de stocks
+    const stocksResponse = await fetch('/api/financial/stocks', {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      cache: 'no-store'
+    });
+
+    let stocksData = [];
+    if (stocksResponse.ok) {
+      const stocksResult = await stocksResponse.json();
+      stocksData = stocksResult.stocks || [];
+      console.log('✅ Dados de stocks da API:', stocksData.length, 'itens');
+    }
+
+    // Buscar dados de dividendos
+    const dividendsResponse = await fetch('/api/financial/dividends', {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      cache: 'no-store'
+    });
+
+    let dividendsData = [];
+    if (dividendsResponse.ok) {
+      const dividendsResult = await dividendsResponse.json();
+      dividendsData = dividendsResult.dividends || [];
+      console.log('✅ Dados de dividendos da API:', dividendsData.length, 'itens');
+    }
+
+    setApiData({ stocks: stocksData, dividends: dividendsData });
+    return { stocks: stocksData, dividends: dividendsData };
+  } catch (err) {
+    console.error('❌ Erro ao buscar dados das APIs:', err);
+    setApiData({ stocks: [], dividends: [] });
+    return { stocks: [], dividends: [] };
+  }
+};
+
+// 🎯 FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
+const findCompanyData = (tickerSymbol, apiData) => {
+  console.log(`🔍 Procurando dados para ${tickerSymbol}...`);
+  
+  // 1. Primeiro verifica nos dados estáticos de stocks
+  if (exteriorStocksDatabase[tickerSymbol]) {
+    console.log(`✅ Encontrado em stocks estáticos: ${tickerSymbol}`);
+    return exteriorStocksDatabase[tickerSymbol];
+  }
+
+  // 2. Depois verifica nos dados estáticos de dividendos
+  if (exteriorDividendsDatabase[tickerSymbol]) {
+    console.log(`✅ Encontrado em dividendos estáticos: ${tickerSymbol}`);
+    return exteriorDividendsDatabase[tickerSymbol];
+  }
+
+  // 3. Busca nos dados de stocks da API
+  const stockFromAPI = apiData.stocks.find(stock => 
+    (stock.ticker || stock.symbol)?.toUpperCase() === tickerSymbol.toUpperCase()
+  );
+  
+  if (stockFromAPI) {
+    console.log(`✅ Encontrado na API de stocks: ${tickerSymbol}`);
+    return {
+      rank: `API-S${stockFromAPI.id || '?'}`,
+      name: stockFromAPI.name || stockFromAPI.longName || `${tickerSymbol} Corporation`,
+      setor: stockFromAPI.sector || stockFromAPI.industry || 'Setor não informado',
+      dataEntrada: stockFromAPI.entryDate || new Date().toLocaleDateString('pt-BR'),
+      precoQueIniciou: `US$${stockFromAPI.entryPrice || '0.00'}`,
+      precoTeto: `US$${stockFromAPI.targetPrice || '0.00'}`,
+      avatar: getCompanyAvatar(tickerSymbol, stockFromAPI.name),
+      tipo: 'STOCK_API'
+    };
+  }
+
+  // 4. Busca nos dados de dividendos da API
+  const dividendFromAPI = apiData.dividends.find(dividend => 
+    (dividend.ticker || dividend.symbol)?.toUpperCase() === tickerSymbol.toUpperCase()
+  );
+  
+  if (dividendFromAPI) {
+    console.log(`✅ Encontrado na API de dividendos: ${tickerSymbol}`);
+    return {
+      rank: `API-D${dividendFromAPI.id || '?'}`,
+      name: dividendFromAPI.name || dividendFromAPI.longName || `${tickerSymbol} Corporation`,
+      setor: dividendFromAPI.sector || dividendFromAPI.industry || 'Dividendos',
+      dataEntrada: dividendFromAPI.entryDate || new Date().toLocaleDateString('pt-BR'),
+      precoQueIniciou: `US$${dividendFromAPI.entryPrice || '0.00'}`,
+      precoTeto: `US$${dividendFromAPI.targetPrice || '0.00'}`,
+      avatar: getCompanyAvatar(tickerSymbol, dividendFromAPI.name),
+      tipo: 'DIVIDEND_API',
+      dy: `${dividendFromAPI.dividendYield || '0'}%`
+    };
+  }
+
+  console.log(`⚠️ ${tickerSymbol} não encontrado em nenhuma fonte`);
+  return null;
+};
+  
   // 🎨 FUNÇÃO PARA OBTER AVATAR/ÍCONE DA EMPRESA
   const getCompanyAvatar = (symbol, companyName) => {
     const knownLogos = {
@@ -118,6 +308,13 @@ export default function EmpresaExteriorDetalhes() {
       'XP': 'https://logo.clearbit.com/xpi.com.br',
       'FIVE': 'https://logo.clearbit.com/fivebelow.com',
       'BRK.B': 'https://logo.clearbit.com/berkshirehathaway.com',
+      // Empresas já na cobertura de DIVIDENDOS
+'OXY': 'https://logo.clearbit.com/oxy.com',
+'ADC': 'https://logo.clearbit.com/agreerealty.com',
+'VZ': 'https://logo.clearbit.com/verizon.com',
+'O': 'https://logo.clearbit.com/realtyincome.com',
+'AVB': 'https://logo.clearbit.com/avalonbay.com',
+'STAG': 'https://logo.clearbit.com/stagindustrial.com',
       
       // Empresas populares sem cobertura
       'TSLA': 'https://logo.clearbit.com/tesla.com',
@@ -202,20 +399,28 @@ export default function EmpresaExteriorDetalhes() {
     return `https://ui-avatars.com/api/?name=${symbol}&size=128&background=8b5cf6&color=ffffff&bold=true&format=png`;
   };
   
-  useEffect(() => {
-    setMounted(true);
-    const path = window.location.pathname;
-    const tickerFromUrl = path.split('/').pop() || '';
-    const cleanTicker = tickerFromUrl.toUpperCase();
-    setTicker(cleanTicker);
+useEffect(() => {
+  setMounted(true);
+  const path = window.location.pathname;
+  const tickerFromUrl = path.split('/').pop() || '';
+  const cleanTicker = tickerFromUrl.toUpperCase();
+  setTicker(cleanTicker);
 
-    const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
+  const initializeData = async () => {
+    // Buscar dados das APIs primeiro
+    const apis = await fetchAPIData();
+    
+    // Procurar dados da empresa
+    const staticInfo = findCompanyData(cleanTicker, apis);
     setStaticData(staticInfo);
 
     if (cleanTicker) {
       fetchStockData(cleanTicker, staticInfo);
     }
-  }, []);
+  };
+
+  initializeData();
+}, []);
   
   const fetchStockData = async (tickerSymbol, staticInfo) => {
     setLoading(true);
@@ -266,7 +471,9 @@ export default function EmpresaExteriorDetalhes() {
         isPositive: change >= 0,
         performanceVsInicio: staticInfo ? changePercent : 0,
         distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
-        vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
+        vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A',
+        tipo: staticInfo?.tipo || 'SEM_COBERTURA',
+        dy: staticInfo?.dy || null
       };
 
       // Debug do avatar
@@ -591,14 +798,52 @@ export default function EmpresaExteriorDetalhes() {
               )}
             </div>
             
-            <div>
-              <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#1f2937' }}>
-                {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
-              </h1>
-              <p style={{ color: '#6b7280', margin: 0 }}>
-                {stockData.name} • USD • {stockData.setor} • Exterior Stocks
-              </p>
-            </div>
+    <div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+    <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#1f2937' }}>
+      {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
+    </h1>
+    <div style={{
+      background: (() => {
+        switch(stockData.tipo) {
+          case 'STOCK': return '#dbeafe';
+          case 'DIVIDEND': return '#dcfce7';
+          case 'STOCK_API': return '#e9d5ff';
+          case 'DIVIDEND_API': return '#fee2e2';
+          default: return '#f3f4f6';
+        }
+      })(),
+      color: (() => {
+        switch(stockData.tipo) {
+          case 'STOCK': return '#3b82f6';
+          case 'DIVIDEND': return '#059669';
+          case 'STOCK_API': return '#7c3aed';
+          case 'DIVIDEND_API': return '#dc2626';
+          default: return '#6b7280';
+        }
+      })(),
+      padding: '4px 12px',
+      borderRadius: '8px',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      textTransform: 'uppercase'
+    }}>
+      {(() => {
+        switch(stockData.tipo) {
+          case 'STOCK': return '📈 STOCK';
+          case 'DIVIDEND': return '💰 DIVIDEND';
+          case 'STOCK_API': return '📈 STOCK (API)';
+          case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
+          default: return '❓ SEM COBERTURA';
+        }
+      })()}
+    </div>
+  </div>
+  <p style={{ color: '#6b7280', margin: 0 }}>
+    {stockData.name} • USD • {stockData.setor}
+    {stockData.dy && ` • DY: ${stockData.dy}`}
+  </p>
+</div>
           </div>
 
           {!staticData && (
