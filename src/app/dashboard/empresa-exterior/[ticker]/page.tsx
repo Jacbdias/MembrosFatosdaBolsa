@@ -464,13 +464,36 @@ export default function EmpresaExteriorDetalhes() {
         </div>
 
         {/* ✅ HISTÓRICO DE DIVIDENDOS - Apenas para empresas INTERNACIONAIS com cobertura */}
-        {staticInfo && (
-          <HistoricoDividendos 
-            ticker={ticker} 
-            dataEntrada={new Date().toISOString().split('T')[0]}
-            isFII={false}
-          />
-        )}
+        {(() => {
+          console.log('🔍 Debug Histórico:', {
+            ticker,
+            temStaticInfo: !!staticInfo,
+            staticInfo: staticInfo ? Object.keys(staticInfo) : null
+          });
+          return staticInfo ? (
+            <HistoricoDividendos 
+              ticker={ticker} 
+              dataEntrada={new Date().toISOString().split('T')[0]}
+              isFII={false}
+            />
+          ) : (
+            <div style={{
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: '8px',
+              padding: '16px',
+              marginTop: '24px',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: 0, color: '#856404' }}>
+                📊 Histórico de dividendos disponível apenas para empresas com cobertura
+              </p>
+              <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#6c757d' }}>
+                {ticker} não está na lista de empresas com dados salvos
+              </p>
+            </div>
+          );
+        })()}
       </div>
     );
   }
