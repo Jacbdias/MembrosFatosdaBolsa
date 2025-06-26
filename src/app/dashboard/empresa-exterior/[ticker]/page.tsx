@@ -156,9 +156,20 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
       volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : 'N/A',
       week52High: result.fiftyTwoWeekHigh,
       week52Low: result.fiftyTwoWeekLow,
-      marketCap: result.marketCap ? `$${(result.marketCap / 1e9).toFixed(0)}B` : 'N/A',
-      peRatio: result.trailingPE || 0,
-      dividendYield: result.dividendYield ? `${(result.dividendYield * 100).toFixed(2)}%` : '0%',
+marketCap:
+  typeof result.marketCap === 'number' && isFinite(result.marketCap)
+    ? `$${(result.marketCap / 1e9).toFixed(2)}B`
+    : 'N/A',
+
+peRatio:
+  typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
+    ? Number(result.trailingPE.toFixed(2))
+    : 'N/A',
+
+dividendYield:
+  typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
+    ? `${(result.dividendYield * 100).toFixed(2)}%`
+    : '0%',
       isPositive: change >= 0,
       performanceVsInicio: staticInfo ? changePercent : 0,
       distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
