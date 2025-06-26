@@ -118,7 +118,7 @@ export default function EmpresaExteriorDetalhes() {
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS DIVIDENDOS INTERNACIONAIS
 const exteriorDividendsDatabase = {
   'OXY': {
-    rank: 'D1º',
+    rank: '1º',
     name: 'Occidental Petroleum Corporation',
     setor: 'STOCK - Petroleum',
     dataEntrada: '14/04/2023',
@@ -129,7 +129,7 @@ const exteriorDividendsDatabase = {
     dy: '2,34%'
   },
   'ADC': {
-    rank: 'D2º',
+    rank: '2º',
     name: 'Agree Realty Corporation',
     setor: 'REIT - Retail',
     dataEntrada: '19/01/2023',
@@ -140,7 +140,7 @@ const exteriorDividendsDatabase = {
     dy: '5,34%'
   },
   'VZ': {
-    rank: 'D3º',
+    rank: '3º',
     name: 'Verizon Communications Inc.',
     setor: 'Stock - Telecom',
     dataEntrada: '28/03/2022',
@@ -151,7 +151,7 @@ const exteriorDividendsDatabase = {
     dy: '6,57%'
   },
   'O': {
-    rank: 'D4º',
+    rank: '4º',
     name: 'Realty Income Corporation',
     setor: 'REIT - Net Lease',
     dataEntrada: '01/02/2024',
@@ -162,7 +162,7 @@ const exteriorDividendsDatabase = {
     dy: '6,13%'
   },
   'AVB': {
-    rank: 'D5º',
+    rank: '5º',
     name: 'AvalonBay Communities Inc.',
     setor: 'REIT - Apartamentos',
     dataEntrada: '10/02/2022',
@@ -173,7 +173,7 @@ const exteriorDividendsDatabase = {
     dy: '3,96%'
   },
   'STAG': {
-    rank: 'D6º',
+    rank: '6º',
     name: 'Stag Industrial Inc.',
     setor: 'REIT - Industrial',
     dataEntrada: '24/03/2022',
@@ -188,7 +188,7 @@ const exteriorDividendsDatabase = {
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS ETFs INTERNACIONAIS
 const exteriorETFsDatabase = {
   'VOO': {
-    rank: 'E1º',
+    rank: '1º',
     name: 'Vanguard S&P 500 ETF',
     setor: 'Large Cap',
     dataEntrada: '03/06/2021',
@@ -199,7 +199,7 @@ const exteriorETFsDatabase = {
     dy: '1,32%'
   },
   'IJS': {
-    rank: 'E2º',
+    rank: '2º',
     name: 'iShares Core S&P Small-Cap ETF',
     setor: 'Small Caps',
     dataEntrada: '21/07/2021',
@@ -210,7 +210,7 @@ const exteriorETFsDatabase = {
     dy: '1,85%'
   },
   'QUAL': {
-    rank: 'E3º',
+    rank: '3º',
     name: 'iShares MSCI USA Quality Factor ETF',
     setor: 'Total Market',
     dataEntrada: '11/06/2021',
@@ -221,7 +221,7 @@ const exteriorETFsDatabase = {
     dy: '1,45%'
   },
   'QQQ': {
-    rank: 'E4º',
+    rank: '4º',
     name: 'Invesco QQQ Trust ETF',
     setor: 'Large Cap',
     dataEntrada: '09/06/2021',
@@ -232,7 +232,7 @@ const exteriorETFsDatabase = {
     dy: '0,68%'
   },
   'VNQ': {
-    rank: 'E5º',
+    rank: '5º',
     name: 'Vanguard Real Estate ETF',
     setor: 'Real Estate (USA)',
     dataEntrada: '12/07/2021',
@@ -243,7 +243,7 @@ const exteriorETFsDatabase = {
     dy: '3,85%'
   },
   'SCHP': {
-    rank: 'E6º',
+    rank: '6º',
     name: 'Schwab U.S. TIPS ETF',
     setor: 'Renda Fixa',
     dataEntrada: '22/11/2021',
@@ -254,7 +254,7 @@ const exteriorETFsDatabase = {
     dy: '3,25%'
   },
   'IAU': {
-    rank: 'E7º',
+    rank: '7º',
     name: 'iShares Gold Trust ETF',
     setor: 'Ouro',
     dataEntrada: '07/06/2021',
@@ -265,7 +265,7 @@ const exteriorETFsDatabase = {
     dy: '0,00%'
   },
   'HERO': {
-    rank: 'E8º',
+    rank: '8º',
     name: 'Global X Video Games & Esports ETF',
     setor: 'Games',
     dataEntrada: '15/07/2021',
@@ -276,7 +276,7 @@ const exteriorETFsDatabase = {
     dy: '0,00%'
   },
   'SOXX': {
-    rank: 'E9º',
+    rank: '9º',
     name: 'iShares Semiconductor ETF',
     setor: 'Semicondutores',
     dataEntrada: '04/08/2021',
@@ -287,7 +287,7 @@ const exteriorETFsDatabase = {
     dy: '1,12%'
   },
   'MCHI': {
-    rank: 'E10º',
+    rank: '10º',
     name: 'iShares MSCI China ETF',
     setor: 'Empresas Chinesas',
     dataEntrada: '01/02/2023',
@@ -298,7 +298,7 @@ const exteriorETFsDatabase = {
     dy: '2,45%'
   },
   'TFLO': {
-    rank: 'E11º',
+    rank: '11º',
     name: 'iShares Treasury Floating Rate Bond ETF',
     setor: 'Renda Fixa',
     dataEntrada: '21/03/2023',
