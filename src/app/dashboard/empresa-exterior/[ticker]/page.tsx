@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 export default function EmpresaExteriorDetalhes() {
   const [ticker, setTicker] = useState('');
@@ -462,6 +462,15 @@ export default function EmpresaExteriorDetalhes() {
             Tentar Novamente
           </button>
         </div>
+
+        {/* ✅ HISTÓRICO DE DIVIDENDOS - Apenas para empresas INTERNACIONAIS com cobertura */}
+        {staticInfo && (
+          <HistoricoDividendos 
+            ticker={ticker} 
+            dataEntrada={new Date().toISOString().split('T')[0]}
+            isFII={false}
+          />
+        )}
       </div>
     );
   }
