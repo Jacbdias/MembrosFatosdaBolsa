@@ -110,7 +110,7 @@ export default function EmpresaExteriorDetalhes() {
       dataEntrada: '11/05/2021',
       precoQueIniciou: 'US$286,35',
       precoTeto: 'US$330,00',
-      avatar: 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png',
+      avatar: 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
       tipo: 'STOCK',
     }
   };
@@ -307,7 +307,7 @@ const findCompanyData = (tickerSymbol, apiData) => {
       'AMAT': 'https://logo.clearbit.com/appliedmaterials.com',
       'XP': 'https://logo.clearbit.com/xpi.com.br',
       'FIVE': 'https://logo.clearbit.com/fivebelow.com',
-      'BRK.B': 'https://logo.clearbit.com/berkshirehathaway.com',
+      'BRK.B': 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
       // Empresas já na cobertura de DIVIDENDOS
 'OXY': 'https://logo.clearbit.com/oxy.com',
 'ADC': 'https://logo.clearbit.com/agreerealty.com',
