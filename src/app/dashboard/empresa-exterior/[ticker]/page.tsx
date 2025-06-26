@@ -1199,7 +1199,6 @@ useEffect(() => {
             </div>
           </div>
         </div>
-            )}
 
             <div style={{
               background: '#f8fafc',
