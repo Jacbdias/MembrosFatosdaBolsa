@@ -124,7 +124,7 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
   setError(null);
 
   try {
-    const response = await fetch(https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8);
+    const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
     const data = await response.json();
 
     if (!data || !data.results || data.results.length === 0) {
@@ -144,21 +144,21 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
       rank: staticInfo?.rank || null,
       setor: staticInfo?.setor || result.sector || 'Setor não identificado',
       dataEntrada: staticInfo?.dataEntrada || 'N/A',
-      precoQueIniciou: staticInfo?.precoQueIniciou || US$${precoAtual.toFixed(2)},
-      precoTeto: staticInfo?.precoTeto || US$${(precoAtual * 1.2).toFixed(2)},
-      avatar: staticInfo?.avatar || result.logourl || https://logo.clearbit.com/${tickerSymbol.toLowerCase()}.com,
+      precoQueIniciou: staticInfo?.precoQueIniciou || `US$${precoAtual.toFixed(2)}`,
+      precoTeto: staticInfo?.precoTeto || `US$${(precoAtual * 1.2).toFixed(2)}`,
+      avatar: staticInfo?.avatar || result.logourl || `https://logo.clearbit.com/${tickerSymbol.toLowerCase()}.com`,
       price: precoAtual,
       change: Number(change.toFixed(2)),
       changePercent: Number(changePercent.toFixed(2)),
       dayLow: result.regularMarketDayLow,
       dayHigh: result.regularMarketDayHigh,
       open: result.regularMarketOpen,
-      volume: result.regularMarketVolume ? ${(result.regularMarketVolume / 1e6).toFixed(1)}M : 'N/A',
+      volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : 'N/A',
       week52High: result.fiftyTwoWeekHigh,
       week52Low: result.fiftyTwoWeekLow,
 marketCap:
   typeof result.marketCap === 'number' && isFinite(result.marketCap)
-    ? $${(result.marketCap / 1e9).toFixed(2)}B
+    ? `$${(result.marketCap / 1e9).toFixed(2)}B`
     : 'N/A',
 
 peRatio:
@@ -168,7 +168,7 @@ peRatio:
 
 dividendYield:
   typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
-    ? ${(result.dividendYield * 100).toFixed(2)}%
+    ? `${(result.dividendYield * 100).toFixed(2)}%`
     : '0%',
       isPositive: change >= 0,
       performanceVsInicio: staticInfo ? changePercent : 0,
@@ -211,7 +211,7 @@ dividendYield:
         dayLow: Number((precoAtual - Math.random() * 3).toFixed(2)),
         dayHigh: Number((precoAtual + Math.random() * 5).toFixed(2)),
         open: Number((precoAtual + (Math.random() - 0.5) * 2).toFixed(2)),
-        volume: ${(Math.random() * 20 + 1).toFixed(1)}M,
+        volume: `${(Math.random() * 20 + 1).toFixed(1)}M`,
         week52High: Number((precoTeto * (0.95 + Math.random() * 0.1)).toFixed(2)),
         week52Low: Number((precoIniciou * (0.8 + Math.random() * 0.2)).toFixed(2)),
         marketCap: generateMarketCap(symbol),
@@ -231,25 +231,25 @@ dividendYield:
     const isPositive = change > 0;
     
     return {
-      name: ${symbol} Corporation,
+      name: `${symbol} Corporation`,
       rank: 'N/A',
       setor: 'Diversos',
       dataEntrada: 'N/A',
       precoQueIniciou: 'N/A',
       precoTeto: 'N/A',
-      avatar: https://logo.clearbit.com/${symbol.toLowerCase()}.com,
+      avatar: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`,
       price: Number(basePrice.toFixed(2)),
       change: Number(change.toFixed(2)),
       changePercent: Number((change / basePrice * 100).toFixed(2)),
       dayLow: Number((basePrice - Math.random() * 5).toFixed(2)),
       dayHigh: Number((basePrice + Math.random() * 5).toFixed(2)),
       open: Number((basePrice + (Math.random() - 0.5) * 3).toFixed(2)),
-      volume: ${(Math.random() * 50 + 1).toFixed(1)}M,
+      volume: `${(Math.random() * 50 + 1).toFixed(1)}M`,
       week52High: Number((basePrice * (1 + Math.random() * 0.5)).toFixed(2)),
       week52Low: Number((basePrice * (1 - Math.random() * 0.3)).toFixed(2)),
-      marketCap: $${(Math.random() * 500 + 50).toFixed(0)}B,
+      marketCap: `$${(Math.random() * 500 + 50).toFixed(0)}B`,
       peRatio: Number((Math.random() * 40 + 10).toFixed(1)),
-      dividendYield: ${(Math.random() * 3).toFixed(2)}%,
+      dividendYield: `${(Math.random() * 3).toFixed(2)}%`,
       isPositive,
       performanceVsInicio: 0,
       distanciaDoTeto: 0,
@@ -271,14 +271,14 @@ dividendYield:
       'FIVE': '$8B',
       'BRK.B': '$890B'
     };
-    return caps[symbol] || $${(Math.random() * 500 + 50).toFixed(0)}B;
+    return caps[symbol] || `$${(Math.random() * 500 + 50).toFixed(0)}B`;
   };
 
   const generateDividendYield = (setor) => {
-    if (setor === 'Tecnologia') return ${(Math.random() * 1).toFixed(2)}%;
-    if (setor === 'Varejo') return ${(Math.random() * 2 + 1).toFixed(2)}%;
-    if (setor === 'Financial Services') return ${(Math.random() * 3 + 2).toFixed(2)}%;
-    return ${(Math.random() * 2).toFixed(2)}%;
+    if (setor === 'Tecnologia') return `${(Math.random() * 1).toFixed(2)}%`;
+    if (setor === 'Varejo') return `${(Math.random() * 2 + 1).toFixed(2)}%`;
+    if (setor === 'Financial Services') return `${(Math.random() * 3 + 2).toFixed(2)}%`;
+    return `${(Math.random() * 2).toFixed(2)}%`;
   };
 
   // Loading state
@@ -312,15 +312,15 @@ dividendYield:
           }} />
           <h2 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>Carregando {ticker}</h2>
           <p style={{ color: '#6b7280', margin: 0 }}>
-            {staticData ? Buscando dados de ${staticData.name}... : 'Buscando dados atualizados...'}
+            {staticData ? `Buscando dados de ${staticData.name}...` : 'Buscando dados atualizados...'}
           </p>
         </div>
-        <style>{
+        <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
-        }</style>
+        `}</style>
       </div>
     );
   }
@@ -611,7 +611,7 @@ dividendYield:
                     top: 0,
                     left: 0,
                     height: '100%',
-                    width: ${dayRangePercent}%,
+                    width: `${dayRangePercent}%`,
                     background: stockData.isPositive 
                       ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
                       : 'linear-gradient(90deg, #ef4444, #dc2626)',
@@ -620,7 +620,7 @@ dividendYield:
                   <div style={{
                     position: 'absolute',
                     top: 0,
-                    left: ${dayRangePercent}%,
+                    left: `${dayRangePercent}%`,
                     width: '2px',
                     height: '100%',
                     background: '#1f2937',
@@ -836,7 +836,7 @@ dividendYield:
           textAlign: 'center'
         }}>
           <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            ✅ {staticData ? Dados da carteira Exterior Stocks para ${ticker} : Dados simulados para ${ticker}} • {new Date().toLocaleString('pt-BR')}
+            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
           </p>
         </div>
       </div>
