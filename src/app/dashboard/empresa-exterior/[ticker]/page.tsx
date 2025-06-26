@@ -520,7 +520,7 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            {/* Container do avatar - versão simplificada */}
+            {/* Container do avatar - versão ultra simplificada */}
             <div
               style={{
                 width: '48px',
@@ -537,12 +537,12 @@ export default function EmpresaExteriorDetalhes() {
                 position: 'relative'
               }}
             >
-              {/* Fallback com iniciais - sempre presente inicialmente */}
+              {/* Fallback com iniciais - sempre visível */}
               <span 
+                id="avatar-fallback"
                 style={{ 
                   position: 'absolute', 
-                  zIndex: 1,
-                  display: (avatarLoaded && !avatarError) ? 'none' : 'block'
+                  zIndex: 1
                 }}
               >
                 {ticker.slice(0, 2)}
@@ -551,6 +551,7 @@ export default function EmpresaExteriorDetalhes() {
               {/* Imagem da logo */}
               {stockData?.avatar && (
                 <img
+                  id="avatar-img"
                   src={stockData.avatar}
                   alt={stockData.name}
                   style={{
@@ -561,24 +562,24 @@ export default function EmpresaExteriorDetalhes() {
                     top: '-2px',
                     left: '-2px',
                     zIndex: 2,
-                    border: '2px solid #e2e8f0',
-                    display: avatarError ? 'none' : 'block'
+                    border: '2px solid #e2e8f0'
                   }}
                   onLoad={(e) => {
                     const valid = e.target.naturalWidth > 1 && e.target.naturalHeight > 1;
                     console.log('📸 Avatar carregou:', e.target.src, `${e.target.naturalWidth}x${e.target.naturalHeight}`, 'válido:', valid);
                     if (valid) {
-                      setAvatarLoaded(true);
-                      setAvatarError(false);
+                      // Esconde o fallback se imagem é válida
+                      const fallback = document.getElementById('avatar-fallback');
+                      if (fallback) fallback.style.display = 'none';
                     } else {
-                      setAvatarLoaded(false);
-                      setAvatarError(true);
+                      // Remove a imagem se for inválida (1x1px, etc)
+                      e.target.style.display = 'none';
                     }
                   }}
                   onError={(e) => {
                     console.log('❌ Avatar falhou:', e.target.src);
-                    setAvatarLoaded(false);
-                    setAvatarError(true);
+                    // Remove a imagem se erro
+                    e.target.style.display = 'none';
                   }}
                 />
               )}
