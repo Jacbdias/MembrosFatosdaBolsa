@@ -198,8 +198,8 @@ export default function EmpresaExteriorDetalhes() {
       return knownLogos[symbol];
     }
 
-    // 2. Se não tem logo conhecido, usa fallback (ícone com iniciais)
-    return null; // Retorna null para forçar uso do fallback
+    // 2. Se não tem logo conhecido, gera ícone automático baseado no ticker
+    return `https://ui-avatars.com/api/?name=${symbol}&size=128&background=8b5cf6&color=ffffff&bold=true&format=png`;
   };
   
   useEffect(() => {
@@ -242,8 +242,8 @@ export default function EmpresaExteriorDetalhes() {
         rank: staticInfo?.rank || null,
         setor: staticInfo?.setor || result.sector || 'Setor não identificado',
         dataEntrada: staticInfo?.dataEntrada || 'N/A',
-        precoQueIniciou: staticInfo?.precoQueIniciou || `US$${precoAtual.toFixed(2)}`,
-        precoTeto: staticInfo?.precoTeto || `US$${(precoAtual * 1.2).toFixed(2)}`,
+        precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
+        precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
         avatar: staticInfo?.avatar || result.logourl || getCompanyAvatar(tickerSymbol, result.shortName || result.longName),
         price: precoAtual,
         change: Number(change.toFixed(2)),
@@ -255,7 +255,7 @@ export default function EmpresaExteriorDetalhes() {
         week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
         week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
         marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
-          ? `$${(result.marketCap / 1e9).toFixed(2)}B`
+          ? `${(result.marketCap / 1e9).toFixed(2)}B`
           : generateMarketCap(tickerSymbol),
         peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
           ? Number(result.trailingPE.toFixed(2))
@@ -268,6 +268,10 @@ export default function EmpresaExteriorDetalhes() {
         distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
         vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
       };
+
+      // Debug do avatar
+      console.log('🎯 Avatar URL gerada:', realData.avatar);
+      console.log('📊 Dados completos:', realData);
 
       setStockData(realData);
     } catch (err) {
@@ -516,75 +520,70 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            {stockData.avatar ? (
-              // Se tem URL de avatar, tenta carregar
-              <div 
+            {/* Container do avatar com ID único para debug */}
+            <div 
+              id="avatar-container"
+              style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '8px',
+                border: '2px solid #e2e8f0',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                position: 'relative'
+              }}
+            >
+              {/* Fallback com iniciais (sempre presente) */}
+              <span 
+                id="avatar-fallback"
                 style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '8px',
-                  border: '2px solid #e2e8f0',
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  position: 'relative'
-                }}
-              >
-                <span style={{ position: 'absolute', zIndex: 1 }}>
-                  {ticker.slice(0, 2)}
-                </span>
-                
-                <img 
-                  src={stockData.avatar} 
-                  alt={stockData.name}
-                  style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: '8px',
-                    position: 'absolute',
-                    top: '-2px',
-                    left: '-2px',
-                    zIndex: 2,
-                    border: '2px solid #e2e8f0'
-                  }}
-                  onLoad={(e) => {
-                    // Só esconde o fallback se a imagem for grande o suficiente
-                    if (e.target.naturalWidth > 20 && e.target.naturalHeight > 20) {
-                      e.target.previousElementSibling.style.display = 'none';
-                    } else {
-                      e.target.style.display = 'none';
-                    }
-                  }}
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.previousElementSibling.style.display = 'block';
-                  }}
-                />
-              </div>
-            ) : (
-              // Se não tem URL, mostra só o fallback
-              <div 
-                style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '8px',
-                  border: '2px solid #e2e8f0',
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
+                  position: 'absolute', 
+                  zIndex: 1,
+                  display: 'block'
                 }}
               >
                 {ticker.slice(0, 2)}
-              </div>
-            )}
+              </span>
+              
+              {/* Imagem por cima */}
+              <img 
+                id="avatar-image"
+                src={stockData.avatar} 
+                alt={stockData.name}
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '8px',
+                  position: 'absolute',
+                  top: '-2px',
+                  left: '-2px',
+                  zIndex: 2,
+                  border: '2px solid #e2e8f0'
+                }}
+                onLoad={(e) => {
+                  console.log('✅ Avatar carregou:', e.target.src, `${e.target.naturalWidth}x${e.target.naturalHeight}`);
+                  // Se carregou com sucesso, esconde o fallback
+                  const fallback = document.getElementById('avatar-fallback');
+                  if (fallback) {
+                    fallback.style.display = 'none';
+                  }
+                }}
+                onError={(e) => {
+                  console.log('❌ Avatar falhou:', e.target.src);
+                  // Se falhou, remove a imagem e mostra o fallback
+                  e.target.style.display = 'none';
+                  const fallback = document.getElementById('avatar-fallback');
+                  if (fallback) {
+                    fallback.style.display = 'block';
+                  }
+                }}
+              />
+            </div>
             
             <div>
               <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#1f2937' }}>
