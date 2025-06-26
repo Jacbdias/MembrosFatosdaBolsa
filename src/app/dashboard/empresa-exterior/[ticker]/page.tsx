@@ -104,23 +104,21 @@ export default function EmpresaExteriorDetalhes() {
     }
   };
   
-  useEffect(() => {
-    setMounted(true);
-    const path = window.location.pathname;
-    const tickerFromUrl = path.split('/').pop() || '';
-    const cleanTicker = tickerFromUrl.toUpperCase();
-    setTicker(cleanTicker);
-    
-    if (cleanTicker) {
-      // 🔍 Buscar dados estáticos primeiro
-      const staticInfo = exteriorStocksDatabase[cleanTicker];
-      setStaticData(staticInfo);
-      
-      // 🔄 Depois buscar dados dinâmicos
-      fetchStockData(cleanTicker, staticInfo);
-    }
-  }, []);
+useEffect(() => {
+  setMounted(true);
+  const path = window.location.pathname;
+  const tickerFromUrl = path.split('/').pop() || '';
+  const cleanTicker = tickerFromUrl.toUpperCase();
+  setTicker(cleanTicker);
 
+  const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
+  setStaticData(staticInfo);
+
+  if (cleanTicker) {
+    fetchStockData(cleanTicker, staticInfo);
+  }
+}, []);
+  
 const fetchStockData = async (tickerSymbol, staticInfo) => {
   setLoading(true);
   setError(null);
@@ -134,37 +132,37 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
     }
 
     const result = data.results[0];
-    const precoAtual = result.regularMarketPrice;
-    const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
-    const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
+    const precoAtual = result.regularMarketPrice || 0;
+    const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
+    const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
 
     const change = precoAtual - precoIniciou;
     const changePercent = (change / precoIniciou) * 100;
 
     const realData = {
-      name: staticInfo.name,
-      rank: staticInfo.rank,
-      setor: staticInfo.setor,
-      dataEntrada: staticInfo.dataEntrada,
-      precoQueIniciou: staticInfo.precoQueIniciou,
-      precoTeto: staticInfo.precoTeto,
-      avatar: staticInfo.avatar,
+      name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
+      rank: staticInfo?.rank || null,
+      setor: staticInfo?.setor || result.sector || 'Setor não identificado',
+      dataEntrada: staticInfo?.dataEntrada || 'N/A',
+      precoQueIniciou: staticInfo?.precoQueIniciou || `US$${precoAtual.toFixed(2)}`,
+      precoTeto: staticInfo?.precoTeto || `US$${(precoAtual * 1.2).toFixed(2)}`,
+      avatar: staticInfo?.avatar || result.logourl || `https://logo.clearbit.com/${tickerSymbol.toLowerCase()}.com`,
       price: precoAtual,
       change: Number(change.toFixed(2)),
       changePercent: Number(changePercent.toFixed(2)),
       dayLow: result.regularMarketDayLow,
       dayHigh: result.regularMarketDayHigh,
       open: result.regularMarketOpen,
-      volume: `${(result.regularMarketVolume / 1e6).toFixed(1)}M`,
+      volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : 'N/A',
       week52High: result.fiftyTwoWeekHigh,
       week52Low: result.fiftyTwoWeekLow,
       marketCap: result.marketCap ? `$${(result.marketCap / 1e9).toFixed(0)}B` : 'N/A',
       peRatio: result.trailingPE || 0,
       dividendYield: result.dividendYield ? `${(result.dividendYield * 100).toFixed(2)}%` : '0%',
       isPositive: change >= 0,
-      performanceVsInicio: changePercent,
-      distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
-      vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+      performanceVsInicio: staticInfo ? changePercent : 0,
+      distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
+      vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
     };
 
     setStockData(realData);
@@ -435,6 +433,22 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
               </p>
             </div>
           </div>
+
+          {/* Aviso para empresa sem cobertura */}
+{!staticData && (
+  <div style={{
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+    padding: '16px',
+    borderRadius: '8px',
+    color: '#b91c1c',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: '24px'
+  }}>
+    ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
+  </div>
+)}
           
           {/* 📊 Informações da Carteira */}
           {staticData && (
