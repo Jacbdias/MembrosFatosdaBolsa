@@ -103,7 +103,7 @@ export default function EmpresaExteriorDetalhes() {
       avatar: 'https://logo.clearbit.com/meta.com',
       tipo: 'STOCK',
     },
-    'BRK.B': {
+    'BRK-B': {
       rank: '10º',
       name: 'Berkshire Hathaway Inc.',
       setor: 'Holding',
