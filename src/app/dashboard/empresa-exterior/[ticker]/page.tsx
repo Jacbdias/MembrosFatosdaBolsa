@@ -175,7 +175,6 @@ const exteriorStocksDatabase = {
     bdr: 'BERK34',
     bdrTeto: 'R$ 71,34'
   }
-  },
   
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS DIVIDENDOS INTERNACIONAIS
 const exteriorDividendsDatabase = {
