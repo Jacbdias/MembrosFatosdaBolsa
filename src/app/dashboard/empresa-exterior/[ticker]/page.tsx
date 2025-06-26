@@ -511,7 +511,7 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       'AMAT': 'https://logo.clearbit.com/appliedmaterials.com',
       'XP': 'https://logo.clearbit.com/xpi.com.br',
       'FIVE': 'https://logo.clearbit.com/fivebelow.com',
-      'BRK.B': 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
+      'BRK-B': 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
       // Empresas já na cobertura de DIVIDENDOS
 'OXY': 'https://logo.clearbit.com/oxy.com',
 'ADC': 'https://logo.clearbit.com/agreerealty.com',
@@ -775,7 +775,7 @@ useEffect(() => {
       'XP': '$12B',
       'AMAT': '$180B',
       'FIVE': '$8B',
-      'BRK.B': '$890B'
+      'BRK-B': '$890B'
     };
     return caps[symbol] || `$${(Math.random() * 500 + 50).toFixed(0)}B`;
   };
