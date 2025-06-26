@@ -133,7 +133,6 @@ const exteriorStocksDatabase = {
 
   // 🗄️ BANCO DE DADOS ESTÁTICO DOS DIVIDENDOS INTERNACIONAIS
 const exteriorDividendsDatabase = {
-const exteriorDividendsDatabase = {
   'OXY': {
     rank: '1º',
     name: 'Occidental Petroleum Corporation',
