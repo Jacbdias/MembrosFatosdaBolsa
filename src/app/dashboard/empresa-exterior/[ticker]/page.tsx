@@ -1171,35 +1171,34 @@ useEffect(() => {
       </div>
     </div>
   </div>
-)}
-          <div style={{ padding: '24px' }}>
-            
-            {staticData && stockData.performanceVsInicio !== 0 && (
-              <div style={{
-                background: stockData.performanceVsInicio >= 0 ? '#ecfdf5' : '#fef2f2',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '24px',
-                border: '1px solid',
-                borderColor: stockData.performanceVsInicio >= 0 ? '#d1fae5' : '#fecaca'
-              }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
-                  🎯 Performance desde a Entrada
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <span style={{ fontSize: '18px', fontWeight: 'bold', color: stockData.performanceVsInicio >= 0 ? '#059669' : '#dc2626' }}>
-                      {stockData.performanceVsInicio >= 0 ? '+' : ''}{stockData.performanceVsInicio.toFixed(2)}%
-                    </span>
-                    <span style={{ fontSize: '14px', color: '#64748b', marginLeft: '8px' }}>
-                      desde {stockData.dataEntrada}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#64748b' }}>
-                    Distância do teto: {stockData.distanciaDoTeto.toFixed(1)}%
-                  </div>
+    
+        {/* 🆕 CARD PRINCIPAL DE PREÇO - ADICIONE AQUI */}
+        <div style={priceCardStyle}>
+          <div style={priceHeaderStyle}>
+            <div style={priceFlexStyle}>
+              <div>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{ticker}</h2>
+                <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0 }}>{stockData.name}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '32px', fontWeight: 'bold' }}>${stockData.price}</div>
+                <div style={{ 
+                  color: 'rgba(255,255,255,0.9)',
+                  marginTop: '8px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'flex-end',
+                  gap: '8px'
+                }}>
+                  <span>{stockData.isPositive ? '↗' : '↘'}</span>
+                  <span style={{ fontWeight: '600' }}>
+                    {stockData.isPositive ? '+' : ''}{stockData.change} ({stockData.changePercent}%)
+                  </span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
             )}
 
             <div style={{
