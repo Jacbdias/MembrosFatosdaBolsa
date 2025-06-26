@@ -163,7 +163,7 @@ const exteriorStocksDatabase = {
     bdr: 'M1TA34',
     bdrTeto: 'R$ 54,45'
   },
-  'BRK.B': {
+  'BRK-B': {
     rank: '10º',
     name: 'Berkshire Hathaway Inc.',
     setor: 'Holding',
