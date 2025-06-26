@@ -185,6 +185,131 @@ const exteriorDividendsDatabase = {
   }
 };
 
+  // 🗄️ BANCO DE DADOS ESTÁTICO DOS ETFs INTERNACIONAIS
+const exteriorETFsDatabase = {
+  'VOO': {
+    rank: 'E1º',
+    name: 'Vanguard S&P 500 ETF',
+    setor: 'Large Cap',
+    dataEntrada: '03/06/2021',
+    precoQueIniciou: 'US$383,95',
+    precoTeto: 'US$520,00',
+    avatar: 'https://logo.clearbit.com/vanguard.com',
+    tipo: 'ETF',
+    dy: '1,32%'
+  },
+  'IJS': {
+    rank: 'E2º',
+    name: 'iShares Core S&P Small-Cap ETF',
+    setor: 'Small Caps',
+    dataEntrada: '21/07/2021',
+    precoQueIniciou: 'US$100,96',
+    precoTeto: 'US$125,00',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'ETF',
+    dy: '1,85%'
+  },
+  'QUAL': {
+    rank: 'E3º',
+    name: 'iShares MSCI USA Quality Factor ETF',
+    setor: 'Total Market',
+    dataEntrada: '11/06/2021',
+    precoQueIniciou: 'US$130,13',
+    precoTeto: 'US$170,00',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'ETF',
+    dy: '1,45%'
+  },
+  'QQQ': {
+    rank: 'E4º',
+    name: 'Invesco QQQ Trust ETF',
+    setor: 'Large Cap',
+    dataEntrada: '09/06/2021',
+    precoQueIniciou: 'US$337,18',
+    precoTeto: 'US$495,00',
+    avatar: 'https://logo.clearbit.com/invesco.com',
+    tipo: 'ETF',
+    dy: '0,68%'
+  },
+  'VNQ': {
+    rank: 'E5º',
+    name: 'Vanguard Real Estate ETF',
+    setor: 'Real Estate (USA)',
+    dataEntrada: '12/07/2021',
+    precoQueIniciou: 'US$105,96',
+    precoTeto: 'US$115,00',
+    avatar: 'https://logo.clearbit.com/vanguard.com',
+    tipo: 'ETF',
+    dy: '3,85%'
+  },
+  'SCHP': {
+    rank: 'E6º',
+    name: 'Schwab U.S. TIPS ETF',
+    setor: 'Renda Fixa',
+    dataEntrada: '22/11/2021',
+    precoQueIniciou: 'US$63,14',
+    precoTeto: 'US$67,00',
+    avatar: 'https://logo.clearbit.com/schwab.com',
+    tipo: 'ETF',
+    dy: '3,25%'
+  },
+  'IAU': {
+    rank: 'E7º',
+    name: 'iShares Gold Trust ETF',
+    setor: 'Ouro',
+    dataEntrada: '07/06/2021',
+    precoQueIniciou: 'US$36,04',
+    precoTeto: 'US$45,00',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'ETF',
+    dy: '0,00%'
+  },
+  'HERO': {
+    rank: 'E8º',
+    name: 'Global X Video Games & Esports ETF',
+    setor: 'Games',
+    dataEntrada: '15/07/2021',
+    precoQueIniciou: 'US$31,28',
+    precoTeto: 'US$35,00',
+    avatar: 'https://logo.clearbit.com/globalxetfs.com',
+    tipo: 'ETF',
+    dy: '0,00%'
+  },
+  'SOXX': {
+    rank: 'E9º',
+    name: 'iShares Semiconductor ETF',
+    setor: 'Semicondutores',
+    dataEntrada: '04/08/2021',
+    precoQueIniciou: 'US$156,03',
+    precoTeto: 'US$250,00',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'ETF',
+    dy: '1,12%'
+  },
+  'MCHI': {
+    rank: 'E10º',
+    name: 'iShares MSCI China ETF',
+    setor: 'Empresas Chinesas',
+    dataEntrada: '01/02/2023',
+    precoQueIniciou: 'US$53,58',
+    precoTeto: 'US$60,00',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'ETF',
+    dy: '2,45%'
+  },
+  'TFLO': {
+    rank: 'E11º',
+    name: 'iShares Treasury Floating Rate Bond ETF',
+    setor: 'Renda Fixa',
+    dataEntrada: '21/03/2023',
+    precoQueIniciou: 'US$50,50',
+    precoTeto: 'US$52,00',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'ETF',
+    dy: '4,75%'
+  }
+};
+
   // 🔗 FUNÇÃO PARA BUSCAR DADOS DAS APIs
 const fetchAPIData = async () => {
   console.log('🔍 Buscando dados das APIs...');
@@ -245,12 +370,18 @@ const findCompanyData = (tickerSymbol, apiData) => {
     return exteriorStocksDatabase[tickerSymbol];
   }
 
-  // 2. Depois verifica nos dados estáticos de dividendos
-  if (exteriorDividendsDatabase[tickerSymbol]) {
-    console.log(`✅ Encontrado em dividendos estáticos: ${tickerSymbol}`);
-    return exteriorDividendsDatabase[tickerSymbol];
-  }
+// 2. Depois verifica nos dados estáticos de dividendos
+if (exteriorDividendsDatabase[tickerSymbol]) {
+  console.log(`✅ Encontrado em dividendos estáticos: ${tickerSymbol}`);
+  return exteriorDividendsDatabase[tickerSymbol];
+}
 
+// 2.5. NOVO: Depois verifica nos dados estáticos de ETFs
+if (exteriorETFsDatabase[tickerSymbol]) {
+  console.log(`✅ Encontrado em ETFs estáticos: ${tickerSymbol}`);
+  return exteriorETFsDatabase[tickerSymbol];
+}
+  
   // 3. Busca nos dados de stocks da API
   const stockFromAPI = apiData.stocks.find(stock => 
     (stock.ticker || stock.symbol)?.toUpperCase() === tickerSymbol.toUpperCase()
@@ -806,52 +937,57 @@ useEffect(() => {
 <div style={{
   background: (() => {
     // Verifica se tem dados estáticos primeiro
-    if (staticData) {
-      return staticData.tipo === 'DIVIDEND' ? '#dcfce7' : '#dbeafe';
-    }
-    // Se não tem staticData, verifica stockData.tipo
-    switch(stockData.tipo) {
-      case 'STOCK': return '#dbeafe';
-      case 'DIVIDEND': return '#dcfce7';
-      case 'STOCK_API': return '#e9d5ff';
-      case 'DIVIDEND_API': return '#fee2e2';
-      default: return '#f3f4f6';
-    }
-  })(),
+  if (staticData) {
+    if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
+    if (staticData.tipo === 'ETF') return '#fef3c7';  // NOVO
+    return '#dbeafe';
+  }
+  switch(stockData.tipo) {
+    case 'STOCK': return '#dbeafe';
+    case 'DIVIDEND': return '#dcfce7';
+    case 'ETF': return '#fef3c7';  // NOVO
+    case 'STOCK_API': return '#e9d5ff';
+    case 'DIVIDEND_API': return '#fee2e2';
+    default: return '#f3f4f6';
+  }
+})(),
   color: (() => {
     // Verifica se tem dados estáticos primeiro
-    if (staticData) {
-      return staticData.tipo === 'DIVIDEND' ? '#059669' : '#3b82f6';
-    }
-    // Se não tem staticData, verifica stockData.tipo
-    switch(stockData.tipo) {
-      case 'STOCK': return '#3b82f6';
-      case 'DIVIDEND': return '#059669';
-      case 'STOCK_API': return '#7c3aed';
-      case 'DIVIDEND_API': return '#dc2626';
-      default: return '#6b7280';
-    }
-  })(),
+  if (staticData) {
+    if (staticData.tipo === 'DIVIDEND') return '#059669';
+    if (staticData.tipo === 'ETF') return '#d97706';  // NOVO
+    return '#3b82f6';
+  }
+  switch(stockData.tipo) {
+    case 'STOCK': return '#3b82f6';
+    case 'DIVIDEND': return '#059669';
+    case 'ETF': return '#d97706';  // NOVO
+    case 'STOCK_API': return '#7c3aed';
+    case 'DIVIDEND_API': return '#dc2626';
+    default: return '#6b7280';
+  }
+})(),
   padding: '4px 12px',
   borderRadius: '8px',
   fontSize: '12px',
   fontWeight: 'bold',
   textTransform: 'uppercase'
 }}>
-  {(() => {
-    // Verifica se tem dados estáticos primeiro
-    if (staticData) {
-      return staticData.tipo === 'DIVIDEND' ? '💰 DIVIDEND' : '📈 STOCK';
-    }
-    // Se não tem staticData, verifica stockData.tipo
-    switch(stockData.tipo) {
-      case 'STOCK': return '📈 STOCK';
-      case 'DIVIDEND': return '💰 DIVIDEND';
-      case 'STOCK_API': return '📈 STOCK (API)';
-      case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
-      default: return '❓ SEM COBERTURA';
-    }
-  })()}
+{(() => {
+  if (staticData) {
+    if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
+    if (staticData.tipo === 'ETF') return '📊 ETF';  // NOVO
+    return '📈 STOCK';
+  }
+  switch(stockData.tipo) {
+    case 'STOCK': return '📈 STOCK';
+    case 'DIVIDEND': return '💰 DIVIDEND';
+    case 'ETF': return '📊 ETF';  // NOVO
+    case 'STOCK_API': return '📈 STOCK (API)';
+    case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
+    default: return 'SEM COBERTURA';
+  }
+})()}
 </div>
   </div>
   <p style={{ color: '#6b7280', margin: 0 }}>
