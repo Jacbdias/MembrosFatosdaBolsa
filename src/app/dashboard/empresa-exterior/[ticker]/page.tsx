@@ -561,23 +561,7 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            <img 
-              src={stockData.avatar} 
-              alt={stockData.name}
-              style={{ 
-                width: '48px', 
-                height: '48px', 
-                borderRadius: '8px',
-                border: '2px solid #e2e8f0'
-              }}
-              onError={(e) => {
-                // Hide image and show fallback
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
-              }}
-            />
-            
-            {/* Fallback: Ícone genérico com iniciais */}
+            {/* Sempre mostra o fallback primeiro, depois tenta carregar a imagem */}
             <div 
               style={{ 
                 width: '48px', 
@@ -586,14 +570,43 @@ export default function EmpresaExteriorDetalhes() {
                 border: '2px solid #e2e8f0',
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                 color: 'white',
-                display: 'none', // Initially hidden, shown via onError
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '16px',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                position: 'relative'
               }}
             >
-              {ticker.slice(0, 2)}
+              {/* Ícone com iniciais (sempre visível como background) */}
+              <span style={{ position: 'absolute', zIndex: 1 }}>
+                {ticker.slice(0, 2)}
+              </span>
+              
+              {/* Imagem por cima (se carregar, esconde o fundo) */}
+              <img 
+                src={stockData.avatar} 
+                alt={stockData.name}
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '8px',
+                  position: 'absolute',
+                  top: '-2px',
+                  left: '-2px',
+                  zIndex: 2,
+                  border: '2px solid #e2e8f0'
+                }}
+                onLoad={(e) => {
+                  // Se a imagem carregou, esconde o texto de fundo
+                  e.target.previousElementSibling.style.display = 'none';
+                }}
+                onError={(e) => {
+                  // Se a imagem falhou, remove ela e mantém o fundo
+                  e.target.style.display = 'none';
+                  e.target.previousElementSibling.style.display = 'block';
+                }}
+              />
             </div>
             
             <div>
