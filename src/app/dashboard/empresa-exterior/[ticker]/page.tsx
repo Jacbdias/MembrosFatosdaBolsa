@@ -9,9 +9,19 @@ export default function EmpresaExteriorDetalhes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
-
+  
+  // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
   const exteriorStocksDatabase = {
-    XP: {
+    'AMD': {
+      rank: '1º',
+      name: 'Advanced Micro Devices Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '29/05/2025',
+      precoQueIniciou: 'US$112,86',
+      precoTeto: 'US$135,20',
+      avatar: 'https://logo.clearbit.com/amd.com',
+    },
+    'XP': {
       rank: '2º',
       name: 'XP Inc.',
       setor: 'Financial Services',
@@ -20,89 +30,101 @@ export default function EmpresaExteriorDetalhes() {
       precoTeto: 'US$24,34',
       avatar: 'https://logo.clearbit.com/xpi.com.br',
     },
-  };
-
-  const fetchStockData = async (tickerSymbol, staticInfo) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
-      const data = await response.json();
-      if (!data || !data.results || data.results.length === 0) {
-        throw new Error('Sem dados da API');
-      }
-      const result = data.results[0];
-      const precoAtual = result.regularMarketPrice || 0;
-      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
-      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
-      const change = precoAtual - precoIniciou;
-      const changePercent = (change / precoIniciou) * 100;
-
-      const realData = {
-        name: staticInfo?.name || result.shortName || result.longName || ticker,
-        setor: staticInfo?.setor || result.sector || '—',
-        avatar: staticInfo?.avatar || result.logourl || '',
-        precoQueIniciou: staticInfo?.precoQueIniciou || `US$${(result.regularMarketPrice || 0).toFixed(2)}`,
-        precoTeto: staticInfo?.precoTeto || `US$${((result.regularMarketPrice || 0) * 1.2).toFixed(2)}`,
-        dataEntrada: staticInfo?.dataEntrada || '—',
-        rank: staticInfo?.rank || '',
-        viesAtual: staticInfo?.viesAtual || '',
-        performanceVsInicio: changePercent,
-        price: result.regularMarketPrice || 0,
-        volume: result.regularMarketVolume || 0,
-        open: result.regularMarketOpen || 0,
-        dayHigh: result.regularMarketDayHigh || 0,
-        dayLow: result.regularMarketDayLow || 0,
-        week52High: result.fiftyTwoWeekHigh || 0,
-        week52Low: result.fiftyTwoWeekLow || 0,
-        marketCap: typeof result.marketCap === 'number' && isFinite(result.marketCap)
-          ? `$${(result.marketCap / 1e9).toFixed(2)}B`
-          : staticInfo?.marketCap || '—',
-        peRatio: typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
-          ? result.trailingPE.toFixed(2)
-          : staticInfo?.peRatio || '—',
-        dividendYield: typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
-          ? `${(result.dividendYield * 100).toFixed(2)}%`
-          : staticInfo?.dividendYield || '0%',
-        isPositive: change >= 0,
-        distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto) * 100,
-        change,
-        changePercent,
-        vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
-      };
-
-      setStockData(realData);
-    } catch (err) {
-      console.error(err);
-      setError('Erro ao buscar dados da BRAPI');
-    } finally {
-      setLoading(false);
+    'HD': {
+      rank: '3º',
+      name: 'Home Depot Inc.',
+      setor: 'Varejo',
+      dataEntrada: '24/02/2023',
+      precoQueIniciou: 'US$299,31',
+      precoTeto: 'US$366,78',
+      avatar: 'https://logo.clearbit.com/homedepot.com',
+    },
+    'AAPL': {
+      rank: '4º',
+      name: 'Apple Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '05/05/2022',
+      precoQueIniciou: 'US$156,77',
+      precoTeto: 'US$170,00',
+      avatar: 'https://logo.clearbit.com/apple.com',
+    },
+    'FIVE': {
+      rank: '5º',
+      name: 'Five Below Inc.',
+      setor: 'Varejo',
+      dataEntrada: '17/03/2022',
+      precoQueIniciou: 'US$163,41',
+      precoTeto: 'US$179,00',
+      avatar: 'https://logo.clearbit.com/fivebelow.com',
+    },
+    'AMAT': {
+      rank: '6º',
+      name: 'Applied Materials Inc.',
+      setor: 'Semicondutores',
+      dataEntrada: '07/04/2022',
+      precoQueIniciou: 'US$122,40',
+      precoTeto: 'US$151,30',
+      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
+    },
+    'COST': {
+      rank: '7º',
+      name: 'Costco Wholesale Corporation',
+      setor: 'Consumer Discretionary',
+      dataEntrada: '23/06/2022',
+      precoQueIniciou: 'US$459,00',
+      precoTeto: 'US$571,00',
+      avatar: 'https://logo.clearbit.com/costco.com',
+    },
+    'GOOGL': {
+      rank: '8º',
+      name: 'Alphabet Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '06/03/2022',
+      precoQueIniciou: 'US$131,83',
+      precoTeto: 'US$153,29',
+      avatar: 'https://logo.clearbit.com/google.com',
+    },
+    'META': {
+      rank: '9º',
+      name: 'Meta Platforms Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '17/02/2022',
+      precoQueIniciou: 'US$213,92',
+      precoTeto: 'US$322,00',
+      avatar: 'https://logo.clearbit.com/meta.com',
+    },
+    'BRK.B': {
+      rank: '10º',
+      name: 'Berkshire Hathaway Inc.',
+      setor: 'Holding',
+      dataEntrada: '11/05/2021',
+      precoQueIniciou: 'US$286,35',
+      precoTeto: 'US$330,00',
+      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
     }
   };
+  
+useEffect(() => {
+  setMounted(true);
+  const path = window.location.pathname;
+  const tickerFromUrl = path.split('/').pop() || '';
+  const cleanTicker = tickerFromUrl.toUpperCase();
+  setTicker(cleanTicker);
 
-  useEffect(() => {
-    setMounted(true);
-    const path = window.location.pathname;
-    const tickerFromUrl = path.split('/').pop() || '';
-    const cleanTicker = tickerFromUrl.toUpperCase();
-    setTicker(cleanTicker);
-    const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
-    setStaticData(staticInfo);
-    if (cleanTicker) {
-      fetchStockData(cleanTicker, staticInfo);
-    }
-  }, []);
+  const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
+  setStaticData(staticInfo);
 
-  return <></>;
-}
-
+  if (cleanTicker) {
+    fetchStockData(cleanTicker, staticInfo);
+  }
+}, []);
   
 const fetchStockData = async (tickerSymbol, staticInfo) => {
   setLoading(true);
   setError(null);
 
   try {
-    const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
+    const response = await fetch(https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8);
     const data = await response.json();
 
     if (!data || !data.results || data.results.length === 0) {
@@ -117,45 +139,50 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
     const change = precoAtual - precoIniciou;
     const changePercent = (change / precoIniciou) * 100;
 
-const realData = {
-  // Dados estáticos da sua carteira (quando houver)
-  name: staticInfo?.name || result.shortName || result.longName || ticker,
-  setor: staticInfo?.setor || result.sector || '—',
-  avatar: staticInfo?.avatar || result.logourl || '',
-  precoQueIniciou: staticInfo?.precoQueIniciou || `US$${(result.regularMarketPrice || 0).toFixed(2)}`,
-  precoTeto: staticInfo?.precoTeto || `US$${((result.regularMarketPrice || 0) * 1.2).toFixed(2)}`,
-  dataEntrada: staticInfo?.dataEntrada || '—',
-  rank: staticInfo?.rank || '',
-  viesAtual: staticInfo?.viesAtual || '',
-  performanceVsInicio: 0,
+    const realData = {
+      name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
+      rank: staticInfo?.rank || null,
+      setor: staticInfo?.setor || result.sector || 'Setor não identificado',
+      dataEntrada: staticInfo?.dataEntrada || 'N/A',
+      precoQueIniciou: staticInfo?.precoQueIniciou || US$${precoAtual.toFixed(2)},
+      precoTeto: staticInfo?.precoTeto || US$${(precoAtual * 1.2).toFixed(2)},
+      avatar: staticInfo?.avatar || result.logourl || https://logo.clearbit.com/${tickerSymbol.toLowerCase()}.com,
+      price: precoAtual,
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      dayLow: result.regularMarketDayLow,
+      dayHigh: result.regularMarketDayHigh,
+      open: result.regularMarketOpen,
+      volume: result.regularMarketVolume ? ${(result.regularMarketVolume / 1e6).toFixed(1)}M : 'N/A',
+      week52High: result.fiftyTwoWeekHigh,
+      week52Low: result.fiftyTwoWeekLow,
+marketCap:
+  typeof result.marketCap === 'number' && isFinite(result.marketCap)
+    ? $${(result.marketCap / 1e9).toFixed(2)}B
+    : 'N/A',
 
-  // Dados dinâmicos da API
-  price: result.regularMarketPrice || 0,
-  volume: result.regularMarketVolume || 0,
-  open: result.regularMarketOpen || 0,
-  dayHigh: result.regularMarketDayHigh || 0,
-  dayLow: result.regularMarketDayLow || 0,
-  week52High: result.fiftyTwoWeekHigh || 0,
-  week52Low: result.fiftyTwoWeekLow || 0,
+peRatio:
+  typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
+    ? Number(result.trailingPE.toFixed(2))
+    : 'N/A',
 
-  // Indicadores financeiros da API com fallback seguro
-  marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
-    ? `$${(result.marketCap / 1e9).toFixed(2)}B`
-    : staticInfo?.marketCap || '—',
+dividendYield:
+  typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
+    ? ${(result.dividendYield * 100).toFixed(2)}%
+    : '0%',
+      isPositive: change >= 0,
+      performanceVsInicio: staticInfo ? changePercent : 0,
+      distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
+      vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A'
+    };
 
-  peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
-    ? result.trailingPE.toFixed(2)
-    : staticInfo?.peRatio || '—',
-
-  dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
-    ? `${(result.dividendYield * 100).toFixed(2)}%`
-    : staticInfo?.dividendYield || '0%',
-
-  isPositive: change >= 0,
-  change: Number(change.toFixed(2)),
-  changePercent: Number(changePercent.toFixed(2)),
-  distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
-  vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+    setStockData(realData);
+  } catch (err) {
+    console.error(err);
+    setError('Erro ao buscar dados da BRAPI');
+  } finally {
+    setLoading(false);
+  }
 };
 
   const generateMockData = (symbol, staticInfo) => {
@@ -184,7 +211,7 @@ const realData = {
         dayLow: Number((precoAtual - Math.random() * 3).toFixed(2)),
         dayHigh: Number((precoAtual + Math.random() * 5).toFixed(2)),
         open: Number((precoAtual + (Math.random() - 0.5) * 2).toFixed(2)),
-        volume: `${(Math.random() * 20 + 1).toFixed(1)}M`,
+        volume: ${(Math.random() * 20 + 1).toFixed(1)}M,
         week52High: Number((precoTeto * (0.95 + Math.random() * 0.1)).toFixed(2)),
         week52Low: Number((precoIniciou * (0.8 + Math.random() * 0.2)).toFixed(2)),
         marketCap: generateMarketCap(symbol),
@@ -204,25 +231,25 @@ const realData = {
     const isPositive = change > 0;
     
     return {
-      name: `${symbol} Corporation`,
+      name: ${symbol} Corporation,
       rank: 'N/A',
       setor: 'Diversos',
       dataEntrada: 'N/A',
       precoQueIniciou: 'N/A',
       precoTeto: 'N/A',
-      avatar: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`,
+      avatar: https://logo.clearbit.com/${symbol.toLowerCase()}.com,
       price: Number(basePrice.toFixed(2)),
       change: Number(change.toFixed(2)),
       changePercent: Number((change / basePrice * 100).toFixed(2)),
       dayLow: Number((basePrice - Math.random() * 5).toFixed(2)),
       dayHigh: Number((basePrice + Math.random() * 5).toFixed(2)),
       open: Number((basePrice + (Math.random() - 0.5) * 3).toFixed(2)),
-      volume: `${(Math.random() * 50 + 1).toFixed(1)}M`,
+      volume: ${(Math.random() * 50 + 1).toFixed(1)}M,
       week52High: Number((basePrice * (1 + Math.random() * 0.5)).toFixed(2)),
       week52Low: Number((basePrice * (1 - Math.random() * 0.3)).toFixed(2)),
-      marketCap: `$${(Math.random() * 500 + 50).toFixed(0)}B`,
+      marketCap: $${(Math.random() * 500 + 50).toFixed(0)}B,
       peRatio: Number((Math.random() * 40 + 10).toFixed(1)),
-      dividendYield: `${(Math.random() * 3).toFixed(2)}%`,
+      dividendYield: ${(Math.random() * 3).toFixed(2)}%,
       isPositive,
       performanceVsInicio: 0,
       distanciaDoTeto: 0,
@@ -244,14 +271,14 @@ const realData = {
       'FIVE': '$8B',
       'BRK.B': '$890B'
     };
-    return caps[symbol] || `$${(Math.random() * 500 + 50).toFixed(0)}B`;
+    return caps[symbol] || $${(Math.random() * 500 + 50).toFixed(0)}B;
   };
 
   const generateDividendYield = (setor) => {
-    if (setor === 'Tecnologia') return `${(Math.random() * 1).toFixed(2)}%`;
-    if (setor === 'Varejo') return `${(Math.random() * 2 + 1).toFixed(2)}%`;
-    if (setor === 'Financial Services') return `${(Math.random() * 3 + 2).toFixed(2)}%`;
-    return `${(Math.random() * 2).toFixed(2)}%`;
+    if (setor === 'Tecnologia') return ${(Math.random() * 1).toFixed(2)}%;
+    if (setor === 'Varejo') return ${(Math.random() * 2 + 1).toFixed(2)}%;
+    if (setor === 'Financial Services') return ${(Math.random() * 3 + 2).toFixed(2)}%;
+    return ${(Math.random() * 2).toFixed(2)}%;
   };
 
   // Loading state
@@ -285,15 +312,15 @@ const realData = {
           }} />
           <h2 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>Carregando {ticker}</h2>
           <p style={{ color: '#6b7280', margin: 0 }}>
-            {staticData ? `Buscando dados de ${staticData.name}...` : 'Buscando dados atualizados...'}
+            {staticData ? Buscando dados de ${staticData.name}... : 'Buscando dados atualizados...'}
           </p>
         </div>
-        <style>{`
+        <style>{
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
-        `}</style>
+        }</style>
       </div>
     );
   }
@@ -584,7 +611,7 @@ const realData = {
                     top: 0,
                     left: 0,
                     height: '100%',
-                    width: `${dayRangePercent}%`,
+                    width: ${dayRangePercent}%,
                     background: stockData.isPositive 
                       ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
                       : 'linear-gradient(90deg, #ef4444, #dc2626)',
@@ -593,7 +620,7 @@ const realData = {
                   <div style={{
                     position: 'absolute',
                     top: 0,
-                    left: `${dayRangePercent}%`,
+                    left: ${dayRangePercent}%,
                     width: '2px',
                     height: '100%',
                     background: '#1f2937',
@@ -710,98 +737,109 @@ const realData = {
             </div>
 
             {/* Indicadores Financeiros */}
-{/* Indicadores Financeiros */}
-{stockData && (
-  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-    <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
-      💼 Indicadores Financeiros
-    </h3>
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
+                💼 Indicadores Financeiros
+              </h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '24px'
+              }}>
+                
+                {/* Market Cap */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                  padding: '24px',
+                  borderRadius: '16px',
+                  border: '2px solid #a7f3d0',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    background: '#059669',
+                    borderRadius: '16px',
+                    margin: '0 auto 16px auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>🌍</div>
+                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
+                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
+                </div>
 
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '24px'
-    }}>
-      {/* Market Cap */}
-      <div style={{
-        background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-        padding: '24px',
-        borderRadius: '16px',
-        border: '2px solid #a7f3d0',
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{
-          width: '56px',
-          height: '56px',
-          background: '#059669',
-          borderRadius: '16px',
-          margin: '0 auto 16px auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '24px'
-        }}>🌍</div>
-        <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
-        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
-          {stockData.marketCap || '—'}
-        </p>
-      </div>
+                {/* P/E Ratio */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+                  padding: '24px',
+                  borderRadius: '16px',
+                  border: '2px solid #c4b5fd',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    background: '#7c3aed',
+                    borderRadius: '16px',
+                    margin: '0 auto 16px auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>🎯</div>
+                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
+                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
+                </div>
 
-      {/* P/E Ratio */}
-      <div style={{
-        background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-        padding: '24px',
-        borderRadius: '16px',
-        border: '2px solid #c4b5fd',
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{
-          width: '56px',
-          height: '56px',
-          background: '#7c3aed',
-          borderRadius: '16px',
-          margin: '0 auto 16px auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '24px'
-        }}>🎯</div>
-        <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
-        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
-          {stockData.peRatio ?? '—'}
-        </p>
-      </div>
+                {/* Dividend Yield */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  padding: '24px',
+                  borderRadius: '16px',
+                  border: '2px solid #fcd34d',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    background: '#d97706',
+                    borderRadius: '16px',
+                    margin: '0 auto 16px auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>💵</div>
+                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
+                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      {/* Dividend Yield */}
-      <div style={{
-        background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-        padding: '24px',
-        borderRadius: '16px',
-        border: '2px solid #fcd34d',
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      }}>
+        {/* Status */}
         <div style={{
-          width: '56px',
-          height: '56px',
-          background: '#d97706',
-          borderRadius: '16px',
-          margin: '0 auto 16px auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '24px'
-        }}>💵</div>
-        <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
-        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
-          {stockData.dividendYield || '—'}
-        </p>
+          background: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+            ✅ {staticData ? Dados da carteira Exterior Stocks para ${ticker} : Dados simulados para ${ticker}} • {new Date().toLocaleString('pt-BR')}
+          </p>
+        </div>
       </div>
     </div>
-  </div>
-)}
+  );
+}
