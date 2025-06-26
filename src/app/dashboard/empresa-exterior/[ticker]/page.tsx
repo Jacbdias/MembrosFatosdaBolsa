@@ -803,41 +803,56 @@ useEffect(() => {
     <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#1f2937' }}>
       {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
     </h1>
-    <div style={{
-      background: (() => {
-        switch(stockData.tipo) {
-          case 'STOCK': return '#dbeafe';
-          case 'DIVIDEND': return '#dcfce7';
-          case 'STOCK_API': return '#e9d5ff';
-          case 'DIVIDEND_API': return '#fee2e2';
-          default: return '#f3f4f6';
-        }
-      })(),
-      color: (() => {
-        switch(stockData.tipo) {
-          case 'STOCK': return '#3b82f6';
-          case 'DIVIDEND': return '#059669';
-          case 'STOCK_API': return '#7c3aed';
-          case 'DIVIDEND_API': return '#dc2626';
-          default: return '#6b7280';
-        }
-      })(),
-      padding: '4px 12px',
-      borderRadius: '8px',
-      fontSize: '12px',
-      fontWeight: 'bold',
-      textTransform: 'uppercase'
-    }}>
-      {(() => {
-        switch(stockData.tipo) {
-          case 'STOCK': return '📈 STOCK';
-          case 'DIVIDEND': return '💰 DIVIDEND';
-          case 'STOCK_API': return '📈 STOCK (API)';
-          case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
-          default: return 'SEM COBERTURA';
-        }
-      })()}
-    </div>
+<div style={{
+  background: (() => {
+    // Verifica se tem dados estáticos primeiro
+    if (staticData) {
+      return staticData.tipo === 'DIVIDEND' ? '#dcfce7' : '#dbeafe';
+    }
+    // Se não tem staticData, verifica stockData.tipo
+    switch(stockData.tipo) {
+      case 'STOCK': return '#dbeafe';
+      case 'DIVIDEND': return '#dcfce7';
+      case 'STOCK_API': return '#e9d5ff';
+      case 'DIVIDEND_API': return '#fee2e2';
+      default: return '#f3f4f6';
+    }
+  })(),
+  color: (() => {
+    // Verifica se tem dados estáticos primeiro
+    if (staticData) {
+      return staticData.tipo === 'DIVIDEND' ? '#059669' : '#3b82f6';
+    }
+    // Se não tem staticData, verifica stockData.tipo
+    switch(stockData.tipo) {
+      case 'STOCK': return '#3b82f6';
+      case 'DIVIDEND': return '#059669';
+      case 'STOCK_API': return '#7c3aed';
+      case 'DIVIDEND_API': return '#dc2626';
+      default: return '#6b7280';
+    }
+  })(),
+  padding: '4px 12px',
+  borderRadius: '8px',
+  fontSize: '12px',
+  fontWeight: 'bold',
+  textTransform: 'uppercase'
+}}>
+  {(() => {
+    // Verifica se tem dados estáticos primeiro
+    if (staticData) {
+      return staticData.tipo === 'DIVIDEND' ? '💰 DIVIDEND' : '📈 STOCK';
+    }
+    // Se não tem staticData, verifica stockData.tipo
+    switch(stockData.tipo) {
+      case 'STOCK': return '📈 STOCK';
+      case 'DIVIDEND': return '💰 DIVIDEND';
+      case 'STOCK_API': return '📈 STOCK (API)';
+      case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
+      default: return '❓ SEM COBERTURA';
+    }
+  })()}
+</div>
   </div>
   <p style={{ color: '#6b7280', margin: 0 }}>
     {stockData.name} • USD • {stockData.setor}
