@@ -834,7 +834,7 @@ useEffect(() => {
           case 'DIVIDEND': return '💰 DIVIDEND';
           case 'STOCK_API': return '📈 STOCK (API)';
           case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
-          default: return '❓ SEM COBERTURA';
+          default: return 'SEM COBERTURA';
         }
       })()}
     </div>
