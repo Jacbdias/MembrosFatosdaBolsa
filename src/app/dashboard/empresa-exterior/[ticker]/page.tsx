@@ -190,7 +190,19 @@ const exteriorDividendsDatabase = {
     tipo: 'DIVIDEND',
     dy: '2,34%',
     bdr: 'OXYP34',
-    bdrTeto: 'R$ 58,54' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 58,54'
+  },
+  'ADC': {
+    rank: '2º',
+    name: 'Agree Realty Corporation',
+    setor: 'REIT - Net Lease',
+    dataEntrada: '15/03/2023',
+    precoQueIniciou: 'US$58,25',
+    precoTeto: 'US$72,80',
+    avatar: 'https://logo.clearbit.com/agreerealty.com',
+    tipo: 'DIVIDEND',
+    dy: '4,12%'
+    // Não tem BDR disponível
   },
   'VZ': {
     rank: '3º',
@@ -203,7 +215,7 @@ const exteriorDividendsDatabase = {
     tipo: 'DIVIDEND',
     dy: '6,57%',
     bdr: 'VERZ34',
-    bdrTeto: 'R$ 44,39' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 44,39'
   },
   'O': {
     rank: '4º',
@@ -216,7 +228,7 @@ const exteriorDividendsDatabase = {
     tipo: 'DIVIDEND',
     dy: '6,13%',
     bdr: 'R1IN34',
-    bdrTeto: 'R$ 146,30' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 146,30'
   },
   'AVB': {
     rank: '5º',
@@ -229,7 +241,7 @@ const exteriorDividendsDatabase = {
     tipo: 'DIVIDEND',
     dy: '3,96%',
     bdr: 'A1VB34',
-    bdrTeto: 'R$ 445,86' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 445,86'
   },
   'STAG': {
     rank: '6º',
@@ -242,7 +254,7 @@ const exteriorDividendsDatabase = {
     tipo: 'DIVIDEND',
     dy: '4,55%',
     bdr: 'S2TA34',
-    bdrTeto: 'R$ 44,06' // 🇧🇷 NOVO
+    bdrTeto: 'R$ 44,06'
   }
 };
   
