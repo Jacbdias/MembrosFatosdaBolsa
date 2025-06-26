@@ -598,8 +598,13 @@ export default function EmpresaExteriorDetalhes() {
                   border: '2px solid #e2e8f0'
                 }}
                 onLoad={(e) => {
-                  // Se a imagem carregou, esconde o texto de fundo
-                  e.target.previousElementSibling.style.display = 'none';
+                  // Só esconde o fallback se a imagem for grande o suficiente
+                  if (e.target.naturalWidth > 20 && e.target.naturalHeight > 20) {
+                    e.target.previousElementSibling.style.display = 'none';
+                  } else {
+                    // Imagem muito pequena, remove ela e mantém o fallback
+                    e.target.style.display = 'none';
+                  }
                 }}
                 onError={(e) => {
                   // Se a imagem falhou, remove ela e mantém o fundo
