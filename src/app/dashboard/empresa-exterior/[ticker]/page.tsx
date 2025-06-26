@@ -5,9 +5,104 @@ import React, { useState, useEffect } from 'react';
 export default function EmpresaExteriorDetalhes() {
   const [ticker, setTicker] = useState('');
   const [stockData, setStockData] = useState(null);
+  const [staticData, setStaticData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
+  
+  // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
+  const exteriorStocksDatabase = {
+    'AMD': {
+      rank: '1º',
+      name: 'Advanced Micro Devices Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '29/05/2025',
+      precoQueIniciou: 'US$112,86',
+      precoTeto: 'US$135,20',
+      avatar: 'https://logo.clearbit.com/amd.com',
+    },
+    'XP': {
+      rank: '2º',
+      name: 'XP Inc.',
+      setor: 'Financial Services',
+      dataEntrada: '26/05/2023',
+      precoQueIniciou: 'US$18,41',
+      precoTeto: 'US$24,34',
+      avatar: 'https://logo.clearbit.com/xpi.com.br',
+    },
+    'HD': {
+      rank: '3º',
+      name: 'Home Depot Inc.',
+      setor: 'Varejo',
+      dataEntrada: '24/02/2023',
+      precoQueIniciou: 'US$299,31',
+      precoTeto: 'US$366,78',
+      avatar: 'https://logo.clearbit.com/homedepot.com',
+    },
+    'AAPL': {
+      rank: '4º',
+      name: 'Apple Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '05/05/2022',
+      precoQueIniciou: 'US$156,77',
+      precoTeto: 'US$170,00',
+      avatar: 'https://logo.clearbit.com/apple.com',
+    },
+    'FIVE': {
+      rank: '5º',
+      name: 'Five Below Inc.',
+      setor: 'Varejo',
+      dataEntrada: '17/03/2022',
+      precoQueIniciou: 'US$163,41',
+      precoTeto: 'US$179,00',
+      avatar: 'https://logo.clearbit.com/fivebelow.com',
+    },
+    'AMAT': {
+      rank: '6º',
+      name: 'Applied Materials Inc.',
+      setor: 'Semicondutores',
+      dataEntrada: '07/04/2022',
+      precoQueIniciou: 'US$122,40',
+      precoTeto: 'US$151,30',
+      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
+    },
+    'COST': {
+      rank: '7º',
+      name: 'Costco Wholesale Corporation',
+      setor: 'Consumer Discretionary',
+      dataEntrada: '23/06/2022',
+      precoQueIniciou: 'US$459,00',
+      precoTeto: 'US$571,00',
+      avatar: 'https://logo.clearbit.com/costco.com',
+    },
+    'GOOGL': {
+      rank: '8º',
+      name: 'Alphabet Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '06/03/2022',
+      precoQueIniciou: 'US$131,83',
+      precoTeto: 'US$153,29',
+      avatar: 'https://logo.clearbit.com/google.com',
+    },
+    'META': {
+      rank: '9º',
+      name: 'Meta Platforms Inc.',
+      setor: 'Tecnologia',
+      dataEntrada: '17/02/2022',
+      precoQueIniciou: 'US$213,92',
+      precoTeto: 'US$322,00',
+      avatar: 'https://logo.clearbit.com/meta.com',
+    },
+    'BRK.B': {
+      rank: '10º',
+      name: 'Berkshire Hathaway Inc.',
+      setor: 'Holding',
+      dataEntrada: '11/05/2021',
+      precoQueIniciou: 'US$286,35',
+      precoTeto: 'US$330,00',
+      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
+    }
+  };
   
   useEffect(() => {
     setMounted(true);
@@ -17,21 +112,24 @@ export default function EmpresaExteriorDetalhes() {
     setTicker(cleanTicker);
     
     if (cleanTicker) {
-      fetchStockData(cleanTicker);
+      // 🔍 Buscar dados estáticos primeiro
+      const staticInfo = exteriorStocksDatabase[cleanTicker];
+      setStaticData(staticInfo);
+      
+      // 🔄 Depois buscar dados dinâmicos
+      fetchStockData(cleanTicker, staticInfo);
     }
   }, []);
 
-  // Simula dados diferentes para cada ticker
-  const fetchStockData = async (tickerSymbol) => {
+  const fetchStockData = async (tickerSymbol, staticInfo) => {
     setLoading(true);
     setError(null);
     
     try {
-      // Simula delay de API
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Dados mockados baseados no ticker
-      const mockData = generateMockData(tickerSymbol);
+      // 🎯 Gerar dados dinâmicos baseados nos estáticos
+      const mockData = generateMockData(tickerSymbol, staticInfo);
       setStockData(mockData);
     } catch (err) {
       setError('Erro ao carregar dados da ação');
@@ -40,87 +138,59 @@ export default function EmpresaExteriorDetalhes() {
     }
   };
 
-  const generateMockData = (symbol) => {
-    // Diferentes dados para cada ticker
-    const stockDatabase = {
-      'AAPL': {
-        name: 'Apple Inc.',
-        price: 201.56,
-        change: 1.26,
-        changePercent: 0.63,
-        dayLow: 200.62,
-        dayHigh: 203.66,
-        open: 200.12,
-        volume: '5.0M',
-        week52High: 260.10,
-        week52Low: 169.21,
-        marketCap: '$3.1T',
-        peRatio: 29.2,
-        dividendYield: '0.50%',
-        isPositive: true
-      },
-      'MSFT': {
-        name: 'Microsoft Corporation',
-        price: 378.85,
-        change: -2.15,
-        changePercent: -0.56,
-        dayLow: 376.20,
-        dayHigh: 382.45,
-        open: 380.50,
-        volume: '3.2M',
-        week52High: 420.82,
-        week52Low: 309.45,
-        marketCap: '$2.8T',
-        peRatio: 32.1,
-        dividendYield: '0.72%',
-        isPositive: false
-      },
-      'GOOGL': {
-        name: 'Alphabet Inc.',
-        price: 142.38,
-        change: 3.47,
-        changePercent: 2.50,
-        dayLow: 140.15,
-        dayHigh: 143.82,
-        open: 141.20,
-        volume: '8.1M',
-        week52High: 190.25,
-        week52Low: 129.40,
-        marketCap: '$1.8T',
-        peRatio: 25.4,
-        dividendYield: '0.00%',
-        isPositive: true
-      },
-      'TSLA': {
-        name: 'Tesla, Inc.',
-        price: 248.50,
-        change: -5.23,
-        changePercent: -2.06,
-        dayLow: 246.80,
-        dayHigh: 254.60,
-        open: 252.30,
-        volume: '12.5M',
-        week52High: 384.29,
-        week52Low: 152.37,
-        marketCap: '$789B',
-        peRatio: 62.8,
-        dividendYield: '0.00%',
-        isPositive: false
-      }
-    };
-
-    // Se o ticker existe no banco, retorna os dados
-    if (stockDatabase[symbol]) {
-      return stockDatabase[symbol];
+  const generateMockData = (symbol, staticInfo) => {
+    // 🏢 Se tem dados estáticos da empresa, usar como base
+    if (staticInfo) {
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
+      
+      // 📈 Simular preço atual baseado no range histórico
+      const variacao = (Math.random() - 0.3) * 0.4; // -30% a +40%
+      const precoAtual = precoIniciou * (1 + variacao);
+      const change = precoAtual - precoIniciou;
+      const changePercent = (change / precoIniciou) * 100;
+      
+      return {
+        name: staticInfo.name,
+        rank: staticInfo.rank,
+        setor: staticInfo.setor,
+        dataEntrada: staticInfo.dataEntrada,
+        precoQueIniciou: staticInfo.precoQueIniciou,
+        precoTeto: staticInfo.precoTeto,
+        avatar: staticInfo.avatar,
+        price: Number(precoAtual.toFixed(2)),
+        change: Number(change.toFixed(2)),
+        changePercent: Number(changePercent.toFixed(2)),
+        dayLow: Number((precoAtual - Math.random() * 3).toFixed(2)),
+        dayHigh: Number((precoAtual + Math.random() * 5).toFixed(2)),
+        open: Number((precoAtual + (Math.random() - 0.5) * 2).toFixed(2)),
+        volume: `${(Math.random() * 20 + 1).toFixed(1)}M`,
+        week52High: Number((precoTeto * (0.95 + Math.random() * 0.1)).toFixed(2)),
+        week52Low: Number((precoIniciou * (0.8 + Math.random() * 0.2)).toFixed(2)),
+        marketCap: generateMarketCap(symbol),
+        peRatio: Number((Math.random() * 30 + 15).toFixed(1)),
+        dividendYield: generateDividendYield(staticInfo.setor),
+        isPositive: change >= 0,
+        // 📊 Cálculos de performance
+        performanceVsInicio: changePercent,
+        distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
+        vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+      };
     }
 
-    // Senão, gera dados aleatórios
+    // 🎲 Fallback para tickers não cadastrados
     const basePrice = Math.random() * 300 + 50;
     const change = (Math.random() - 0.5) * 20;
     const isPositive = change > 0;
     
     return {
       name: `${symbol} Corporation`,
+      rank: 'N/A',
+      setor: 'Diversos',
+      dataEntrada: 'N/A',
+      precoQueIniciou: 'N/A',
+      precoTeto: 'N/A',
+      avatar: `https://logo.clearbit.com/${symbol.toLowerCase()}.com`,
       price: Number(basePrice.toFixed(2)),
       change: Number(change.toFixed(2)),
       changePercent: Number((change / basePrice * 100).toFixed(2)),
@@ -133,8 +203,35 @@ export default function EmpresaExteriorDetalhes() {
       marketCap: `$${(Math.random() * 500 + 50).toFixed(0)}B`,
       peRatio: Number((Math.random() * 40 + 10).toFixed(1)),
       dividendYield: `${(Math.random() * 3).toFixed(2)}%`,
-      isPositive
+      isPositive,
+      performanceVsInicio: 0,
+      distanciaDoTeto: 0,
+      vies: 'N/A'
     };
+  };
+
+  const generateMarketCap = (symbol) => {
+    const caps = {
+      'AAPL': '$3.1T',
+      'MSFT': '$2.8T',
+      'GOOGL': '$1.8T',
+      'META': '$789B',
+      'AMD': '$240B',
+      'HD': '$410B',
+      'COST': '$380B',
+      'XP': '$12B',
+      'AMAT': '$180B',
+      'FIVE': '$8B',
+      'BRK.B': '$890B'
+    };
+    return caps[symbol] || `$${(Math.random() * 500 + 50).toFixed(0)}B`;
+  };
+
+  const generateDividendYield = (setor) => {
+    if (setor === 'Tecnologia') return `${(Math.random() * 1).toFixed(2)}%`;
+    if (setor === 'Varejo') return `${(Math.random() * 2 + 1).toFixed(2)}%`;
+    if (setor === 'Financial Services') return `${(Math.random() * 3 + 2).toFixed(2)}%`;
+    return `${(Math.random() * 2).toFixed(2)}%`;
   };
 
   // Loading state
@@ -167,7 +264,9 @@ export default function EmpresaExteriorDetalhes() {
             margin: '0 auto 20px'
           }} />
           <h2 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>Carregando {ticker}</h2>
-          <p style={{ color: '#6b7280', margin: 0 }}>Buscando dados atualizados...</p>
+          <p style={{ color: '#6b7280', margin: 0 }}>
+            {staticData ? `Buscando dados de ${staticData.name}...` : 'Buscando dados atualizados...'}
+          </p>
         </div>
         <style>{`
           @keyframes spin {
@@ -179,7 +278,6 @@ export default function EmpresaExteriorDetalhes() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div style={{ 
@@ -203,7 +301,7 @@ export default function EmpresaExteriorDetalhes() {
           <h2 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Erro</h2>
           <p style={{ color: '#6b7280', margin: '0 0 20px 0' }}>{error}</p>
           <button 
-            onClick={() => fetchStockData(ticker)}
+            onClick={() => fetchStockData(ticker, staticData)}
             style={{
               background: '#3b82f6',
               color: 'white',
@@ -276,12 +374,89 @@ export default function EmpresaExteriorDetalhes() {
         
         {/* Header */}
         <div style={headerStyle}>
-          <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#1f2937' }}>
-            {ticker}
-          </h1>
-          <p style={{ color: '#6b7280', margin: 0 }}>
-            {stockData.name} • USD • Ações Internacionais
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+            {stockData.avatar && (
+              <img 
+                src={stockData.avatar} 
+                alt={stockData.name}
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '8px',
+                  border: '2px solid #e2e8f0'
+                }}
+                onError={(e) => { e.target.style.display = 'none' }}
+              />
+            )}
+            <div>
+              <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#1f2937' }}>
+                {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
+              </h1>
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                {stockData.name} • USD • {stockData.setor} • Exterior Stocks
+              </p>
+            </div>
+          </div>
+          
+          {/* 📊 Informações da Carteira */}
+          {staticData && (
+            <div style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              marginTop: '16px'
+            }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px' 
+              }}>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    DATA DE ENTRADA
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {stockData.dataEntrada}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    PREÇO DE ENTRADA
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {stockData.precoQueIniciou}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    PREÇO TETO
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {stockData.precoTeto}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    VIÉS ATUAL
+                  </p>
+                  <div style={{
+                    display: 'inline-block',
+                    background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                    color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    border: '1px solid',
+                    borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+                  }}>
+                    {stockData.vies}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Preço Principal */}
@@ -314,6 +489,35 @@ export default function EmpresaExteriorDetalhes() {
           {/* Métricas */}
           <div style={{ padding: '24px' }}>
             
+            {/* Performance vs Entrada */}
+            {staticData && stockData.performanceVsInicio !== 0 && (
+              <div style={{
+                background: stockData.performanceVsInicio >= 0 ? '#ecfdf5' : '#fef2f2',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '24px',
+                border: '1px solid',
+                borderColor: stockData.performanceVsInicio >= 0 ? '#d1fae5' : '#fecaca'
+              }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
+                  🎯 Performance desde a Entrada
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '18px', fontWeight: 'bold', color: stockData.performanceVsInicio >= 0 ? '#059669' : '#dc2626' }}>
+                      {stockData.performanceVsInicio >= 0 ? '+' : ''}{stockData.performanceVsInicio.toFixed(2)}%
+                    </span>
+                    <span style={{ fontSize: '14px', color: '#64748b', marginLeft: '8px' }}>
+                      desde {stockData.dataEntrada}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b' }}>
+                    Distância do teto: {stockData.distanciaDoTeto.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Range do Dia */}
             <div style={{
               background: '#f8fafc',
@@ -569,7 +773,7 @@ export default function EmpresaExteriorDetalhes() {
           textAlign: 'center'
         }}>
           <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            ✅ Dados Dinâmicos para {ticker} • {new Date().toLocaleString('pt-BR')}
+            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
           </p>
         </div>
       </div>
