@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 
-const EmpresaExteriorDetalhes = ({ params }) => {
+export default function EmpresaExteriorDetalhes({ params }) {
   const { ticker } = params;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -148,9 +148,7 @@ const EmpresaExteriorDetalhes = ({ params }) => {
     }
   }, [ticker]);
 
-  // ========================================
-  // COMPONENTE HISTÓRICO DE DIVIDENDOS  
-  // ========================================
+  // Componente Histórico de Dividendos
   const HistoricoDividendos = ({ ticker, dataEntrada, isFII = false }) => {
     const [proventos, setProventos] = useState([]);
     const [mostrarTodos, setMostrarTodos] = useState(false);
@@ -161,24 +159,15 @@ const EmpresaExteriorDetalhes = ({ params }) => {
       if (ticker && typeof window !== 'undefined') {
         let dadosSalvos = null;
         
-        // ✅ CORREÇÃO: Buscar dados de múltiplas fontes possíveis
         if (isFII) {
-          // Para FIIs, tentar várias chaves possíveis
           dadosSalvos = localStorage.getItem(`dividendos_fii_${ticker}`) || 
                        localStorage.getItem(`proventos_${ticker}`) ||
                        localStorage.getItem(`rendimentos_${ticker}`);
-          
-          console.log(`🔍 Buscando dados FII para ${ticker}:`, {
-            dividendos_fii: !!localStorage.getItem(`dividendos_fii_${ticker}`),
-            proventos: !!localStorage.getItem(`proventos_${ticker}`),
-            rendimentos: !!localStorage.getItem(`rendimentos_${ticker}`)
-          });
         } else {
-          // Para ações, usar a chave padrão
           dadosSalvos = localStorage.getItem(`proventos_${ticker}`);
         }
 
-        // ✅ NOVO: Buscar do sistema central como fallback
+        // Buscar do sistema central como fallback
         if (!dadosSalvos) {
           const proventosCentral = localStorage.getItem('proventos_central_master');
           if (proventosCentral) {
@@ -203,7 +192,6 @@ const EmpresaExteriorDetalhes = ({ params }) => {
               dataObj: new Date(item.dataCom || item.data || item.dataObj || item.dataFormatada)
             }));
             
-            // Filtrar dados inválidos
             const proventosValidos = proventosLimitados.filter((item) => 
               item.dataObj && !isNaN(item.dataObj.getTime()) && item.valor && item.valor > 0
             );
@@ -222,11 +210,7 @@ const EmpresaExteriorDetalhes = ({ params }) => {
             setProventos([]);
           }
         } else {
-          console.log(`❌ Nenhum dado encontrado para ${ticker}. Chaves verificadas:`, {
-            localStorage_keys: Object.keys(localStorage).filter(key => 
-              key.includes(ticker) || key.includes('provento') || key.includes('dividendo')
-            )
-          });
+          console.log(`❌ Nenhum dado encontrado para ${ticker}`);
           setProventos([]);
         }
       }
@@ -297,7 +281,7 @@ const EmpresaExteriorDetalhes = ({ params }) => {
               </code>
             </p>
             <p style={{ margin: '8px 0', fontSize: '11px', color: '#9ca3af' }}>
-              🔍 {Object.keys(localStorage).filter(k => k.includes('proventos_')).length} empresas com dados disponíveis
+              🔍 {typeof window !== 'undefined' ? Object.keys(localStorage).filter(k => k.includes('proventos_')).length : 0} empresas com dados disponíveis
             </p>
           </div>
         ) : (
@@ -473,7 +457,6 @@ const EmpresaExteriorDetalhes = ({ params }) => {
     );
   };
 
-  // Estados de loading e erro
   if (loading) {
     return (
       <div style={{ 
@@ -500,7 +483,7 @@ const EmpresaExteriorDetalhes = ({ params }) => {
             margin: '0 auto 16px auto'
           }}></div>
           <p style={{ color: '#6c757d', margin: 0 }}>
-            🔍 Carregando dados de {params.ticker}...
+            🔍 Carregando dados de {ticker}...
           </p>
         </div>
       </div>
@@ -526,7 +509,7 @@ const EmpresaExteriorDetalhes = ({ params }) => {
         }}>
           <h2 style={{ color: '#dc3545', marginBottom: '16px' }}>❌ Erro</h2>
           <p style={{ color: '#6c757d', marginBottom: '24px' }}>
-            Não foi possível carregar os dados da empresa {params.ticker}
+            Não foi possível carregar os dados da empresa {ticker}
           </p>
           <p style={{ fontSize: '14px', color: '#adb5bd' }}>
             {error}
@@ -547,7 +530,6 @@ const EmpresaExteriorDetalhes = ({ params }) => {
         margin: '0 auto', 
         padding: '0 24px' 
       }}>
-        {/* Header da empresa */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
@@ -556,7 +538,6 @@ const EmpresaExteriorDetalhes = ({ params }) => {
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            {/* Logo */}
             <div style={{
               width: '80px',
               height: '80px',
@@ -593,3 +574,138 @@ const EmpresaExteriorDetalhes = ({ params }) => {
                 fontSize: '24px',
                 fontWeight: 'bold',
                 color: '#6c757d'
+              }}>
+                {ticker.slice(0, 2)}
+              </div>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <h1 style={{ 
+                  margin: 0, 
+                  fontSize: '28px', 
+                  fontWeight: '700',
+                  color: '#1f2937'
+                }}>
+                  {ticker}
+                </h1>
+                <span style={{
+                  backgroundColor: '#dbeafe',
+                  color: '#1e40af',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {priceData?.price ? '4°' : 'SEM DADOS'}
+                </span>
+              </div>
+              
+              <h2 style={{ 
+                margin: '0 0 16px 0', 
+                fontSize: '18px', 
+                fontWeight: '400',
+                color: '#6b7280'
+              }}>
+                {staticInfo?.name || priceData?.companyName || 'Nome não disponível'} • {staticInfo?.currency || priceData?.currency || 'USD'} • {staticInfo?.sector || priceData?.sector || 'Setor não disponível'} • {staticInfo?.industry || priceData?.industry || 'Exterior Stocks'}
+              </h2>
+
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>DATA DE ENTRADA</span>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
+                    05/05/2022
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>PREÇO DE ENTRADA</span>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
+                    US${priceData?.price ? (priceData.price * 0.78).toFixed(2) : '156,77'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>PREÇO TETO</span>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
+                    US${priceData?.price ? (priceData.price * 0.85).toFixed(2) : '170,00'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>VIÉS ATUAL</span>
+                  <div style={{
+                    display: 'inline-block',
+                    backgroundColor: '#fbbf24',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    AGUARDAR
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: '#059669',
+          borderRadius: '12px',
+          padding: '32px',
+          marginBottom: '24px',
+          color: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ 
+                margin: '0 0 8px 0', 
+                fontSize: '24px', 
+                fontWeight: '700' 
+              }}>
+                {ticker}
+              </h3>
+              <p style={{ 
+                margin: 0, 
+                fontSize: '16px', 
+                opacity: 0.9 
+              }}>
+                {staticInfo?.name || priceData?.companyName || 'Empresa Internacional'}
+              </p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ 
+                fontSize: '36px', 
+                fontWeight: '700',
+                lineHeight: 1
+              }}>
+                ${priceData?.price ? priceData.price.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }) : '200.485'}
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                opacity: 0.8,
+                marginTop: '4px'
+              }}>
+                {priceData?.changes ? (
+                  <span style={{ color: priceData.changes >= 0 ? '#a7f3d0' : '#fca5a5' }}>
+                    {priceData.changes >= 0 ? '+' : ''}{priceData.changes.toFixed(2)} ({((priceData.changes / priceData.price) * 100).toFixed(2)}%)
+                  </span>
+                ) : (
+                  '+2.15 (+1.08%)'
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <HistoricoDividendos 
+          ticker={ticker} 
+          dataEntrada={new Date().toISOString().split('T')[0]}
+          isFII={false}
+        />
+      </div>
+    </div>
+  );
+}
