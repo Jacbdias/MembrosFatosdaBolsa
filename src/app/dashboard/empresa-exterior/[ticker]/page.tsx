@@ -141,7 +141,7 @@ const fetchStockData = async (tickerSymbol, staticInfo) => {
 
 const realData = {
   // Dados estáticos da sua carteira (quando houver)
-  name: staticInfo?.nomeCompleto || result.shortName || result.longName || ticker,
+  name: staticInfo?.name || result.shortName || result.longName || ticker,
   setor: staticInfo?.setor || result.sector || '—',
   avatar: staticInfo?.avatar || result.logourl || '',
   precoQueIniciou: staticInfo?.precoQueIniciou || `US$${(result.regularMarketPrice || 0).toFixed(2)}`,
@@ -161,26 +161,23 @@ const realData = {
   week52Low: result.fiftyTwoWeekLow || 0,
 
   // Indicadores financeiros da API com fallback seguro
-  marketCap: typeof result.marketCap === 'number' && isFinite(result.marketCap)
+  marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
     ? `$${(result.marketCap / 1e9).toFixed(2)}B`
-    : '—',
+    : staticInfo?.marketCap || '—',
 
-  peRatio: typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
+  peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
     ? result.trailingPE.toFixed(2)
-    : '—',
+    : staticInfo?.peRatio || '—',
 
-  dividendYield: typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
+  dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
     ? `${(result.dividendYield * 100).toFixed(2)}%`
-    : '0%',
-};
+    : staticInfo?.dividendYield || '0%',
 
-    setStockData(realData);
-  } catch (err) {
-    console.error(err);
-    setError('Erro ao buscar dados da BRAPI');
-  } finally {
-    setLoading(false);
-  }
+  isPositive: change >= 0,
+  change: Number(change.toFixed(2)),
+  changePercent: Number(changePercent.toFixed(2)),
+  distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
+  vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
 };
 
   const generateMockData = (symbol, staticInfo) => {
