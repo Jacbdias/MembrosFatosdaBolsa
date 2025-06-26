@@ -119,6 +119,9 @@ useEffect(() => {
   }
 }, []);
   
+    return <></>;
+}
+  
 const fetchStockData = async (tickerSymbol, staticInfo) => {
   setLoading(true);
   setError(null);
