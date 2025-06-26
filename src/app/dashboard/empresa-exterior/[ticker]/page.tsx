@@ -520,12 +520,11 @@ export default function EmpresaExteriorDetalhes() {
         
         <div style={headerStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-            {/* Container do avatar com ID único para debug */}
-            <div 
-              id="avatar-container"
-              style={{ 
-                width: '48px', 
-                height: '48px', 
+            {/* Container do avatar com useState */}
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
                 borderRadius: '8px',
                 border: '2px solid #e2e8f0',
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
@@ -538,49 +537,41 @@ export default function EmpresaExteriorDetalhes() {
                 position: 'relative'
               }}
             >
-              {/* Fallback com iniciais (sempre presente) */}
-              <span 
-                id="avatar-fallback"
-                style={{ 
-                  position: 'absolute', 
-                  zIndex: 1,
-                  display: 'block'
-                }}
-              >
-                {ticker.slice(0, 2)}
-              </span>
-              
-              {/* Imagem por cima */}
-              <img 
-                id="avatar-image"
-                src={stockData.avatar} 
+              {/* Fallback com iniciais */}
+              {(!avatarLoaded || avatarError) && (
+                <span style={{ position: 'absolute', zIndex: 1 }}>
+                  {ticker.slice(0, 2)}
+                </span>
+              )}
+              {/* Imagem da logo */}
+              <img
+                src={stockData.avatar}
                 alt={stockData.name}
-                style={{ 
-                  width: '48px', 
-                  height: '48px', 
+                style={{
+                  width: '48px',
+                  height: '48px',
                   borderRadius: '8px',
                   position: 'absolute',
                   top: '-2px',
                   left: '-2px',
                   zIndex: 2,
-                  border: '2px solid #e2e8f0'
+                  border: '2px solid #e2e8f0',
+                  display: avatarError ? 'none' : 'block'
                 }}
                 onLoad={(e) => {
-                  console.log('✅ Avatar carregou:', e.target.src, `${e.target.naturalWidth}x${e.target.naturalHeight}`);
-                  // Se carregou com sucesso, esconde o fallback
-                  const fallback = document.getElementById('avatar-fallback');
-                  if (fallback) {
-                    fallback.style.display = 'none';
+                  const valid = e.target.naturalWidth > 1 && e.target.naturalHeight > 1;
+                  if (valid) {
+                    setAvatarLoaded(true);
+                    setAvatarError(false);
+                    console.log('✅ Avatar carregado:', e.target.src);
+                  } else {
+                    setAvatarError(true);
                   }
                 }}
                 onError={(e) => {
                   console.log('❌ Avatar falhou:', e.target.src);
-                  // Se falhou, remove a imagem e mostra o fallback
-                  e.target.style.display = 'none';
-                  const fallback = document.getElementById('avatar-fallback');
-                  if (fallback) {
-                    fallback.style.display = 'block';
-                  }
+                  setAvatarError(true);
+                  setAvatarLoaded(false);
                 }}
               />
             </div>
