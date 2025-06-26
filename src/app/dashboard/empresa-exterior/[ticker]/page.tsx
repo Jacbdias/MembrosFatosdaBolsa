@@ -737,109 +737,98 @@ dividendYield:
             </div>
 
             {/* Indicadores Financeiros */}
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
-                💼 Indicadores Financeiros
-              </h3>
-              
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '24px'
-              }}>
-                
-                {/* Market Cap */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '2px solid #a7f3d0',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    background: '#059669',
-                    borderRadius: '16px',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '24px'
-                  }}>🌍</div>
-                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
-                </div>
+{/* Indicadores Financeiros */}
+{stockData && (
+  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
+    <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
+      💼 Indicadores Financeiros
+    </h3>
 
-                {/* P/E Ratio */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '2px solid #c4b5fd',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    background: '#7c3aed',
-                    borderRadius: '16px',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '24px'
-                  }}>🎯</div>
-                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
-                </div>
-
-                {/* Dividend Yield */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '2px solid #fcd34d',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    background: '#d97706',
-                    borderRadius: '16px',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '24px'
-                  }}>💵</div>
-                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Status */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '24px'
+    }}>
+      {/* Market Cap */}
+      <div style={{
+        background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+        padding: '24px',
+        borderRadius: '16px',
+        border: '2px solid #a7f3d0',
+        textAlign: 'center',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      }}>
         <div style={{
-          background: 'white',
-          padding: '16px 24px',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-          textAlign: 'center'
-        }}>
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
-          </p>
-        </div>
+          width: '56px',
+          height: '56px',
+          background: '#059669',
+          borderRadius: '16px',
+          margin: '0 auto 16px auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '24px'
+        }}>🌍</div>
+        <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
+        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+          {stockData.marketCap || '—'}
+        </p>
+      </div>
+
+      {/* P/E Ratio */}
+      <div style={{
+        background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+        padding: '24px',
+        borderRadius: '16px',
+        border: '2px solid #c4b5fd',
+        textAlign: 'center',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{
+          width: '56px',
+          height: '56px',
+          background: '#7c3aed',
+          borderRadius: '16px',
+          margin: '0 auto 16px auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '24px'
+        }}>🎯</div>
+        <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
+        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+          {stockData.peRatio ?? '—'}
+        </p>
+      </div>
+
+      {/* Dividend Yield */}
+      <div style={{
+        background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+        padding: '24px',
+        borderRadius: '16px',
+        border: '2px solid #fcd34d',
+        textAlign: 'center',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{
+          width: '56px',
+          height: '56px',
+          background: '#d97706',
+          borderRadius: '16px',
+          margin: '0 auto 16px auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '24px'
+        }}>💵</div>
+        <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
+        <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+          {stockData.dividendYield || '—'}
+        </p>
       </div>
     </div>
-  );
-}
+  </div>
+)}
