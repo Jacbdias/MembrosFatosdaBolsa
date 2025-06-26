@@ -9,19 +9,9 @@ export default function EmpresaExteriorDetalhes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
-  
-  // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
+
   const exteriorStocksDatabase = {
-    'AMD': {
-      rank: '1º',
-      name: 'Advanced Micro Devices Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '29/05/2025',
-      precoQueIniciou: 'US$112,86',
-      precoTeto: 'US$135,20',
-      avatar: 'https://logo.clearbit.com/amd.com',
-    },
-    'XP': {
+    XP: {
       rank: '2º',
       name: 'XP Inc.',
       setor: 'Financial Services',
@@ -30,97 +20,82 @@ export default function EmpresaExteriorDetalhes() {
       precoTeto: 'US$24,34',
       avatar: 'https://logo.clearbit.com/xpi.com.br',
     },
-    'HD': {
-      rank: '3º',
-      name: 'Home Depot Inc.',
-      setor: 'Varejo',
-      dataEntrada: '24/02/2023',
-      precoQueIniciou: 'US$299,31',
-      precoTeto: 'US$366,78',
-      avatar: 'https://logo.clearbit.com/homedepot.com',
-    },
-    'AAPL': {
-      rank: '4º',
-      name: 'Apple Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '05/05/2022',
-      precoQueIniciou: 'US$156,77',
-      precoTeto: 'US$170,00',
-      avatar: 'https://logo.clearbit.com/apple.com',
-    },
-    'FIVE': {
-      rank: '5º',
-      name: 'Five Below Inc.',
-      setor: 'Varejo',
-      dataEntrada: '17/03/2022',
-      precoQueIniciou: 'US$163,41',
-      precoTeto: 'US$179,00',
-      avatar: 'https://logo.clearbit.com/fivebelow.com',
-    },
-    'AMAT': {
-      rank: '6º',
-      name: 'Applied Materials Inc.',
-      setor: 'Semicondutores',
-      dataEntrada: '07/04/2022',
-      precoQueIniciou: 'US$122,40',
-      precoTeto: 'US$151,30',
-      avatar: 'https://logo.clearbit.com/appliedmaterials.com',
-    },
-    'COST': {
-      rank: '7º',
-      name: 'Costco Wholesale Corporation',
-      setor: 'Consumer Discretionary',
-      dataEntrada: '23/06/2022',
-      precoQueIniciou: 'US$459,00',
-      precoTeto: 'US$571,00',
-      avatar: 'https://logo.clearbit.com/costco.com',
-    },
-    'GOOGL': {
-      rank: '8º',
-      name: 'Alphabet Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '06/03/2022',
-      precoQueIniciou: 'US$131,83',
-      precoTeto: 'US$153,29',
-      avatar: 'https://logo.clearbit.com/google.com',
-    },
-    'META': {
-      rank: '9º',
-      name: 'Meta Platforms Inc.',
-      setor: 'Tecnologia',
-      dataEntrada: '17/02/2022',
-      precoQueIniciou: 'US$213,92',
-      precoTeto: 'US$322,00',
-      avatar: 'https://logo.clearbit.com/meta.com',
-    },
-    'BRK.B': {
-      rank: '10º',
-      name: 'Berkshire Hathaway Inc.',
-      setor: 'Holding',
-      dataEntrada: '11/05/2021',
-      precoQueIniciou: 'US$286,35',
-      precoTeto: 'US$330,00',
-      avatar: 'https://logo.clearbit.com/berkshirehathaway.com',
+  };
+
+  const fetchStockData = async (tickerSymbol, staticInfo) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`https://brapi.dev/api/quote/${tickerSymbol}?token=jJrMYVy9MATGEicx3GxBp8`);
+      const data = await response.json();
+      if (!data || !data.results || data.results.length === 0) {
+        throw new Error('Sem dados da API');
+      }
+      const result = data.results[0];
+      const precoAtual = result.regularMarketPrice || 0;
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
+      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
+      const change = precoAtual - precoIniciou;
+      const changePercent = (change / precoIniciou) * 100;
+
+      const realData = {
+        name: staticInfo?.name || result.shortName || result.longName || ticker,
+        setor: staticInfo?.setor || result.sector || '—',
+        avatar: staticInfo?.avatar || result.logourl || '',
+        precoQueIniciou: staticInfo?.precoQueIniciou || `US$${(result.regularMarketPrice || 0).toFixed(2)}`,
+        precoTeto: staticInfo?.precoTeto || `US$${((result.regularMarketPrice || 0) * 1.2).toFixed(2)}`,
+        dataEntrada: staticInfo?.dataEntrada || '—',
+        rank: staticInfo?.rank || '',
+        viesAtual: staticInfo?.viesAtual || '',
+        performanceVsInicio: changePercent,
+        price: result.regularMarketPrice || 0,
+        volume: result.regularMarketVolume || 0,
+        open: result.regularMarketOpen || 0,
+        dayHigh: result.regularMarketDayHigh || 0,
+        dayLow: result.regularMarketDayLow || 0,
+        week52High: result.fiftyTwoWeekHigh || 0,
+        week52Low: result.fiftyTwoWeekLow || 0,
+        marketCap: typeof result.marketCap === 'number' && isFinite(result.marketCap)
+          ? `$${(result.marketCap / 1e9).toFixed(2)}B`
+          : staticInfo?.marketCap || '—',
+        peRatio: typeof result.trailingPE === 'number' && isFinite(result.trailingPE)
+          ? result.trailingPE.toFixed(2)
+          : staticInfo?.peRatio || '—',
+        dividendYield: typeof result.dividendYield === 'number' && isFinite(result.dividendYield)
+          ? `${(result.dividendYield * 100).toFixed(2)}%`
+          : staticInfo?.dividendYield || '0%',
+        isPositive: change >= 0,
+        distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto) * 100,
+        change,
+        changePercent,
+        vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+      };
+
+      setStockData(realData);
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao buscar dados da BRAPI');
+    } finally {
+      setLoading(false);
     }
   };
-  
-useEffect(() => {
-  setMounted(true);
-  const path = window.location.pathname;
-  const tickerFromUrl = path.split('/').pop() || '';
-  const cleanTicker = tickerFromUrl.toUpperCase();
-  setTicker(cleanTicker);
 
-  const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
-  setStaticData(staticInfo);
+  useEffect(() => {
+    setMounted(true);
+    const path = window.location.pathname;
+    const tickerFromUrl = path.split('/').pop() || '';
+    const cleanTicker = tickerFromUrl.toUpperCase();
+    setTicker(cleanTicker);
+    const staticInfo = exteriorStocksDatabase[cleanTicker] || null;
+    setStaticData(staticInfo);
+    if (cleanTicker) {
+      fetchStockData(cleanTicker, staticInfo);
+    }
+  }, []);
 
-  if (cleanTicker) {
-    fetchStockData(cleanTicker, staticInfo);
-  }
-}, []);
-  
-    return <></>;
+  return <></>;
 }
+
   
 const fetchStockData = async (tickerSymbol, staticInfo) => {
   setLoading(true);
