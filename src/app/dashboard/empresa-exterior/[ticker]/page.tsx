@@ -696,8 +696,8 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
 
   const generateMockData = (symbol, staticInfo) => {
     if (staticInfo) {
-      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US, ''));
-      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US, ''));
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
       
       const variacao = (Math.random() - 0.3) * 0.4;
       const precoAtual = precoIniciou * (1 + variacao);
