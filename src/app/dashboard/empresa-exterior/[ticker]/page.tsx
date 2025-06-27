@@ -1224,198 +1224,225 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
         </div>
 
 {/* Dados Técnicos */}
-// 1. ENCONTRE E REMOVA ESTA SEÇÃO COMPLETA (dos cards coloridos):
+// SUBSTITUA as duas seções dos cards por este código:
 
+{/* Cards lado a lado: Dados da Posição + Análise de Viés */}
 <div style={{
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-  gap: '16px',
-  marginBottom: '32px'
+  gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+  gap: '24px',
+  marginBottom: '24px'
 }}>
   
+  {/* Card 1: Dados da Posição */}
   <div style={{
-    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-    padding: '20px',
+    background: 'white',
     borderRadius: '12px',
-    border: '2px solid #93c5fd',
-    textAlign: 'center'
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0'
   }}>
     <div style={{
-      width: '48px',
-      height: '48px',
-      background: '#3b82f6',
-      borderRadius: '12px',
-      margin: '0 auto 12px auto',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontSize: '20px'
-    }}>📈</div>
-    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Volume</p>
-    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{stockData.volume}</p>
+      gap: '8px',
+      marginBottom: '20px'
+    }}>
+      <span style={{ fontSize: '20px' }}>📊</span>
+      <h3 style={{ 
+        fontSize: '18px', 
+        fontWeight: '600', 
+        margin: 0, 
+        color: '#1f2937' 
+      }}>
+        Dados da Posição
+      </h3>
+    </div>
+
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Data de Entrada */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 0',
+        borderBottom: '1px solid #f1f5f9'
+      }}>
+        <span style={{ 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Data de Entrada
+        </span>
+        <span style={{ 
+          color: '#1f2937', 
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          {staticData?.dataEntrada || 'N/A'}
+        </span>
+      </div>
+
+      {/* Preço Inicial */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 0',
+        borderBottom: '1px solid #f1f5f9'
+      }}>
+        <span style={{ 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Preço Inicial
+        </span>
+        <span style={{ 
+          color: '#1f2937', 
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          {staticData?.precoQueIniciou || `$${stockData.price}`}
+        </span>
+      </div>
+
+      {/* Preço Atual - Destacado */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#f0fdf4',
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid #bbf7d0'
+      }}>
+        <span style={{ 
+          color: '#059669', 
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          Preço Atual
+        </span>
+        <span style={{ 
+          color: '#059669', 
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }}>
+          ${stockData.price}
+        </span>
+      </div>
+    </div>
   </div>
 
+  {/* Card 2: Análise de Viés */}
   <div style={{
-    background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-    padding: '20px',
+    background: 'white',
     borderRadius: '12px',
-    border: '2px solid #86efac',
-    textAlign: 'center'
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0'
   }}>
     <div style={{
-      width: '48px',
-      height: '48px',
-      background: '#10b981',
-      borderRadius: '12px',
-      margin: '0 auto 12px auto',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontSize: '20px'
-    }}>💰</div>
-    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Abertura</p>
-    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.open}</p>
-  </div>
+      gap: '8px',
+      marginBottom: '20px'
+    }}>
+      <span style={{ fontSize: '20px' }}>🎯</span>
+      <h3 style={{ 
+        fontSize: '18px', 
+        fontWeight: '600', 
+        margin: 0, 
+        color: '#1f2937' 
+      }}>
+        Análise de Viés
+      </h3>
+    </div>
 
-  <div style={{
-    background: 'linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)',
-    padding: '20px',
-    borderRadius: '12px',
-    border: '2px solid #c4b5fd',
-    textAlign: 'center'
-  }}>
-    <div style={{
-      width: '48px',
-      height: '48px',
-      background: '#8b5cf6',
-      borderRadius: '12px',
-      margin: '0 auto 12px auto',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontSize: '20px'
-    }}>⬆️</div>
-    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Máx. 52s</p>
-    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52High}</p>
-  </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Preço Teto */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 0',
+        borderBottom: '1px solid #f1f5f9'
+      }}>
+        <span style={{ 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Preço Teto
+        </span>
+        <span style={{ 
+          color: '#1f2937', 
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          {staticData?.precoTeto || `$${(stockData.price * 1.2).toFixed(2)}`}
+        </span>
+      </div>
 
-  <div style={{
-    background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-    padding: '20px',
-    borderRadius: '12px',
-    border: '2px solid #fca5a5',
-    textAlign: 'center'
-  }}>
-    <div style={{
-      width: '48px',
-      height: '48px',
-      background: '#ef4444',
-      borderRadius: '12px',
-      margin: '0 auto 12px auto',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontSize: '20px'
-    }}>⬇️</div>
-    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Mín. 52s</p>
-    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52Low}</p>
+      {/* Viés Atual */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 0',
+        borderBottom: '1px solid #f1f5f9'
+      }}>
+        <span style={{ 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Viés Atual
+        </span>
+        <div style={{
+          background: staticData?.vies === 'COMPRA' ? '#10b981' : '#f59e0b',
+          color: 'white',
+          padding: '4px 12px',
+          borderRadius: '6px',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        }}>
+          {staticData?.vies || 'N/A'}
+        </div>
+      </div>
+
+      {/* % da Carteira - Destacado */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0'
+      }}>
+        <span style={{ 
+          color: '#64748b', 
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          % da Carteira
+        </span>
+        <span style={{ 
+          color: '#1e293b', 
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }}>
+          {staticData ? '3.7%' : 'N/A'}
+        </span>
+      </div>
+    </div>
   </div>
 </div>
 
-// 2. TAMBÉM REMOVA TODA ESTA SEÇÃO (dos indicadores financeiros):
-
-<div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-  <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
-    💼 Indicadores Financeiros
-  </h3>
-  
-  <div style={{
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '24px'
-  }}>
-    
-    <div style={{
-      background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-      padding: '24px',
-      borderRadius: '16px',
-      border: '2px solid #a7f3d0',
-      textAlign: 'center',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{
-        width: '56px',
-        height: '56px',
-        background: '#059669',
-        borderRadius: '16px',
-        margin: '0 auto 16px auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: '24px'
-      }}>🌍</div>
-      <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
-      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
-    </div>
-
-    <div style={{
-      background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-      padding: '24px',
-      borderRadius: '16px',
-      border: '2px solid #c4b5fd',
-      textAlign: 'center',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{
-        width: '56px',
-        height: '56px',
-        background: '#7c3aed',
-        borderRadius: '16px',
-        margin: '0 auto 16px auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: '24px'
-      }}>🎯</div>
-      <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
-      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
-    </div>
-
-    <div style={{
-      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-      padding: '24px',
-      borderRadius: '16px',
-      border: '2px solid #fcd34d',
-      textAlign: 'center',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{
-        width: '56px',
-        height: '56px',
-        background: '#d97706',
-        borderRadius: '16px',
-        margin: '0 auto 16px auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: '24px'
-      }}>💵</div>
-      <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
-      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
-    </div>
-  </div>
-</div>
-
-// 3. SUBSTITUA TUDO ISSO PELO CÓDIGO ABAIXO:
-
-{/* Dados Técnicos */}
+{/* Dados Técnicos - mantém como estava */}
 <div style={{
   background: 'white',
   borderRadius: '12px',
@@ -1539,7 +1566,7 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
   </div>
 </div>
 
-{/* Indicadores Financeiros */}
+{/* Indicadores Financeiros - mantém como estava */}
 <div style={{
   background: 'white',
   borderRadius: '12px',
