@@ -1074,8 +1074,2086 @@ useEffect(() => {
 
       const result = data.results[0];
       const precoAtual = result.regularMarketPrice || 0;
-      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
-const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US, '')) : precoAtual * 1.2;
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US
+const change = result.regularMarketChange || 0;
+const changePercent = result.regularMarketChangePercent || 0;
+
+const precoEntrada = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
+const performanceTotal = precoAtual - precoEntrada;
+const performanceTotalPercent = precoEntrada > 0 ? ((precoAtual - precoEntrada) / precoEntrada) * 100 : 0;
+const performanceIsPositive = performanceTotal >= 0;
+
+const realData = {
+  name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
+  rank: staticInfo?.rank || null,
+  setor: staticInfo?.setor || result.sector || 'Setor não identificado',
+  dataEntrada: staticInfo?.dataEntrada || 'N/A',
+  precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
+  precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
+  avatar: staticInfo?.avatar || getCompanyAvatar(tickerSymbol, result.shortName || result.longName) || result.logourl,
+  price: precoAtual,
+  change: Number(change.toFixed(2)),
+  changePercent: Number(changePercent.toFixed(2)),
+  dayLow: result.regularMarketDayLow || precoAtual * 0.98,
+  dayHigh: result.regularMarketDayHigh || precoAtual * 1.02,
+  open: result.regularMarketOpen || precoAtual,
+  volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : `${(Math.random() * 50 + 5).toFixed(1)}M`,
+  week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
+  week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
+  marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
+    ? `${(result.marketCap / 1e9).toFixed(2)}B`
+    : generateMarketCap(tickerSymbol),
+  peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
+    ? Number(result.trailingPE.toFixed(2))
+    : Number((Math.random() * 30 + 15).toFixed(1)),
+  dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
+    ? `${(result.dividendYield * 100).toFixed(2)}%`
+    : generateDividendYield(staticInfo?.setor || 'Diversos'),
+  isPositive: change >= 0,
+  performanceVsInicio: staticInfo ? changePercent : 0,
+  distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
+  vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A',
+  tipo: staticInfo?.tipo || 'SEM_COBERTURA',
+  dy: staticInfo?.dy || null,
+  // NOVOS CAMPOS ADICIONADOS:
+  performanceTotal: Number(Math.abs(performanceTotal).toFixed(2)),
+  performanceTotalPercent: performanceTotalPercent,
+  performanceIsPositive: performanceIsPositive
+};
+
+      // Debug do avatar
+      console.log('🎯 Avatar URL gerada:', realData.avatar);
+      console.log('📊 Dados completos:', realData);
+
+      setStockData(realData);
+    } catch (err) {
+      console.error('Erro na API, usando dados simulados:', err);
+      const mockData = generateMockData(tickerSymbol, staticInfo);
+      setStockData(mockData);
+      setError(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateMockData = (symbol, staticInfo) => {
+    if (staticInfo) {
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US, ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US, ''));
+      
+      const variacao = (Math.random() - 0.3) * 0.4;
+      const precoAtual = precoIniciou * (1 + variacao);
+      const change = precoAtual - precoIniciou;
+      const changePercent = (change / precoIniciou) * 100;
+      
+      return {
+        name: staticInfo.name,
+        rank: staticInfo.rank,
+        setor: staticInfo.setor,
+        dataEntrada: staticInfo.dataEntrada,
+        precoQueIniciou: staticInfo.precoQueIniciou,
+        precoTeto: staticInfo.precoTeto,
+        avatar: getCompanyAvatar(symbol, staticInfo?.name),
+        price: Number(precoAtual.toFixed(2)),
+        change: Number(change.toFixed(2)),
+        changePercent: Number(changePercent.toFixed(2)),
+        dayLow: Number((precoAtual - Math.random() * 3).toFixed(2)),
+        dayHigh: Number((precoAtual + Math.random() * 5).toFixed(2)),
+        open: Number((precoAtual + (Math.random() - 0.5) * 2).toFixed(2)),
+        volume: `${(Math.random() * 20 + 1).toFixed(1)}M`,
+        week52High: Number((precoTeto * (0.95 + Math.random() * 0.1)).toFixed(2)),
+        week52Low: Number((precoIniciou * (0.8 + Math.random() * 0.2)).toFixed(2)),
+        marketCap: generateMarketCap(symbol),
+        peRatio: Number((Math.random() * 30 + 15).toFixed(1)),
+        dividendYield: generateDividendYield(staticInfo.setor),
+        isPositive: change >= 0,
+        performanceVsInicio: changePercent,
+        distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
+        vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+      };
+    }
+
+    const basePrice = Math.random() * 300 + 50;
+    const change = (Math.random() - 0.5) * 20;
+    const isPositive = change > 0;
+    
+    return {
+      name: `${symbol} Corporation`,
+      rank: 'N/A',
+      setor: 'Diversos',
+      dataEntrada: 'N/A',
+      precoQueIniciou: 'N/A',
+      precoTeto: 'N/A',
+      avatar: getCompanyAvatar(symbol, `${symbol} Corporation`),
+      price: Number(basePrice.toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number((change / basePrice * 100).toFixed(2)),
+      dayLow: Number((basePrice - Math.random() * 5).toFixed(2)),
+      dayHigh: Number((basePrice + Math.random() * 5).toFixed(2)),
+      open: Number((basePrice + (Math.random() - 0.5) * 3).toFixed(2)),
+      volume: `${(Math.random() * 50 + 1).toFixed(1)}M`,
+      week52High: Number((basePrice * (1 + Math.random() * 0.5)).toFixed(2)),
+      week52Low: Number((basePrice * (1 - Math.random() * 0.3)).toFixed(2)),
+      marketCap: `${(Math.random() * 500 + 50).toFixed(0)}B`,
+      peRatio: Number((Math.random() * 40 + 10).toFixed(1)),
+      dividendYield: `${(Math.random() * 3).toFixed(2)}%`,
+      isPositive,
+      performanceVsInicio: 0,
+      distanciaDoTeto: 0,
+      vies: 'N/A'
+    };
+  };
+
+  const generateMarketCap = (symbol) => {
+    const caps = {
+      'AAPL': '$3.1T',
+      'MSFT': '$2.8T',
+      'GOOGL': '$1.8T',
+      'META': '$789B',
+      'AMD': '$240B',
+      'HD': '$410B',
+      'COST': '$380B',
+      'XP': '$12B',
+      'AMAT': '$180B',
+      'FIVE': '$8B',
+      'BRK-B': '$890B'
+    };
+    return caps[symbol] || `${(Math.random() * 500 + 50).toFixed(0)}B`;
+  };
+
+  const generateDividendYield = (setor) => {
+    const yields = {
+      'Tecnologia': () => `${(Math.random() * 1.5).toFixed(2)}%`,
+      'Varejo': () => `${(Math.random() * 2 + 1.5).toFixed(2)}%`,
+      'Financial Services': () => `${(Math.random() * 3 + 2).toFixed(2)}%`,
+      'Semicondutores': () => `${(Math.random() * 1.2).toFixed(2)}%`,
+      'Consumer Discretionary': () => `${(Math.random() * 2.5 + 1).toFixed(2)}%`,
+      'Holding': () => `${(Math.random() * 2 + 1).toFixed(2)}%`
+    };
+    
+    return yields[setor] ? yields[setor]() : `${(Math.random() * 2 + 0.5).toFixed(2)}%`;
+  };
+
+  if (!mounted || loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '16px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid #e2e8f0',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }} />
+          <h2 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>Carregando {ticker}</h2>
+          <p style={{ color: '#6b7280', margin: 0 }}>
+            {staticData ? `Buscando dados de ${staticData.name}...` : 'Buscando dados atualizados...'}
+          </p>
+        </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '16px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center',
+          maxWidth: '400px',
+          border: '2px solid #fca5a5'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+          <h2 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Erro</h2>
+          <p style={{ color: '#6b7280', margin: '0 0 20px 0' }}>{error}</p>
+          <button 
+            onClick={() => fetchStockData(ticker, staticData)}
+            style={{
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stockData) return null;
+
+  const containerStyle = {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    padding: '24px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  };
+
+  const maxWidthStyle = {
+    maxWidth: '1200px',
+    margin: '0 auto'
+  };
+
+  const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHigh - stockData.dayLow)) * 100;
+
+  return (
+    <div style={containerStyle}>
+      <div style={maxWidthStyle}>
+        {/* Card principal da empresa - NOVO ESTILO */}
+        <div style={{
+          marginBottom: '32px',
+          background: staticData?.tipo === 'ETF' 
+            ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' 
+            : staticData?.tipo === 'DIVIDEND' 
+            ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+            : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ padding: '32px' }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+              gap: '24px',
+              alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start'
+            }}>
+              
+              {/* AVATAR DA EMPRESA */}
+              <div style={{
+                width: window.innerWidth <= 768 ? '100px' : '120px',
+                height: window.innerWidth <= 768 ? '100px' : '120px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                border: '3px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                color: '#374151',
+                flexShrink: 0,
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Fallback com iniciais */}
+                <span style={{ 
+                  position: 'absolute', 
+                  zIndex: 1,
+                  fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem'
+                }}>
+                  {ticker.slice(0, 2)}
+                </span>
+                
+                {/* Imagem da empresa */}
+                {stockData?.avatar && (
+                  <img
+                    src={stockData.avatar}
+                    alt={stockData.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      zIndex: 2,
+                      objectFit: 'cover'
+                    }}
+                    onLoad={(e) => {
+                      const valid = e.target.naturalWidth > 1 && e.target.naturalHeight > 1;
+                      if (valid) {
+                        const fallback = e.target.parentElement.querySelector('span');
+                        if (fallback) fallback.style.display = 'none';
+                      } else {
+                        e.target.style.display = 'none';
+                      }
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+              </div>
+              
+              {/* INFORMAÇÕES DA EMPRESA (CENTRO) */}
+              <div style={{ 
+                flex: 1, 
+                textAlign: window.innerWidth <= 768 ? 'center' : 'left',
+                minWidth: 0
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+                  gap: '12px',
+                  alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start',
+                  marginBottom: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <h1 style={{ 
+                    fontSize: window.innerWidth <= 768 ? '2rem' : '2.5rem', 
+                    fontWeight: 700, 
+                    margin: 0,
+                    color: '#1f2937'
+                  }}>
+                    {ticker}
+                  </h1>
+                  
+                  {/* Badges de tipo */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{
+                      background: (() => {
+                        if (staticData) {
+                          if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
+                          if (staticData.tipo === 'ETF') return '#fef3c7';
+                          return '#dbeafe';
+                        }
+                        return '#f3f4f6';
+                      })(),
+                      color: (() => {
+                        if (staticData) {
+                          if (staticData.tipo === 'DIVIDEND') return '#059669';
+                          if (staticData.tipo === 'ETF') return '#d97706';
+                          return '#3b82f6';
+                        }
+                        return '#6b7280';
+                      })(),
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}>
+                      {(() => {
+                        if (staticData) {
+                          if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
+                          if (staticData.tipo === 'ETF') return '📊 ETF';
+                          return '📈 STOCK';
+                        }
+                        return 'SEM COBERTURA';
+                      })()}
+                    </div>
+                    
+                    {stockData?.rank && (
+                      <div style={{
+                        background: '#f3f4f6',
+                        color: '#6b7280',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {stockData.rank}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <h2
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    margin: '0 0 16px 0',
+                    color: '#374151',
+                  }}
+                >
+                  {stockData.name}
+                </h2>
+                
+                <div
+                  style={{
+                    background: '#e2e8f0',
+                    color: '#475569',
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    display: 'inline-block',
+                    marginBottom: '16px'
+                  }}>
+                    <span>
+                      USD - {stockData.setor}
+                      {stockData.dy && <span> - DY: {stockData.dy}</span>}
+                    </span>
+                  </div>
+                  
+                  <p style={{ 
+                    fontSize: '16px',
+                    lineHeight: 1.6,
+                    color: '#4b5563',
+                    margin: 0,
+                    maxWidth: '600px'
+                  }}>
+                    Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}. 
+                    {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
+                  </p>
+                
+                {/* Alertas importantes */}
+                {!staticData && (
+                  <div style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    color: '#b91c1c',
+                    fontWeight: 600,
+                    marginTop: '16px',
+                    fontSize: '14px'
+                  }}>
+                    ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
+                  </div>
+                )}
+              </div>
+              
+              {/* PREÇO E VARIAÇÃO (DIREITA) */}
+              <div style={{ 
+                textAlign: window.innerWidth <= 768 ? 'center' : 'right',
+                minWidth: window.innerWidth <= 768 ? 'auto' : '200px'
+              }}>
+                {loading ? (
+                  <div style={{ 
+                    width: '150px', 
+                    height: '60px', 
+                    background: '#e2e8f0', 
+                    borderRadius: '8px',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                ) : (
+                  <>
+                    <div style={{ 
+                      fontSize: window.innerWidth <= 768 ? '2.5rem' : '3rem', 
+                      fontWeight: 700,
+                      color: '#1f2937',
+                      lineHeight: 1,
+                      marginBottom: '8px'
+                    }}>
+                      ${stockData.price}
+                    </div>
+                    
+                    {stockData.isPositive !== undefined && (
+                      <div style={{ 
+                        color: stockData.isPositive ? '#22c55e' : '#ef4444', 
+                        fontWeight: 700, 
+                        fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '1.5rem' }}>
+                          {stockData.isPositive ? '↗' : '↘'}
+                        </span>
+                        <span>
+                          {stockData.isPositive ? '+' : ''}{stockData.change} ({stockData.changePercent}%)
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Info adicional sobre BDR se existir */}
+                    {staticData?.bdr && bdrData && (
+                      <div style={{
+                        marginTop: '12px',
+                        padding: '8px 12px',
+                        background: 'rgba(34, 197, 94, 0.1)',
+                        borderRadius: '6px',
+                        fontSize: '12px'
+                      }}>
+                        <div style={{ fontWeight: 600, color: '#059669' }}>
+                          🇧🇷 {staticData.bdr}
+                        </div>
+                        <div style={{ color: '#374151' }}>
+                          R$ {bdrData.price}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Histórico de Dividendos */}
+        <HistoricoDividendosExterior 
+          ticker={ticker} 
+          dataEntrada={staticData?.dataEntrada || 'N/A'} 
+        />  
+        
+        <div style={{
+          background: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+        
+        {/* 🆕 NOVO CARD SEPARADO - DADOS DA CARTEIRA */}
+        {staticData && (
+          <div style={{
+            marginBottom: '24px',
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            {/* Header do card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              padding: '16px 24px',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '20px' }}>📊</span>
+                <h3 style={{ 
+                  fontSize: '18px', 
+                  fontWeight: '600', 
+                  margin: 0, 
+                  color: '#1f2937' 
+                }}>
+                  Dados da Carteira
+                </h3>
+              </div>
+            </div>
+
+            {/* Conteúdo do card */}
+            <div style={{ padding: '24px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: window.innerWidth <= 768 
+                  ? '1fr' 
+                  : 'repeat(auto-fit, minmax(180px, 1fr))', 
+                gap: '16px' 
+              }}>
+                {/* Data de Entrada */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#64748b', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Data de Entrada
+                  </p>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#1f2937', 
+                    margin: 0 
+                  }}>
+                    {stockData.dataEntrada}
+                  </p>
+                </div>
+                
+                {/* Preço de Entrada */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '8px',
+                  border: '1px solid #e0f2fe'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#0369a1', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Preço de Entrada
+                  </p>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#0c4a6e', 
+                    margin: 0 
+                  }}>
+                    {stockData.precoQueIniciou}
+                  </p>
+                </div>
+                
+                {/* Preço Teto */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#fefce8',
+                  borderRadius: '8px',
+                  border: '1px solid #fef3c7'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#a16207', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Preço Teto
+                  </p>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#92400e', 
+                    margin: 0 
+                  }}>
+                    {stockData.precoTeto}
+                  </p>
+                </div>
+                
+                {/* Performance Total */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: stockData.performanceIsPositive ? '#f0fdf4' : '#fef2f2',
+                  borderRadius: '8px',
+                  border: stockData.performanceIsPositive ? '1px solid #dcfce7' : '1px solid #fecaca'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: stockData.performanceIsPositive ? '#166534' : '#991b1b', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Performance Total
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <span style={{
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      color: stockData.performanceIsPositive ? '#22c55e' : '#ef4444'
+                    }}>
+                      {stockData.performanceIsPositive ? '+' : ''}${stockData.performanceTotal}
+                    </span>
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: stockData.performanceIsPositive ? '#16a34a' : '#dc2626'
+                    }}>
+                      {stockData.performanceIsPositive ? '+' : ''}{stockData.performanceTotalPercent.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Viés Atual */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#64748b', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Viés Atual
+                  </p>
+                  <div style={{
+                    display: 'inline-block',
+                    background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                    color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    border: '1px solid',
+                    borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+                  }}>
+                    {stockData.vies}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{
+          background: '#f8fafc',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
+            📊 Range do Dia
+          </h3>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayLow}</span>
+            <div style={{
+              flex: 1,
+              height: '12px',
+              background: '#e2e8f0',
+              borderRadius: '6px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '100%',
+                width: dayRangePercent + '%',
+                background: stockData.isPositive 
+                  ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
+                  : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                borderRadius: '6px'
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: dayRangePercent + '%',
+                width: '2px',
+                height: '100%',
+                background: '#1f2937',
+                borderRadius: '1px'
+              }} />
+            </div>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayHigh}</span>
+          </div>
+        </div>
+
+        {/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '24px',
+          marginBottom: '24px'
+        }}>
+          
+          {/* Dados Técnicos */}
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>📈</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Dados Técnicos
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Volume */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Volume
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.volume}
+                </span>
+              </div>
+
+              {/* Abertura */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Abertura
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.open}
+                </span>
+              </div>
+
+              {/* Máx. 52s */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Máx. 52s
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.week52High}
+                </span>
+              </div>
+
+              {/* Mín. 52s */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Mín. 52s
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.week52Low}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicadores Financeiros */}
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>💼</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Indicadores Financeiros
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Market Cap */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Market Cap
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.marketCap}
+                </span>
+              </div>
+
+              {/* P/E Ratio */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  P/E Ratio
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.peRatio}
+                </span>
+              </div>
+
+              {/* Dividend Yield */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Dividend Yield
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.dividendYield}
+                </span>
+              </div>
+            </div>
+          </div>, '')) : precoAtual;
+      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US
+const change = result.regularMarketChange || 0;
+const changePercent = result.regularMarketChangePercent || 0;
+
+const precoEntrada = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
+const performanceTotal = precoAtual - precoEntrada;
+const performanceTotalPercent = precoEntrada > 0 ? ((precoAtual - precoEntrada) / precoEntrada) * 100 : 0;
+const performanceIsPositive = performanceTotal >= 0;
+
+const realData = {
+  name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
+  rank: staticInfo?.rank || null,
+  setor: staticInfo?.setor || result.sector || 'Setor não identificado',
+  dataEntrada: staticInfo?.dataEntrada || 'N/A',
+  precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
+  precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
+  avatar: staticInfo?.avatar || getCompanyAvatar(tickerSymbol, result.shortName || result.longName) || result.logourl,
+  price: precoAtual,
+  change: Number(change.toFixed(2)),
+  changePercent: Number(changePercent.toFixed(2)),
+  dayLow: result.regularMarketDayLow || precoAtual * 0.98,
+  dayHigh: result.regularMarketDayHigh || precoAtual * 1.02,
+  open: result.regularMarketOpen || precoAtual,
+  volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : `${(Math.random() * 50 + 5).toFixed(1)}M`,
+  week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
+  week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
+  marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
+    ? `${(result.marketCap / 1e9).toFixed(2)}B`
+    : generateMarketCap(tickerSymbol),
+  peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
+    ? Number(result.trailingPE.toFixed(2))
+    : Number((Math.random() * 30 + 15).toFixed(1)),
+  dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
+    ? `${(result.dividendYield * 100).toFixed(2)}%`
+    : generateDividendYield(staticInfo?.setor || 'Diversos'),
+  isPositive: change >= 0,
+  performanceVsInicio: staticInfo ? changePercent : 0,
+  distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
+  vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A',
+  tipo: staticInfo?.tipo || 'SEM_COBERTURA',
+  dy: staticInfo?.dy || null,
+  // NOVOS CAMPOS ADICIONADOS:
+  performanceTotal: Number(Math.abs(performanceTotal).toFixed(2)),
+  performanceTotalPercent: performanceTotalPercent,
+  performanceIsPositive: performanceIsPositive
+};
+
+      // Debug do avatar
+      console.log('🎯 Avatar URL gerada:', realData.avatar);
+      console.log('📊 Dados completos:', realData);
+
+      setStockData(realData);
+    } catch (err) {
+      console.error('Erro na API, usando dados simulados:', err);
+      const mockData = generateMockData(tickerSymbol, staticInfo);
+      setStockData(mockData);
+      setError(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateMockData = (symbol, staticInfo) => {
+    if (staticInfo) {
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US, ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US, ''));
+      
+      const variacao = (Math.random() - 0.3) * 0.4;
+      const precoAtual = precoIniciou * (1 + variacao);
+      const change = precoAtual - precoIniciou;
+      const changePercent = (change / precoIniciou) * 100;
+      
+      return {
+        name: staticInfo.name,
+        rank: staticInfo.rank,
+        setor: staticInfo.setor,
+        dataEntrada: staticInfo.dataEntrada,
+        precoQueIniciou: staticInfo.precoQueIniciou,
+        precoTeto: staticInfo.precoTeto,
+        avatar: getCompanyAvatar(symbol, staticInfo?.name),
+        price: Number(precoAtual.toFixed(2)),
+        change: Number(change.toFixed(2)),
+        changePercent: Number(changePercent.toFixed(2)),
+        dayLow: Number((precoAtual - Math.random() * 3).toFixed(2)),
+        dayHigh: Number((precoAtual + Math.random() * 5).toFixed(2)),
+        open: Number((precoAtual + (Math.random() - 0.5) * 2).toFixed(2)),
+        volume: `${(Math.random() * 20 + 1).toFixed(1)}M`,
+        week52High: Number((precoTeto * (0.95 + Math.random() * 0.1)).toFixed(2)),
+        week52Low: Number((precoIniciou * (0.8 + Math.random() * 0.2)).toFixed(2)),
+        marketCap: generateMarketCap(symbol),
+        peRatio: Number((Math.random() * 30 + 15).toFixed(1)),
+        dividendYield: generateDividendYield(staticInfo.setor),
+        isPositive: change >= 0,
+        performanceVsInicio: changePercent,
+        distanciaDoTeto: ((precoTeto - precoAtual) / precoTeto * 100),
+        vies: (precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA'
+      };
+    }
+
+    const basePrice = Math.random() * 300 + 50;
+    const change = (Math.random() - 0.5) * 20;
+    const isPositive = change > 0;
+    
+    return {
+      name: `${symbol} Corporation`,
+      rank: 'N/A',
+      setor: 'Diversos',
+      dataEntrada: 'N/A',
+      precoQueIniciou: 'N/A',
+      precoTeto: 'N/A',
+      avatar: getCompanyAvatar(symbol, `${symbol} Corporation`),
+      price: Number(basePrice.toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number((change / basePrice * 100).toFixed(2)),
+      dayLow: Number((basePrice - Math.random() * 5).toFixed(2)),
+      dayHigh: Number((basePrice + Math.random() * 5).toFixed(2)),
+      open: Number((basePrice + (Math.random() - 0.5) * 3).toFixed(2)),
+      volume: `${(Math.random() * 50 + 1).toFixed(1)}M`,
+      week52High: Number((basePrice * (1 + Math.random() * 0.5)).toFixed(2)),
+      week52Low: Number((basePrice * (1 - Math.random() * 0.3)).toFixed(2)),
+      marketCap: `${(Math.random() * 500 + 50).toFixed(0)}B`,
+      peRatio: Number((Math.random() * 40 + 10).toFixed(1)),
+      dividendYield: `${(Math.random() * 3).toFixed(2)}%`,
+      isPositive,
+      performanceVsInicio: 0,
+      distanciaDoTeto: 0,
+      vies: 'N/A'
+    };
+  };
+
+  const generateMarketCap = (symbol) => {
+    const caps = {
+      'AAPL': '$3.1T',
+      'MSFT': '$2.8T',
+      'GOOGL': '$1.8T',
+      'META': '$789B',
+      'AMD': '$240B',
+      'HD': '$410B',
+      'COST': '$380B',
+      'XP': '$12B',
+      'AMAT': '$180B',
+      'FIVE': '$8B',
+      'BRK-B': '$890B'
+    };
+    return caps[symbol] || `${(Math.random() * 500 + 50).toFixed(0)}B`;
+  };
+
+  const generateDividendYield = (setor) => {
+    const yields = {
+      'Tecnologia': () => `${(Math.random() * 1.5).toFixed(2)}%`,
+      'Varejo': () => `${(Math.random() * 2 + 1.5).toFixed(2)}%`,
+      'Financial Services': () => `${(Math.random() * 3 + 2).toFixed(2)}%`,
+      'Semicondutores': () => `${(Math.random() * 1.2).toFixed(2)}%`,
+      'Consumer Discretionary': () => `${(Math.random() * 2.5 + 1).toFixed(2)}%`,
+      'Holding': () => `${(Math.random() * 2 + 1).toFixed(2)}%`
+    };
+    
+    return yields[setor] ? yields[setor]() : `${(Math.random() * 2 + 0.5).toFixed(2)}%`;
+  };
+
+  if (!mounted || loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '16px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid #e2e8f0',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }} />
+          <h2 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>Carregando {ticker}</h2>
+          <p style={{ color: '#6b7280', margin: 0 }}>
+            {staticData ? `Buscando dados de ${staticData.name}...` : 'Buscando dados atualizados...'}
+          </p>
+        </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '16px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center',
+          maxWidth: '400px',
+          border: '2px solid #fca5a5'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+          <h2 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Erro</h2>
+          <p style={{ color: '#6b7280', margin: '0 0 20px 0' }}>{error}</p>
+          <button 
+            onClick={() => fetchStockData(ticker, staticData)}
+            style={{
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stockData) return null;
+
+  const containerStyle = {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    padding: '24px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  };
+
+  const maxWidthStyle = {
+    maxWidth: '1200px',
+    margin: '0 auto'
+  };
+
+  const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHigh - stockData.dayLow)) * 100;
+
+  return (
+    <div style={containerStyle}>
+      <div style={maxWidthStyle}>
+        {/* Card principal da empresa - NOVO ESTILO */}
+        <div style={{
+          marginBottom: '32px',
+          background: staticData?.tipo === 'ETF' 
+            ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' 
+            : staticData?.tipo === 'DIVIDEND' 
+            ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+            : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ padding: '32px' }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+              gap: '24px',
+              alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start'
+            }}>
+              
+              {/* AVATAR DA EMPRESA */}
+              <div style={{
+                width: window.innerWidth <= 768 ? '100px' : '120px',
+                height: window.innerWidth <= 768 ? '100px' : '120px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                border: '3px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                color: '#374151',
+                flexShrink: 0,
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Fallback com iniciais */}
+                <span style={{ 
+                  position: 'absolute', 
+                  zIndex: 1,
+                  fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem'
+                }}>
+                  {ticker.slice(0, 2)}
+                </span>
+                
+                {/* Imagem da empresa */}
+                {stockData?.avatar && (
+                  <img
+                    src={stockData.avatar}
+                    alt={stockData.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      zIndex: 2,
+                      objectFit: 'cover'
+                    }}
+                    onLoad={(e) => {
+                      const valid = e.target.naturalWidth > 1 && e.target.naturalHeight > 1;
+                      if (valid) {
+                        const fallback = e.target.parentElement.querySelector('span');
+                        if (fallback) fallback.style.display = 'none';
+                      } else {
+                        e.target.style.display = 'none';
+                      }
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+              </div>
+              
+              {/* INFORMAÇÕES DA EMPRESA (CENTRO) */}
+              <div style={{ 
+                flex: 1, 
+                textAlign: window.innerWidth <= 768 ? 'center' : 'left',
+                minWidth: 0
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+                  gap: '12px',
+                  alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start',
+                  marginBottom: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <h1 style={{ 
+                    fontSize: window.innerWidth <= 768 ? '2rem' : '2.5rem', 
+                    fontWeight: 700, 
+                    margin: 0,
+                    color: '#1f2937'
+                  }}>
+                    {ticker}
+                  </h1>
+                  
+                  {/* Badges de tipo */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{
+                      background: (() => {
+                        if (staticData) {
+                          if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
+                          if (staticData.tipo === 'ETF') return '#fef3c7';
+                          return '#dbeafe';
+                        }
+                        return '#f3f4f6';
+                      })(),
+                      color: (() => {
+                        if (staticData) {
+                          if (staticData.tipo === 'DIVIDEND') return '#059669';
+                          if (staticData.tipo === 'ETF') return '#d97706';
+                          return '#3b82f6';
+                        }
+                        return '#6b7280';
+                      })(),
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}>
+                      {(() => {
+                        if (staticData) {
+                          if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
+                          if (staticData.tipo === 'ETF') return '📊 ETF';
+                          return '📈 STOCK';
+                        }
+                        return 'SEM COBERTURA';
+                      })()}
+                    </div>
+                    
+                    {stockData?.rank && (
+                      <div style={{
+                        background: '#f3f4f6',
+                        color: '#6b7280',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {stockData.rank}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <h2
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    margin: '0 0 16px 0',
+                    color: '#374151',
+                  }}
+                >
+                  {stockData.name}
+                </h2>
+                
+                <div
+                  style={{
+                    background: '#e2e8f0',
+                    color: '#475569',
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    display: 'inline-block',
+                    marginBottom: '16px'
+                  }}>
+                    <span>
+                      USD - {stockData.setor}
+                      {stockData.dy && <span> - DY: {stockData.dy}</span>}
+                    </span>
+                  </div>
+                  
+                  <p style={{ 
+                    fontSize: '16px',
+                    lineHeight: 1.6,
+                    color: '#4b5563',
+                    margin: 0,
+                    maxWidth: '600px'
+                  }}>
+                    Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}. 
+                    {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
+                  </p>
+                
+                {/* Alertas importantes */}
+                {!staticData && (
+                  <div style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    color: '#b91c1c',
+                    fontWeight: 600,
+                    marginTop: '16px',
+                    fontSize: '14px'
+                  }}>
+                    ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
+                  </div>
+                )}
+              </div>
+              
+              {/* PREÇO E VARIAÇÃO (DIREITA) */}
+              <div style={{ 
+                textAlign: window.innerWidth <= 768 ? 'center' : 'right',
+                minWidth: window.innerWidth <= 768 ? 'auto' : '200px'
+              }}>
+                {loading ? (
+                  <div style={{ 
+                    width: '150px', 
+                    height: '60px', 
+                    background: '#e2e8f0', 
+                    borderRadius: '8px',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                ) : (
+                  <>
+                    <div style={{ 
+                      fontSize: window.innerWidth <= 768 ? '2.5rem' : '3rem', 
+                      fontWeight: 700,
+                      color: '#1f2937',
+                      lineHeight: 1,
+                      marginBottom: '8px'
+                    }}>
+                      ${stockData.price}
+                    </div>
+                    
+                    {stockData.isPositive !== undefined && (
+                      <div style={{ 
+                        color: stockData.isPositive ? '#22c55e' : '#ef4444', 
+                        fontWeight: 700, 
+                        fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '1.5rem' }}>
+                          {stockData.isPositive ? '↗' : '↘'}
+                        </span>
+                        <span>
+                          {stockData.isPositive ? '+' : ''}{stockData.change} ({stockData.changePercent}%)
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Info adicional sobre BDR se existir */}
+                    {staticData?.bdr && bdrData && (
+                      <div style={{
+                        marginTop: '12px',
+                        padding: '8px 12px',
+                        background: 'rgba(34, 197, 94, 0.1)',
+                        borderRadius: '6px',
+                        fontSize: '12px'
+                      }}>
+                        <div style={{ fontWeight: 600, color: '#059669' }}>
+                          🇧🇷 {staticData.bdr}
+                        </div>
+                        <div style={{ color: '#374151' }}>
+                          R$ {bdrData.price}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Histórico de Dividendos */}
+        <HistoricoDividendosExterior 
+          ticker={ticker} 
+          dataEntrada={staticData?.dataEntrada || 'N/A'} 
+        />  
+        
+        <div style={{
+          background: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+        
+        {/* 🆕 NOVO CARD SEPARADO - DADOS DA CARTEIRA */}
+        {staticData && (
+          <div style={{
+            marginBottom: '24px',
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            {/* Header do card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              padding: '16px 24px',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '20px' }}>📊</span>
+                <h3 style={{ 
+                  fontSize: '18px', 
+                  fontWeight: '600', 
+                  margin: 0, 
+                  color: '#1f2937' 
+                }}>
+                  Dados da Carteira
+                </h3>
+              </div>
+            </div>
+
+            {/* Conteúdo do card */}
+            <div style={{ padding: '24px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: window.innerWidth <= 768 
+                  ? '1fr' 
+                  : 'repeat(auto-fit, minmax(180px, 1fr))', 
+                gap: '16px' 
+              }}>
+                {/* Data de Entrada */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#64748b', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Data de Entrada
+                  </p>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#1f2937', 
+                    margin: 0 
+                  }}>
+                    {stockData.dataEntrada}
+                  </p>
+                </div>
+                
+                {/* Preço de Entrada */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '8px',
+                  border: '1px solid #e0f2fe'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#0369a1', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Preço de Entrada
+                  </p>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#0c4a6e', 
+                    margin: 0 
+                  }}>
+                    {stockData.precoQueIniciou}
+                  </p>
+                </div>
+                
+                {/* Preço Teto */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#fefce8',
+                  borderRadius: '8px',
+                  border: '1px solid #fef3c7'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#a16207', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Preço Teto
+                  </p>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#92400e', 
+                    margin: 0 
+                  }}>
+                    {stockData.precoTeto}
+                  </p>
+                </div>
+                
+                {/* Performance Total */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: stockData.performanceIsPositive ? '#f0fdf4' : '#fef2f2',
+                  borderRadius: '8px',
+                  border: stockData.performanceIsPositive ? '1px solid #dcfce7' : '1px solid #fecaca'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: stockData.performanceIsPositive ? '#166534' : '#991b1b', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Performance Total
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <span style={{
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      color: stockData.performanceIsPositive ? '#22c55e' : '#ef4444'
+                    }}>
+                      {stockData.performanceIsPositive ? '+' : ''}${stockData.performanceTotal}
+                    </span>
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: stockData.performanceIsPositive ? '#16a34a' : '#dc2626'
+                    }}>
+                      {stockData.performanceIsPositive ? '+' : ''}{stockData.performanceTotalPercent.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Viés Atual */}
+                <div style={{
+                  textAlign: 'center',
+                  padding: '16px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#64748b', 
+                    margin: '0 0 8px 0', 
+                    fontWeight: '600', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Viés Atual
+                  </p>
+                  <div style={{
+                    display: 'inline-block',
+                    background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                    color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    border: '1px solid',
+                    borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+                  }}>
+                    {stockData.vies}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{
+          background: '#f8fafc',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
+            📊 Range do Dia
+          </h3>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayLow}</span>
+            <div style={{
+              flex: 1,
+              height: '12px',
+              background: '#e2e8f0',
+              borderRadius: '6px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '100%',
+                width: dayRangePercent + '%',
+                background: stockData.isPositive 
+                  ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
+                  : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                borderRadius: '6px'
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: dayRangePercent + '%',
+                width: '2px',
+                height: '100%',
+                background: '#1f2937',
+                borderRadius: '1px'
+              }} />
+            </div>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayHigh}</span>
+          </div>
+        </div>
+
+        {/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '24px',
+          marginBottom: '24px'
+        }}>
+          
+          {/* Dados Técnicos */}
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>📈</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Dados Técnicos
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Volume */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Volume
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.volume}
+                </span>
+              </div>
+
+              {/* Abertura */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Abertura
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.open}
+                </span>
+              </div>
+
+              {/* Máx. 52s */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Máx. 52s
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.week52High}
+                </span>
+              </div>
+
+              {/* Mín. 52s */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Mín. 52s
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.week52Low}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicadores Financeiros */}
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>💼</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Indicadores Financeiros
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Market Cap */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Market Cap
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.marketCap}
+                </span>
+              </div>
+
+              {/* P/E Ratio */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  P/E Ratio
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.peRatio}
+                </span>
+              </div>
+
+              {/* Dividend Yield */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Dividend Yield
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.dividendYield}
+                </span>
+              </div>
+            </div>
+          </div>, '')) : precoAtual * 1.2;
 const change = result.regularMarketChange || 0;
 const changePercent = result.regularMarketChangePercent || 0;
 
