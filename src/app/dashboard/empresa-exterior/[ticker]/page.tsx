@@ -1224,6 +1224,198 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
         </div>
 
 {/* Dados Técnicos */}
+// 1. ENCONTRE E REMOVA ESTA SEÇÃO COMPLETA (dos cards coloridos):
+
+<div style={{
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+  gap: '16px',
+  marginBottom: '32px'
+}}>
+  
+  <div style={{
+    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+    padding: '20px',
+    borderRadius: '12px',
+    border: '2px solid #93c5fd',
+    textAlign: 'center'
+  }}>
+    <div style={{
+      width: '48px',
+      height: '48px',
+      background: '#3b82f6',
+      borderRadius: '12px',
+      margin: '0 auto 12px auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '20px'
+    }}>📈</div>
+    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Volume</p>
+    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{stockData.volume}</p>
+  </div>
+
+  <div style={{
+    background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+    padding: '20px',
+    borderRadius: '12px',
+    border: '2px solid #86efac',
+    textAlign: 'center'
+  }}>
+    <div style={{
+      width: '48px',
+      height: '48px',
+      background: '#10b981',
+      borderRadius: '12px',
+      margin: '0 auto 12px auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '20px'
+    }}>💰</div>
+    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Abertura</p>
+    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.open}</p>
+  </div>
+
+  <div style={{
+    background: 'linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)',
+    padding: '20px',
+    borderRadius: '12px',
+    border: '2px solid #c4b5fd',
+    textAlign: 'center'
+  }}>
+    <div style={{
+      width: '48px',
+      height: '48px',
+      background: '#8b5cf6',
+      borderRadius: '12px',
+      margin: '0 auto 12px auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '20px'
+    }}>⬆️</div>
+    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Máx. 52s</p>
+    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52High}</p>
+  </div>
+
+  <div style={{
+    background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+    padding: '20px',
+    borderRadius: '12px',
+    border: '2px solid #fca5a5',
+    textAlign: 'center'
+  }}>
+    <div style={{
+      width: '48px',
+      height: '48px',
+      background: '#ef4444',
+      borderRadius: '12px',
+      margin: '0 auto 12px auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '20px'
+    }}>⬇️</div>
+    <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Mín. 52s</p>
+    <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52Low}</p>
+  </div>
+</div>
+
+// 2. TAMBÉM REMOVA TODA ESTA SEÇÃO (dos indicadores financeiros):
+
+<div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
+  <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
+    💼 Indicadores Financeiros
+  </h3>
+  
+  <div style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '24px'
+  }}>
+    
+    <div style={{
+      background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+      padding: '24px',
+      borderRadius: '16px',
+      border: '2px solid #a7f3d0',
+      textAlign: 'center',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    }}>
+      <div style={{
+        width: '56px',
+        height: '56px',
+        background: '#059669',
+        borderRadius: '16px',
+        margin: '0 auto 16px auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: '24px'
+      }}>🌍</div>
+      <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
+      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
+    </div>
+
+    <div style={{
+      background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+      padding: '24px',
+      borderRadius: '16px',
+      border: '2px solid #c4b5fd',
+      textAlign: 'center',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    }}>
+      <div style={{
+        width: '56px',
+        height: '56px',
+        background: '#7c3aed',
+        borderRadius: '16px',
+        margin: '0 auto 16px auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: '24px'
+      }}>🎯</div>
+      <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
+      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
+    </div>
+
+    <div style={{
+      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+      padding: '24px',
+      borderRadius: '16px',
+      border: '2px solid #fcd34d',
+      textAlign: 'center',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    }}>
+      <div style={{
+        width: '56px',
+        height: '56px',
+        background: '#d97706',
+        borderRadius: '16px',
+        margin: '0 auto 16px auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: '24px'
+      }}>💵</div>
+      <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
+      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
+    </div>
+  </div>
+</div>
+
+// 3. SUBSTITUA TUDO ISSO PELO CÓDIGO ABAIXO:
+
+{/* Dados Técnicos */}
 <div style={{
   background: 'white',
   borderRadius: '12px',
@@ -1446,7 +1638,6 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
     </div>
   </div>
 </div>
-
         <div style={{
           background: 'white',
           padding: '16px 24px',
