@@ -1141,39 +1141,6 @@ useEffect(() => {
           {stockData.vies}
         </div>
       </div>
-      {/* 🆕 NOVO CAMPO - VARIAÇÃO DO DIA */}
-      <div>
-        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-          VARIAÇÃO DO DIA
-        </p>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '6px' 
-        }}>
-          <span style={{
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: stockData.isPositive ? '#059669' : '#dc2626'
-          }}>
-            {stockData.isPositive ? '+' : ''}{stockData.change}
-          </span>
-          <span style={{
-            fontSize: '14px',
-            fontWeight: 'bold',
-            color: stockData.isPositive ? '#059669' : '#dc2626'
-          }}>
-            ({stockData.isPositive ? '+' : ''}{stockData.changePercent}%)
-          </span>
-          <span style={{ fontSize: '16px' }}>
-            {stockData.isPositive ? '↗️' : '↘️'}
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  )}
 
         {/* 🆕 CARD PRINCIPAL DE PREÇO - ADICIONE AQUI */}
         <div style={priceCardStyle}>
