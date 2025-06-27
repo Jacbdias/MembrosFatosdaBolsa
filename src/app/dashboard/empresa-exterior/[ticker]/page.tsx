@@ -1436,8 +1436,6 @@ useEffect(() => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
         <div style={{
           background: 'white',
