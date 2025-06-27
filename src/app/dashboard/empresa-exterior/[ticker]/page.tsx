@@ -1699,7 +1699,207 @@ const changePercent = result.regularMarketChangePercent || 0;
             </div>
           </div>
         </div>
+{/* Dados da Carteira - Seção separada */}
+{staticData && (
+  <div style={{
+    background: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    marginBottom: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0'
+  }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginBottom: '20px'
+    }}>
+      <span style={{ fontSize: '20px' }}>📋</span>
+      <h3 style={{ 
+        fontSize: '18px', 
+        fontWeight: '600', 
+        margin: 0, 
+        color: '#1f2937' 
+      }}>
+        Dados da Carteira
+      </h3>
+    </div>
 
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', 
+      gap: '20px' 
+    }}>
+      <div style={{
+        padding: '16px',
+        background: '#f8fafc',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0'
+      }}>
+        <p style={{ 
+          fontSize: '12px', 
+          color: '#64748b', 
+          margin: '0 0 8px 0', 
+          fontWeight: '600', 
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Data de Entrada
+        </p>
+        <p style={{ 
+          fontSize: '18px', 
+          fontWeight: 'bold', 
+          color: '#1f2937', 
+          margin: 0 
+        }}>
+          {stockData.dataEntrada}
+        </p>
+      </div>
+
+      <div style={{
+        padding: '16px',
+        background: '#f0f9ff',
+        borderRadius: '8px',
+        border: '1px solid #bfdbfe'
+      }}>
+        <p style={{ 
+          fontSize: '12px', 
+          color: '#1e40af', 
+          margin: '0 0 8px 0', 
+          fontWeight: '600', 
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Preço de Entrada
+        </p>
+        <p style={{ 
+          fontSize: '18px', 
+          fontWeight: 'bold', 
+          color: '#1e40af', 
+          margin: 0 
+        }}>
+          {stockData.precoQueIniciou}
+        </p>
+      </div>
+
+      <div style={{
+        padding: '16px',
+        background: '#f0fdf4',
+        borderRadius: '8px',
+        border: '1px solid #bbf7d0'
+      }}>
+        <p style={{ 
+          fontSize: '12px', 
+          color: '#059669', 
+          margin: '0 0 8px 0', 
+          fontWeight: '600', 
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Preço Teto
+        </p>
+        <p style={{ 
+          fontSize: '18px', 
+          fontWeight: 'bold', 
+          color: '#059669', 
+          margin: 0 
+        }}>
+          {stockData.precoTeto}
+        </p>
+      </div>
+
+      <div style={{
+        padding: '16px',
+        background: stockData.vies === 'COMPRA' ? '#f0fdf4' : '#fefce8',
+        borderRadius: '8px',
+        border: '1px solid',
+        borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+      }}>
+        <p style={{ 
+          fontSize: '12px', 
+          color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706', 
+          margin: '0 0 8px 0', 
+          fontWeight: '600', 
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Viés Atual
+        </p>
+        <div style={{
+          display: 'inline-block',
+          background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+          color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
+          padding: '8px 16px',
+          borderRadius: '6px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          border: '2px solid',
+          borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+        }}>
+          {stockData.vies}
+        </div>
+      </div>
+    </div>
+
+    {/* Performance adicional se disponível */}
+    {staticData && stockData.performanceVsInicio !== 0 && (
+      <div style={{
+        marginTop: '20px',
+        padding: '16px',
+        background: '#f8fafc',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(2, 1fr)',
+          gap: '16px',
+          alignItems: 'center'
+        }}>
+          <div>
+            <p style={{ 
+              fontSize: '12px', 
+              color: '#64748b', 
+              margin: '0 0 4px 0', 
+              fontWeight: '600'
+            }}>
+              Performance vs. Entrada
+            </p>
+            <p style={{ 
+              fontSize: '16px', 
+              fontWeight: 'bold', 
+              color: stockData.performanceVsInicio >= 0 ? '#22c55e' : '#ef4444',
+              margin: 0 
+            }}>
+              {stockData.performanceVsInicio >= 0 ? '+' : ''}{stockData.performanceVsInicio.toFixed(2)}%
+            </p>
+          </div>
+          
+          <div>
+            <p style={{ 
+              fontSize: '12px', 
+              color: '#64748b', 
+              margin: '0 0 4px 0', 
+              fontWeight: '600'
+            }}>
+              Distância do Teto
+            </p>
+            <p style={{ 
+              fontSize: '16px', 
+              fontWeight: 'bold', 
+              color: stockData.distanciaDoTeto > 10 ? '#22c55e' : '#f59e0b',
+              margin: 0 
+            }}>
+              {stockData.distanciaDoTeto.toFixed(1)}%
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+           
         <div style={{
           background: '#f8fafc',
           padding: '16px',
