@@ -640,9 +640,8 @@ useEffect(() => {
 
       const result = data.results[0];
       const precoAtual = result.regularMarketPrice || 0;
-      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
-      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US, '')) : precoAtual * 1.2;
-
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
+const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
       const change = precoAtual - precoIniciou;
       const changePercent = (change / precoIniciou) * 100;
 
