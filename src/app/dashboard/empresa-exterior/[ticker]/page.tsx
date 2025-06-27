@@ -1550,6 +1550,7 @@ const realData = {
                     fontWeight: 500,
                     display: 'inline-block',
                     marginBottom: '16px',
+                    marginBottom: '16px',
                   }}
                 >
                   {`USD - ${stockData.setor}${stockData.dy ? ` - DY: ${stockData.dy}` : ''}`}
