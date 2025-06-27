@@ -1140,7 +1140,7 @@ useEffect(() => {
           {stockData.vies}
         </div>
       </div>
-
+)}
         {/* 🆕 CARD PRINCIPAL DE PREÇO - ADICIONE AQUI */}
         <div style={priceCardStyle}>
           <div style={priceHeaderStyle}>
