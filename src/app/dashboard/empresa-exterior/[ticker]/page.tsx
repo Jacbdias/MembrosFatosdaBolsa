@@ -1223,190 +1223,229 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
           </div>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '16px',
-          marginBottom: '32px'
-        }}>
-          
-          <div style={{
-            background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '2px solid #93c5fd',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: '#3b82f6',
-              borderRadius: '12px',
-              margin: '0 auto 12px auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '20px'
-            }}>📈</div>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Volume</p>
-            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{stockData.volume}</p>
-          </div>
+{/* Dados Técnicos */}
+<div style={{
+  background: 'white',
+  borderRadius: '12px',
+  padding: '24px',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+  border: '1px solid #e2e8f0',
+  marginBottom: '24px'
+}}>
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '20px'
+  }}>
+    <span style={{ fontSize: '20px' }}>📈</span>
+    <h3 style={{ 
+      fontSize: '18px', 
+      fontWeight: '600', 
+      margin: 0, 
+      color: '#1f2937' 
+    }}>
+      Dados Técnicos
+    </h3>
+  </div>
 
-          <div style={{
-            background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '2px solid #86efac',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: '#10b981',
-              borderRadius: '12px',
-              margin: '0 auto 12px auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '20px'
-            }}>💰</div>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Abertura</p>
-            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.open}</p>
-          </div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    {/* Volume */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid #f1f5f9'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        Volume
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        {stockData.volume}
+      </span>
+    </div>
 
-          <div style={{
-            background: 'linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '2px solid #c4b5fd',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: '#8b5cf6',
-              borderRadius: '12px',
-              margin: '0 auto 12px auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '20px'
-            }}>⬆️</div>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Máx. 52s</p>
-            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52High}</p>
-          </div>
+    {/* Abertura */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid #f1f5f9'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        Abertura
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        ${stockData.open}
+      </span>
+    </div>
 
-          <div style={{
-            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '2px solid #fca5a5',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: '#ef4444',
-              borderRadius: '12px',
-              margin: '0 auto 12px auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '20px'
-            }}>⬇️</div>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Mín. 52s</p>
-            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52Low}</p>
-          </div>
-        </div>
+    {/* Máx. 52s */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid #f1f5f9'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        Máx. 52s
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        ${stockData.week52High}
+      </span>
+    </div>
 
-        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
-            💼 Indicadores Financeiros
-          </h3>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px'
-          }}>
-            
-            <div style={{
-              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-              padding: '24px',
-              borderRadius: '16px',
-              border: '2px solid #a7f3d0',
-              textAlign: 'center',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                background: '#059669',
-                borderRadius: '16px',
-                margin: '0 auto 16px auto',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '24px'
-              }}>🌍</div>
-              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
-            </div>
+    {/* Mín. 52s */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        Mín. 52s
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        ${stockData.week52Low}
+      </span>
+    </div>
+  </div>
+</div>
 
-            <div style={{
-              background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-              padding: '24px',
-              borderRadius: '16px',
-              border: '2px solid #c4b5fd',
-              textAlign: 'center',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                background: '#7c3aed',
-                borderRadius: '16px',
-                margin: '0 auto 16px auto',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '24px'
-              }}>🎯</div>
-              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
-            </div>
+{/* Indicadores Financeiros */}
+<div style={{
+  background: 'white',
+  borderRadius: '12px',
+  padding: '24px',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+  border: '1px solid #e2e8f0',
+  marginBottom: '24px'
+}}>
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '20px'
+  }}>
+    <span style={{ fontSize: '20px' }}>💼</span>
+    <h3 style={{ 
+      fontSize: '18px', 
+      fontWeight: '600', 
+      margin: 0, 
+      color: '#1f2937' 
+    }}>
+      Indicadores Financeiros
+    </h3>
+  </div>
 
-            <div style={{
-              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-              padding: '24px',
-              borderRadius: '16px',
-              border: '2px solid #fcd34d',
-              textAlign: 'center',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                background: '#d97706',
-                borderRadius: '16px',
-                margin: '0 auto 16px auto',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '24px'
-              }}>💵</div>
-              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
-            </div>
-          </div>
-        </div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    {/* Market Cap */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid #f1f5f9'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        Market Cap
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        {stockData.marketCap}
+      </span>
+    </div>
+
+    {/* P/E Ratio */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid #f1f5f9'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        P/E Ratio
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        {stockData.peRatio}
+      </span>
+    </div>
+
+    {/* Dividend Yield */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0'
+    }}>
+      <span style={{ 
+        color: '#6b7280', 
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        Dividend Yield
+      </span>
+      <span style={{ 
+        color: '#1f2937', 
+        fontSize: '14px',
+        fontWeight: '600'
+      }}>
+        {stockData.dividendYield}
+      </span>
+    </div>
+  </div>
+</div>
 
         <div style={{
           background: 'white',
