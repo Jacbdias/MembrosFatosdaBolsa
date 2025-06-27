@@ -1633,7 +1633,7 @@ const realData = {
   );
 }
         
-        {/* 🆕 NOVO CARD SEPARADO - DADOS DA CARTEIRA */}
+        {/* 🆕 CARD SEPARADO - DADOS DA CARTEIRA (SIMPLIFICADO) */}
         {staticData && (
           <div style={{
             marginBottom: '24px',
@@ -1757,46 +1757,6 @@ const realData = {
                   }}>
                     {stockData.precoTeto}
                   </p>
-                </div>
-                
-                {/* Performance Total */}
-                <div style={{
-                  textAlign: 'center',
-                  padding: '16px',
-                  backgroundColor: stockData.performanceIsPositive ? '#f0fdf4' : '#fef2f2',
-                  borderRadius: '8px',
-                  border: stockData.performanceIsPositive ? '1px solid #dcfce7' : '1px solid #fecaca'
-                }}>
-                  <p style={{ 
-                    fontSize: '11px', 
-                    color: stockData.performanceIsPositive ? '#166534' : '#991b1b', 
-                    margin: '0 0 8px 0', 
-                    fontWeight: '600', 
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    Performance Total
-                  </p>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}>
-                    <span style={{
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      color: stockData.performanceIsPositive ? '#22c55e' : '#ef4444'
-                    }}>
-                      {stockData.performanceIsPositive ? '+' : ''}${stockData.performanceTotal}
-                    </span>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: stockData.performanceIsPositive ? '#16a34a' : '#dc2626'
-                    }}>
-                      {stockData.performanceIsPositive ? '+' : ''}{stockData.performanceTotalPercent.toFixed(2)}%
-                    </span>
-                  </div>
                 </div>
                 
                 {/* Viés Atual */}
