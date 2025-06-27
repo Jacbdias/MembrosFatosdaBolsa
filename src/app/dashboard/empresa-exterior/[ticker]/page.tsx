@@ -1224,7 +1224,6 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
         </div>
 
 {/* Dados Técnicos */}
-// SUBSTITUA as duas seções separadas por este código que as coloca lado a lado:
 
 {/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
 <div style={{
