@@ -1529,38 +1529,44 @@ const realData = {
                   </div>
                 </div>
                 
-                <h2 style={{ 
-                  fontSize: window.innerWidth <= 768 ? '1.1rem' : '1.25rem', 
-                  fontWeight: 600, 
-                  margin: '0 0 16px 0',
-                  color: '#374151'
-                }}>
-                  {stockData.name}
-                </h2>
-                
-                <div style={{
-                  background: '#e2e8f0',
-                  color: '#475569',
-                  padding: '4px 12px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  display: 'inline-block',
-                  marginBottom: '16px'
-                }}>
-{`USD - ${stockData.setor}${stockData.dy ? ` - DY: ${stockData.dy}` : ''}`}
-                </div>
-                
-                <p style={{ 
-                  fontSize: '16px',
-                  lineHeight: 1.6,
-                  color: '#4b5563',
-                  margin: 0,
-                  maxWidth: '600px'
-                }}>
-                  Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}. 
-                  {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
-                </p>
+<h2
+  style={{
+    fontSize: '1.25rem',
+    fontWeight: 600,
+    margin: '0 0 16px 0',
+    color: '#374151',
+  }}
+>
+  {stockData.name}
+</h2>
+
+<div
+  style={{
+    background: '#e2e8f0',
+    color: '#475569',
+    padding: '4px 12px',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: 500,
+    display: 'inline-block',
+    marginBottom: '16px',
+  }}
+>
+  {`USD - ${stockData.setor}${stockData.dy ? ` - DY: ${stockData.dy}` : ''}`}
+</div>
+
+<p
+  style={{
+    fontSize: '16px',
+    lineHeight: 1.6,
+    color: '#4b5563',
+    margin: 0,
+    maxWidth: '600px',
+  }}
+>
+  Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}.{' '}
+  {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
+</p>
                 
                 {/* Alertas importantes */}
                 {!staticData && (
