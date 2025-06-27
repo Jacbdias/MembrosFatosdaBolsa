@@ -1549,25 +1549,22 @@ const realData = {
                     fontSize: '13px',
                     fontWeight: 500,
                     display: 'inline-block',
-                    marginBottom: '16px',
-                    marginBottom: '16px',
-                  }}
-                >
-                  {`USD - ${stockData.setor}${stockData.dy ? ` - DY: ${stockData.dy}` : ''}`}
-                </div>
-                
-                <p
-                  style={{
+                    marginBottom: '16px'
+                  }}>
+                    USD - {stockData.setor}
+                    {stockData.dy && ` - DY: ${stockData.dy}`}
+                  </div>
+                  
+                  <p style={{ 
                     fontSize: '16px',
                     lineHeight: 1.6,
                     color: '#4b5563',
                     margin: 0,
-                    maxWidth: '600px',
-                  }}
-                >
-                  Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}.{' '}
-                  {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
-                </p>
+                    maxWidth: '600px'
+                  }}>
+                    Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}. 
+                    {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
+                  </p>
                 
                 {/* Alertas importantes */}
                 {!staticData && (
