@@ -937,7 +937,9 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
                 height: '48px',
                 borderRadius: '8px',
                 border: '2px solid #e2e8f0',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                background: stockData?.avatar 
+  ? 'white' 
+  : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                 color: 'white',
                 display: 'flex',
                 alignItems: 'center',
