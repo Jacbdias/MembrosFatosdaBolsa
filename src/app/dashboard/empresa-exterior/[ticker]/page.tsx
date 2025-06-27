@@ -1068,6 +1068,7 @@ useEffect(() => {
     {stockData.dy && ` • DY: ${stockData.dy}`}
   </p>
 </div>
+</div>
           </div>
 
           {!staticData && (
