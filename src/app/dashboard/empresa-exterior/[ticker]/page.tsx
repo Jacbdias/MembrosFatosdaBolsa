@@ -1338,8 +1338,6 @@ const realData = {
   return (
     <div style={containerStyle}>
       <div style={maxWidthStyle}>
-        
-
         {/* Card principal da empresa - NOVO ESTILO */}
         <div style={{
           marginBottom: '32px',
@@ -1475,18 +1473,18 @@ const realData = {
                       })()}
                     </div>
                     
-{stockData?.rank && (
-  <div style={{
-    background: '#f3f4f6',
-    color: '#6b7280',
-    padding: '4px 12px',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: 'bold'
-  }}>
-    {stockData.rank}
-  </div>
-)}
+                    {stockData?.rank && (
+                      <div style={{
+                        background: '#f3f4f6',
+                        color: '#6b7280',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {stockData.rank}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -1613,7 +1611,30 @@ const realData = {
             </div>
           </div>
         </div>
-                    {/* 🆕 NOVO CARD SEPARADO - DADOS DA CARTEIRA */}
+        
+        {/* Histórico de Dividendos */}
+        <HistoricoDividendosExterior 
+          ticker={ticker} 
+          dataEntrada={staticData?.dataEntrada || 'N/A'} 
+        />  
+        
+        <div style={{
+          background: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+        
+        {/* 🆕 NOVO CARD SEPARADO - DADOS DA CARTEIRA */}
         {staticData && (
           <div style={{
             marginBottom: '24px',
@@ -1824,7 +1845,6 @@ const realData = {
           border: '1px solid #e2e8f0'
         }}>
           <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
-            
             📊 Range do Dia
           </h3>
           <div style={{
@@ -1855,7 +1875,7 @@ const realData = {
               <div style={{
                 position: 'absolute',
                 top: 0,
-                left: `${dayRangePercent}%`,
+                left: dayRangePercent + '%',
                 width: '2px',
                 height: '100%',
                 background: '#1f2937',
@@ -1866,255 +1886,232 @@ const realData = {
           </div>
         </div>
 
-{/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
-<div style={{
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-  gap: '24px',
-  marginBottom: '24px'
-}}>
-  
-  {/* Dados Técnicos */}
-  <div style={{
-    background: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e2e8f0'
-  }}>
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      marginBottom: '20px'
-    }}>
-      <span style={{ fontSize: '20px' }}>📈</span>
-      <h3 style={{ 
-        fontSize: '18px', 
-        fontWeight: '600', 
-        margin: 0, 
-        color: '#1f2937' 
-      }}>
-        Dados Técnicos
-      </h3>
-    </div>
-
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Volume */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0',
-        borderBottom: '1px solid #f1f5f9'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          Volume
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          {stockData.volume}
-        </span>
-      </div>
-
-      {/* Abertura */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0',
-        borderBottom: '1px solid #f1f5f9'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          Abertura
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          ${stockData.open}
-        </span>
-      </div>
-
-      {/* Máx. 52s */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0',
-        borderBottom: '1px solid #f1f5f9'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          Máx. 52s
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          ${stockData.week52High}
-        </span>
-      </div>
-
-      {/* Mín. 52s */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          Mín. 52s
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          ${stockData.week52Low}
-        </span>
-      </div>
-    </div>
-  </div>
-
-  {/* Indicadores Financeiros */}
-  <div style={{
-    background: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e2e8f0'
-  }}>
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      marginBottom: '20px'
-    }}>
-      <span style={{ fontSize: '20px' }}>💼</span>
-      <h3 style={{ 
-        fontSize: '18px', 
-        fontWeight: '600', 
-        margin: 0, 
-        color: '#1f2937' 
-      }}>
-        Indicadores Financeiros
-      </h3>
-    </div>
-
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Market Cap */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0',
-        borderBottom: '1px solid #f1f5f9'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          Market Cap
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          {stockData.marketCap}
-        </span>
-      </div>
-
-      {/* P/E Ratio */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0',
-        borderBottom: '1px solid #f1f5f9'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          P/E Ratio
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          {stockData.peRatio}
-        </span>
-      </div>
-
-      {/* Dividend Yield */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 0'
-      }}>
-        <span style={{ 
-          color: '#6b7280', 
-          fontSize: '14px',
-          fontWeight: '500'
-        }}>
-          Dividend Yield
-        </span>
-        <span style={{ 
-          color: '#1f2937', 
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          {stockData.dividendYield}
-        </span>
-      </div>
-    </div>
-  </div>
-</div>
-        
-        {/* Histórico de Dividendos */}
-        <HistoricoDividendosExterior 
-          ticker={ticker} 
-          dataEntrada={staticData?.dataEntrada || 'N/A'} 
-        />
-        
+        {/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
         <div style={{
-          background: 'white',
-          padding: '16px 24px',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-          textAlign: 'center'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '24px',
+          marginBottom: '24px'
         }}>
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+          
+          {/* Dados Técnicos */}
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>📈</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Dados Técnicos
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Volume */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Volume
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.volume}
+                </span>
+              </div>
+
+              {/* Abertura */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Abertura
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.open}
+                </span>
+              </div>
+
+              {/* Máx. 52s */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Máx. 52s
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.week52High}
+                </span>
+              </div>
+
+              {/* Mín. 52s */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Mín. 52s
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ${stockData.week52Low}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicadores Financeiros */}
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>💼</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Indicadores Financeiros
+              </h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Market Cap */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Market Cap
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.marketCap}
+                </span>
+              </div>
+
+              {/* P/E Ratio */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f1f5f9'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  P/E Ratio
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.peRatio}
+                </span>
+              </div>
+
+              {/* Dividend Yield */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0'
+              }}>
+                <span style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}>
+                  Dividend Yield
+                </span>
+                <span style={{ 
+                  color: '#1f2937', 
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  {stockData.dividendYield}
+                </span>
+              </div>
+            </div>
+          </div>
