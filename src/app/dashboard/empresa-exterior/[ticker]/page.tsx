@@ -1548,8 +1548,8 @@ const realData = {
                   display: 'inline-block',
                   marginBottom: '16px'
                 }}>
-USD - {stockData.setor}
-{stockData.dy && ` - DY: ${stockData.dy}`}
+                  USD - {stockData.setor}
+                  {stockData.dy && ` - DY: ${stockData.dy}`}
                 </div>
                 
                 <p style={{ 
@@ -1778,7 +1778,7 @@ USD - {stockData.setor}
                   padding: '16px',
                   backgroundColor: stockData.performanceIsPositive ? '#f0fdf4' : '#fef2f2',
                   borderRadius: '8px',
-                  border: `1px solid ${stockData.performanceIsPositive ? '#dcfce7' : '#fecaca'}`
+                  border: stockData.performanceIsPositive ? '1px solid #dcfce7' : '1px solid #fecaca'
                 }}>
                   <p style={{ 
                     fontSize: '11px', 
