@@ -1570,67 +1570,6 @@ const changePercent = result.regularMarketChangePercent || 0;
                     ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
                   </div>
                 )}
-                
-                {/* Dados da carteira se disponível */}
-                {staticData && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    padding: '16px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    marginTop: '16px'
-                  }}>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', 
-                      gap: '12px' 
-                    }}>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Data de Entrada
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {stockData.dataEntrada}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Preço de Entrada
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {stockData.precoQueIniciou}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Preço Teto
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {stockData.precoTeto}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Viés Atual
-                        </p>
-                        <div style={{
-                          display: 'inline-block',
-                          background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          border: '1px solid',
-                          borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
-                        }}>
-                          {stockData.vies}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
               
               {/* PREÇO E VARIAÇÃO (DIREITA) */}
               <div style={{ 
