@@ -640,8 +640,8 @@ useEffect(() => {
 
       const result = data.results[0];
       const precoAtual = result.regularMarketPrice || 0;
-      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
-      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
+      const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US, '')) : precoAtual * 1.2;
 
       const change = precoAtual - precoIniciou;
       const changePercent = (change / precoIniciou) * 100;
@@ -697,8 +697,8 @@ useEffect(() => {
 
   const generateMockData = (symbol, staticInfo) => {
     if (staticInfo) {
-      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
-      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US, ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US, ''));
       
       const variacao = (Math.random() - 0.3) * 0.4;
       const precoAtual = precoIniciou * (1 + variacao);
@@ -753,7 +753,7 @@ useEffect(() => {
       volume: `${(Math.random() * 50 + 1).toFixed(1)}M`,
       week52High: Number((basePrice * (1 + Math.random() * 0.5)).toFixed(2)),
       week52Low: Number((basePrice * (1 - Math.random() * 0.3)).toFixed(2)),
-      marketCap: `$${(Math.random() * 500 + 50).toFixed(0)}B`,
+      marketCap: `${(Math.random() * 500 + 50).toFixed(0)}B`,
       peRatio: Number((Math.random() * 40 + 10).toFixed(1)),
       dividendYield: `${(Math.random() * 3).toFixed(2)}%`,
       isPositive,
@@ -777,7 +777,7 @@ useEffect(() => {
       'FIVE': '$8B',
       'BRK-B': '$890B'
     };
-    return caps[symbol] || `$${(Math.random() * 500 + 50).toFixed(0)}B`;
+    return caps[symbol] || `${(Math.random() * 500 + 50).toFixed(0)}B`;
   };
 
   const generateDividendYield = (setor) => {
@@ -1002,72 +1002,72 @@ useEffect(() => {
               )}
             </div>
             
-    <div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-    <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#1f2937' }}>
-      {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
-    </h1>
-<div style={{
-  background: (() => {
-    // Verifica se tem dados estáticos primeiro
-  if (staticData) {
-    if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
-    if (staticData.tipo === 'ETF') return '#fef3c7';  // NOVO
-    return '#dbeafe';
-  }
-  switch(stockData.tipo) {
-    case 'STOCK': return '#dbeafe';
-    case 'DIVIDEND': return '#dcfce7';
-    case 'ETF': return '#fef3c7';  // NOVO
-    case 'STOCK_API': return '#e9d5ff';
-    case 'DIVIDEND_API': return '#fee2e2';
-    default: return '#f3f4f6';
-  }
-})(),
-  color: (() => {
-    // Verifica se tem dados estáticos primeiro
-  if (staticData) {
-    if (staticData.tipo === 'DIVIDEND') return '#059669';
-    if (staticData.tipo === 'ETF') return '#d97706';  // NOVO
-    return '#3b82f6';
-  }
-  switch(stockData.tipo) {
-    case 'STOCK': return '#3b82f6';
-    case 'DIVIDEND': return '#059669';
-    case 'ETF': return '#d97706';  // NOVO
-    case 'STOCK_API': return '#7c3aed';
-    case 'DIVIDEND_API': return '#dc2626';
-    default: return '#6b7280';
-  }
-})(),
-  padding: '4px 12px',
-  borderRadius: '8px',
-  fontSize: '12px',
-  fontWeight: 'bold',
-  textTransform: 'uppercase'
-}}>
-{(() => {
-  if (staticData) {
-    if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
-    if (staticData.tipo === 'ETF') return '📊 ETF';  // NOVO
-    return '📈 STOCK';
-  }
-  switch(stockData.tipo) {
-    case 'STOCK': return '📈 STOCK';
-    case 'DIVIDEND': return '💰 DIVIDEND';
-    case 'ETF': return '📊 ETF';  // NOVO
-    case 'STOCK_API': return '📈 STOCK (API)';
-    case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
-    default: return 'SEM COBERTURA';
-  }
-})()}
-</div>
-  </div>
-  <p style={{ color: '#6b7280', margin: 0 }}>
-    {stockData.name} • USD • {stockData.setor}
-    {stockData.dy && ` • DY: ${stockData.dy}`}
-  </p>
-</div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                <h1 style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#1f2937' }}>
+                  {ticker} {stockData.rank && <span style={{ color: '#6b7280', fontSize: '24px' }}>• {stockData.rank}</span>}
+                </h1>
+                <div style={{
+                  background: (() => {
+                    // Verifica se tem dados estáticos primeiro
+                    if (staticData) {
+                      if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
+                      if (staticData.tipo === 'ETF') return '#fef3c7';  // NOVO
+                      return '#dbeafe';
+                    }
+                    switch(stockData.tipo) {
+                      case 'STOCK': return '#dbeafe';
+                      case 'DIVIDEND': return '#dcfce7';
+                      case 'ETF': return '#fef3c7';  // NOVO
+                      case 'STOCK_API': return '#e9d5ff';
+                      case 'DIVIDEND_API': return '#fee2e2';
+                      default: return '#f3f4f6';
+                    }
+                  })(),
+                  color: (() => {
+                    // Verifica se tem dados estáticos primeiro
+                    if (staticData) {
+                      if (staticData.tipo === 'DIVIDEND') return '#059669';
+                      if (staticData.tipo === 'ETF') return '#d97706';  // NOVO
+                      return '#3b82f6';
+                    }
+                    switch(stockData.tipo) {
+                      case 'STOCK': return '#3b82f6';
+                      case 'DIVIDEND': return '#059669';
+                      case 'ETF': return '#d97706';  // NOVO
+                      case 'STOCK_API': return '#7c3aed';
+                      case 'DIVIDEND_API': return '#dc2626';
+                      default: return '#6b7280';
+                    }
+                  })(),
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase'
+                }}>
+                  {(() => {
+                    if (staticData) {
+                      if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
+                      if (staticData.tipo === 'ETF') return '📊 ETF';  // NOVO
+                      return '📈 STOCK';
+                    }
+                    switch(stockData.tipo) {
+                      case 'STOCK': return '📈 STOCK';
+                      case 'DIVIDEND': return '💰 DIVIDEND';
+                      case 'ETF': return '📊 ETF';  // NOVO
+                      case 'STOCK_API': return '📈 STOCK (API)';
+                      case 'DIVIDEND_API': return '💰 DIVIDEND (API)';
+                      default: return 'SEM COBERTURA';
+                    }
+                  })()}
+                </div>
+              </div>
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                {stockData.name} • USD • {stockData.setor}
+                {stockData.dy && ` • DY: ${stockData.dy}`}
+              </p>
+            </div>
           </div>
 
           {!staticData && (
@@ -1085,62 +1085,66 @@ useEffect(() => {
             </div>
           )}
           
-{staticData && (
-  <div style={{
-    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-    padding: '16px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    marginTop: '16px'
-  }}>
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-      gap: '16px' 
-    }}>
-      <div>
-        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-          DATA DE ENTRADA
-        </p>
-        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-          {stockData.dataEntrada}
-        </p>
-      </div>
-      <div>
-        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-          PREÇO DE ENTRADA
-        </p>
-        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-          {stockData.precoQueIniciou}
-        </p>
-      </div>
-      <div>
-        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-          PREÇO TETO
-        </p>
-        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-          {stockData.precoTeto}
-        </p>
-      </div>
-      <div>
-        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
-          VIÉS ATUAL
-        </p>
-        <div style={{
-          display: 'inline-block',
-          background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-          color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          border: '1px solid',
-          borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
-        }}>
-          {stockData.vies}
+          {staticData && (
+            <div style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              marginTop: '16px'
+            }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px' 
+              }}>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    DATA DE ENTRADA
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {stockData.dataEntrada}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    PREÇO DE ENTRADA
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {stockData.precoQueIniciou}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    PREÇO TETO
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {stockData.precoTeto}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600' }}>
+                    VIÉS ATUAL
+                  </p>
+                  <div style={{
+                    display: 'inline-block',
+                    background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
+                    color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    border: '1px solid',
+                    borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
+                  }}>
+                    {stockData.vies}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-)}
+
         {/* 🆕 CARD PRINCIPAL DE PREÇO - ADICIONE AQUI */}
         <div style={priceCardStyle}>
           <div style={priceHeaderStyle}>
@@ -1169,239 +1173,239 @@ useEffect(() => {
           </div>
         </div>
 
+        <div style={{
+          background: '#f8fafc',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
+            📊 Range do Dia
+          </h3>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayLow}</span>
             <div style={{
-              background: '#f8fafc',
-              padding: '16px',
-              borderRadius: '8px',
-              marginBottom: '24px',
-              border: '1px solid #e2e8f0'
+              flex: 1,
+              height: '12px',
+              background: '#e2e8f0',
+              borderRadius: '6px',
+              position: 'relative'
             }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
-                📊 Range do Dia
-              </h3>
               <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '100%',
+                width: `${dayRangePercent}%`,
+                background: stockData.isPositive 
+                  ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
+                  : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                borderRadius: '6px'
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: `${dayRangePercent}%`,
+                width: '2px',
+                height: '100%',
+                background: '#1f2937',
+                borderRadius: '1px'
+              }} />
+            </div>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayHigh}</span>
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '16px',
+          marginBottom: '32px'
+        }}>
+          
+          <div style={{
+            background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '2px solid #93c5fd',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#3b82f6',
+              borderRadius: '12px',
+              margin: '0 auto 12px auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px'
+            }}>📈</div>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Volume</p>
+            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{stockData.volume}</p>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '2px solid #86efac',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#10b981',
+              borderRadius: '12px',
+              margin: '0 auto 12px auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px'
+            }}>💰</div>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Abertura</p>
+            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.open}</p>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '2px solid #c4b5fd',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#8b5cf6',
+              borderRadius: '12px',
+              margin: '0 auto 12px auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px'
+            }}>⬆️</div>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Máx. 52s</p>
+            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52High}</p>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '2px solid #fca5a5',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#ef4444',
+              borderRadius: '12px',
+              margin: '0 auto 12px auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '20px'
+            }}>⬇️</div>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Mín. 52s</p>
+            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52Low}</p>
+          </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
+            💼 Indicadores Financeiros
+          </h3>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '24px'
+          }}>
+            
+            <div style={{
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              padding: '24px',
+              borderRadius: '16px',
+              border: '2px solid #a7f3d0',
+              textAlign: 'center',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                background: '#059669',
+                borderRadius: '16px',
+                margin: '0 auto 16px auto',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '16px'
-              }}>
-                <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayLow}</span>
-                <div style={{
-                  flex: 1,
-                  height: '12px',
-                  background: '#e2e8f0',
-                  borderRadius: '6px',
-                  position: 'relative'
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    height: '100%',
-                    width: `${dayRangePercent}%`,
-                    background: stockData.isPositive 
-                      ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
-                      : 'linear-gradient(90deg, #ef4444, #dc2626)',
-                    borderRadius: '6px'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: `${dayRangePercent}%`,
-                    width: '2px',
-                    height: '100%',
-                    background: '#1f2937',
-                    borderRadius: '1px'
-                  }} />
-                </div>
-                <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayHigh}</span>
-              </div>
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '24px'
+              }}>🌍</div>
+              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
             </div>
 
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '16px',
-              marginBottom: '32px'
+              background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+              padding: '24px',
+              borderRadius: '16px',
+              border: '2px solid #c4b5fd',
+              textAlign: 'center',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}>
-              
               <div style={{
-                background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '2px solid #93c5fd',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: '#3b82f6',
-                  borderRadius: '12px',
-                  margin: '0 auto 12px auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '20px'
-                }}>📈</div>
-                <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Volume</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{stockData.volume}</p>
-              </div>
-
-              <div style={{
-                background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '2px solid #86efac',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: '#10b981',
-                  borderRadius: '12px',
-                  margin: '0 auto 12px auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '20px'
-                }}>💰</div>
-                <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Abertura</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.open}</p>
-              </div>
-
-              <div style={{
-                background: 'linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '2px solid #c4b5fd',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: '#8b5cf6',
-                  borderRadius: '12px',
-                  margin: '0 auto 12px auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '20px'
-                }}>⬆️</div>
-                <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Máx. 52s</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52High}</p>
-              </div>
-
-              <div style={{
-                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '2px solid #fca5a5',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: '#ef4444',
-                  borderRadius: '12px',
-                  margin: '0 auto 12px auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '20px'
-                }}>⬇️</div>
-                <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Mín. 52s</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>${stockData.week52Low}</p>
-              </div>
+                width: '56px',
+                height: '56px',
+                background: '#7c3aed',
+                borderRadius: '16px',
+                margin: '0 auto 16px auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '24px'
+              }}>🎯</div>
+              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
             </div>
 
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>
-                💼 Indicadores Financeiros
-              </h3>
-              
+            <div style={{
+              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+              padding: '24px',
+              borderRadius: '16px',
+              border: '2px solid #fcd34d',
+              textAlign: 'center',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}>
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '24px'
-              }}>
-                
-                <div style={{
-                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '2px solid #a7f3d0',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    background: '#059669',
-                    borderRadius: '16px',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '24px'
-                  }}>🌍</div>
-                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Market Cap</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.marketCap}</p>
-                </div>
-
-                <div style={{
-                  background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '2px solid #c4b5fd',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    background: '#7c3aed',
-                    borderRadius: '16px',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '24px'
-                  }}>🎯</div>
-                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>P/E Ratio</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.peRatio}</p>
-                </div>
-
-                <div style={{
-                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '2px solid #fcd34d',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    background: '#d97706',
-                    borderRadius: '16px',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '24px'
-                  }}>💵</div>
-                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
-                </div>
-              </div>
+                width: '56px',
+                height: '56px',
+                background: '#d97706',
+                borderRadius: '16px',
+                margin: '0 auto 16px auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '24px'
+              }}>💵</div>
+              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0' }}>Dividend Yield</p>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{stockData.dividendYield}</p>
             </div>
+          </div>
+        </div>
 
         <div style={{
           background: 'white',
