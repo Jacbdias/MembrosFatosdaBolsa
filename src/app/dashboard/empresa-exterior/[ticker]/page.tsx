@@ -901,8 +901,8 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       name: stockFromAPI.name || stockFromAPI.longName || `${tickerSymbol} Corporation`,
       setor: stockFromAPI.sector || stockFromAPI.industry || 'Setor não informado',
       dataEntrada: stockFromAPI.entryDate || new Date().toLocaleDateString('pt-BR'),
-      precoQueIniciou: `US$${stockFromAPI.entryPrice || '0.00'}`,
-      precoTeto: `US$${stockFromAPI.targetPrice || '0.00'}`,
+      precoQueIniciou: `US${stockFromAPI.entryPrice || '0.00'}`,
+      precoTeto: `US${stockFromAPI.targetPrice || '0.00'}`,
       avatar: getCompanyAvatar(tickerSymbol, stockFromAPI.name),
       tipo: 'STOCK_API'
     };
@@ -920,8 +920,8 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       name: dividendFromAPI.name || dividendFromAPI.longName || `${tickerSymbol} Corporation`,
       setor: dividendFromAPI.sector || dividendFromAPI.industry || 'Dividendos',
       dataEntrada: dividendFromAPI.entryDate || new Date().toLocaleDateString('pt-BR'),
-      precoQueIniciou: `US$${dividendFromAPI.entryPrice || '0.00'}`,
-      precoTeto: `US$${dividendFromAPI.targetPrice || '0.00'}`,
+      precoQueIniciou: `US${dividendFromAPI.entryPrice || '0.00'}`,
+      precoTeto: `US${dividendFromAPI.targetPrice || '0.00'}`,
       avatar: getCompanyAvatar(tickerSymbol, dividendFromAPI.name),
       tipo: 'DIVIDEND_API',
       dy: `${dividendFromAPI.dividendYield || '0'}%`
@@ -1074,12 +1074,12 @@ useEffect(() => {
 
       const result = data.results[0];
       const precoAtual = result.regularMarketPrice || 0;
-      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
-const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
+const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US, '')) : precoAtual * 1.2;
 const change = result.regularMarketChange || 0;
 const changePercent = result.regularMarketChangePercent || 0;
 
-const precoEntrada = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
+const precoEntrada = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
 const performanceTotal = precoAtual - precoEntrada;
 const performanceTotalPercent = precoEntrada > 0 ? ((precoAtual - precoEntrada) / precoEntrada) * 100 : 0;
 const performanceIsPositive = performanceTotal >= 0;
@@ -1139,8 +1139,8 @@ const realData = {
 
   const generateMockData = (symbol, staticInfo) => {
     if (staticInfo) {
-      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
-      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US, ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US, ''));
       
       const variacao = (Math.random() - 0.3) * 0.4;
       const precoAtual = precoIniciou * (1 + variacao);
@@ -1333,47 +1333,8 @@ const realData = {
     margin: '0 auto'
   };
 
-  const headerStyle = {
-    background: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    marginBottom: '24px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-  };
-
-  const priceCardStyle = {
-    background: 'white',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    marginBottom: '24px'
-  };
-
-  const priceHeaderStyle = {
-    background: stockData.isPositive 
-      ? 'linear-gradient(90deg, #059669 0%, #10b981 100%)'
-      : 'linear-gradient(90deg, #dc2626 0%, #ef4444 100%)',
-    color: 'white',
-    padding: '24px'
-  };
-
-  const priceFlexStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '16px'
-  };
-
   const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHigh - stockData.dayLow)) * 100;
 
-    // CSS para animação de loading
-  const pulseAnimation = `
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-  
   return (
     <div style={containerStyle}>
       <div style={maxWidthStyle}>
@@ -1551,10 +1512,10 @@ const realData = {
                     display: 'inline-block',
                     marginBottom: '16px'
                   }}>
-                    <>
+                    <span>
                       USD - {stockData.setor}
-                      {stockData.dy && ` - DY: ${stockData.dy}`}
-                    </>
+                      {stockData.dy && <span> - DY: {stockData.dy}</span>}
+                    </span>
                   </div>
                   
                   <p style={{ 
@@ -1583,6 +1544,7 @@ const realData = {
                     ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
                   </div>
                 )}
+              </div>
               
               {/* PREÇO E VARIAÇÃO (DIREITA) */}
               <div style={{ 
@@ -1904,8 +1866,6 @@ const realData = {
           </div>
         </div>
 
-{/* Dados Técnicos */}
-
 {/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
 <div style={{
   display: 'grid',
@@ -2141,7 +2101,7 @@ const realData = {
         <HistoricoDividendosExterior 
           ticker={ticker} 
           dataEntrada={staticData?.dataEntrada || 'N/A'} 
-        />  
+        />
         
         <div style={{
           background: 'white',
