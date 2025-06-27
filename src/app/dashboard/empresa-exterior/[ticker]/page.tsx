@@ -1079,39 +1079,48 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
 const change = result.regularMarketChange || 0;
 const changePercent = result.regularMarketChangePercent || 0;
 
-      const realData = {
-        name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
-        rank: staticInfo?.rank || null,
-        setor: staticInfo?.setor || result.sector || 'Setor não identificado',
-        dataEntrada: staticInfo?.dataEntrada || 'N/A',
-        precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
-        precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
-        avatar: staticInfo?.avatar || getCompanyAvatar(tickerSymbol, result.shortName || result.longName) || result.logourl,
-        price: precoAtual,
-        change: Number(change.toFixed(2)),
-        changePercent: Number(changePercent.toFixed(2)),
-        dayLow: result.regularMarketDayLow || precoAtual * 0.98,
-        dayHigh: result.regularMarketDayHigh || precoAtual * 1.02,
-        open: result.regularMarketOpen || precoAtual,
-        volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : `${(Math.random() * 50 + 5).toFixed(1)}M`,
-        week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
-        week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
-        marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
-          ? `${(result.marketCap / 1e9).toFixed(2)}B`
-          : generateMarketCap(tickerSymbol),
-        peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
-          ? Number(result.trailingPE.toFixed(2))
-          : Number((Math.random() * 30 + 15).toFixed(1)),
-        dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
-          ? `${(result.dividendYield * 100).toFixed(2)}%`
-          : generateDividendYield(staticInfo?.setor || 'Diversos'),
-        isPositive: change >= 0,
-        performanceVsInicio: staticInfo ? changePercent : 0,
-        distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
-        vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A',
-        tipo: staticInfo?.tipo || 'SEM_COBERTURA',
-        dy: staticInfo?.dy || null
-      };
+const precoEntrada = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
+const performanceTotal = precoAtual - precoEntrada;
+const performanceTotalPercent = precoEntrada > 0 ? ((precoAtual - precoEntrada) / precoEntrada) * 100 : 0;
+const performanceIsPositive = performanceTotal >= 0;
+
+const realData = {
+  name: staticInfo?.name || result.shortName || result.longName || tickerSymbol,
+  rank: staticInfo?.rank || null,
+  setor: staticInfo?.setor || result.sector || 'Setor não identificado',
+  dataEntrada: staticInfo?.dataEntrada || 'N/A',
+  precoQueIniciou: staticInfo?.precoQueIniciou || `US${precoAtual.toFixed(2)}`,
+  precoTeto: staticInfo?.precoTeto || `US${(precoAtual * 1.2).toFixed(2)}`,
+  avatar: staticInfo?.avatar || getCompanyAvatar(tickerSymbol, result.shortName || result.longName) || result.logourl,
+  price: precoAtual,
+  change: Number(change.toFixed(2)),
+  changePercent: Number(changePercent.toFixed(2)),
+  dayLow: result.regularMarketDayLow || precoAtual * 0.98,
+  dayHigh: result.regularMarketDayHigh || precoAtual * 1.02,
+  open: result.regularMarketOpen || precoAtual,
+  volume: result.regularMarketVolume ? `${(result.regularMarketVolume / 1e6).toFixed(1)}M` : `${(Math.random() * 50 + 5).toFixed(1)}M`,
+  week52High: result.fiftyTwoWeekHigh || precoAtual * 1.3,
+  week52Low: result.fiftyTwoWeekLow || precoAtual * 0.7,
+  marketCap: (typeof result.marketCap === 'number' && isFinite(result.marketCap))
+    ? `${(result.marketCap / 1e9).toFixed(2)}B`
+    : generateMarketCap(tickerSymbol),
+  peRatio: (typeof result.trailingPE === 'number' && isFinite(result.trailingPE))
+    ? Number(result.trailingPE.toFixed(2))
+    : Number((Math.random() * 30 + 15).toFixed(1)),
+  dividendYield: (typeof result.dividendYield === 'number' && isFinite(result.dividendYield))
+    ? `${(result.dividendYield * 100).toFixed(2)}%`
+    : generateDividendYield(staticInfo?.setor || 'Diversos'),
+  isPositive: change >= 0,
+  performanceVsInicio: staticInfo ? changePercent : 0,
+  distanciaDoTeto: staticInfo ? ((precoTeto - precoAtual) / precoTeto * 100) : 0,
+  vies: staticInfo ? ((precoAtual / precoTeto) >= 0.95 ? 'AGUARDAR' : 'COMPRA') : 'N/A',
+  tipo: staticInfo?.tipo || 'SEM_COBERTURA',
+  dy: staticInfo?.dy || null,
+  // NOVOS CAMPOS ADICIONADOS:
+  performanceTotal: Number(Math.abs(performanceTotal).toFixed(2)),
+  performanceTotalPercent: performanceTotalPercent,
+  performanceIsPositive: performanceIsPositive
+};
 
       // Debug do avatar
       console.log('🎯 Avatar URL gerada:', realData.avatar);
@@ -1539,7 +1548,7 @@ const changePercent = result.regularMarketChangePercent || 0;
                   display: 'inline-block',
                   marginBottom: '16px'
                 }}>
-{`USD - ${stockData.setor}`}
+USD - {stockData.setor}
 {stockData.dy && ` - DY: ${stockData.dy}`}
                 </div>
                 
@@ -1637,16 +1646,6 @@ const changePercent = result.regularMarketChangePercent || 0;
             </div>
           </div>
         </div>
-
-        <div style={{
-          background: '#f8fafc',
-          padding: '16px',
-          borderRadius: '8px',
-          marginBottom: '24px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
-
                     {/* 🆕 NOVO CARD SEPARADO - DADOS DA CARTEIRA */}
         {staticData && (
           <div style={{
@@ -1849,6 +1848,15 @@ const changePercent = result.regularMarketChangePercent || 0;
             </div>
           </div>
         )}
+
+        <div style={{
+          background: '#f8fafc',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
             
             📊 Range do Dia
           </h3>
