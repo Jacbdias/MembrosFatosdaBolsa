@@ -1551,8 +1551,10 @@ const realData = {
                     display: 'inline-block',
                     marginBottom: '16px'
                   }}>
-                    USD - {stockData.setor}
-                    {stockData.dy && ` - DY: ${stockData.dy}`}
+                    <>
+                      USD - {stockData.setor}
+                      {stockData.dy && ` - DY: ${stockData.dy}`}
+                    </>
                   </div>
                   
                   <p style={{ 
