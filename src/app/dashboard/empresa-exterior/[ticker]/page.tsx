@@ -43,6 +43,440 @@ function useBDRDataAPI(bdrTicker) {
   return { bdrData, bdrLoading };
 }
 
+// ========================================
+// COMPONENTE HISTÓRICO DE DIVIDENDOS - ATIVOS EXTERIOR
+// ========================================
+const HistoricoDividendosExterior = ({ ticker, dataEntrada }) => {
+  const [proventos, setProventos] = React.useState([]);
+  const [mostrarTodos, setMostrarTodos] = React.useState(false);
+
+  React.useEffect(() => {
+    if (ticker && typeof window !== 'undefined') {
+      let dadosSalvos = null;
+      
+      // ✅ Buscar dados de múltiplas fontes possíveis para ativos no exterior
+      dadosSalvos = localStorage.getItem(`dividendos_exterior_${ticker}`) || 
+                   localStorage.getItem(`dividendos_us_${ticker}`) ||
+                   localStorage.getItem(`proventos_${ticker}`) ||
+                   localStorage.getItem(`dividends_${ticker}`);
+      
+      console.log(`🔍 Buscando dados de dividendos exterior para ${ticker}:`, {
+        dividendos_exterior: !!localStorage.getItem(`dividendos_exterior_${ticker}`),
+        dividendos_us: !!localStorage.getItem(`dividendos_us_${ticker}`),
+        proventos: !!localStorage.getItem(`proventos_${ticker}`),
+        dividends: !!localStorage.getItem(`dividends_${ticker}`)
+      });
+
+      // ✅ Buscar do sistema central como fallback
+      if (!dadosSalvos) {
+        const proventosCentral = localStorage.getItem('proventos_central_master');
+        if (proventosCentral) {
+          try {
+            const todosDados = JSON.parse(proventosCentral);
+            const dadosTicker = todosDados.filter(item => item.ticker === ticker);
+            if (dadosTicker.length > 0) {
+              dadosSalvos = JSON.stringify(dadosTicker);
+              console.log(`✅ Dados encontrados no sistema central para ${ticker}:`, dadosTicker.length);
+            }
+          } catch (err) {
+            console.error('Erro ao buscar do sistema central:', err);
+          }
+        }
+      }
+      
+      if (dadosSalvos) {
+        try {
+          const proventosSalvos = JSON.parse(dadosSalvos);
+          const proventosLimitados = proventosSalvos.slice(0, 500).map(item => ({
+            ...item,
+            dataObj: new Date(item.dataCom || item.data || item.dataObj || item.dataFormatada || item.exDate)
+          }));
+          
+          // Filtrar dados inválidos
+          const proventosValidos = proventosLimitados.filter(item => 
+            item.dataObj && !isNaN(item.dataObj.getTime()) && item.valor && item.valor > 0
+          );
+          
+          proventosValidos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+          setProventos(proventosValidos);
+          
+          console.log(`✅ Dividendos carregados para ${ticker}:`, {
+            total: proventosValidos.length,
+            primeiros2: proventosValidos.slice(0, 2)
+          });
+          
+        } catch (err) {
+          console.error('Erro ao carregar dividendos salvos:', err);
+          setProventos([]);
+        }
+      } else {
+        console.log(`❌ Nenhum dado encontrado para ${ticker}. Chaves verificadas:`, {
+          localStorage_keys: Object.keys(localStorage).filter(key => 
+            key.includes(ticker) || key.includes('provento') || key.includes('dividendo') || key.includes('dividend')
+          )
+        });
+        setProventos([]);
+      }
+    }
+  }, [ticker]);
+
+  const formatarValor = (valor) => {
+    if (!valor) return '$0.00';
+    return `$${Number(valor).toFixed(2)}`;
+  };
+
+  const { totalProventos, mediaProvento, ultimoProvento } = React.useMemo(() => {
+    const total = proventos.reduce((sum, item) => sum + item.valor, 0);
+    const media = proventos.length > 0 ? total / proventos.length : 0;
+    const ultimo = proventos.length > 0 ? proventos[0] : null;
+
+    return {
+      totalProventos: total,
+      mediaProvento: media,
+      ultimoProvento: ultimo
+    };
+  }, [proventos]);
+
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '24px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '24px'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '20px' }}>💰</span>
+          <h3 style={{ 
+            fontSize: '18px', 
+            fontWeight: '600', 
+            margin: 0, 
+            color: '#1f2937' 
+          }}>
+            Histórico de Dividendos
+          </h3>
+        </div>
+      </div>
+
+      {proventos.length === 0 ? (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '32px 0', 
+          color: '#6b7280' 
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
+            ❌ Nenhum dividendo carregado para {ticker}
+          </p>
+          <p style={{ margin: '0 0 8px 0', fontSize: '12px' }}>
+            📅 Data de entrada: {dataEntrada}
+          </p>
+          <p style={{ margin: 0, fontSize: '12px', color: '#f59e0b' }}>
+            ⚠️ Dados podem ser inseridos no mesmo local dos proventos brasileiros
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Cards de Resumo */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '12px',
+            marginBottom: '20px'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '16px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '8px'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: '700', 
+                color: '#0ea5e9',
+                margin: '0 0 4px 0'
+              }}>
+                {proventos.length}
+              </div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                Pagamentos
+              </div>
+            </div>
+            
+            <div style={{
+              textAlign: 'center',
+              padding: '16px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '8px'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: '700', 
+                color: '#22c55e',
+                margin: '0 0 4px 0'
+              }}>
+                {formatarValor(totalProventos).replace('$', '')}
+              </div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                Total
+              </div>
+            </div>
+            
+            <div style={{
+              textAlign: 'center',
+              padding: '16px',
+              backgroundColor: '#fefce8',
+              borderRadius: '8px'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: '700', 
+                color: '#eab308',
+                margin: '0 0 4px 0'
+              }}>
+                {formatarValor(mediaProvento).replace('$', '')}
+              </div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                Média
+              </div>
+            </div>
+            
+            <div style={{
+              textAlign: 'center',
+              padding: '16px',
+              backgroundColor: '#fdf4ff',
+              borderRadius: '8px'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: '700', 
+                color: '#a855f7',
+                margin: '0 0 4px 0'
+              }}>
+                {ultimoProvento ? 
+                  (ultimoProvento.dataFormatada?.replace(/\/\d{4}/, '') || 
+                   ultimoProvento.dataObj.toLocaleDateString('pt-BR').replace(/\/\d{4}/, '')) : 'N/A'}
+              </div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                Último
+              </div>
+            </div>
+          </div>
+          
+          {/* Botão Mostrar Todos */}
+          {proventos.length > 10 && (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              marginBottom: '16px' 
+            }}>
+              <button
+                onClick={() => setMostrarTodos(!mostrarTodos)}
+                style={{
+                  border: '1px solid #e2e8f0',
+                  color: '#64748b',
+                  backgroundColor: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#f1f5f9';
+                  e.target.style.borderColor = '#cbd5e1';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.borderColor = '#e2e8f0';
+                }}
+              >
+                {mostrarTodos 
+                  ? `📋 Mostrar apenas 10 recentes` 
+                  : `📋 Mostrar todos os ${proventos.length} dividendos`
+                }
+              </button>
+            </div>
+          )}
+
+          {/* Tabela */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              maxHeight: mostrarTodos ? '400px' : 'auto',
+              overflowY: mostrarTodos ? 'auto' : 'visible'
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ backgroundColor: '#f8fafc' }}>
+                  <tr>
+                    <th style={{ 
+                      padding: '12px', 
+                      textAlign: 'left', 
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      Ativo
+                    </th>
+                    <th style={{ 
+                      padding: '12px', 
+                      textAlign: 'right', 
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      Valor
+                    </th>
+                    <th style={{ 
+                      padding: '12px', 
+                      textAlign: 'center', 
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      Ex-Dividend
+                    </th>
+                    <th style={{ 
+                      padding: '12px', 
+                      textAlign: 'center', 
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      Pagamento
+                    </th>
+                    <th style={{ 
+                      padding: '12px', 
+                      textAlign: 'center', 
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      Tipo
+                    </th>
+                    <th style={{ 
+                      padding: '12px', 
+                      textAlign: 'right', 
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      Yield
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
+                    <tr key={`${provento.data || provento.dataCom}-${index}`}
+                        style={{ borderTop: index > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                      <td style={{ 
+                        padding: '12px', 
+                        fontWeight: '500',
+                        fontSize: '14px'
+                      }}>
+                        {ticker}
+                      </td>
+                      <td style={{ 
+                        padding: '12px', 
+                        textAlign: 'right',
+                        fontWeight: '700', 
+                        color: '#22c55e',
+                        fontSize: '14px'
+                      }}>
+                        {provento.valorFormatado || formatarValor(provento.valor)}
+                      </td>
+                      <td style={{ 
+                        padding: '12px', 
+                        textAlign: 'center',
+                        fontWeight: '500',
+                        fontSize: '14px'
+                      }}>
+                        {provento.dataComFormatada || 
+                         provento.dataFormatada || 
+                         provento.dataObj?.toLocaleDateString('pt-BR') || 
+                         'N/A'}
+                      </td>
+                      <td style={{ 
+                        padding: '12px', 
+                        textAlign: 'center',
+                        fontWeight: '500',
+                        fontSize: '14px'
+                      }}>
+                        {provento.dataPagamentoFormatada || 
+                         provento.dataFormatada || 
+                         provento.dataObj?.toLocaleDateString('pt-BR') || 
+                         'N/A'}
+                      </td>
+                      <td style={{ 
+                        padding: '12px', 
+                        textAlign: 'center'
+                      }}>
+                        <span style={{
+                          border: '1px solid #e2e8f0',
+                          color: '#64748b',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '500'
+                        }}>
+                          {provento.tipo || 'Dividend'}
+                        </span>
+                      </td>
+                      <td style={{ 
+                        padding: '12px', 
+                        textAlign: 'right',
+                        fontWeight: '700', 
+                        color: '#1976d2',
+                        fontSize: '14px'
+                      }}>
+                        {provento.dividendYield ? 
+                          `${(provento.dividendYield > 0 && provento.dividendYield < 1 ? 
+                             provento.dividendYield * 100 : 
+                             provento.dividendYield).toFixed(2)}%` : 
+                          '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          {/* Footer */}
+          {proventos.length > 10 && (
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#6b7280',
+                margin: 0
+              }}>
+                {mostrarTodos 
+                  ? `Mostrando todos os ${proventos.length} dividendos com rolagem`
+                  : `Mostrando os 10 mais recentes • Total: ${proventos.length}`
+                }
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function EmpresaExteriorDetalhes() {
   const [ticker, setTicker] = useState('');
   const [stockData, setStockData] = useState(null);
@@ -1455,6 +1889,12 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
     </div>
   </div>
 </div>
+        
+        {/* Histórico de Dividendos */}
+        <HistoricoDividendosExterior 
+          ticker={ticker} 
+          dataEntrada={staticData?.dataEntrada || 'N/A'} 
+        />  
         
         <div style={{
           background: 'white',
