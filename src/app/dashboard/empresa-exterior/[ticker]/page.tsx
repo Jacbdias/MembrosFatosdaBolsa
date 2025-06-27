@@ -1588,10 +1588,6 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
           )}
         </div>
 
-// ========================================
-// 🔄 SUBSTITUA A SEÇÃO ACIMA POR ESTA VERSÃO NOVA:
-// ========================================
-
         {/* Card principal da empresa - NOVO ESTILO */}
         <div style={{
           marginBottom: '32px',
