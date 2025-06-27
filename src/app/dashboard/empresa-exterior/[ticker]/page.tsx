@@ -1224,9 +1224,9 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
         </div>
 
 {/* Dados Técnicos */}
-// SUBSTITUA as duas seções dos cards por este código:
+// SUBSTITUA as duas seções separadas por este código que as coloca lado a lado:
 
-{/* Cards lado a lado: Dados da Posição + Análise de Viés */}
+{/* Cards lado a lado: Dados Técnicos + Indicadores Financeiros */}
 <div style={{
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -1234,7 +1234,7 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
   marginBottom: '24px'
 }}>
   
-  {/* Card 1: Dados da Posição */}
+  {/* Dados Técnicos */}
   <div style={{
     background: 'white',
     borderRadius: '12px',
@@ -1248,19 +1248,19 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
       gap: '8px',
       marginBottom: '20px'
     }}>
-      <span style={{ fontSize: '20px' }}>📊</span>
+      <span style={{ fontSize: '20px' }}>📈</span>
       <h3 style={{ 
         fontSize: '18px', 
         fontWeight: '600', 
         margin: 0, 
         color: '#1f2937' 
       }}>
-        Dados da Posição
+        Dados Técnicos
       </h3>
     </div>
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Data de Entrada */}
+      {/* Volume */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1273,18 +1273,18 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
           fontSize: '14px',
           fontWeight: '500'
         }}>
-          Data de Entrada
+          Volume
         </span>
         <span style={{ 
           color: '#1f2937', 
           fontSize: '14px',
           fontWeight: '600'
         }}>
-          {staticData?.dataEntrada || 'N/A'}
+          {stockData.volume}
         </span>
       </div>
 
-      {/* Preço Inicial */}
+      {/* Abertura */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1297,46 +1297,67 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
           fontSize: '14px',
           fontWeight: '500'
         }}>
-          Preço Inicial
+          Abertura
         </span>
         <span style={{ 
           color: '#1f2937', 
           fontSize: '14px',
           fontWeight: '600'
         }}>
-          {staticData?.precoQueIniciou || `$${stockData.price}`}
+          ${stockData.open}
         </span>
       </div>
 
-      {/* Preço Atual - Destacado */}
+      {/* Máx. 52s */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#f0fdf4',
-        padding: '12px',
-        borderRadius: '8px',
-        border: '1px solid #bbf7d0'
+        padding: '12px 0',
+        borderBottom: '1px solid #f1f5f9'
       }}>
         <span style={{ 
-          color: '#059669', 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Máx. 52s
+        </span>
+        <span style={{ 
+          color: '#1f2937', 
           fontSize: '14px',
           fontWeight: '600'
         }}>
-          Preço Atual
+          ${stockData.week52High}
+        </span>
+      </div>
+
+      {/* Mín. 52s */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 0'
+      }}>
+        <span style={{ 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Mín. 52s
         </span>
         <span style={{ 
-          color: '#059669', 
-          fontSize: '16px',
-          fontWeight: 'bold'
+          color: '#1f2937', 
+          fontSize: '14px',
+          fontWeight: '600'
         }}>
-          ${stockData.price}
+          ${stockData.week52Low}
         </span>
       </div>
     </div>
   </div>
 
-  {/* Card 2: Análise de Viés */}
+  {/* Indicadores Financeiros */}
   <div style={{
     background: 'white',
     borderRadius: '12px',
@@ -1350,19 +1371,19 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
       gap: '8px',
       marginBottom: '20px'
     }}>
-      <span style={{ fontSize: '20px' }}>🎯</span>
+      <span style={{ fontSize: '20px' }}>💼</span>
       <h3 style={{ 
         fontSize: '18px', 
         fontWeight: '600', 
         margin: 0, 
         color: '#1f2937' 
       }}>
-        Análise de Viés
+        Indicadores Financeiros
       </h3>
     </div>
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Preço Teto */}
+      {/* Market Cap */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1375,18 +1396,18 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
           fontSize: '14px',
           fontWeight: '500'
         }}>
-          Preço Teto
+          Market Cap
         </span>
         <span style={{ 
           color: '#1f2937', 
           fontSize: '14px',
           fontWeight: '600'
         }}>
-          {staticData?.precoTeto || `$${(stockData.price * 1.2).toFixed(2)}`}
+          {stockData.marketCap}
         </span>
       </div>
 
-      {/* Viés Atual */}
+      {/* P/E Ratio */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1399,272 +1420,43 @@ const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', ''
           fontSize: '14px',
           fontWeight: '500'
         }}>
-          Viés Atual
+          P/E Ratio
         </span>
-        <div style={{
-          background: staticData?.vies === 'COMPRA' ? '#10b981' : '#f59e0b',
-          color: 'white',
-          padding: '4px 12px',
-          borderRadius: '6px',
-          fontSize: '12px',
-          fontWeight: 'bold'
+        <span style={{ 
+          color: '#1f2937', 
+          fontSize: '14px',
+          fontWeight: '600'
         }}>
-          {staticData?.vies || 'N/A'}
-        </div>
+          {stockData.peRatio}
+        </span>
       </div>
 
-      {/* % da Carteira - Destacado */}
+      {/* Dividend Yield */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        padding: '12px',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0'
+        padding: '12px 0'
       }}>
         <span style={{ 
-          color: '#64748b', 
+          color: '#6b7280', 
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          Dividend Yield
+        </span>
+        <span style={{ 
+          color: '#1f2937', 
           fontSize: '14px',
           fontWeight: '600'
         }}>
-          % da Carteira
-        </span>
-        <span style={{ 
-          color: '#1e293b', 
-          fontSize: '16px',
-          fontWeight: 'bold'
-        }}>
-          {staticData ? '3.7%' : 'N/A'}
+          {stockData.dividendYield}
         </span>
       </div>
     </div>
   </div>
 </div>
-
-{/* Dados Técnicos - mantém como estava */}
-<div style={{
-  background: 'white',
-  borderRadius: '12px',
-  padding: '24px',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-  border: '1px solid #e2e8f0',
-  marginBottom: '24px'
-}}>
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '20px'
-  }}>
-    <span style={{ fontSize: '20px' }}>📈</span>
-    <h3 style={{ 
-      fontSize: '18px', 
-      fontWeight: '600', 
-      margin: 0, 
-      color: '#1f2937' 
-    }}>
-      Dados Técnicos
-    </h3>
-  </div>
-
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-    {/* Volume */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #f1f5f9'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        Volume
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        {stockData.volume}
-      </span>
-    </div>
-
-    {/* Abertura */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #f1f5f9'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        Abertura
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        ${stockData.open}
-      </span>
-    </div>
-
-    {/* Máx. 52s */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #f1f5f9'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        Máx. 52s
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        ${stockData.week52High}
-      </span>
-    </div>
-
-    {/* Mín. 52s */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        Mín. 52s
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        ${stockData.week52Low}
-      </span>
-    </div>
-  </div>
-</div>
-
-{/* Indicadores Financeiros - mantém como estava */}
-<div style={{
-  background: 'white',
-  borderRadius: '12px',
-  padding: '24px',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-  border: '1px solid #e2e8f0',
-  marginBottom: '24px'
-}}>
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '20px'
-  }}>
-    <span style={{ fontSize: '20px' }}>💼</span>
-    <h3 style={{ 
-      fontSize: '18px', 
-      fontWeight: '600', 
-      margin: 0, 
-      color: '#1f2937' 
-    }}>
-      Indicadores Financeiros
-    </h3>
-  </div>
-
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-    {/* Market Cap */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #f1f5f9'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        Market Cap
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        {stockData.marketCap}
-      </span>
-    </div>
-
-    {/* P/E Ratio */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #f1f5f9'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        P/E Ratio
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        {stockData.peRatio}
-      </span>
-    </div>
-
-    {/* Dividend Yield */}
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0'
-    }}>
-      <span style={{ 
-        color: '#6b7280', 
-        fontSize: '14px',
-        fontWeight: '500'
-      }}>
-        Dividend Yield
-      </span>
-      <span style={{ 
-        color: '#1f2937', 
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        {stockData.dividendYield}
-      </span>
-    </div>
-  </div>
-</div>
+        
         <div style={{
           background: 'white',
           padding: '16px 24px',
