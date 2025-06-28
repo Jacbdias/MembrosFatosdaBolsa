@@ -1746,9 +1746,20 @@ const changePercent = result.regularMarketChangePercent || 0;
                   fontSize: '18px', 
                   fontWeight: 'bold', 
                   color: '#0f172a', 
-                  margin: 0 
+                  margin: 0,
+                  lineHeight: 1.2
                 }}>
                   {stockData.precoTeto}
+                  {staticData?.bdrTeto && (
+                    <span style={{ 
+                      fontSize: '14px', 
+                      color: '#059669',
+                      display: 'block',
+                      marginTop: '4px'
+                    }}>
+                      | {staticData.bdrTeto}
+                    </span>
+                  )}
                 </p>
               </div>
               
