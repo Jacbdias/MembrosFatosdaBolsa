@@ -522,7 +522,7 @@ const exteriorStocksDatabase = {
     dataEntrada: '24/02/2023',
     precoQueIniciou: 'US$299,31',
     precoTeto: 'US$366,78',
-    avatar: 'https://logo.clearbit.com/homedepot.com',
+    avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNVCjcsiLtCJcZB7cBiq-VvWXAJ8WcRzvzXg&s',
     tipo: 'STOCK',
     bdr: 'HOME34',
     bdrTeto: 'R$ 65,88'
@@ -940,7 +940,7 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       'AAPL': 'https://logo.clearbit.com/apple.com',
       'GOOGL': 'https://logo.clearbit.com/google.com',
       'META': 'https://logo.clearbit.com/meta.com',
-      'HD': 'https://logo.clearbit.com/homedepot.com',
+      'HD': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNVCjcsiLtCJcZB7cBiq-VvWXAJ8WcRzvzXg&s',
       'COST': 'https://logo.clearbit.com/costco.com',
       'AMAT': 'https://logo.clearbit.com/appliedmaterials.com',
       'XP': 'https://logo.clearbit.com/xpi.com.br',
