@@ -1372,12 +1372,18 @@ const changePercent = result.regularMarketChangePercent || 0;
     }
   `;
   
-  return (
-    <div style={containerStyle}>
-      <style>{spinKeyframes}</style>
-      <div style={maxWidthStyle}>
-
-      {/* ✅ BOTÃO DE VOLTA SIMPLES */}
+return (
+  <div style={containerStyle}>
+    <style>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+    
+    <div style={maxWidthStyle}>
+      
+      {/* BOTAO DE VOLTA SIMPLES */}
       <div style={{
         display: 'flex',
         justifyContent: 'flex-start',
