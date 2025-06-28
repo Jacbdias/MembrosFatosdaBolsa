@@ -294,7 +294,7 @@ export default function AdminDashboard() {
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
-            <div style={styles.cardIcon}>📊</div>
+            <div style={styles.cardIcon}>📋</div>
             <h3 style={styles.cardTitle}>Relatórios</h3>
             <p style={styles.cardText}>Gere relatórios detalhados e visualize métricas importantes do sistema.</p>
             <span style={styles.statusActive}>Ativo</span>
@@ -303,13 +303,13 @@ export default function AdminDashboard() {
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Integrações')}
+            onClick={() => showComingSoon('/dashboard/central-agenda')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
-            <div style={styles.cardIcon}>🔗</div>
-            <h3 style={styles.cardTitle}>Integrações</h3>
-            <p style={styles.cardText}>Configure e monitore integrações com APIs externas e serviços.</p>
+            <div style={styles.cardIcon}>📅</div>
+            <h3 style={styles.cardTitle}>Agenda Corporativa</h3>
+            <p style={styles.cardText}>Insira informações (notícias) sobre os ativos.</p>
             <span style={styles.statusDevelopment}>Em Desenvolvimento</span>
           </div>
 
