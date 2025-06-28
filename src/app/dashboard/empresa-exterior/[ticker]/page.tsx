@@ -768,40 +768,20 @@ const AgendaCorporativaInternacional = React.memo(({ ticker, dataEntrada }) => {
           </p>
         </div>
       ) : eventos.length === 0 ? (
-        /* ESTADO SEM EVENTOS */
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '32px 0', 
-          color: '#6b7280' 
-        }}>
-          <h4 style={{ 
-            fontSize: '18px', 
-            margin: '0 0 12px 0',
-            color: '#374151' 
-          }}>
-            📭 Nenhum evento encontrado para {ticker}
-          </h4>
-          
-          <p style={{ 
-            fontSize: '14px', 
-            margin: '0 0 16px 0' 
-          }}>
-            {debugInfo?.erros?.length > 0 
-              ? `❌ Problemas detectados: ${debugInfo.erros.length}`
-              : `ℹ️ Não há eventos cadastrados para este ticker`
-            }
-          </p>
-          
-          {debugInfo?.tickersDisponiveis && (
-            <p style={{ 
-              fontSize: '12px', 
-              margin: '0 0 16px 0', 
-              color: '#3b82f6' 
-            }}>
-              📊 Tickers disponíveis na central: {debugInfo.tickersDisponiveis.join(', ')}
-            </p>
-          )}
-          
+/* ESTADO SEM EVENTOS */
+<div style={{ 
+  textAlign: 'center', 
+  padding: '32px 0', 
+  color: '#6b7280' 
+}}>
+  <h4 style={{ 
+    fontSize: '18px', 
+    margin: '0 0 12px 0',
+    color: '#374151' 
+  }}>
+    📭 Nenhum evento encontrado para {ticker}
+  </h4>
+</div>
         </div>
       ) : (
         /* LISTA DE EVENTOS */
