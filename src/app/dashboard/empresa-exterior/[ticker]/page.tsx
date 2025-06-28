@@ -1876,8 +1876,8 @@ const changePercent = result.regularMarketChangePercent || 0;
     top: 0,
     left: 0,
     height: '100%',
-    width: `${dayRangePercent}%`,
-    background: stockData.isPositive 
+    width: dayRangePercent + '%',
+    background: stockData.isPositive
       ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
       : 'linear-gradient(90deg, #ef4444, #dc2626)',
     borderRadius: '6px'
