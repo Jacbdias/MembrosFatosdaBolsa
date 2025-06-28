@@ -973,6 +973,790 @@ const AgendaCorporativaInternacional = React.memo(({ ticker, dataEntrada }) => {
   );
 });
 
+// ========================================
+// GERENCIADOR DE RELATÓRIOS - VERSÃO INTERNACIONAL
+// ========================================
+
+// Funções utilitárias (mesmas do arquivo 1)
+const calcularHash = async (arquivo) => {
+  const buffer = await arquivo.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+const processarPdfHibrido = async (arquivo) => {
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = () => {
+      resolve({
+        arquivoPdf: reader.result,
+        nomeArquivoPdf: arquivo.name,
+        tamanhoArquivo: arquivo.size,
+        dataUploadPdf: new Date().toISOString()
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(arquivo);
+  });
+};
+
+const GerenciadorRelatoriosInternacional = React.memo(({ ticker }) => {
+  const [relatorios, setRelatorios] = React.useState([]);
+  const [dialogVisualizacao, setDialogVisualizacao] = React.useState(false);
+  const [relatorioSelecionado, setRelatorioSelecionado] = React.useState(null);
+  const [loadingIframe, setLoadingIframe] = React.useState(false);
+  const [timeoutError, setTimeoutError] = React.useState(false);
+  
+  // Estados para re-upload de PDFs grandes
+  const [dialogReupload, setDialogReupload] = React.useState(false);
+  const [relatorioReupload, setRelatorioReupload] = React.useState(null);
+  const [arquivoReupload, setArquivoReupload] = React.useState(null);
+
+  // ✅ CARREGAMENTO CENTRALIZADO (EXATA MESMA LÓGICA DO ARQUIVO 1)
+  React.useEffect(() => {
+    carregarRelatoriosCentralizados();
+    
+    // Listener para mudanças no localStorage (sincronização em tempo real)
+    const handleStorageChange = (e) => {
+      if (e.key === 'relatorios_central') {
+        carregarRelatoriosCentralizados();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [ticker]);
+
+  const carregarRelatoriosCentralizados = React.useCallback(() => {
+    try {
+      const dadosCentralizados = localStorage.getItem('relatorios_central');
+      
+      if (dadosCentralizados) {
+        const dados = JSON.parse(dadosCentralizados);
+        const relatoriosTicker = dados[ticker] || [];
+        
+        // Converter para formato compatível
+        const relatoriosFormatados = relatoriosTicker.map((rel) => ({
+          ...rel,
+          arquivo: rel.arquivoPdf ? 'PDF_CENTRALIZADO' : undefined,
+          tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
+        }));
+        
+        setRelatorios(relatoriosFormatados);
+        console.log(`✅ Relatórios carregados para ${ticker} (Internacional):`, relatoriosFormatados.length);
+      } else {
+        setRelatorios([]);
+        console.log(`❌ Nenhum relatório encontrado para ${ticker} (Internacional)`);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar relatórios internacionais:', error);
+      setRelatorios([]);
+    }
+  }, [ticker]);
+
+  // Re-upload para PDFs grandes (MESMA LÓGICA)
+  const handleReuploadPdf = React.useCallback(async (arquivo, relatorio) => {
+    try {
+      if (relatorio.hashArquivo) {
+        const novoHash = await calcularHash(arquivo);
+        if (novoHash !== relatorio.hashArquivo) {
+          if (!confirm('⚠️ O arquivo selecionado parece ser diferente do original. Continuar mesmo assim?')) {
+            return;
+          }
+        }
+      }
+
+      const dadosPdf = await processarPdfHibrido(arquivo);
+      const dadosCentralizados = JSON.parse(localStorage.getItem('relatorios_central') || '{}');
+      
+      if (dadosCentralizados[ticker]) {
+        const index = dadosCentralizados[ticker].findIndex((r) => r.id === relatorio.id);
+        if (index !== -1) {
+          dadosCentralizados[ticker][index] = {
+            ...dadosCentralizados[ticker][index],
+            ...dadosPdf,
+            solicitarReupload: false
+          };
+          
+          localStorage.setItem('relatorios_central', JSON.stringify(dadosCentralizados));
+          carregarRelatoriosCentralizados();
+          
+          setDialogReupload(false);
+          setArquivoReupload(null);
+          setRelatorioReupload(null);
+          
+          alert('✅ PDF atualizado com sucesso!');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Erro no re-upload:', error);
+      alert('❌ Erro ao processar arquivo');
+    }
+  }, [ticker, carregarRelatoriosCentralizados]);
+
+  // Download de PDF (MESMA LÓGICA)
+  const baixarPdf = React.useCallback((relatorio) => {
+    if (!relatorio.arquivoPdf) {
+      if (relatorio.solicitarReupload) {
+        setRelatorioReupload(relatorio);
+        setDialogReupload(true);
+        return;
+      } else {
+        alert('❌ Arquivo PDF não encontrado!');
+        return;
+      }
+    }
+    
+    try {
+      const link = document.createElement('a');
+      link.href = relatorio.arquivoPdf;
+      link.download = relatorio.nomeArquivoPdf || `${relatorio.nome.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      link.target = '_blank';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Feedback visual
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; background: #22c55e; color: white;
+        padding: 12px 20px; border-radius: 8px; z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      `;
+      toast.textContent = '📥 Download iniciado!';
+      document.body.appendChild(toast);
+      setTimeout(() => document.body.removeChild(toast), 3000);
+      
+    } catch (error) {
+      alert('❌ Erro ao baixar o arquivo. Tente novamente.');
+    }
+  }, []);
+
+  const getIconePorTipo = React.useCallback((tipo) => {
+    switch (tipo) {
+      case 'iframe': return '🖼️';
+      case 'canva': return '🎨';
+      case 'link': return '🔗';
+      case 'pdf': return '📄';
+      default: return '📄';
+    }
+  }, []);
+
+  // ✅ INTERFACE LIMPA - MESMA DO ARQUIVO 1
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '24px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '24px'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '20px' }}>📋</span>
+          <h3 style={{ 
+            fontSize: '18px', 
+            fontWeight: '600', 
+            margin: 0, 
+            color: '#1f2937' 
+          }}>
+            Relatórios da Empresa
+          </h3>
+        </div>
+      </div>
+
+      {relatorios.length === 0 ? (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '32px 0', 
+          color: '#6b7280' 
+        }}>
+          <p style={{ 
+            fontSize: '16px',
+            margin: '0 0 8px 0',
+            color: '#374151'
+          }}>
+            Nenhum relatório cadastrado para {ticker}
+          </p>
+          <p style={{ 
+            fontSize: '14px',
+            margin: 0
+          }}>
+            Os relatórios são gerenciados na mesma central das ações brasileiras
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {relatorios.map((relatorio) => (
+            <div key={relatorio.id} style={{ 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '8px', 
+              backgroundColor: 'white',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f8fafc';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'white';
+            }}>
+              <div style={{ padding: '20px' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: '16px'
+                }}>
+                  {/* Informações do relatório */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px'
+                    }}>
+                      <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
+                      <h4 style={{ 
+                        fontSize: '16px', 
+                        fontWeight: 600,
+                        margin: 0,
+                        color: '#1f2937'
+                      }}>
+                        {relatorio.nome}
+                      </h4>
+                      {relatorio.solicitarReupload && (
+                        <div style={{ 
+                          fontSize: '11px',
+                          border: '1px solid #f59e0b',
+                          color: '#d97706',
+                          backgroundColor: '#fef3c7',
+                          padding: '2px 8px',
+                          borderRadius: '4px'
+                        }}>
+                          Re-upload
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ marginBottom: '8px' }}>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#64748b',
+                        margin: 0
+                      }}>
+                        {relatorio.tipo} • {relatorio.dataReferencia}
+                      </p>
+                      {relatorio.tamanhoArquivo && (
+                        <p style={{ 
+                          fontSize: '12px', 
+                          color: '#64748b',
+                          margin: '4px 0 0 0'
+                        }}>
+                          📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Botões de ação */}
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    {/* Botão de visualização */}
+                    <button
+                      onClick={() => {
+                        setRelatorioSelecionado(relatorio);
+                        setDialogVisualizacao(true);
+                        setLoadingIframe(true);
+                        setTimeoutError(false);
+                      }}
+                      style={{
+                        backgroundColor: '#e3f2fd',
+                        border: '1px solid #bbdefb',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#1976d2',
+                        fontWeight: '500',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#bbdefb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#e3f2fd';
+                      }}
+                      title="Visualizar conteúdo"
+                    >
+                      👁 Ver
+                    </button>
+                    
+                    {/* Botão de download/re-upload */}
+                    {(relatorio.arquivoPdf || relatorio.nomeArquivoPdf) && (
+                      <button
+                        onClick={() => baixarPdf(relatorio)}
+                        style={{
+                          backgroundColor: relatorio.solicitarReupload ? '#fef3c7' : '#f0fdf4',
+                          border: `1px solid ${relatorio.solicitarReupload ? '#fde68a' : '#bbf7d0'}`,
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: relatorio.solicitarReupload ? '#d97706' : '#22c55e',
+                          fontWeight: '500',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (relatorio.solicitarReupload) {
+                            e.target.style.backgroundColor = '#fde68a';
+                          } else {
+                            e.target.style.backgroundColor = '#bbf7d0';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (relatorio.solicitarReupload) {
+                            e.target.style.backgroundColor = '#fef3c7';
+                          } else {
+                            e.target.style.backgroundColor = '#f0fdf4';
+                          }
+                        }}
+                        title={relatorio.solicitarReupload ? "Re-upload necessário" : "Baixar PDF"}
+                      >
+                        {relatorio.solicitarReupload ? '📤 Upload' : '📥 PDF'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dialog de visualização (MESMA LÓGICA) */}
+      {dialogVisualizacao && relatorioSelecionado && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+        onClick={() => {
+          setDialogVisualizacao(false);
+          setLoadingIframe(false);
+          setTimeoutError(false);
+          setRelatorioSelecionado(null);
+        }}>
+          <div style={{
+            backgroundColor: '#f8fafc',
+            borderRadius: '12px',
+            width: '95%',
+            height: '95%',
+            maxWidth: '1200px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+          onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header do dialog */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '20px',
+              backgroundColor: 'white',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
+              <div>
+                <h3 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  margin: '0 0 4px 0',
+                  color: '#1f2937'
+                }}>
+                  {getIconePorTipo(relatorioSelecionado?.tipoVisualizacao || '')} 
+                  {relatorioSelecionado?.nome}
+                </h3>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#64748b',
+                  margin: 0
+                }}>
+                  {relatorioSelecionado?.tipo} • {relatorioSelecionado?.dataReferencia}
+                </p>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  onClick={() => {
+                    const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                      ? relatorioSelecionado.linkCanva 
+                      : relatorioSelecionado.linkExterno;
+                    if (src) window.open(src, '_blank');
+                  }}
+                  style={{
+                    background: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                  title="Abrir em nova aba"
+                >
+                  🔗
+                </button>
+                <button 
+                  onClick={() => {
+                    setDialogVisualizacao(false);
+                    setLoadingIframe(false);
+                    setTimeoutError(false);
+                    setRelatorioSelecionado(null);
+                  }}
+                  style={{
+                    background: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            {/* Conteúdo do dialog */}
+            <div style={{ position: 'relative', flex: 1, backgroundColor: '#f8fafc' }}>
+              {loadingIframe && !timeoutError && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  left: '50%', 
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 2,
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '4px solid #e2e8f0',
+                    borderTop: '4px solid #3b82f6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 16px'
+                  }} />
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>
+                    Carregando conteúdo...
+                  </p>
+                </div>
+              )}
+
+              {timeoutError && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  left: '50%', 
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 2,
+                  textAlign: 'center',
+                  maxWidth: '400px',
+                  padding: '24px'
+                }}>
+                  <h4 style={{
+                    fontSize: '18px',
+                    color: '#ef4444',
+                    margin: '0 0 16px 0'
+                  }}>
+                    ⚠️ Erro ao Carregar
+                  </h4>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: '0 0 24px 0'
+                  }}>
+                    O conteúdo não pôde ser carregado.
+                  </p>
+                  
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                    <button 
+                      onClick={() => {
+                        setTimeoutError(false);
+                        setLoadingIframe(true);
+                      }}
+                      style={{
+                        background: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      🔄 Tentar Novamente
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                          ? relatorioSelecionado.linkCanva 
+                          : relatorioSelecionado.linkExterno;
+                        if (src) window.open(src, '_blank');
+                      }}
+                      style={{
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      🔗 Abrir em Nova Aba
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Iframe principal */}
+              <iframe
+                src={(() => {
+                  const relatorio = relatorioSelecionado;
+                  
+                  let url = '';
+                  if (relatorio.tipoVisualizacao === 'canva') {
+                    url = relatorio.linkCanva || '';
+                  } else {
+                    url = relatorio.linkExterno || '';
+                  }
+                  
+                  if (!url) return '';
+                  
+                  // Processar Canva automaticamente
+                  if (url.includes('canva.com')) {
+                    if (url.includes('?embed')) return url;
+                    if (url.includes('/view')) return url + '?embed';
+                    if (url.includes('/design/')) return url.replace(/\/(edit|preview).*$/, '/view?embed');
+                  }
+                  
+                  return url;
+                })()}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  opacity: timeoutError ? 0.3 : 1
+                }}
+                allowFullScreen
+                onLoad={() => {
+                  setLoadingIframe(false);
+                  setTimeoutError(false);
+                }}
+                onError={() => {
+                  setLoadingIframe(false);
+                  setTimeoutError(true);
+                }}
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              
+              {!loadingIframe && !timeoutError && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '16px', 
+                  right: '16px',
+                  zIndex: 1
+                }}>
+                  <button
+                    onClick={() => {
+                      const src = relatorioSelecionado.tipoVisualizacao === 'canva' 
+                        ? relatorioSelecionado.linkCanva 
+                        : relatorioSelecionado.linkExterno;
+                      if (src) window.open(src, '_blank');
+                    }}
+                    style={{ 
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                    title="Abrir em nova aba"
+                  >
+                    🔗
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog de re-upload (MESMA LÓGICA) */}
+      {dialogReupload && relatorioReupload && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+        onClick={() => setDialogReupload(false)}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '500px',
+            padding: '24px'
+          }}
+          onClick={(e) => e.stopPropagation()}>
+            
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              margin: '0 0 16px 0',
+              color: '#1f2937'
+            }}>
+              📤 Re-upload de PDF
+            </h3>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                background: '#fef3c7',
+                border: '1px solid #fde68a',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#92400e',
+                  margin: 0,
+                  lineHeight: 1.5
+                }}>
+                  <strong>📁 PDF Grande Detectado:</strong><br/>
+                  • <strong>Arquivo:</strong> {relatorioReupload.nomeArquivoPdf}<br/>
+                  • <strong>Tamanho:</strong> {relatorioReupload.tamanhoArquivo ? (relatorioReupload.tamanhoArquivo / 1024 / 1024).toFixed(2) : 'N/A'} MB<br/>
+                  • <strong>Motivo:</strong> PDFs >3MB são armazenados como referência
+                </p>
+              </div>
+              
+              <input
+                accept="application/pdf"
+                style={{ display: 'none' }}
+                id="reupload-pdf-input"
+                type="file"
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  if (arquivo && arquivo.size <= 10 * 1024 * 1024) {
+                    setArquivoReupload(arquivo);
+                  } else {
+                    alert('Arquivo muito grande! Máximo 10MB.');
+                  }
+                }}
+              />
+              <label htmlFor="reupload-pdf-input">
+                <button
+                  style={{
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px 24px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  ☁️ {arquivoReupload ? '✅ Arquivo Selecionado' : '📁 Selecionar PDF'}
+                </button>
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDialogReupload(false)}
+                style={{
+                  background: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (arquivoReupload && relatorioReupload) {
+                    handleReuploadPdf(arquivoReupload, relatorioReupload);
+                  }
+                }}
+                disabled={!arquivoReupload}
+                style={{
+                  background: arquivoReupload ? '#22c55e' : '#d1d5db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  cursor: arquivoReupload ? 'pointer' : 'not-allowed',
+                  fontSize: '14px'
+                }}
+              >
+                📤 Fazer Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+});
+
+
 export default function EmpresaExteriorDetalhes() {
 
     const getBackURL = (staticData, ticker) => {
@@ -2752,6 +3536,9 @@ const changePercent = result.regularMarketChangePercent || 0;
           dataEntrada={staticData?.dataEntrada || 'N/A'} 
         />
 
+        {/* Gerenciador de Relatórios */}
+<GerenciadorRelatoriosInternacional ticker={ticker} />
+        
         {/* Agenda Corporativa */}
 <AgendaCorporativaInternacional 
   ticker={ticker} 
