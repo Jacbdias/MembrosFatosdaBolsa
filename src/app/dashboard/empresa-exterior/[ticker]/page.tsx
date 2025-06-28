@@ -2139,7 +2139,6 @@ const changePercent = result.regularMarketChangePercent || 0;
             {staticData ? 'Dados da carteira Exterior Stocks para ' + ticker : 'Dados simulados para ' + ticker} - {new Date().toLocaleString('pt-BR')}
           </p>
         </div>
-      </div>
     </div>
   );
 }
