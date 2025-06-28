@@ -873,7 +873,7 @@ const fetchAPIData = async () => {
   }
 };
 
-// 🎯 FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
+// FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
 const findCompanyData = (tickerSymbol, apiData) => {
   console.log(`Procurando dados para ${tickerSymbol}...`);
   
