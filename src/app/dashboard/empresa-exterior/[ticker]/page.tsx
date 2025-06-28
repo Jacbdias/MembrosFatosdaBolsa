@@ -1848,7 +1848,6 @@ const changePercent = result.regularMarketChangePercent || 0;
           marginBottom: '24px',
           border: '1px solid #e2e8f0'
         }}>
-const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHigh - stockData.dayLow)) * 100;
 
 <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
   📊 Range do Dia
@@ -1867,17 +1866,19 @@ const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHi
               borderRadius: '6px',
               position: 'relative'
             }}>
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                height: '100%',
-                width: `${dayRangePercent}%`,
-                background: stockData.isPositive 
-                  ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
-                  : 'linear-gradient(90deg, #ef4444, #dc2626)',
-                borderRadius: '6px'
-              }} />
+<div
+  style={{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: `${dayRangePercent}%`,
+    background: stockData.isPositive 
+      ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
+      : 'linear-gradient(90deg, #ef4444, #dc2626)',
+    borderRadius: '6px'
+  }}
+/>
               <div style={{
                 position: 'absolute',
                 top: 0,
