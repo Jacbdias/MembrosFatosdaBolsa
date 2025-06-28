@@ -1616,23 +1616,23 @@ const changePercent = result.regularMarketChangePercent || 0;
                       </div>
                     )}
                     
-                    {/* Info adicional sobre BDR se existir */}
-                    {staticData?.bdr && bdrData && (
-                      <div style={{
-                        marginTop: '12px',
-                        padding: '8px 12px',
-                        background: 'rgba(34, 197, 94, 0.1)',
-                        borderRadius: '6px',
-                        fontSize: '12px'
-                      }}>
-                        <div style={{ fontWeight: 600, color: '#059669' }}>
-                          🇧🇷 {staticData.bdr}
-                        </div>
-                        <div style={{ color: '#374151' }}>
-                          R$ {bdrData.price}
-                        </div>
-                      </div>
-                    )}
+{/* Info adicional sobre BDR se existir */}
+{staticData?.bdr && bdrData && (
+  <div style={{
+    marginTop: '12px',
+    padding: '10px 14px',  // Aumentei o padding também
+    background: 'rgba(34, 197, 94, 0.1)',
+    borderRadius: '6px',
+    fontSize: '14px'  // Aumentei de 12px para 14px
+  }}>
+    <div style={{ fontWeight: 600, color: '#059669', fontSize: '15px' }}>  // Ticker do BDR maior
+      🇧🇷 {staticData.bdr}
+    </div>
+    <div style={{ color: '#374151', fontSize: '14px' }}>  // Preço também maior
+      R$ {bdrData.price}
+    </div>
+  </div>
+)}
                   </>
                 )}
               </div>
