@@ -489,12 +489,11 @@ export default function EmpresaExteriorDetalhes() {
   // 🇧🇷 Buscar dados do BDR se existir
   const { bdrData, bdrLoading } = useBDRDataAPI(staticData?.bdr);
 
-    const spinKeyframes = `
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  `;
+const spinKeyframes = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 
   // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
 const exteriorStocksDatabase = {
@@ -1390,7 +1389,7 @@ const changePercent = result.regularMarketChangePercent || 0;
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         border: '1px solid #e2e8f0'
       }}>
-        {/* Botão de Volta */}
+        {/* Botão de Volta - Layout igual à página brasileira */}
         <button
           onClick={() => window.history.back()}
           style={{
@@ -1398,29 +1397,26 @@ const changePercent = result.regularMarketChangePercent || 0;
             alignItems: 'center',
             gap: '8px',
             background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            padding: '8px 16px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '10px 20px',
             cursor: 'pointer',
             fontSize: '14px',
             fontWeight: '500',
-            color: '#374151',
+            color: '#6366f1',
             transition: 'all 0.2s ease',
-            '&:hover': {
-              backgroundColor: '#f9fafb',
-              borderColor: '#9ca3af'
-            }
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#f9fafb';
-            e.target.style.borderColor = '#9ca3af';
+            e.target.style.backgroundColor = '#f8fafc';
+            e.target.style.borderColor = '#c7d2fe';
           }}
           onMouseLeave={(e) => {
             e.target.style.backgroundColor = 'white';
-            e.target.style.borderColor = '#d1d5db';
+            e.target.style.borderColor = '#e5e7eb';
           }}
         >
-          <span style={{ fontSize: '16px' }}>←</span>
+          <span style={{ fontSize: '16px', color: '#6366f1' }}>←</span>
           Voltar
         </button>
         
@@ -1502,7 +1498,7 @@ const changePercent = result.regularMarketChangePercent || 0;
           </button>
         </div>
       </div>
-
+        
         {/* Card principal da empresa - NOVO ESTILO */}
         <div style={{
           marginBottom: '32px',
