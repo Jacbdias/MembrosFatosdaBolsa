@@ -1540,8 +1540,8 @@ const changePercent = result.regularMarketChangePercent || 0;
                   display: 'inline-block',
                   marginBottom: '16px'
                 }}>
-                  USD • {stockData.setor}
-                  {stockData.dy && ` • DY: ${stockData.dy}`}
+                  USD | {stockData.setor}
+                  {stockData.dy && ` | DY: ${stockData.dy}`}
                 </div>
                 
                 <p style={{ 
