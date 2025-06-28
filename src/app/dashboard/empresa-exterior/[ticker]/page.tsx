@@ -489,11 +489,12 @@ export default function EmpresaExteriorDetalhes() {
   // 🇧🇷 Buscar dados do BDR se existir
   const { bdrData, bdrLoading } = useBDRDataAPI(staticData?.bdr);
 
-const spinKeyframes = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+    const spinKeyframes = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
 
   // 🗄️ BANCO DE DADOS ESTÁTICO DAS EMPRESAS
 const exteriorStocksDatabase = {
@@ -873,9 +874,9 @@ const fetchAPIData = async () => {
   }
 };
 
-// FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
+// 🎯 FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
 const findCompanyData = (tickerSymbol, apiData) => {
-  console.log('Procurando dados para ' + tickerSymbol + '...');
+  console.log(`🔍 Procurando dados para ${tickerSymbol}...`);
   
   // 1. Primeiro verifica nos dados estáticos de stocks
   if (exteriorStocksDatabase[tickerSymbol]) {
@@ -1372,24 +1373,24 @@ const changePercent = result.regularMarketChangePercent || 0;
     }
   `;
   
-return (
-  <div style={containerStyle}>
-    <style>{`
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `}</style>
-    
-    <div style={maxWidthStyle}>
-      
-      {/* BOTAO DE VOLTA SIMPLES */}
+  return (
+    <div style={containerStyle}>
+      <style>{spinKeyframes}</style>
+      <div style={maxWidthStyle}>
+
+      {/* ✅ ADICIONAR ESTE HEADER COM BOTÃO DE VOLTA */}
       <div style={{
         display: 'flex',
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px'
+        marginBottom: '24px',
+        background: 'white',
+        padding: '16px 24px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e2e8f0'
       }}>
+        {/* Botão de Volta */}
         <button
           onClick={() => window.history.back()}
           style={{
@@ -1397,30 +1398,111 @@ return (
             alignItems: 'center',
             gap: '8px',
             background: 'white',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            padding: '10px 20px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            padding: '8px 16px',
             cursor: 'pointer',
             fontSize: '14px',
             fontWeight: '500',
-            color: '#6366f1',
+            color: '#374151',
             transition: 'all 0.2s ease',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+            '&:hover': {
+              backgroundColor: '#f9fafb',
+              borderColor: '#9ca3af'
+            }
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#f8fafc';
-            e.target.style.borderColor = '#c7d2fe';
+            e.target.style.backgroundColor = '#f9fafb';
+            e.target.style.borderColor = '#9ca3af';
           }}
           onMouseLeave={(e) => {
             e.target.style.backgroundColor = 'white';
-            e.target.style.borderColor = '#e5e7eb';
+            e.target.style.borderColor = '#d1d5db';
           }}
         >
-          <span style={{ fontSize: '16px', color: '#6366f1' }}>←</span>
+          <span style={{ fontSize: '16px' }}>←</span>
           Voltar
         </button>
-      </div>
         
+        {/* Status da API/Dados */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          {loading ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#dbeafe',
+              color: '#1e40af',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              Carregando...
+            </div>
+          ) : error ? (
+            <div style={{
+              background: '#fef2f2',
+              color: '#b91c1c',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}>
+              ⚠️ Erro na API
+            </div>
+          ) : stockData && stockData.price > 0 ? (
+            <div style={{
+              background: '#f0fdf4',
+              color: '#15803d',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}>
+              ✅ Dados da API BRAPI
+            </div>
+          ) : (
+            <div style={{
+              background: '#f8fafc',
+              color: '#64748b',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}>
+              📊 Dados simulados
+            </div>
+          )}
+          
+          {/* Botão de Refresh */}
+          <button
+            onClick={() => fetchStockData(ticker, staticData)}
+            disabled={loading}
+            style={{
+              background: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.5 : 1,
+              fontSize: '16px'
+            }}
+            title="Atualizar dados"
+          >
+            🔄
+          </button>
+        </div>
+      </div>
+
         {/* Card principal da empresa - NOVO ESTILO */}
         <div style={{
           marginBottom: '32px',
