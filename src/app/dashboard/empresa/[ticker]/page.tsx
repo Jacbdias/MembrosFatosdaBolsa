@@ -2051,9 +2051,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
               📅 Data de entrada: {dataEntrada}
             </Typography>
-            <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'warning.main' }}>
-              ⚠️ Use o botão "Debug" acima para verificar onde estão os dados
-            </Typography>
           </Box>
         ) : (
           <>
@@ -3875,17 +3872,7 @@ export default function EmpresaDetalhes() {
           />
         </Grid>
       </Grid>
-{/* ✅ NOVO: Alert para problemas com dados */}
-{(dy12Meses === 0 && dyDesdeEntrada === 0) && (
-  <Alert severity="warning" sx={{ mb: 3 }}>
-    <Typography variant="body2">
-      <strong>⚠️ Dados de proventos não encontrados para {ticker}</strong><br/>
-      • Para FIIs: Verifique se os rendimentos foram importados corretamente<br/>
-      • Para ações: Verifique se os dividendos estão na base de dados<br/>
-      • Use o botão "Debug" no histórico para diagnosticar o problema
-    </Typography>
-  </Alert>
-)}
+
       {/* Histórico de Dividendos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
