@@ -175,14 +175,11 @@ const HistoricoDividendosExterior = ({ ticker, dataEntrada }) => {
           padding: '32px 0', 
           color: '#6b7280' 
         }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
             ❌ Nenhum dividendo carregado para {ticker}
-          </p>
+          </h4>
           <p style={{ margin: '0 0 8px 0', fontSize: '12px' }}>
             📅 Data de entrada: {dataEntrada}
-          </p>
-          <p style={{ margin: 0, fontSize: '12px', color: '#f59e0b' }}>
-            ⚠️ Dados podem ser inseridos no mesmo local dos proventos brasileiros
           </p>
         </div>
       ) : (
