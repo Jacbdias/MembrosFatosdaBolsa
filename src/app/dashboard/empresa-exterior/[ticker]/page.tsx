@@ -1498,9 +1498,9 @@ const changePercent = result.regularMarketChangePercent || 0;
                     }}>
                       {(() => {
                         if (staticData) {
-                          if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
-                          if (staticData.tipo === 'ETF') return '📊 ETF';
-                          return '📈 STOCK';
+                          if (staticData.tipo === 'DIVIDEND') return ' DIVIDEND';
+                          if (staticData.tipo === 'ETF') return ' ETF';
+                          return ' STOCK';
                         }
                         return 'SEM COBERTURA';
                       })()}
