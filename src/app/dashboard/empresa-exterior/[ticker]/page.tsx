@@ -1625,10 +1625,10 @@ const changePercent = result.regularMarketChangePercent || 0;
     borderRadius: '6px',
     fontSize: '14px'  // Aumentei de 12px para 14px
   }}>
-    <div style={{ fontWeight: 600, color: '#059669', fontSize: '15px' }}>  // Ticker do BDR maior
+    <div style={{ fontWeight: 600, color: '#059669', fontSize: '15px' }}>
       🇧🇷 {staticData.bdr}
     </div>
-    <div style={{ color: '#374151', fontSize: '14px' }}>  // Preço também maior
+    <div style={{ color: '#374151', fontSize: '14px' }}>
       R$ {bdrData.price}
     </div>
   </div>
