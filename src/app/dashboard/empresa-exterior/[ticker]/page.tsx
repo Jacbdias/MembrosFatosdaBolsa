@@ -1757,6 +1757,7 @@ const changePercent = result.regularMarketChangePercent || 0;
                       display: 'block',
                       marginTop: '4px'
                     }}>
+                      {staticData.bdrTeto}
                     </span>
                   )}
                 </p>
