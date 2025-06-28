@@ -875,7 +875,7 @@ const fetchAPIData = async () => {
 
 // FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
 const findCompanyData = (tickerSymbol, apiData) => {
-  console.log(`Procurando dados para ${tickerSymbol}...`);
+  console.log('Procurando dados para ' + tickerSymbol + '...');
   
   // 1. Primeiro verifica nos dados estáticos de stocks
   if (exteriorStocksDatabase[tickerSymbol]) {
