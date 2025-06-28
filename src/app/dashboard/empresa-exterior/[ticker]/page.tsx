@@ -1364,7 +1364,7 @@ const changePercent = result.regularMarketChangePercent || 0;
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
-  };
+  `;
   
   return (
     <div style={containerStyle}>
@@ -2137,7 +2137,7 @@ const changePercent = result.regularMarketChangePercent || 0;
           textAlign: 'center'
         }}>
           <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            {staticData ? 'Dados da carteira Exterior Stocks para ' + ticker : 'Dados simulados para ' + ticker} | {new Date().toLocaleString('pt-BR')}
+            {staticData ? 'Dados da carteira Exterior Stocks para ' + ticker : 'Dados simulados para ' + ticker} - {new Date().toLocaleString('pt-BR')}
           </p>
         </div>
       </div>
