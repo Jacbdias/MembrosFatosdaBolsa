@@ -1314,7 +1314,7 @@ const changePercent = result.regularMarketChangePercent || 0;
 
   const containerStyle = {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    background: 'white',
     padding: '24px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
   };
