@@ -802,30 +802,6 @@ const AgendaCorporativaInternacional = React.memo(({ ticker, dataEntrada }) => {
             </p>
           )}
           
-          <button
-            onClick={() => window.location.href = '/dashboard/central-agenda'}
-            style={{
-              background: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#f9fafb';
-              e.target.style.borderColor = '#9ca3af';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'white';
-              e.target.style.borderColor = '#d1d5db';
-            }}
-          >
-            🛠️ Ir para Central da Agenda
-          </button>
         </div>
       ) : (
         /* LISTA DE EVENTOS */
