@@ -1530,25 +1530,18 @@ const changePercent = result.regularMarketChangePercent || 0;
                   {stockData.name}
                 </h2>
                 
-                <div style={{
-                  background: '#e2e8f0',
-                  color: '#475569',
-                  padding: '4px 12px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  display: 'inline-block',
-                  marginBottom: '16px'
-{stockData && (
-  <div
-    style={{
-      display: 'inline-block',
-      marginBottom: '16px'
-    }}
-  >
-    {'USD | ' + stockData.setor + (stockData.dy ? ' | DY: ' + stockData.dy : '')}
-  </div>
-)}
+<div style={{
+  background: '#e2e8f0',
+  color: '#475569',
+  padding: '4px 12px',
+  borderRadius: '6px',
+  fontSize: '13px',
+  fontWeight: 500,
+  display: 'inline-block',
+  marginBottom: '16px'
+}}>
+  USD | {stockData.setor}{stockData.dy && ` | DY: ${stockData.dy}`}
+</div>
                 
                 <p style={{ 
                   fontSize: '16px',
