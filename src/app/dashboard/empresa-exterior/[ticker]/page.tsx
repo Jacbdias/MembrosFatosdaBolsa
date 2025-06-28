@@ -2122,11 +2122,11 @@ const changePercent = result.regularMarketChangePercent || 0;
   </div>
 </div>
         
-        {/* Histórico de Dividendos */}
-        <HistoricoDividendosExterior 
-          ticker={ticker} 
-          dataEntrada={staticData?.dataEntrada || 'N/A'} 
-        />  
+<HistoricoDividendosExterior
+  ticker={ticker}
+  dataEntrada={staticData?.dataEntrada || 'N/A'}
+>
+</HistoricoDividendosExterior>
         
         <div style={{
           background: 'white',
