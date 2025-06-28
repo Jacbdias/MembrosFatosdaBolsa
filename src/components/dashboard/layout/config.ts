@@ -183,14 +183,14 @@ export const navItems = [
       },
       {
         key: 'admin-relatorios',
-        title: 'Relatórios',
+        title: 'Gestão de Relatórios',
         href: paths.dashboard.adminRelatorios,
         icon: 'chart-bar',
         page: 'admin-relatorios'
       },
       {
         key: 'admin-integracoes',
-        title: 'Integrações',
+        title: 'Agenda Corporativa',
         href: paths.dashboard.adminIntegracoes,
         icon: 'link',
         page: 'admin-integracoes'
