@@ -782,7 +782,6 @@ const AgendaCorporativaInternacional = React.memo(({ ticker, dataEntrada }) => {
     📭 Nenhum evento encontrado para {ticker}
   </h4>
 </div>
-        </div>
       ) : (
         /* LISTA DE EVENTOS */
         <>
