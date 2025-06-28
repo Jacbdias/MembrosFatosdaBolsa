@@ -1377,19 +1377,13 @@ const changePercent = result.regularMarketChangePercent || 0;
       <style>{spinKeyframes}</style>
       <div style={maxWidthStyle}>
 
-      {/* ✅ ADICIONAR ESTE HEADER COM BOTÃO DE VOLTA */}
+      {/* ✅ BOTÃO DE VOLTA SIMPLES */}
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'center',
-        marginBottom: '24px',
-        background: 'white',
-        padding: '16px 24px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e2e8f0'
+        marginBottom: '24px'
       }}>
-        {/* Botão de Volta - Layout igual à página brasileira */}
         <button
           onClick={() => window.history.back()}
           style={{
@@ -1419,84 +1413,6 @@ const changePercent = result.regularMarketChangePercent || 0;
           <span style={{ fontSize: '16px', color: '#6366f1' }}>←</span>
           Voltar
         </button>
-        
-        {/* Status da API/Dados */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          {loading ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#dbeafe',
-              color: '#1e40af',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '14px'
-            }}>
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #e2e8f0',
-                borderTop: '2px solid #3b82f6',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-              Carregando...
-            </div>
-          ) : error ? (
-            <div style={{
-              background: '#fef2f2',
-              color: '#b91c1c',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '14px'
-            }}>
-              ⚠️ Erro na API
-            </div>
-          ) : stockData && stockData.price > 0 ? (
-            <div style={{
-              background: '#f0fdf4',
-              color: '#15803d',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '14px'
-            }}>
-              ✅ Dados da API BRAPI
-            </div>
-          ) : (
-            <div style={{
-              background: '#f8fafc',
-              color: '#64748b',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '14px'
-            }}>
-              📊 Dados simulados
-            </div>
-          )}
-          
-          {/* Botão de Refresh */}
-          <button
-            onClick={() => fetchStockData(ticker, staticData)}
-            disabled={loading}
-            style={{
-              background: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.5 : 1,
-              fontSize: '16px'
-            }}
-            title="Atualizar dados"
-          >
-            🔄
-          </button>
-        </div>
       </div>
         
         {/* Card principal da empresa - NOVO ESTILO */}
