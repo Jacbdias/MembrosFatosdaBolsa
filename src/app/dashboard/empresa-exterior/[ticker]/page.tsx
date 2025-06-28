@@ -477,6 +477,502 @@ const HistoricoDividendosExterior = ({ ticker, dataEntrada }) => {
   );
 };
 
+// ========================================
+// COMPONENTE AGENDA CORPORATIVA - VERSÃO INTERNACIONAL
+// ========================================
+const AgendaCorporativaInternacional = React.memo(({ ticker, dataEntrada }) => {
+  const [eventos, setEventos] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [debugInfo, setDebugInfo] = React.useState(null);
+  const [showDebug, setShowDebug] = React.useState(false);
+
+  // Função para calcular dias até o evento
+  const calcularDiasAteEvento = React.useCallback((dataEvento) => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const evento = new Date(dataEvento);
+    evento.setHours(0, 0, 0, 0);
+    
+    const diffTime = evento.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  }, []);
+
+  // Função para formatar a proximidade do evento
+  const formatarProximidade = React.useCallback((dias) => {
+    if (dias < 0) return 'Passou';
+    if (dias === 0) return 'Hoje';
+    if (dias === 1) return 'Amanhã';
+    if (dias <= 7) return `Em ${dias} dias`;
+    if (dias <= 30) return `Em ${Math.ceil(dias / 7)} semanas`;
+    return `Em ${Math.ceil(dias / 30)} meses`;
+  }, []);
+
+  // 🔄 Função principal para carregar eventos - MESMA LÓGICA DO ARQUIVO 1
+  const carregarEventos = React.useCallback(() => {
+    if (!ticker) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // 🔄 BUSCAR DADOS DA CENTRAL DA AGENDA (MESMO LOCAL DAS AÇÕES BRASILEIRAS)
+      const agendaCorporativaCentral = localStorage.getItem('agenda_corporativa_central');
+      
+      const debug = {
+        ticker,
+        agendaCentralExiste: !!agendaCorporativaCentral,
+        agendaCentralSize: agendaCorporativaCentral ? agendaCorporativaCentral.length : 0,
+        dadosRaw: null,
+        eventosTicker: null,
+        eventosValidos: [],
+        erros: []
+      };
+
+      console.log(`🔍 [DEBUG] Carregando eventos da CENTRAL para ${ticker} (Internacional):`, debug);
+
+      if (!agendaCorporativaCentral) {
+        debug.erros.push('localStorage agenda_corporativa_central não encontrado - use /central-agenda para fazer upload do CSV');
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      let dadosAgenda;
+      try {
+        dadosAgenda = JSON.parse(agendaCorporativaCentral);
+        debug.dadosRaw = dadosAgenda;
+      } catch (parseError) {
+        debug.erros.push(`Erro ao fazer parse do JSON: ${parseError.message}`);
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      // 🎯 FILTRAR EVENTOS DO TICKER ESPECÍFICO (EXATA MESMA LÓGICA)
+      const eventosTicker = Array.isArray(dadosAgenda) 
+        ? dadosAgenda.filter((evento) => evento.ticker === ticker)
+        : [];
+
+      debug.eventosTicker = eventosTicker;
+
+      if (eventosTicker.length === 0) {
+        debug.erros.push(`Nenhum evento encontrado para ticker ${ticker} na central`);
+        
+        // Mostrar quais tickers estão disponíveis
+        if (Array.isArray(dadosAgenda)) {
+          const tickersDisponiveis = [...new Set(dadosAgenda.map((e) => e.ticker))];
+          debug.tickersDisponiveis = tickersDisponiveis;
+        }
+        
+        setDebugInfo(debug);
+        setEventos([]);
+        setLoading(false);
+        return;
+      }
+
+      // 🔄 PROCESSAR E VALIDAR EVENTOS (MESMA LÓGICA)
+      const eventosProcessados = eventosTicker.map((evento, index) => {
+        try {
+          // Converter data_evento para Date
+          let dataEvento;
+          
+          if (evento.data_evento) {
+            // Parser inteligente de datas - aceita múltiplos formatos
+            const parseDataInteligente = (dataString) => {
+              if (!dataString) return null;
+              
+              // Remover espaços e normalizar separadores
+              const data = dataString.trim().replace(/\//g, '-').replace(/\./g, '-');
+              
+              const match = data.match(/^(\d{1,4})-(\d{1,2})-(\d{1,2})$/);
+              if (!match) return null;
+              
+              const [, parte1, parte2, parte3] = match;
+              let ano, mes, dia;
+              
+              // Detectar formato baseado nos valores
+              if (parte1.length === 4) {
+                // Começa com ano (4 dígitos)
+                ano = parseInt(parte1);
+                
+                if (parseInt(parte2) > 12) {
+                  // YYYY-DD-MM
+                  dia = parseInt(parte2);
+                  mes = parseInt(parte3);
+                } else if (parseInt(parte3) > 12) {
+                  // YYYY-MM-DD
+                  mes = parseInt(parte2);
+                  dia = parseInt(parte3);
+                } else {
+                  // Ambos podem ser mês/dia, assumir YYYY-MM-DD como padrão
+                  mes = parseInt(parte2);
+                  dia = parseInt(parte3);
+                }
+              } else {
+                // Não começa com ano
+                ano = parseInt(parte3);
+                
+                if (parseInt(parte1) > 12) {
+                  // DD-MM-YYYY
+                  dia = parseInt(parte1);
+                  mes = parseInt(parte2);
+                } else {
+                  // Assumir formato brasileiro como padrão
+                  dia = parseInt(parte1);
+                  mes = parseInt(parte2);
+                }
+              }
+              
+              // Validar valores
+              if (ano < 1900 || ano > 2100) return null;
+              if (mes < 1 || mes > 12) return null;
+              if (dia < 1 || dia > 31) return null;
+              
+              // Criar data com horário fixo para evitar problemas de timezone
+              return new Date(ano, mes - 1, dia, 12, 0, 0);
+            };
+
+            // Usar o parser inteligente
+            dataEvento = parseDataInteligente(evento.data_evento);
+            if (!dataEvento) {
+              console.error(`Data inválida: ${evento.data_evento}`);
+              return null;
+            }
+          } else if (evento.data) {
+            dataEvento = new Date(evento.data);
+          } else {
+            throw new Error('Campo data_evento não encontrado');
+          }
+
+          if (isNaN(dataEvento.getTime())) {
+            throw new Error(`Data inválida: ${evento.data_evento || evento.data}`);
+          }
+
+          return {
+            id: evento.id || `${ticker}-${index}`,
+            ticker: evento.ticker,
+            tipo: evento.tipo_evento || evento.tipo,
+            titulo: evento.titulo,
+            descricao: evento.descricao,
+            data: evento.data_evento || evento.data,
+            dataObj: dataEvento,
+            status: evento.status,
+            prioridade: evento.prioridade,
+            categoria: evento.tipo_evento || evento.tipo,
+            estimado: evento.status?.toLowerCase() === 'estimado',
+            observacoes: evento.observacoes
+          };
+        } catch (error) {
+          debug.erros.push(`Evento ${index}: ${error.message}`);
+          return null;
+        }
+      }).filter(Boolean);
+
+      // Ordenar eventos por data
+      eventosProcessados.sort((a, b) => a.dataObj.getTime() - b.dataObj.getTime());
+
+      debug.eventosValidos = eventosProcessados.map(e => ({
+        id: e.id,
+        titulo: e.titulo,
+        data: e.dataObj.toISOString(),
+        tipo: e.tipo
+      }));
+
+      setDebugInfo(debug);
+      setEventos(eventosProcessados);
+      
+      console.log(`✅ [DEBUG] Eventos carregados da CENTRAL para ${ticker} (Internacional):`, {
+        total: eventosProcessados.length,
+        eventos: debug.eventosValidos
+      });
+
+    } catch (error) {
+      console.error(`❌ [DEBUG] Erro geral ao carregar eventos internacionais:`, error);
+      setDebugInfo({
+        ticker,
+        erros: [`Erro geral: ${error.message}`]
+      });
+      setEventos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker]);
+
+  // Carregar eventos ao montar o componente
+  React.useEffect(() => {
+    carregarEventos();
+  }, [carregarEventos]);
+
+  // 🎨 RENDER DO COMPONENTE (MESMA INTERFACE)
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '24px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '24px'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '20px' }}>📅</span>
+          <h3 style={{ 
+            fontSize: '18px', 
+            fontWeight: '600', 
+            margin: 0, 
+            color: '#1f2937' 
+          }}>
+            Agenda Corporativa
+          </h3>
+        </div>
+      </div>
+
+      {/* ESTADO DE LOADING */}
+      {loading ? (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          padding: '32px 0' 
+        }}>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            border: '2px solid #e2e8f0',
+            borderTop: '2px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginRight: '12px'
+          }} />
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '14px',
+            margin: 0
+          }}>
+            Carregando eventos...
+          </p>
+        </div>
+      ) : eventos.length === 0 ? (
+        /* ESTADO SEM EVENTOS */
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '32px 0', 
+          color: '#6b7280' 
+        }}>
+          <h4 style={{ 
+            fontSize: '18px', 
+            margin: '0 0 12px 0',
+            color: '#374151' 
+          }}>
+            📭 Nenhum evento encontrado para {ticker}
+          </h4>
+          
+          <p style={{ 
+            fontSize: '14px', 
+            margin: '0 0 16px 0' 
+          }}>
+            {debugInfo?.erros?.length > 0 
+              ? `❌ Problemas detectados: ${debugInfo.erros.length}`
+              : `ℹ️ Não há eventos cadastrados para este ticker`
+            }
+          </p>
+          
+          {debugInfo?.tickersDisponiveis && (
+            <p style={{ 
+              fontSize: '12px', 
+              margin: '0 0 16px 0', 
+              color: '#3b82f6' 
+            }}>
+              📊 Tickers disponíveis na central: {debugInfo.tickersDisponiveis.join(', ')}
+            </p>
+          )}
+          
+          <button
+            onClick={() => window.location.href = '/dashboard/central-agenda'}
+            style={{
+              background: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f9fafb';
+              e.target.style.borderColor = '#9ca3af';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'white';
+              e.target.style.borderColor = '#d1d5db';
+            }}
+          >
+            🛠️ Ir para Central da Agenda
+          </button>
+        </div>
+      ) : (
+        /* LISTA DE EVENTOS */
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {eventos.slice(0, 4).map((evento, index) => {
+              const diasAteEvento = calcularDiasAteEvento(evento.dataObj);
+              const proximidade = formatarProximidade(diasAteEvento);
+              
+              return (
+                <div key={evento.id} style={{ 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  cursor: 'default',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#f8fafc';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                }}>
+                  <div style={{ padding: '20px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '24px'
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h4 style={{ 
+                              fontWeight: 600,
+                              fontSize: '16px',
+                              margin: '0 0 8px 0',
+                              color: '#1e293b'
+                            }}>
+                              {evento.titulo}
+                            </h4>
+                            
+                            <p style={{ 
+                              color: '#64748b', 
+                              fontSize: '14px',
+                              lineHeight: 1.4,
+                              margin: '0 0 12px 0'
+                            }}>
+                              {evento.descricao}
+                            </p>
+
+                            <div style={{ 
+                              display: 'flex', 
+                              gap: '8px', 
+                              alignItems: 'center',
+                              flexWrap: 'wrap'
+                            }}>
+                              <div style={{ 
+                                backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
+                                color: 'white',
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                padding: '4px 12px',
+                                borderRadius: '6px'
+                              }}>
+                                {proximidade}
+                              </div>
+                              
+                              <div style={{ 
+                                fontSize: '12px',
+                                border: '1px solid #d1d5db',
+                                color: '#6b7280',
+                                padding: '4px 12px',
+                                borderRadius: '6px'
+                              }}>
+                                {evento.tipo}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ 
+                            textAlign: 'right',
+                            minWidth: '120px',
+                            flexShrink: 0
+                          }}>
+                            <div style={{ 
+                              fontWeight: 700,
+                              color: diasAteEvento <= 7 ? '#f59e0b' : '#3b82f6',
+                              fontSize: '24px',
+                              lineHeight: 1
+                            }}>
+                              {evento.dataObj.getDate()}
+                            </div>
+                            <div style={{ 
+                              fontWeight: 600,
+                              color: '#64748b',
+                              fontSize: '14px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px',
+                              marginTop: '4px'
+                            }}>
+                              {evento.dataObj.toLocaleDateString('pt-BR', {
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </div>
+                            <div style={{ 
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginTop: '4px'
+                            }}>
+                              {evento.dataObj.toLocaleDateString('pt-BR', {
+                                weekday: 'long'
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {eventos.length > 4 && (
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#6b7280',
+                margin: 0
+              }}>
+                Mostrando os próximos 4 eventos • Total: {eventos.length}
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+});
+
 export default function EmpresaExteriorDetalhes() {
 
     const getBackURL = (staticData, ticker) => {
@@ -2254,7 +2750,13 @@ const changePercent = result.regularMarketChangePercent || 0;
         <HistoricoDividendosExterior 
           ticker={ticker} 
           dataEntrada={staticData?.dataEntrada || 'N/A'} 
-        />  
+        />
+
+        {/* Agenda Corporativa */}
+<AgendaCorporativaInternacional 
+  ticker={ticker} 
+  dataEntrada={staticData?.dataEntrada || 'N/A'} 
+/>
         
         <div style={{
           background: 'white',
