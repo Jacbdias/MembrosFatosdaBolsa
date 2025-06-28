@@ -1364,7 +1364,7 @@ const changePercent = result.regularMarketChangePercent || 0;
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
-  `;
+  `};
   
   return (
     <div style={containerStyle}>
