@@ -1551,8 +1551,8 @@ const changePercent = result.regularMarketChangePercent || 0;
                   margin: 0,
                   maxWidth: '600px'
                 }}>
-                  Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}. 
-                  {staticData ? 'Ativo presente na nossa carteira de recomendações.' : 'Empresa sem cobertura ativa.'}
+  Empresa listada no mercado americano com foco em {stockData.setor.toLowerCase()}.
+  {!staticData && ' Empresa sem cobertura ativa.'}
                 </p>
                 
                 {/* Alertas importantes */}
