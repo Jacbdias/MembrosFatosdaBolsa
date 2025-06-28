@@ -1539,10 +1539,12 @@ const changePercent = result.regularMarketChangePercent || 0;
                   fontWeight: 500,
                   display: 'inline-block',
                   marginBottom: '16px'
-<div style={{
-  display: 'inline-block',
-  marginBottom: '16px'
-}}>
+<div
+  style={{
+    display: 'inline-block',
+    marginBottom: '16px'
+  }}
+>
   {`USD | ${stockData.setor}${stockData.dy ? ` | DY: ${stockData.dy}` : ''}`}
 </div>
                 
