@@ -1139,19 +1139,13 @@ const GerenciadorRelatoriosInternacional = React.memo(({ ticker }) => {
           padding: '32px 0', 
           color: '#6b7280' 
         }}>
-          <p style={{ 
+          <h4 style={{ 
             fontSize: '16px',
             margin: '0 0 8px 0',
             color: '#374151'
           }}>
             Nenhum relatório cadastrado para {ticker}
-          </p>
-          <p style={{ 
-            fontSize: '14px',
-            margin: 0
-          }}>
-            Os relatórios são gerenciados na mesma central das ações brasileiras
-          </p>
+          </h4>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
