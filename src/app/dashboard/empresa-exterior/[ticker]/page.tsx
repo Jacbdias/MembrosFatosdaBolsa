@@ -1570,66 +1570,6 @@ const changePercent = result.regularMarketChangePercent || 0;
                     ⚠️ Empresa sem cobertura – este ativo não está em nossa carteira de recomendações.
                   </div>
                 )}
-                
-                {/* Dados da carteira se disponível */}
-                {staticData && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    padding: '16px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    marginTop: '16px'
-                  }}>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', 
-                      gap: '12px' 
-                    }}>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Data de Entrada
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {stockData.dataEntrada}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Preço de Entrada
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {stockData.precoQueIniciou}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Preço Teto
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {stockData.precoTeto}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px 0', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Viés Atual
-                        </p>
-                        <div style={{
-                          display: 'inline-block',
-                          background: stockData.vies === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          border: '1px solid',
-                          borderColor: stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'
-                        }}>
-                          {stockData.vies}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
               
               {/* PREÇO E VARIAÇÃO (DIREITA) */}
@@ -1700,6 +1640,153 @@ const changePercent = result.regularMarketChangePercent || 0;
           </div>
         </div>
 
+        {staticData && (
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <span style={{ fontSize: '20px' }}>📊</span>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0, 
+                color: '#1f2937' 
+              }}>
+                Dados da Carteira
+              </h3>
+            </div>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(4, 1fr)', 
+              gap: '20px' 
+            }}>
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                background: '#f8fafc',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: '#64748b', 
+                  margin: '0 0 8px 0', 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Data de Entrada
+                </p>
+                <p style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#1f2937', 
+                  margin: 0 
+                }}>
+                  {stockData.dataEntrada}
+                </p>
+              </div>
+              
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                background: '#f0f9ff',
+                borderRadius: '12px',
+                border: '1px solid #bae6fd'
+              }}>
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: '#0369a1', 
+                  margin: '0 0 8px 0', 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Preço de Entrada
+                </p>
+                <p style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#0f172a', 
+                  margin: 0 
+                }}>
+                  {stockData.precoQueIniciou}
+                </p>
+              </div>
+              
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                background: '#f0fdf4',
+                borderRadius: '12px',
+                border: '1px solid #bbf7d0'
+              }}>
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: '#059669', 
+                  margin: '0 0 8px 0', 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Preço Teto
+                </p>
+                <p style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#0f172a', 
+                  margin: 0 
+                }}>
+                  {stockData.precoTeto}
+                </p>
+              </div>
+              
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                background: stockData.vies === 'COMPRA' ? '#f0fdf4' : '#fefce8',
+                borderRadius: '12px',
+                border: `1px solid ${stockData.vies === 'COMPRA' ? '#bbf7d0' : '#fde68a'}`
+              }}>
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: stockData.vies === 'COMPRA' ? '#059669' : '#d97706', 
+                  margin: '0 0 8px 0', 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Viés Atual
+                </p>
+                <div style={{
+                  display: 'inline-block',
+                  background: stockData.vies === 'COMPRA' ? '#22c55e' : '#f59e0b',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}>
+                  {stockData.vies}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+         {/* ADICIONAR ESTA DIV QUE ESTAVA FALTANDO */}
         <div style={{
           background: '#f8fafc',
           padding: '16px',
