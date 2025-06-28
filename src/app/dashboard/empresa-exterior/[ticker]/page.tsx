@@ -1539,9 +1539,12 @@ const changePercent = result.regularMarketChangePercent || 0;
                   fontWeight: 500,
                   display: 'inline-block',
                   marginBottom: '16px'
-                }}>
-                  USD | {stockData.setor}{stockData.dy && ` | DY: ${stockData.dy}`}
-                </div>
+<div style={{
+  display: 'inline-block',
+  marginBottom: '16px'
+}}>
+  {`USD | ${stockData.setor}${stockData.dy ? ` | DY: ${stockData.dy}` : ''}`}
+</div>
                 
                 <p style={{ 
                   fontSize: '16px',
@@ -1845,15 +1848,17 @@ const changePercent = result.regularMarketChangePercent || 0;
           marginBottom: '24px',
           border: '1px solid #e2e8f0'
         }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
-            📊 Range do Dia
-          </h3>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px'
-          }}>
+const dayRangePercent = ((stockData.price - stockData.dayLow) / (stockData.dayHigh - stockData.dayLow)) * 100;
+
+<h3 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', margin: '0 0 12px 0' }}>
+  📊 Range do Dia
+</h3>
+<div style={{
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '16px'
+}}>
             <span style={{ fontSize: '14px', fontWeight: '500' }}>${stockData.dayLow}</span>
             <div style={{
               flex: 1,
