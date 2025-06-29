@@ -717,7 +717,7 @@ export default function Page(): React.JSX.Element {
                   <TableRow 
                     hover 
                     key={row.id}
-                    onClick={() => window.location.href = `/dashboard/empresa/${row.ticker}`}
+                    onClick={() => window.location.href = `/dashboard/empresa-exterior/${row.ticker}`}
                     sx={{
                       '&:hover': {
                         backgroundColor: 'rgba(0, 0, 0, 0.04)',
