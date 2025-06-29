@@ -105,33 +105,46 @@ export default function CentralProventos() {
     setArquivoSelecionado(file);
   };
 
-  // ✅ FUNÇÃO PROCESSARCSV CORRIGIDA - PROBLEMA DE DATA RESOLVIDO
-  const processarCSV = useCallback(async () => {
-    if (!arquivoSelecionado) return;
+// ✅ FUNÇÃO PROCESSARCSV OTIMIZADA PARA ARQUIVOS GRANDES (20k+ linhas)
+const processarCSV = useCallback(async () => {
+  if (!arquivoSelecionado) return;
 
-    setLoading(true);
-    setProgresso(0);
-    setEtapaProcessamento('Lendo arquivo...');
-    await delay(300);
+  setLoading(true);
+  setProgresso(0);
+  setEtapaProcessamento('Lendo arquivo...');
+  await delay(300);
 
-    try {
-      const text = await arquivoSelecionado.text();
-      const linhas = text.split('\n').filter(l => l.trim());
+  try {
+    const text = await arquivoSelecionado.text();
+    const linhas = text.split('\n').filter(l => l.trim());
+    
+    // ✅ VERIFICAR LIMITE
+    if (linhas.length > 50000) {
+      alert('Arquivo muito grande. Máximo de 50.000 linhas suportado.');
+      setLoading(false);
+      return;
+    }
+
+    if (linhas.length < 2) {
+      alert('Arquivo vazio ou sem dados válidos.');
+      setLoading(false);
+      return;
+    }
+
+    setEtapaProcessamento(`Processando ${linhas.length - 1} linhas...`);
+    setProgresso(10);
+    await delay(100);
+
+    const proventos: ProventoCentral[] = [];
+    let errosProcessamento = 0;
+    const BATCH_SIZE = 100; // Processar 100 linhas por vez
+    
+    // ✅ PROCESSAMENTO EM LOTES
+    for (let batchStart = 1; batchStart < linhas.length; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, linhas.length);
       
-      if (linhas.length < 2) {
-        alert('Arquivo vazio ou sem dados válidos.');
-        setLoading(false);
-        return;
-      }
-
-      setEtapaProcessamento('Processando linhas...');
-      setProgresso(30);
-      await delay(300);
-
-      const proventos: ProventoCentral[] = [];
-      let errosProcessamento = 0;
-
-      for (let i = 1; i < linhas.length; i++) {
+      // Processar lote atual
+      for (let i = batchStart; i < batchEnd; i++) {
         try {
           const linha = linhas[i].replace(/\r/g, '').trim();
           if (!linha) continue;
@@ -269,32 +282,49 @@ export default function CentralProventos() {
             errosProcessamento++;
           }
 
-          // Atualizar progresso
-          if (i % 50 === 0) {
-            const progressoAtual = 30 + (i / linhas.length) * 40;
-            setProgresso(progressoAtual);
-            await delay(10);
-          }
-
         } catch (error) {
           console.error(`Erro na linha ${i}:`, error);
           errosProcessamento++;
         }
       }
 
-      if (proventos.length === 0) {
-        alert(`Nenhum provento válido encontrado. Erros: ${errosProcessamento}`);
-        setLoading(false);
-        return;
-      }
+      // ✅ ATUALIZAR PROGRESSO E DAR UMA PAUSA
+      const progressoAtual = 10 + ((batchEnd - 1) / (linhas.length - 1)) * 70;
+      setProgresso(progressoAtual);
+      setEtapaProcessamento(`Processando... ${batchEnd - 1}/${linhas.length - 1} linhas`);
+      
+      // Pausa para não travar a UI
+      await delay(50);
+    }
 
-      setEtapaProcessamento('Salvando dados...');
-      setProgresso(80);
-      await delay(300);
+    if (proventos.length === 0) {
+      alert(`Nenhum provento válido encontrado. Erros: ${errosProcessamento}`);
+      setLoading(false);
+      return;
+    }
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('proventos_central_master', JSON.stringify(proventos));
+    setEtapaProcessamento('Salvando dados...');
+    setProgresso(85);
+    await delay(300);
+
+    // ✅ VERIFICAR TAMANHO ANTES DE SALVAR
+    const dadosString = JSON.stringify(proventos);
+    const tamanhoMB = new Blob([dadosString]).size / (1024 * 1024);
+    
+    if (tamanhoMB > 8) {
+      alert(`Dados muito grandes (${tamanhoMB.toFixed(1)}MB). Limite recomendado: 8MB.`);
+      setLoading(false);
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('proventos_central_master', dadosString);
         localStorage.setItem('proventos_central_data_upload', new Date().toISOString());
+        
+        setEtapaProcessamento('Organizando por ticker...');
+        setProgresso(95);
+        await delay(200);
         
         const porTicker: Record<string, any[]> = {};
         proventos.forEach(p => {
@@ -305,30 +335,44 @@ export default function CentralProventos() {
         Object.entries(porTicker).forEach(([t, ps]) => {
           localStorage.setItem(`proventos_${t}`, JSON.stringify(ps));
         });
-      }
 
-      setProgresso(100);
-      await delay(500);
-      carregarEstatisticas();
-      
-      let mensagem = `✅ ${proventos.length} proventos processados com sucesso!`;
-      if (errosProcessamento > 0) {
-        mensagem += `\n⚠️ ${errosProcessamento} linhas ignoradas por erros.`;
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          alert('Limite de armazenamento excedido. Reduza o tamanho do arquivo.');
+          setLoading(false);
+          return;
+        }
+        throw error;
       }
-      
-      alert(mensagem);
-      setDialogAberto(false);
-      setArquivoSelecionado(null);
-
-    } catch (error) {
-      console.error('Erro no processamento:', error);
-      alert('Erro ao processar o arquivo. Verifique o formato.');
-    } finally {
-      setLoading(false);
-      setEtapaProcessamento('');
-      setProgresso(0);
     }
-  }, [arquivoSelecionado, carregarEstatisticas]);
+
+    setProgresso(100);
+    await delay(500);
+    carregarEstatisticas();
+    
+    let mensagem = `✅ ${proventos.length.toLocaleString()} proventos processados com sucesso!`;
+    mensagem += `\n📊 Tamanho: ${tamanhoMB.toFixed(2)}MB`;
+    if (errosProcessamento > 0) {
+      mensagem += `\n⚠️ ${errosProcessamento} linhas ignoradas por erros.`;
+    }
+    
+    alert(mensagem);
+    setDialogAberto(false);
+    setArquivoSelecionado(null);
+
+  } catch (error) {
+    console.error('Erro no processamento:', error);
+    if (error.name === 'QuotaExceededError') {
+      alert('Limite de armazenamento do navegador excedido.');
+    } else {
+      alert('Erro ao processar o arquivo. Verifique o formato.');
+    }
+  } finally {
+    setLoading(false);
+    setEtapaProcessamento('');
+    setProgresso(0);
+  }
+}, [arquivoSelecionado, carregarEstatisticas]);
 
   const exportarDados = () => {
     if (typeof window === 'undefined') return;
