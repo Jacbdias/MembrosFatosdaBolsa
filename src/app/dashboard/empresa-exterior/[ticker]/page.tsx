@@ -1705,7 +1705,7 @@ const GerenciadorRelatoriosInternacional = React.memo(({ ticker }) => {
 
 export default function EmpresaExteriorDetalhes() {
 
-    const getBackURL = (staticData, ticker) => {
+  const getBackURL = (staticData, ticker) => {
     const baseURL = 'https://membros-fatosda-bolsa.vercel.app/dashboard/internacional';
     
     // Se não tem dados estáticos, verifica se é um ETF conhecido pelo ticker
@@ -1720,7 +1720,14 @@ export default function EmpresaExteriorDetalhes() {
     }
     
     // Se tem dados estáticos, usa o tipo para determinar a página
+    // Se está em múltiplas carteiras, prioriza o Projeto América
+    if (staticData.multiplePortfolios && staticData.portfoliosList.includes('PROJETO_AMERICA')) {
+      return `${baseURL}/projeto-america`;
+    }
+    
     switch (staticData.tipo) {
+      case 'PROJETO_AMERICA':
+        return `${baseURL}/projeto-america`;
       case 'ETF':
         return `${baseURL}/etfs`;
       case 'DIVIDEND':
@@ -2096,6 +2103,146 @@ const exteriorETFsDatabase = {
   }
 };
 
+// 🗄️ BANCO DE DADOS ESTÁTICO DO PROJETO AMÉRICA
+const projetoAmericaDatabase = {
+  'NVDA': {
+    rank: '1º',
+    name: 'NVIDIA Corporation',
+    setor: 'Semicondutores',
+    dataEntrada: '09/04/2025',
+    precoQueIniciou: 'US$98,88',
+    precoTeto: 'US$110,00',
+    avatar: 'https://logo.clearbit.com/nvidia.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'NVDC34',
+    bdrTeto: 'R$ 13,85'
+  },
+  'AMZN': {
+    rank: '2º',
+    name: 'Amazon.com Inc.',
+    setor: 'E-commerce/Cloud',
+    dataEntrada: '16/04/2025',
+    precoQueIniciou: 'US$176,29',
+    precoTeto: 'US$203,00',
+    avatar: 'https://logo.clearbit.com/amazon.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'AMZO34',
+    bdrTeto: 'R$ 59,90'
+  },
+  'PEP': {
+    rank: '3º',
+    name: 'PepsiCo Inc.',
+    setor: 'Bebidas/Alimentos',
+    dataEntrada: '22/04/2025',
+    precoQueIniciou: 'US$141,78',
+    precoTeto: 'US$149,66',
+    avatar: 'https://logo.clearbit.com/pepsico.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'PEPB34',
+    bdrTeto: 'R$ 57,15'
+  },
+  'IAU': {
+    rank: '4º',
+    name: 'iShares Gold Trust ETF',
+    setor: 'Ouro',
+    dataEntrada: '30/04/2025',
+    precoQueIniciou: 'US$62,48',
+    precoTeto: '-',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'GOLD11',
+    bdrTeto: 'não tem'
+  },
+  'WPC': {
+    rank: '5º',
+    name: 'W. P. Carey Inc.',
+    setor: 'REIT',
+    dataEntrada: '07/05/2025',
+    precoQueIniciou: 'US$62,17',
+    precoTeto: 'US$65,00',
+    avatar: 'https://logo.clearbit.com/wpcarey.com',
+    tipo: 'PROJETO_AMERICA'
+  },
+  'NOBL': {
+    rank: '6º',
+    name: 'ProShares S&P 500 Dividend Aristocrats ETF',
+    setor: 'Dividend Aristocrats',
+    dataEntrada: '14/05/2025',
+    precoQueIniciou: 'US$99,26',
+    precoTeto: '-',
+    avatar: 'https://logo.clearbit.com/proshares.com',
+    tipo: 'PROJETO_AMERICA'
+  },
+  'CRM': {
+    rank: '7º',
+    name: 'Salesforce Inc.',
+    setor: 'Software/CRM',
+    dataEntrada: '21/05/2025',
+    precoQueIniciou: 'US$286,85',
+    precoTeto: 'US$310,00',
+    avatar: 'https://logo.clearbit.com/salesforce.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'SSFO34',
+    bdrTeto: 'R$ 80,00'
+  },
+  'AMD': {
+    rank: '8º',
+    name: 'Advanced Micro Devices Inc.',
+    setor: 'Semicondutores',
+    dataEntrada: '29/05/2025',
+    precoQueIniciou: 'US$112,86',
+    precoTeto: 'US$135,20',
+    avatar: 'https://logo.clearbit.com/amd.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'A1MD34',
+    bdrTeto: 'R$ 95,00'
+  },
+  'TLT': {
+    rank: '9º',
+    name: 'iShares 20+ Year Treasury Bond ETF',
+    setor: 'Renda Fixa',
+    dataEntrada: '05/06/2025',
+    precoQueIniciou: 'US$86,82',
+    precoTeto: '-',
+    avatar: 'https://logo.clearbit.com/ishares.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'BTL139'
+  },
+  'QQQ': {
+    rank: '10º',
+    name: 'Invesco QQQ Trust ETF',
+    setor: 'Large Cap Tech',
+    dataEntrada: '12/06/2025',
+    precoQueIniciou: 'US$533,98',
+    precoTeto: '-',
+    avatar: 'https://logo.clearbit.com/invesco.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'NASD11'
+  },
+  'NNN': {
+    rank: '11º',
+    name: 'National Retail Properties Inc.',
+    setor: 'REIT - Net Lease',
+    dataEntrada: '18/06/2025',
+    precoQueIniciou: 'US$42,90',
+    precoTeto: 'US$45,00',
+    avatar: 'https://logo.clearbit.com/nnnreit.com',
+    tipo: 'PROJETO_AMERICA'
+  },
+  'PYPL': {
+    rank: '12º',
+    name: 'PayPal Holdings Inc.',
+    setor: 'Fintech/Pagamentos',
+    dataEntrada: '27/06/2025',
+    precoQueIniciou: 'US$72,16',
+    precoTeto: 'US$107,00',
+    avatar: 'https://logo.clearbit.com/paypal.com',
+    tipo: 'PROJETO_AMERICA',
+    bdr: 'PYPL34',
+    bdrTeto: 'R$ 29,30'
+  }
+};
+
   // 🔗 FUNÇÃO PARA BUSCAR DADOS DAS APIs
 const fetchAPIData = async () => {
   console.log('🔍 Buscando dados das APIs...');
@@ -2146,29 +2293,66 @@ const fetchAPIData = async () => {
   }
 };
 
-// 🎯 FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API)
+// 🎯 FUNÇÃO PARA ENCONTRAR EMPRESA (STATIC + API + MÚLTIPLAS CARTEIRAS)
 const findCompanyData = (tickerSymbol, apiData) => {
   console.log(`🔍 Procurando dados para ${tickerSymbol}...`);
   
-  // 1. Primeiro verifica nos dados estáticos de stocks
+  // Array para armazenar todas as carteiras onde o ativo foi encontrado
+  const carteirasEncontradas = [];
+  let dadosPrincipais = null;
+  
+  // 1. Verifica no Projeto América primeiro (mais recente)
+  if (projetoAmericaDatabase[tickerSymbol]) {
+    console.log(`✅ Encontrado no Projeto América: ${tickerSymbol}`);
+    dadosPrincipais = { ...projetoAmericaDatabase[tickerSymbol], carteiras: ['PROJETO_AMERICA'] };
+    carteirasEncontradas.push('PROJETO_AMERICA');
+  }
+  
+  // 2. Verifica em stocks estáticos
   if (exteriorStocksDatabase[tickerSymbol]) {
     console.log(`✅ Encontrado em stocks estáticos: ${tickerSymbol}`);
-    return exteriorStocksDatabase[tickerSymbol];
+    if (!dadosPrincipais) {
+      dadosPrincipais = { ...exteriorStocksDatabase[tickerSymbol], carteiras: ['STOCKS'] };
+    } else {
+      dadosPrincipais.carteiras.push('STOCKS');
+    }
+    carteirasEncontradas.push('STOCKS');
   }
 
-// 2. Depois verifica nos dados estáticos de dividendos
-if (exteriorDividendsDatabase[tickerSymbol]) {
-  console.log(`✅ Encontrado em dividendos estáticos: ${tickerSymbol}`);
-  return exteriorDividendsDatabase[tickerSymbol];
-}
+  // 3. Verifica em dividendos estáticos
+  if (exteriorDividendsDatabase[tickerSymbol]) {
+    console.log(`✅ Encontrado em dividendos estáticos: ${tickerSymbol}`);
+    if (!dadosPrincipais) {
+      dadosPrincipais = { ...exteriorDividendsDatabase[tickerSymbol], carteiras: ['DIVIDENDS'] };
+    } else {
+      dadosPrincipais.carteiras.push('DIVIDENDS');
+    }
+    carteirasEncontradas.push('DIVIDENDS');
+  }
 
-// 2.5. NOVO: Depois verifica nos dados estáticos de ETFs
-if (exteriorETFsDatabase[tickerSymbol]) {
-  console.log(`✅ Encontrado em ETFs estáticos: ${tickerSymbol}`);
-  return exteriorETFsDatabase[tickerSymbol];
-}
+  // 4. Verifica em ETFs estáticos
+  if (exteriorETFsDatabase[tickerSymbol]) {
+    console.log(`✅ Encontrado em ETFs estáticos: ${tickerSymbol}`);
+    if (!dadosPrincipais) {
+      dadosPrincipais = { ...exteriorETFsDatabase[tickerSymbol], carteiras: ['ETFS'] };
+    } else {
+      dadosPrincipais.carteiras.push('ETFS');
+    }
+    carteirasEncontradas.push('ETFS');
+  }
   
-  // 3. Busca nos dados de stocks da API
+  // Se foi encontrado em alguma carteira estática
+  if (dadosPrincipais) {
+    // Se está em múltiplas carteiras, ajusta o tipo para mostrar isso
+    if (carteirasEncontradas.length > 1) {
+      dadosPrincipais.multiplePortfolios = true;
+      dadosPrincipais.portfoliosList = carteirasEncontradas;
+      console.log(`🔄 ${tickerSymbol} encontrado em múltiplas carteiras:`, carteirasEncontradas);
+    }
+    return dadosPrincipais;
+  }
+  
+  // 5. Busca nos dados de stocks da API
   const stockFromAPI = apiData.stocks.find(stock => 
     (stock.ticker || stock.symbol)?.toUpperCase() === tickerSymbol.toUpperCase()
   );
@@ -2180,14 +2364,15 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       name: stockFromAPI.name || stockFromAPI.longName || `${tickerSymbol} Corporation`,
       setor: stockFromAPI.sector || stockFromAPI.industry || 'Setor não informado',
       dataEntrada: stockFromAPI.entryDate || new Date().toLocaleDateString('pt-BR'),
-      precoQueIniciou: `US$${stockFromAPI.entryPrice || '0.00'}`,
-      precoTeto: `US$${stockFromAPI.targetPrice || '0.00'}`,
+      precoQueIniciou: `US${stockFromAPI.entryPrice || '0.00'}`,
+      precoTeto: `US${stockFromAPI.targetPrice || '0.00'}`,
       avatar: getCompanyAvatar(tickerSymbol, stockFromAPI.name),
-      tipo: 'STOCK_API'
+      tipo: 'STOCK_API',
+      carteiras: ['API_STOCKS']
     };
   }
 
-  // 4. Busca nos dados de dividendos da API
+  // 6. Busca nos dados de dividendos da API
   const dividendFromAPI = apiData.dividends.find(dividend => 
     (dividend.ticker || dividend.symbol)?.toUpperCase() === tickerSymbol.toUpperCase()
   );
@@ -2199,11 +2384,12 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       name: dividendFromAPI.name || dividendFromAPI.longName || `${tickerSymbol} Corporation`,
       setor: dividendFromAPI.sector || dividendFromAPI.industry || 'Dividendos',
       dataEntrada: dividendFromAPI.entryDate || new Date().toLocaleDateString('pt-BR'),
-      precoQueIniciou: `US$${dividendFromAPI.entryPrice || '0.00'}`,
-      precoTeto: `US$${dividendFromAPI.targetPrice || '0.00'}`,
+      precoQueIniciou: `US${dividendFromAPI.entryPrice || '0.00'}`,
+      precoTeto: `US${dividendFromAPI.targetPrice || '0.00'}`,
       avatar: getCompanyAvatar(tickerSymbol, dividendFromAPI.name),
       tipo: 'DIVIDEND_API',
-      dy: `${dividendFromAPI.dividendYield || '0'}%`
+      dy: `${dividendFromAPI.dividendYield || '0'}%`,
+      carteiras: ['API_DIVIDENDS']
     };
   }
 
@@ -2226,12 +2412,24 @@ if (exteriorETFsDatabase[tickerSymbol]) {
       'FIVE': 'https://logo.clearbit.com/fivebelow.com',
       'BRK-B': 'https://s3-symbol-logo.tradingview.com/berkshire-hathaway--600.png?v=1',
       // Empresas já na cobertura de DIVIDENDOS
-'OXY': 'https://logo.clearbit.com/oxy.com',
-'ADC': 'https://logo.clearbit.com/agreerealty.com',
-'VZ': 'https://logo.clearbit.com/verizon.com',
-'O': 'https://logo.clearbit.com/realtyincome.com',
-'AVB': 'https://logo.clearbit.com/avalonbay.com',
-'STAG': 'https://logo.clearbit.com/stagindustrial.com',
+      'OXY': 'https://logo.clearbit.com/oxy.com',
+      'ADC': 'https://logo.clearbit.com/agreerealty.com',
+      'VZ': 'https://logo.clearbit.com/verizon.com',
+      'O': 'https://logo.clearbit.com/realtyincome.com',
+      'AVB': 'https://logo.clearbit.com/avalonbay.com',
+      'STAG': 'https://logo.clearbit.com/stagindustrial.com',
+      
+      // Empresas do PROJETO AMÉRICA
+      'NVDA': 'https://logo.clearbit.com/nvidia.com',
+      'AMZN': 'https://logo.clearbit.com/amazon.com',
+      'PEP': 'https://logo.clearbit.com/pepsico.com',
+      'IAU': 'https://logo.clearbit.com/ishares.com',
+      'WPC': 'https://logo.clearbit.com/wpcarey.com',
+      'NOBL': 'https://logo.clearbit.com/proshares.com',
+      'CRM': 'https://logo.clearbit.com/salesforce.com',
+      'TLT': 'https://logo.clearbit.com/ishares.com',
+      'NNN': 'https://logo.clearbit.com/nnnreit.com',
+      'PYPL': 'https://logo.clearbit.com/paypal.com',
       
       // Empresas populares sem cobertura
       'TSLA': 'https://logo.clearbit.com/tesla.com',
@@ -2353,8 +2551,8 @@ useEffect(() => {
 
       const result = data.results[0];
       const precoAtual = result.regularMarketPrice || 0;
-      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US$', '')) : precoAtual;
-const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US$', '')) : precoAtual * 1.2;
+      const precoIniciou = staticInfo ? parseFloat(staticInfo.precoQueIniciou.replace('US, '')) : precoAtual;
+const precoTeto = staticInfo ? parseFloat(staticInfo.precoTeto.replace('US, '')) : precoAtual * 1.2;
 const change = result.regularMarketChange || 0;
 const changePercent = result.regularMarketChangePercent || 0;
 
@@ -2409,8 +2607,8 @@ const changePercent = result.regularMarketChangePercent || 0;
 
   const generateMockData = (symbol, staticInfo) => {
     if (staticInfo) {
-      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US$', ''));
-      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US$', ''));
+      const precoIniciou = parseFloat(staticInfo.precoQueIniciou.replace('US, ''));
+      const precoTeto = parseFloat(staticInfo.precoTeto.replace('US, ''));
       
       const variacao = (Math.random() - 0.3) * 0.4;
       const precoAtual = precoIniciou * (1 + variacao);
@@ -2691,6 +2889,7 @@ const changePercent = result.regularMarketChangePercent || 0;
     Voltar para {(() => {
       const type = getBackURL(staticData, ticker).split('/').pop();
       switch (type) {
+        case 'projeto-america': return 'Projeto América';
         case 'etfs': return 'ETFs';
         case 'dividendos': return 'Dividendos';
         case 'stocks': return 'Stocks';
@@ -2709,6 +2908,7 @@ const changePercent = result.regularMarketChangePercent || 0;
     <div style={{
       background: (() => {
         if (staticData) {
+          if (staticData.tipo === 'PROJETO_AMERICA') return '#f0f9ff';
           if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
           if (staticData.tipo === 'ETF') return '#fef3c7';
           return '#dbeafe';
@@ -2719,6 +2919,7 @@ const changePercent = result.regularMarketChangePercent || 0;
       })(),
       color: (() => {
         if (staticData) {
+          if (staticData.tipo === 'PROJETO_AMERICA') return '#0369a1';
           if (staticData.tipo === 'DIVIDEND') return '#059669';
           if (staticData.tipo === 'ETF') return '#d97706';
           return '#3b82f6';
@@ -2735,6 +2936,7 @@ const changePercent = result.regularMarketChangePercent || 0;
     }}>
       {(() => {
         if (staticData) {
+          if (staticData.tipo === 'PROJETO_AMERICA') return '🇺🇸 PROJETO AMÉRICA';
           if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
           if (staticData.tipo === 'ETF') return '📊 ETF';
           return '📈 STOCK';
@@ -2744,6 +2946,21 @@ const changePercent = result.regularMarketChangePercent || 0;
         return '❓ SEM COBERTURA';
       })()}
     </div>
+
+    {/* Badge de múltiplas carteiras */}
+    {staticData?.multiplePortfolios && (
+      <div style={{
+        background: '#fefce8',
+        color: '#d97706',
+        padding: '4px 12px',
+        borderRadius: '6px',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        textTransform: 'uppercase'
+      }}>
+        📂 MÚLTIPLAS CARTEIRAS
+      </div>
+    )}
 
     {loading ? (
       <div style={{
@@ -2820,7 +3037,9 @@ const changePercent = result.regularMarketChangePercent || 0;
         {/* Card principal da empresa - NOVO ESTILO */}
         <div style={{
           marginBottom: '32px',
-          background: staticData?.tipo === 'ETF' 
+          background: staticData?.tipo === 'PROJETO_AMERICA' 
+            ? 'linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%)'
+            : staticData?.tipo === 'ETF' 
             ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' 
             : staticData?.tipo === 'DIVIDEND' 
             ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
@@ -2922,6 +3141,7 @@ const changePercent = result.regularMarketChangePercent || 0;
                     <div style={{
                       background: (() => {
                         if (staticData) {
+                          if (staticData.tipo === 'PROJETO_AMERICA') return '#f0f9ff';
                           if (staticData.tipo === 'DIVIDEND') return '#dcfce7';
                           if (staticData.tipo === 'ETF') return '#fef3c7';
                           return '#dbeafe';
@@ -2930,6 +3150,7 @@ const changePercent = result.regularMarketChangePercent || 0;
                       })(),
                       color: (() => {
                         if (staticData) {
+                          if (staticData.tipo === 'PROJETO_AMERICA') return '#0369a1';
                           if (staticData.tipo === 'DIVIDEND') return '#059669';
                           if (staticData.tipo === 'ETF') return '#d97706';
                           return '#3b82f6';
@@ -2944,13 +3165,29 @@ const changePercent = result.regularMarketChangePercent || 0;
                     }}>
                       {(() => {
                         if (staticData) {
-                          if (staticData.tipo === 'DIVIDEND') return ' DIVIDEND';
-                          if (staticData.tipo === 'ETF') return ' ETF';
-                          return ' STOCK';
+                          if (staticData.tipo === 'PROJETO_AMERICA') return '🇺🇸 PROJETO AMÉRICA';
+                          if (staticData.tipo === 'DIVIDEND') return '💰 DIVIDEND';
+                          if (staticData.tipo === 'ETF') return '📊 ETF';
+                          return '📈 STOCK';
                         }
                         return 'SEM COBERTURA';
                       })()}
                     </div>
+                    
+                    {/* Badge de múltiplas carteiras */}
+                    {staticData?.multiplePortfolios && (
+                      <div style={{
+                        background: '#fefce8',
+                        color: '#d97706',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase'
+                      }}>
+                        📂 {staticData.portfoliosList.length} CARTEIRAS
+                      </div>
+                    )}
                     
                     {stockData?.rank && (
                       <div style={{
@@ -3111,6 +3348,49 @@ const changePercent = result.regularMarketChangePercent || 0;
                 Dados da Carteira
               </h3>
             </div>
+
+            {/* Alertas de múltiplas carteiras */}
+            {staticData.multiplePortfolios && (
+              <div style={{
+                background: '#fefce8',
+                border: '1px solid #fde68a',
+                padding: '16px 20px',
+                borderRadius: '8px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#d97706',
+                  margin: '0 0 12px 0'
+                }}>
+                  📂 Ativo presente em múltiplas carteiras
+                </h4>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {staticData.portfoliosList.map((portfolio, index) => (
+                    <div key={index} style={{
+                      background: 'white',
+                      color: '#d97706',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      border: '1px solid #fde68a'
+                    }}>
+                      {(() => {
+                        switch (portfolio) {
+                          case 'PROJETO_AMERICA': return '🇺🇸 Projeto América';
+                          case 'STOCKS': return '📈 Stocks';
+                          case 'DIVIDENDS': return '💰 Dividendos';
+                          case 'ETFS': return '📊 ETFs';
+                          default: return portfolio;
+                        }
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div style={{ 
               display: 'grid', 
@@ -3499,7 +3779,12 @@ const changePercent = result.regularMarketChangePercent || 0;
           textAlign: 'center'
         }}>
           <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-            ✅ {staticData ? `Dados da carteira Exterior Stocks para ${ticker}` : `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
+            ✅ {staticData ? 
+              `Dados da carteira ${staticData.tipo === 'PROJETO_AMERICA' ? 'Projeto América' : 
+                staticData.tipo === 'DIVIDEND' ? 'Exterior Dividendos' :
+                staticData.tipo === 'ETF' ? 'Exterior ETFs' : 'Exterior Stocks'} para ${ticker}` : 
+              `Dados simulados para ${ticker}`} • {new Date().toLocaleString('pt-BR')}
+            {staticData?.multiplePortfolios && ` • Presente em ${staticData.portfoliosList.length} carteiras`}
           </p>
         </div>
       </div>
