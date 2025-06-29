@@ -192,7 +192,7 @@ export const navItems = [
         key: 'admin-integracoes',
         title: 'Agenda Corporativa',
         href: paths.dashboard.adminIntegracoes,
-        icon: 'link',
+        icon: 'calendar',
         page: 'admin-integracoes'
       },
       {
