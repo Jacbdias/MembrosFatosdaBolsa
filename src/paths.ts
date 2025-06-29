@@ -21,8 +21,8 @@ export const paths = {
     adminUsuarios: '/dashboard/admin/usuarios',
     adminEmpresas: '/dashboard/admin/empresas',
     adminProventos: '/dashboard/central-proventos', // Sua página existente
-    adminRelatorios: '/dashboard/admin/relatorios',
-    adminIntegracoes: '/dashboard/admin/integracoes',
+    adminRelatorios: '/dashboard/admin/central-relatorios',
+    adminIntegracoes: '/dashboard/admin/central-agenda',
     adminSettings: '/dashboard/admin/settings',
     adminLogs: '/dashboard/admin/logs',
     adminPlans: '/dashboard/admin/plans',
