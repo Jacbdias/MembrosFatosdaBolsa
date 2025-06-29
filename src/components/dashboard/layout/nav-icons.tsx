@@ -10,6 +10,7 @@ import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Globe } from '@phosphor-icons/react/dist/ssr/Globe';
 import { Package } from '@phosphor-icons/react/dist/ssr/Package';
+import { Calendar } from '@phosphor-icons/react/dist/ssr/Calendar';
 
 // Novos ícones melhorados
 import { Book } from '@phosphor-icons/react/dist/ssr/Book';
