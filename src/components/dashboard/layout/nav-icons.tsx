@@ -57,4 +57,6 @@ export const navIcons = {
   'shield-check': ShieldCheck,    // Para Super Admin
   'link': Link,                   // Para Integrações
   'list': List,                   // Para Logs do Sistema
+  'calendar': Calendar, 
+
 } as Record<string, Icon>;
