@@ -1,0 +1,4 @@
+O admin já foi criado no Prisma Studio!
+Teste: http://localhost:3000/auth/sign-in
+Email: admin@fatosdobolsa.com
+Senha: Admin123!
