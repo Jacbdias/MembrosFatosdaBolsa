@@ -19,7 +19,7 @@ export const paths = {
     // 🛡️ NOVAS ROTAS ADMINISTRATIVAS
     admin: '/dashboard/admin',
     adminUsuarios: '/dashboard/admin/usuarios',
-    adminEmpresas: '/dashboard/admin/empresas',
+    adminEmpresas: '/dashboard/gerenciamento',
     adminProventos: '/dashboard/central-proventos', // Sua página existente
     adminRelatorios: '/dashboard/central-relatorios',
     adminIntegracoes: '/dashboard/central-agenda',

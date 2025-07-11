@@ -2,882 +2,1192 @@
 'use client';
 
 import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
-import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
-import { ArrowUp as ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp';
-import { ArrowDown as ArrowDownIcon } from '@phosphor-icons/react/dist/ssr/ArrowDown';
-import { TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
-import { CurrencyDollar as CurrencyDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyDollar';
-import { Globe as GlobeIcon } from '@phosphor-icons/react/dist/ssr/Globe';
+import { useFinancialData } from '@/hooks/useFinancialData';
+import { useDataStore } from '@/hooks/useDataStore';
 
-function noop(): void {
-  // Função vazia para props obrigatórias
-}
-
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API BRAPI
-function useETFDataAPI() {
-  const [data, setData] = React.useState<any>(null);
+// 🚀 HOOK PARA BUSCAR DADOS REAIS DE ÍNDICES INTERNACIONAIS
+function useIndicesInternacionaisRealTime() {
+  const [indicesData, setIndicesData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const fetchData = React.useCallback(async () => {
+  const buscarIndicesReal = React.useCallback(async () => {
     try {
-      console.log('🔄 Buscando cotações dos ETFs via BRAPI...');
+      setLoading(true);
+      setError(null);
+
+      console.log('🔍 BUSCANDO ÍNDICES INTERNACIONAIS REAIS...');
+
+      // 🔑 TOKEN BRAPI FUNCIONANDO
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+      // 📊 BUSCAR S&P 500 E NASDAQ VIA BRAPI COM TIMEOUT
+      const indices = ['^GSPC', '^IXIC']; // S&P 500 e NASDAQ
+      const indicesUrl = `https://brapi.dev/api/quote/${indices.join(',')}?token=${BRAPI_TOKEN}`;
       
-      // Lista dos tickers dos ETFs
-      const etfTickers = ['VOO', 'IJS', 'QUAL', 'QQQ', 'VNQ', 'SCHP', 'IAU', 'HERO', 'SOXX', 'MCHI', 'TFLO'];
-      
-      const response = await fetch(`https://brapi.dev/api/quote/${etfTickers.join(',')}?token=jJrMYVy9MATGEicx3GxBp8`, {
+      console.log('🌐 Buscando índices internacionais...');
+
+      // 🔥 ADICIONAR TIMEOUT DE 5 SEGUNDOS
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(indicesUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-        }
+          'User-Agent': 'International-Indices-App'
+        },
+        signal: controller.signal
       });
 
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
+      clearTimeout(timeoutId);
 
-      const result = await response.json();
-      console.log('✅ Cotações ETFs recebidas:', result);
-      
-      setData(result.results);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Erro ao buscar dados dos ETFs:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Resposta Índices Internacionais:', data);
 
-  React.useEffect(() => {
-    fetchData();
-    
-    // Refresh a cada 5 minutos
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+        if (data.results && data.results.length > 0) {
+          const dadosIndices = {
+            sp500: null,
+            nasdaq: null
+          };
 
-  return { data, loading, error, refresh: fetchData };
-}
+          data.results.forEach((indice: any) => {
+            console.log('🔍 Processando índice:', indice.symbol, indice.regularMarketPrice);
+            
+            if (indice.symbol === '^GSPC') {
+              dadosIndices.sp500 = {
+                valor: indice.regularMarketPrice,
+                valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+                }),
+                variacao: indice.regularMarketChange || 0,
+                variacaoPercent: indice.regularMarketChangePercent || 0,
+                trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
+              };
+              console.log('✅ S&P 500 processado:', dadosIndices.sp500);
+            } else if (indice.symbol === '^IXIC') {
+              dadosIndices.nasdaq = {
+                valor: indice.regularMarketPrice,
+                valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+                }),
+                variacao: indice.regularMarketChange || 0,
+                variacaoPercent: indice.regularMarketChangePercent || 0,
+                trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
+              };
+              console.log('✅ NASDAQ processado:', dadosIndices.nasdaq);
+            }
+          });
 
-// 🔥 HOOK PARA BUSCAR DADOS REAIS DA API
-function useMarketDataAPI() {
-  const [data, setData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const fetchData = React.useCallback(async () => {
-    try {
-      console.log('🔄 Buscando índices via BRAPI...');
-      
-      const response = await fetch(`https://brapi.dev/api/quote/^GSPC,^IXIC?token=jJrMYVy9MATGEicx3GxBp8`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Índices recebidos:', result);
-      
-      // Processar dados dos índices
-      const processedData = {
-        sp500: null,
-        nasdaq: null
-      };
-
-      if (result.results) {
-        result.results.forEach((item: any) => {
-          if (item.symbol === '^GSPC') {
-            processedData.sp500 = {
-              value: item.regularMarketPrice.toLocaleString('en-US', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-              }),
-              trend: item.regularMarketChangePercent >= 0 ? 'up' as const : 'down' as const,
-              diff: parseFloat(item.regularMarketChangePercent.toFixed(2))
-            };
-          }
-          if (item.symbol === '^IXIC') {
-            processedData.nasdaq = {
-              value: item.regularMarketPrice.toLocaleString('en-US', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-              }),
-              trend: item.regularMarketChangePercent >= 0 ? 'up' as const : 'down' as const,
-              diff: parseFloat(item.regularMarketChangePercent.toFixed(2))
-            };
-          }
-        });
-      }
-      
-      setData(processedData);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Erro ao buscar dados dos índices:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-    
-    // Refresh a cada 5 minutos
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  return { data, loading, error, refresh: fetchData };
-}
-
-// 🎨 INDICADOR DE MERCADO DISCRETO E ELEGANTE (INTERNACIONAL)
-interface MarketIndicatorProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  trend?: 'up' | 'down';
-  diff?: number;
-  isLoading?: boolean;
-  description?: string;
-}
-
-function MarketIndicator({ title, value, icon, trend, diff, isLoading, description }: MarketIndicatorProps): React.JSX.Element {
-  const TrendIcon = trend === 'up' ? ArrowUpIcon : ArrowDownIcon;
-  const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
-  
-  return (
-    <Box 
-      sx={{ 
-        backgroundColor: '#ffffff',
-        borderRadius: 2,
-        p: 2.5,
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        opacity: isLoading ? 0.7 : 1,
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          borderColor: '#c7d2fe',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        }
-      }}
-    >
-      <Stack spacing={2}>
-        {/* Header */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: '#64748b',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                fontSize: '0.75rem'
-              }}
-            >
-              {title}
-            </Typography>
-            {description && (
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: '#94a3b8',
-                  display: 'block',
-                  mt: 0.25,
-                  fontSize: '0.7rem'
-                }}
-              >
-                {description}
-              </Typography>
-            )}
-          </Box>
-          <Box sx={{
-            width: 32,
-            height: 32,
-            borderRadius: 1.5,
-            backgroundColor: '#f1f5f9',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#64748b'
-          }}>
-            {React.cloneElement(icon as React.ReactElement, { size: 16 })}
-          </Box>
-        </Stack>
-        
-        {/* Valor principal */}
-        <Typography 
-          variant="h4" 
-          sx={{ 
-            fontWeight: 700,
-            color: '#1e293b',
-            fontSize: '1.75rem',
-            lineHeight: 1
-          }}
-        >
-          {isLoading ? '...' : value}
-        </Typography>
-        
-        {/* Indicador de tendência */}
-        {!isLoading && diff !== undefined && trend && (
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              backgroundColor: trend === 'up' ? '#dcfce7' : '#fee2e2',
-              color: trendColor
-            }}>
-              <TrendIcon size={12} weight="bold" />
-            </Box>
-            <Typography 
-              variant="body2"
-              sx={{ 
-                color: trendColor,
-                fontWeight: 600,
-                fontSize: '0.875rem'
-              }}
-            >
-              {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(2) : diff}%
-            </Typography>
-            <Typography 
-              variant="body2"
-              sx={{ 
-                color: '#64748b',
-                fontSize: '0.875rem'
-              }}
-            >
-              no período
-            </Typography>
-          </Stack>
-        )}
-      </Stack>
-    </Box>
-  );
-}
-
-export default function Page(): React.JSX.Element {
-  console.log("🌎 PÁGINA ETFs INTERNACIONAIS - VERSÃO LIMPA");
-
-  // 🔥 BUSCAR DADOS REAIS DA API
-  const { data: apiData, loading: marketLoading } = useMarketDataAPI();
-  const { data: etfData, loading: etfLoading } = useETFDataAPI();
-
-  const dividendosInternacionaisBase = [
-    {
-      id: '1',
-      ticker: 'VOO',
-      name: 'Vanguard S&P 500 ETF',
-      setor: 'Large Cap',
-      dataEntrada: '03/06/2021',
-      precoQueIniciou: 'US$383,95',
-      precoAtual: 'US$485,20',
-      dy: '1,32%',
-      precoTeto: 'US$520,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/vanguard.com',
-    },
-    {
-      id: '2',
-      ticker: 'IJS',
-      name: 'iShares Core S&P Small-Cap ETF',
-      setor: 'Small Caps',
-      dataEntrada: '21/07/2021',
-      precoQueIniciou: 'US$100,96',
-      precoAtual: 'US$112,45',
-      dy: '1,85%',
-      precoTeto: 'US$125,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '3',
-      ticker: 'QUAL',
-      name: 'iShares MSCI USA Quality Factor ETF',
-      setor: 'Total Market',
-      dataEntrada: '11/06/2021',
-      precoQueIniciou: 'US$130,13',
-      precoAtual: 'US$158,75',
-      dy: '1,45%',
-      precoTeto: 'US$170,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '4',
-      ticker: 'QQQ',
-      name: 'Invesco QQQ Trust ETF',
-      setor: 'Large Cap',
-      dataEntrada: '09/06/2021',
-      precoQueIniciou: 'US$337,18',
-      precoAtual: 'US$465,30',
-      dy: '0,68%',
-      precoTeto: 'US$495,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/invesco.com',
-    },
-    {
-      id: '5',
-      ticker: 'VNQ',
-      name: 'Vanguard Real Estate ETF',
-      setor: 'Real Estate (USA)',
-      dataEntrada: '12/07/2021',
-      precoQueIniciou: 'US$105,96',
-      precoAtual: 'US$95,20',
-      dy: '3,85%',
-      precoTeto: 'US$115,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/vanguard.com',
-    },
-    {
-      id: '6',
-      ticker: 'SCHP',
-      name: 'Schwab U.S. TIPS ETF',
-      setor: 'Renda Fixa',
-      dataEntrada: '22/11/2021',
-      precoQueIniciou: 'US$63,14',
-      precoAtual: 'US$58,90',
-      dy: '3,25%',
-      precoTeto: 'US$67,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/schwab.com',
-    },
-    {
-      id: '7',
-      ticker: 'IAU',
-      name: 'iShares Gold Trust ETF',
-      setor: 'Ouro',
-      dataEntrada: '07/06/2021',
-      precoQueIniciou: 'US$36,04',
-      precoAtual: 'US$42,15',
-      dy: '0,00%',
-      precoTeto: 'US$45,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '8',
-      ticker: 'HERO',
-      name: 'Global X Video Games & Esports ETF',
-      setor: 'Games',
-      dataEntrada: '15/07/2021',
-      precoQueIniciou: 'US$31,28',
-      precoAtual: 'US$28,50',
-      dy: '0,00%',
-      precoTeto: 'US$35,00',
-      viesAtual: 'AGUARDAR',
-      avatar: 'https://logo.clearbit.com/globalxetfs.com',
-    },
-    {
-      id: '9',
-      ticker: 'SOXX',
-      name: 'iShares Semiconductor ETF',
-      setor: 'Semicondutores',
-      dataEntrada: '04/08/2021',
-      precoQueIniciou: 'US$156,03',
-      precoAtual: 'US$235,80',
-      dy: '1,12%',
-      precoTeto: 'US$250,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '10',
-      ticker: 'MCHI',
-      name: 'iShares MSCI China ETF',
-      setor: 'Empresas Chinesas',
-      dataEntrada: '01/02/2023',
-      precoQueIniciou: 'US$53,58',
-      precoAtual: 'US$48,25',
-      dy: '2,45%',
-      precoTeto: 'US$60,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    },
-    {
-      id: '11',
-      ticker: 'TFLO',
-      name: 'iShares Treasury Floating Rate Bond ETF',
-      setor: 'Renda Fixa',
-      dataEntrada: '21/03/2023',
-      precoQueIniciou: 'US$50,50',
-      precoAtual: 'US$50,85',
-      dy: '4,75%',
-      precoTeto: 'US$52,00',
-      viesAtual: 'COMPRA',
-      avatar: 'https://logo.clearbit.com/ishares.com',
-    }
-  ];
-
-  // 🔧 COMBINAR DADOS DOS ETFs COM COTAÇÕES REAIS
-  const etfsComCotacoes = React.useMemo(() => {
-    return dividendosInternacionaisBase.map(etf => {
-      // Buscar cotação real do ETF
-      const cotacao = etfData?.find((item: any) => item.symbol === etf.ticker);
-      
-      let precoAtualCalculado = etf.precoAtual;
-      let performance = 0;
-      
-      if (cotacao) {
-        precoAtualCalculado = `US$${cotacao.regularMarketPrice.toFixed(2)}`;
-        const precoInicial = parseFloat(etf.precoQueIniciou.replace('US$', ''));
-        performance = ((cotacao.regularMarketPrice - precoInicial) / precoInicial) * 100;
-        
-        console.log(`📊 ${etf.ticker}: ${precoAtualCalculado} (${performance.toFixed(1)}%)`);
-      }
-      
-      // 🎯 CALCULAR VIÉS AUTOMATICAMENTE
-      const calcularVies = (precoAtual: string, precoTeto: string) => {
-        const precoAtualNum = parseFloat(precoAtual.replace('US$', ''));
-        const precoTetoNum = parseFloat(precoTeto.replace('US$', ''));
-        
-        if (isNaN(precoAtualNum) || isNaN(precoTetoNum)) {
-          return 'AGUARDAR';
-        }
-        
-        // Se preço atual está pelo menos 5% abaixo do teto, é COMPRA
-        const percentualDoTeto = (precoAtualNum / precoTetoNum) * 100;
-        
-        if (percentualDoTeto <= 95) {
-          return 'COMPRA';
+          console.log('✅ ÍNDICES INTERNACIONAIS PROCESSADOS:', dadosIndices);
+          setIndicesData(dadosIndices);
+          
         } else {
-          return 'AGUARDAR';
+          throw new Error('Sem dados dos índices na resposta');
+        }
+      } else {
+        throw new Error(`Erro HTTP ${response.status}`);
+      }
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('❌ Erro ao buscar índices internacionais:', err);
+      setError(errorMessage);
+      
+      // 🔄 FALLBACK CORRIGIDO
+      console.log('🔄 Usando fallback para índices internacionais...');
+      const fallbackData = {
+        sp500: {
+          valor: 5970.80,
+          valorFormatado: '5,970.80',
+          variacao: 35.2,
+          variacaoPercent: 0.59,
+          trend: 'up'
+        },
+        nasdaq: {
+          valor: 19400.00,
+          valorFormatado: '19,400.00',
+          variacao: 156.3,
+          variacaoPercent: 0.81,
+          trend: 'up'
         }
       };
-      
-      const viesCalculado = calcularVies(precoAtualCalculado, etf.precoTeto);
-      
-      return {
-        ...etf,
-        precoAtual: precoAtualCalculado,
-        performance,
-        viesAtual: viesCalculado,
-        cotacaoReal: cotacao
-      };
-    });
-  }, [etfData]);
+      setIndicesData(fallbackData);
+      console.log('✅ Fallback aplicado:', fallbackData);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // 🔥 VALORES PADRÃO PARA MERCADO INTERNACIONAL (APENAS FALLBACK QUANDO API FALHA)
-  const defaultIndicators = {
-    sp500: { value: "5,970.80", trend: "up" as const, diff: 0.59 },
-    nasdaq: { value: "19,400.00", trend: "up" as const, diff: 0.81 },
+  React.useEffect(() => {
+    buscarIndicesReal();
+    
+    // 🔄 ATUALIZAR A CADA 5 MINUTOS
+    const interval = setInterval(buscarIndicesReal, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []); // 🔥 ARRAY VAZIO PARA EVITAR LOOP INFINITO
+
+  return { indicesData, loading, error, refetch: buscarIndicesReal };
+}
+
+// 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
+function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: string): string {
+  if (!precoTeto || precoAtual === 'N/A') {
+    return 'Aguardar';
+  }
+  
+  // Remover formatação e converter para números
+  const precoAtualNum = parseFloat(precoAtual.replace('US$', '').replace(',', '.'));
+  
+  if (isNaN(precoAtualNum)) {
+    return 'Aguardar';
+  }
+  
+  // 🎯 LÓGICA PARA ETFs: Se preço atual está pelo menos 5% abaixo do teto, é COMPRA
+  const percentualDoTeto = (precoAtualNum / precoTeto) * 100;
+  
+  if (percentualDoTeto <= 95) {
+    return 'Compra';
+  } else {
+    return 'Aguardar';
+  }
+}
+
+// 🎯 FUNÇÃO PARA CALCULAR DY DOS ÚLTIMOS 12 MESES BASEADO NOS PROVENTOS UPLOADADOS
+function calcularDY12Meses(ticker: string, precoAtual: number): string {
+  try {
+    if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
+    
+    // Buscar proventos do ticker específico no localStorage
+    const proventosData = localStorage.getItem(`proventos_${ticker}`);
+    if (!proventosData) return '0,00%';
+    
+    const proventos = JSON.parse(proventosData);
+    if (!Array.isArray(proventos) || proventos.length === 0) return '0,00%';
+    
+    // Data de 12 meses atrás
+    const hoje = new Date();
+    const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+    
+    console.log(`🔍 Calculando DY para ${ticker}:`);
+    
+    // Filtrar proventos dos últimos 12 meses
+    const proventosUltimos12Meses = proventos.filter((provento: any) => {
+      let dataProvento: Date;
+      
+      // Tentar várias formas de parsing da data
+      if (provento.dataObj) {
+        dataProvento = new Date(provento.dataObj);
+      } else if (provento.dataCom) {
+        if (provento.dataCom.includes('/')) {
+          const [d, m, a] = provento.dataCom.split('/');
+          dataProvento = new Date(+a, +m - 1, +d);
+        } else {
+          dataProvento = new Date(provento.dataCom);
+        }
+      } else if (provento.data) {
+        if (provento.data.includes('/')) {
+          const [d, m, a] = provento.data.split('/');
+          dataProvento = new Date(+a, +m - 1, +d);
+        } else {
+          dataProvento = new Date(provento.data);
+        }
+      } else {
+        return false;
+      }
+      
+      return dataProvento >= umAnoAtras && dataProvento <= hoje;
+    });
+    
+    if (proventosUltimos12Meses.length === 0) {
+      console.log(`❌ ${ticker}: Nenhum provento nos últimos 12 meses`);
+      return '0,00%';
+    }
+    
+    // Somar valores dos proventos
+    const totalProventos = proventosUltimos12Meses.reduce((total: number, provento: any) => {
+      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
+      return total + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    if (totalProventos <= 0) {
+      return '0,00%';
+    }
+    
+    // Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
+    const dy = (totalProventos / precoAtual) * 100;
+    
+    return `${dy.toFixed(2).replace('.', ',')}%`;
+    
+  } catch (error) {
+    console.error(`❌ Erro ao calcular DY para ${ticker}:`, error);
+    return '0,00%';
+  }
+}
+
+// 🚀 HOOK CORRIGIDO PARA BUSCAR COTAÇÕES DOS ETFS DO DATASTORE
+function useETFsInternacionaisIntegradas() {
+  const { dados } = useDataStore();
+  const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  // 📊 OBTER DADOS DA CARTEIRA ETFS INTERNACIONAIS DO DATASTORE
+  const etfsInternacionaisData = dados.etfs || [];
+
+  const buscarCotacoesIntegradas = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA ETFS INTERNACIONAIS');
+      console.log('📋 Ativos do DataStore:', etfsInternacionaisData);
+
+      if (etfsInternacionaisData.length === 0) {
+        console.log('⚠️ Nenhum ativo encontrado no DataStore');
+        setAtivosAtualizados([]);
+        setLoading(false);
+        return;
+      }
+
+      // 🔑 TOKEN BRAPI FUNCIONANDO
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+      // 📋 EXTRAIR TODOS OS TICKERS
+      const tickers = etfsInternacionaisData.map(ativo => ativo.ticker);
+      console.log('🎯 Tickers para buscar:', tickers.join(', '));
+
+      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN E TIMEOUT
+      const LOTE_SIZE = 5;
+      const cotacoesMap = new Map();
+      let sucessosTotal = 0;
+      let falhasTotal = 0;
+
+      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
+        const lote = tickers.slice(i, i + LOTE_SIZE);
+        const tickersString = lote.join(',');
+        
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
+        
+        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+
+        try {
+          // 🔥 ADICIONAR TIMEOUT DE 8 SEGUNDOS PARA LOTES MÚLTIPLOS
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'ETFsInternacionais-Portfolio-App'
+            },
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const apiData = await response.json();
+            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+
+            if (apiData.results && Array.isArray(apiData.results)) {
+              apiData.results.forEach((quote: any) => {
+                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
+                  cotacoesMap.set(quote.symbol, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName,
+                    dadosCompletos: quote
+                  });
+                  sucessosTotal++;
+                  console.log(`✅ ${quote.symbol}: US$ ${quote.regularMarketPrice}`);
+                } else {
+                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
+                  falhasTotal++;
+                }
+              });
+            }
+          } else {
+            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+            falhasTotal += lote.length;
+          }
+        } catch (loteError) {
+          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
+          falhasTotal += lote.length;
+        }
+
+        // DELAY entre requisições para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+
+      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS
+      const ativosComCotacoes = etfsInternacionaisData.map((ativo, index) => {
+        const cotacao = cotacoesMap.get(ativo.ticker);
+        
+        console.log(`\n🔄 Processando ${ativo.ticker}:`);
+        console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
+        
+        if (cotacao && cotacao.precoAtual > 0) {
+          // 📊 PREÇO E PERFORMANCE REAIS
+          const precoAtualNum = cotacao.precoAtual;
+          const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+          
+          console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
+          console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          
+          // VALIDAR SE O PREÇO FAZ SENTIDO (para ETFs, usar limite maior)
+          const diferencaPercent = Math.abs(performance);
+          if (diferencaPercent > 1000) {
+            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+            return {
+              ...ativo,
+              id: String(ativo.id || index + 1),
+              precoAtual: ativo.precoEntrada,
+              performance: 0,
+              variacao: 0,
+              variacaoPercent: 0,
+              volume: 0,
+              vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+              dy: '0,00%',
+              statusApi: 'suspicious_price',
+              nomeCompleto: cotacao.nome
+            };
+          }
+          
+          return {
+            ...ativo,
+            id: String(ativo.id || index + 1),
+            precoAtual: precoAtualNum,
+            performance: performance,
+            variacao: cotacao.variacao,
+            variacaoPercent: cotacao.variacaoPercent,
+            volume: cotacao.volume,
+            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
+            dy: calcularDY12Meses(ativo.ticker, precoAtualNum),
+            statusApi: 'success',
+            nomeCompleto: cotacao.nome
+          };
+        } else {
+          // ⚠️ FALLBACK PARA ETFS SEM COTAÇÃO
+          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
+          
+          return {
+            ...ativo,
+            id: String(ativo.id || index + 1),
+            precoAtual: ativo.precoEntrada,
+            performance: 0,
+            variacao: 0,
+            variacaoPercent: 0,
+            volume: 0,
+            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+            dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
+            statusApi: 'not_found',
+            nomeCompleto: 'N/A'
+          };
+        }
+      });
+
+      // 📊 ESTATÍSTICAS FINAIS
+      const sucessos = ativosComCotacoes.filter(a => a.statusApi === 'success').length;
+      const suspeitos = ativosComCotacoes.filter(a => a.statusApi === 'suspicious_price').length;
+      const naoEncontrados = ativosComCotacoes.filter(a => a.statusApi === 'not_found').length;
+      
+      console.log('\n📊 ESTATÍSTICAS FINAIS:');
+      console.log(`✅ Sucessos: ${sucessos}/${ativosComCotacoes.length}`);
+      console.log(`🚨 Preços suspeitos: ${suspeitos}/${ativosComCotacoes.length}`);
+      console.log(`❌ Não encontrados: ${naoEncontrados}/${ativosComCotacoes.length}`);
+
+      setAtivosAtualizados(ativosComCotacoes);
+
+      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
+      if (sucessos < ativosComCotacoes.length / 2) {
+        setError(`Apenas ${sucessos} de ${ativosComCotacoes.length} ETFs com cotação válida`);
+      } else if (suspeitos > 0) {
+        setError(`${suspeitos} ETFs com preços suspeitos foram ignorados`);
+      }
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      console.error('❌ Erro geral ao buscar cotações:', err);
+      
+      // 🔄 FALLBACK: USAR DADOS DO DATASTORE SEM COTAÇÕES
+      console.log('🔄 Usando fallback com dados do DataStore...');
+      const ativosFallback = etfsInternacionaisData.map((ativo, index) => ({
+        ...ativo,
+        id: String(ativo.id || index + 1),
+        precoAtual: ativo.precoEntrada,
+        performance: 0,
+        variacao: 0,
+        variacaoPercent: 0,
+        volume: 0,
+        vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+        dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
+        statusApi: 'error',
+        nomeCompleto: 'Erro'
+      }));
+      setAtivosAtualizados(ativosFallback);
+    } finally {
+      setLoading(false);
+    }
+  }, [dados.etfs]);
+
+  React.useEffect(() => {
+    console.log('🔄 EFFECT DISPARADO - DADOS DO DATASTORE MUDARAM');
+    console.log('📊 ETFs data length:', dados.etfs?.length || 0);
+    
+    buscarCotacoesIntegradas();
+  }, [buscarCotacoesIntegradas]);
+
+  const refetch = React.useCallback(() => {
+    console.log('🔄 FORÇANDO ATUALIZAÇÃO MANUAL...');
+    buscarCotacoesIntegradas();
+  }, [buscarCotacoesIntegradas]);
+
+  return {
+    ativosAtualizados,
+    loading,
+    error,
+    refetch,
+  };
+}
+
+export default function ETFsInternacionaisPage() {
+  const { dados } = useDataStore();
+  const { ativosAtualizados, loading } = useETFsInternacionaisIntegradas();
+  const { indicesData } = useIndicesInternacionaisRealTime();
+
+  // Valor por ativo para simulação
+  const valorPorAtivo = 1000;
+
+  // 🧮 CALCULAR MÉTRICAS DA CARTEIRA
+  const calcularMetricas = () => {
+    if (!ativosAtualizados || ativosAtualizados.length === 0) {
+      return {
+        valorInicial: 0,
+        valorAtual: 0,
+        rentabilidadeTotal: 0,
+        quantidadeAtivos: 0,
+        melhorAtivo: null,
+        piorAtivo: null,
+        dyMedio: 0
+      };
+    }
+
+    const valorInicialTotal = ativosAtualizados.length * valorPorAtivo;
+    let valorFinalTotal = 0;
+    let melhorPerformance = -Infinity;
+    let piorPerformance = Infinity;
+    let melhorAtivo = null;
+    let piorAtivo = null;
+
+    ativosAtualizados.forEach((ativo) => {
+      const valorFinal = valorPorAtivo * (1 + ativo.performance / 100);
+      valorFinalTotal += valorFinal;
+
+      if (ativo.performance > melhorPerformance) {
+        melhorPerformance = ativo.performance;
+        melhorAtivo = { ...ativo, performance: ativo.performance };
+      }
+
+      if (ativo.performance < piorPerformance) {
+        piorPerformance = ativo.performance;
+        piorAtivo = { ...ativo, performance: ativo.performance };
+      }
+    });
+
+    const rentabilidadeTotal = valorInicialTotal > 0 ? 
+      ((valorFinalTotal - valorInicialTotal) / valorInicialTotal) * 100 : 0;
+
+    // Calcular DY médio
+    const dyValues = ativosAtualizados
+      .map(ativo => parseFloat(ativo.dy.replace('%', '').replace(',', '.')))
+      .filter(dy => !isNaN(dy) && dy > 0);
+    
+    const dyMedio = dyValues.length > 0 ? 
+      dyValues.reduce((sum, dy) => sum + dy, 0) / dyValues.length : 0;
+
+    return {
+      valorInicial: valorInicialTotal,
+      valorAtual: valorFinalTotal,
+      rentabilidadeTotal,
+      quantidadeAtivos: ativosAtualizados.length,
+      melhorAtivo,
+      piorAtivo,
+      dyMedio
+    };
   };
 
-  // 🔧 PRIORIZAR DADOS DA API, DEPOIS DEFAULT
-  const indicators = React.useMemo(() => {
-    // Se temos dados da API, usar eles
-    if (apiData) {
-      console.log('✅ Usando dados da API:', apiData);
-      return {
-        sp500: apiData.sp500 || defaultIndicators.sp500,
-        nasdaq: apiData.nasdaq || defaultIndicators.nasdaq,
-      };
-    }
-    
-    // Por último, usar fallback
-    console.log('⚠️ Usando dados de fallback');
-    return defaultIndicators;
-  }, [apiData]);
+  const metricas = calcularMetricas();
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(value);
+  };
+
+  const formatPercentage = (value: number) => {
+    const signal = value >= 0 ? '+' : '';
+    return signal + value.toFixed(2) + '%';
+  };
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header com botão voltar */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
-        <Button
-          startIcon={<ArrowLeftIcon />}
-          onClick={() => window.location.href = '/dashboard/internacional'}
-          sx={{ 
-            color: '#64748b',
-            fontWeight: 600,
-            '&:hover': {
-              backgroundColor: '#f1f5f9'
-            }
-          }}
-        >
-          Voltar
-        </Button>
-        <Divider orientation="vertical" flexItem />
-        <Stack spacing={1}>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 800,
-              color: '#1e293b',
-              fontSize: { xs: '1.75rem', sm: '2.125rem' }
-            }}
-          >
-            Exterior ETFs
-          </Typography>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: '#64748b',
-              fontSize: '1rem'
-            }}
-          >
-            {etfsComCotacoes.length} ETFs em acompanhamento • Exposição diversificada aos mercados globais
-          </Typography>
-        </Stack>
-      </Stack>
-
-      {/* Indicadores de Mercado - Layout com 2 cards como Overview */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-          gap: 2,
-          mb: 4,
-        }}
-      >
-        <MarketIndicator 
-          title="S&P 500" 
-          description="Índice das 500 maiores empresas dos EUA"
-          value={indicators.sp500.value} 
-          icon={<CurrencyDollarIcon />} 
-          trend={indicators.sp500.trend} 
-          diff={indicators.sp500.diff}
-          isLoading={marketLoading}
-        />
-        <MarketIndicator 
-          title="NASDAQ 100" 
-          description="Índice de tecnologia americana"
-          value={indicators.nasdaq.value} 
-          icon={<GlobeIcon />} 
-          trend={indicators.nasdaq.trend} 
-          diff={indicators.nasdaq.diff}
-          isLoading={marketLoading}
-        />
-      </Box>
-      
-      {/* Tabela de ETFs Internacionais */}
-      <Card sx={{ 
-        borderRadius: 4,
-        border: '1px solid',
-        borderColor: 'rgba(148, 163, 184, 0.2)',
-        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-        overflow: 'hidden'
-      }}>
-        <Box sx={{ 
-          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          p: 4,
-          borderBottom: '1px solid',
-          borderColor: 'rgba(148, 163, 184, 0.2)'
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f5f5', 
+      padding: '24px' 
+    }}>
+      {/* Header */}
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ 
+          fontSize: '48px', 
+          fontWeight: '800', 
+          color: '#1e293b',
+          margin: '0 0 8px 0'
         }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Box>
-              <Typography variant="h5" sx={{ 
-                fontWeight: 800, 
-                color: '#1e293b',
-                fontSize: '1.5rem',
-                mb: 0.5
-              }}>
-                Carteira de ETFs Internacionais
-              </Typography>
-              <Typography variant="body1" sx={{ 
-                color: '#64748b',
-                fontSize: '1rem'
-              }}>
-                {etfsComCotacoes.length} ETFs • Diversificação global com baixo custo
-              </Typography>
-            </Box>
-            <Box sx={{
-              background: 'linear-gradient(135deg, #000000 0%, #374151 100%)',
-              color: 'white',
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              fontWeight: 600,
-              fontSize: '0.875rem'
-            }}>
-              🌎 {etfsComCotacoes.length} ETFs
-            </Box>
-          </Stack>
-        </Box>
-        
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '1000px' }}>
-            <TableHead>
-              <TableRow sx={{ 
-                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-              }}>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '180px'
-                }}>
-                  Ativo
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '120px'
-                }}>
-                  Setor
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '120px'
-                }}>
-                  Data Entrada
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '130px'
-                }}>
-                  Preço que Iniciou
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '130px'
-                }}>
-                  Preço Atual
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '80px'
-                }}>
-                  DY
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '120px'
-                }}>
-                  Teto
-                </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: 700, 
-                  textAlign: 'center', 
-                  color: '#475569', 
-                  fontSize: '0.8rem', 
-                  textTransform: 'uppercase',
-                  width: '100px'
-                }}>
-                  Viés
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {etfsComCotacoes.map((row, index) => {
-                const precoIniciou = parseFloat(row.precoQueIniciou.replace('US$', ''));
-                const precoAtual = parseFloat(row.precoAtual.replace('US$', ''));
-                
-                // Usar performance calculada se disponível, senão calcular manualmente
-                const variacao = row.performance || ((precoAtual - precoIniciou) / precoIniciou) * 100;
-                const isPositive = variacao >= 0;
+          ETFs Internacionais
+        </h1>
+        <p style={{ 
+          color: '#64748b', 
+          fontSize: '18px',
+          margin: '0',
+          lineHeight: '1.5'
+        }}>
+          Exposição diversificada aos mercados globais • Dados atualizados a cada 15 minutos.
+        </p>
+      </div>
+
+      {/* Cards de Métricas */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '12px',
+        marginBottom: '32px'
+      }}>
+        {/* Performance Total */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#64748b', 
+            fontWeight: '500',
+            marginBottom: '8px'
+          }}>
+            Rentabilidade total
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '700', 
+            color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
+            lineHeight: '1'
+          }}>
+            {formatPercentage(metricas.rentabilidadeTotal)}
+          </div>
+        </div>
+
+        {/* Dividend Yield Médio */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#64748b', 
+            fontWeight: '500',
+            marginBottom: '8px'
+          }}>
+            DY médio 12M
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '700', 
+            color: '#1e293b',
+            lineHeight: '1'
+          }}>
+            {metricas.dyMedio.toFixed(1)}%
+          </div>
+        </div>
+
+        {/* S&P 500 */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#64748b', 
+            fontWeight: '500',
+            marginBottom: '8px'
+          }}>
+            S&P 500
+          </div>
+          <div style={{ 
+            fontSize: '20px', 
+            fontWeight: '700', 
+            color: '#1e293b',
+            lineHeight: '1',
+            marginBottom: '4px'
+          }}>
+            {indicesData?.sp500?.valorFormatado || '5,970.80'}
+          </div>
+          <div style={{ 
+            fontSize: '14px', 
+            fontWeight: '600', 
+            color: indicesData?.sp500?.trend === 'up' ? '#10b981' : '#ef4444',
+            lineHeight: '1'
+          }}>
+            {indicesData?.sp500 ? formatPercentage(indicesData.sp500.variacaoPercent) : '+0.59%'}
+          </div>
+        </div>
+
+        {/* NASDAQ */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#64748b', 
+            fontWeight: '500',
+            marginBottom: '8px'
+          }}>
+            NASDAQ 100
+          </div>
+          <div style={{ 
+            fontSize: '20px', 
+            fontWeight: '700', 
+            color: '#1e293b',
+            lineHeight: '1',
+            marginBottom: '4px'
+          }}>
+            {indicesData?.nasdaq?.valorFormatado || '19,400.00'}
+          </div>
+          <div style={{ 
+            fontSize: '14px', 
+            fontWeight: '600', 
+            color: indicesData?.nasdaq?.trend === 'up' ? '#10b981' : '#ef4444',
+            lineHeight: '1'
+          }}>
+            {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+0.81%'}
+          </div>
+        </div>
+
+        {/* Quantidade de ETFs */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#64748b', 
+            fontWeight: '500',
+            marginBottom: '8px'
+          }}>
+            Total de ETFs
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            fontWeight: '700', 
+            color: '#1e293b',
+            lineHeight: '1'
+          }}>
+            {metricas.quantidadeAtivos}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela de ETFs */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+        overflow: 'hidden',
+        marginBottom: '32px'
+      }}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc'
+        }}>
+          <h3 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: '0 0 8px 0'
+          }}>
+           ETFs Internacionais • Performance Individual
+          </h3>
+          <p style={{
+            color: '#64748b',
+            fontSize: '16px',
+            margin: '0'
+          }}>
+            {ativosAtualizados.length} ETFs
+          </p>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f1f5f9' }}>
+                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  ETF
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  CATEGORIA
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  ENTRADA
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PREÇO INICIAL
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PREÇO ATUAL
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PREÇO TETO
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PERFORMANCE
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  DY 12M
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  VIÉS
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {ativosAtualizados.map((ativo, index) => {
+                const temCotacaoReal = ativo.statusApi === 'success';
                 
                 return (
-                  <TableRow 
-                    hover 
-                    key={row.id}
-                    onClick={() => window.location.href = `/dashboard/empresa-exterior/${row.ticker}`}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        cursor: 'pointer',
-                        transform: 'scale(1.005)',
-                        transition: 'all 0.2s ease'
-                      },
-                      borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                  <tr 
+                    key={ativo.id || index} 
+                    style={{ 
+                      borderBottom: '1px solid #f1f5f9',
+                      transition: 'background-color 0.2s',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      // Navegar para página de detalhes do ativo
+                      window.location.href = `/dashboard/empresa-exterior/${ativo.ticker}`;
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <TableCell sx={{ width: '180px' }}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar 
-                          src={row.avatar}
-                          sx={{ 
-                            width: 40, 
-                            height: 40, 
-                            backgroundColor: '#f8fafc',
-                            color: '#374151',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            border: '2px solid',
-                            borderColor: 'rgba(0, 0, 0, 0.2)'
-                          }}
-                        >
-                          {row.ticker.charAt(0)}
-                        </Avatar>
-                        <Typography variant="subtitle1" sx={{ 
-                          fontWeight: 700,
-                          color: '#1e293b',
-                          fontSize: '1rem'
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid #e2e8f0'
                         }}>
-                          {row.ticker}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ width: '120px' }}>
-                      <Stack spacing={0.5}>
-                        <Chip 
-                          label={row.setor}
-                          size="small"
-                          sx={{
-                            backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                            color: '#000000',
-                            fontWeight: 600,
-                            fontSize: '0.7rem',
-                            height: '22px'
-                          }}
-                        />
-                        <Typography variant="caption" sx={{ 
-                          color: isPositive ? '#059669' : '#dc2626',
-                          fontSize: '0.75rem',
-                          fontWeight: 600
-                        }}>
-                          {isPositive ? '+' : ''}{variacao.toFixed(1)}%
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      color: '#64748b',
-                      fontSize: '0.85rem',
-                      whiteSpace: 'nowrap',
-                      width: '120px'
-                    }}>
-                      {row.dataEntrada}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.85rem',
-                      width: '130px'
-                    }}>
-                      {row.precoQueIniciou}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center',
-                      fontWeight: 700,
-                      color: isPositive ? '#10b981' : '#ef4444',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.85rem',
-                      width: '130px'
-                    }}>
-                      {row.precoAtual}
-                    </TableCell>
-                    <TableCell sx={{ 
+                          <img 
+                            src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
+                            alt={`Logo ${ativo.ticker}`}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              objectFit: 'contain'
+                            }}
+                            onError={(e) => {
+                              // Fallback para ícone com iniciais se a imagem não carregar
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                parent.style.fontWeight = '700';
+                                parent.style.fontSize = '14px';
+                                parent.textContent = ativo.ticker.slice(0, 2);
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ 
+                            fontWeight: '700', 
+                            color: '#1e293b', 
+                            fontSize: '16px'
+                          }}>
+                            {ativo.ticker}
+                            {!temCotacaoReal && (
+                              <span style={{ 
+                                marginLeft: '8px', 
+                                fontSize: '12px', 
+                                color: '#f59e0b',
+                                backgroundColor: '#fef3c7',
+                                padding: '2px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                SIM
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ color: '#64748b', fontSize: '14px' }}>
+                            {ativo.nomeCompleto || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                      {ativo.setor}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                      {ativo.dataEntrada}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
+                      {formatCurrency(ativo.precoEntrada)}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
+                      {formatCurrency(ativo.precoAtual)}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
+                      {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                    </td>
+                    <td style={{ 
+                      padding: '16px', 
                       textAlign: 'center', 
-                      width: '80px'
+                      fontWeight: '800',
+                      fontSize: '16px',
+                      color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
                     }}>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: '#000000',
-                          fontWeight: 600,
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        {row.dy}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ 
+                      {formatPercentage(ativo.performance)}
+                    </td>
+                    <td style={{ 
+                      padding: '16px', 
                       textAlign: 'center',
-                      fontWeight: 600,
-                      color: '#475569',
-                      whiteSpace: 'nowrap',
-                      width: '120px',
-                      fontSize: '0.85rem'
+                      fontWeight: '700',
+                      color: '#1e293b'
                     }}>
-                      {row.precoTeto}
-                    </TableCell>
-                    <TableCell sx={{ 
-                      textAlign: 'center', 
-                      width: '100px'
-                    }}>
-                      <Chip
-                        label={row.viesAtual}
-                        size="medium"
-                        sx={{
-                          backgroundColor: row.viesAtual === 'COMPRA' ? '#dcfce7' : '#fef3c7',
-                          color: row.viesAtual === 'COMPRA' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          border: '1px solid',
-                          borderColor: row.viesAtual === 'COMPRA' ? '#bbf7d0' : '#fde68a',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          minWidth: '80px'
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
+                      {ativo.dy}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                        color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                      }}>
+                        {ativo.vies}
+                      </span>
+                    </td>
+                  </tr>
                 );
               })}
-            </TableBody>
-          </Table>
-        </Box>
-        <Divider />
-        <TablePagination
-          component="div"
-          count={etfsComCotacoes.length}
-          onPageChange={noop}
-          onRowsPerPage={noop}
-          page={0}
-          rowsPerPage={etfsComCotacoes.length}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count: totalCount }) => 
-            `${from}-${to} de ${totalCount !== -1 ? totalCount : `mais de ${to}`}`
-          }
-          sx={{
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            p: 2,
-            '& .MuiTablePagination-toolbar': {
-              color: '#475569'
-            }
-          }}
-        />
-      </Card>
-    </Box>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Gráfico de Composição por Categoria */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          padding: '24px',
+          borderBottom: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc'
+        }}>
+          <h3 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: '0 0 8px 0'
+          }}>
+           Composição por Categoria
+          </h3>
+          <p style={{
+            color: '#64748b',
+            fontSize: '16px',
+            margin: '0'
+          }}>
+            Distribuição por tipo de ETF • {ativosAtualizados.length} ETFs
+          </p>
+        </div>
+
+        <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
+          {/* Gráfico SVG */}
+          <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
+            {(() => {
+              // Agrupar por setor/categoria
+              const categoriasMap = new Map();
+              ativosAtualizados.forEach(ativo => {
+                const categoria = ativo.setor || 'Outros';
+                categoriasMap.set(categoria, (categoriasMap.get(categoria) || 0) + 1);
+              });
+              
+              const categorias = Array.from(categoriasMap.entries()).map(([categoria, quantidade]) => ({
+                categoria,
+                quantidade,
+                porcentagem: (quantidade / ativosAtualizados.length) * 100
+              }));
+              
+              const cores = [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+              ];
+              
+              const radius = 150;
+              const innerRadius = 75;
+              const centerX = 200;
+              const centerY = 200;
+              const totalAngle = 2 * Math.PI;
+              let currentAngle = -Math.PI / 2; // Começar no topo
+              
+              const createPath = (startAngle: number, endAngle: number) => {
+                const x1 = centerX + radius * Math.cos(startAngle);
+                const y1 = centerY + radius * Math.sin(startAngle);
+                const x2 = centerX + radius * Math.cos(endAngle);
+                const y2 = centerY + radius * Math.sin(endAngle);
+                
+                const x3 = centerX + innerRadius * Math.cos(endAngle);
+                const y3 = centerY + innerRadius * Math.sin(endAngle);
+                const x4 = centerX + innerRadius * Math.cos(startAngle);
+                const y4 = centerY + innerRadius * Math.sin(startAngle);
+                
+                const largeArcFlag = endAngle - startAngle <= Math.PI ? "0" : "1";
+                
+                return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4} Z`;
+              };
+              
+              return (
+                <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
+                  <defs>
+                    <style>
+                      {`
+                        .slice-text {
+                          opacity: 0;
+                          transition: opacity 0.3s ease;
+                          pointer-events: none;
+                        }
+                        .slice-group:hover .slice-text {
+                          opacity: 1;
+                        }
+                        .slice-path {
+                          transition: all 0.3s ease;
+                          cursor: pointer;
+                        }
+                        .slice-group:hover .slice-path {
+                          transform: scale(1.05);
+                          transform-origin: ${centerX}px ${centerY}px;
+                        }
+                      `}
+                    </style>
+                  </defs>
+                  
+                  {categorias.map((categoria, index) => {
+                    const sliceAngle = (categoria.porcentagem / 100) * totalAngle;
+                    const startAngle = currentAngle;
+                    const endAngle = currentAngle + sliceAngle;
+                    const cor = cores[index % cores.length];
+                    const path = createPath(startAngle, endAngle);
+                    
+                    // Calcular posição do texto no meio da fatia
+                    const middleAngle = (startAngle + endAngle) / 2;
+                    const textRadius = (radius + innerRadius) / 2; // Meio da fatia
+                    const textX = centerX + textRadius * Math.cos(middleAngle);
+                    const textY = centerY + textRadius * Math.sin(middleAngle);
+                    
+                    currentAngle += sliceAngle;
+                    
+                    return (
+                      <g key={categoria.categoria} className="slice-group">
+                        <path
+                          d={path}
+                          fill={cor}
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          className="slice-path"
+                        >
+                          <title>{categoria.categoria}: {categoria.porcentagem.toFixed(1)}% ({categoria.quantidade} ETFs)</title>
+                        </path>
+                        
+                        {/* Textos que aparecem no hover */}
+                        <g className="slice-text">
+                          {/* Texto da categoria */}
+                          <text
+                            x={textX}
+                            y={textY - 6}
+                            textAnchor="middle"
+                            fontSize="10"
+                            fontWeight="700"
+                            fill="#ffffff"
+                            style={{ 
+                              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                            }}
+                          >
+                            {categoria.categoria.length > 12 ? categoria.categoria.substring(0, 10) + '...' : categoria.categoria}
+                          </text>
+                          
+                          {/* Texto da porcentagem */}
+                          <text
+                            x={textX}
+                            y={textY + 8}
+                            textAnchor="middle"
+                            fontSize="10"
+                            fontWeight="600"
+                            fill="#ffffff"
+                            style={{ 
+                              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                            }}
+                          >
+                            {categoria.porcentagem.toFixed(1)}%
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Círculo central */}
+                  <circle
+                    cx={centerX}
+                    cy={centerY}
+                    r={innerRadius}
+                    fill="#f8fafc"
+                    stroke="#e2e8f0"
+                    strokeWidth="2"
+                  />
+                  
+                  {/* Texto central */}
+                  <text
+                    x={centerX}
+                    y={centerY - 10}
+                    textAnchor="middle"
+                    fontSize="16"
+                    fontWeight="700"
+                    fill="#1e293b"
+                  >
+                    {categorias.length}
+                  </text>
+                  <text
+                    x={centerX}
+                    y={centerY + 10}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill="#64748b"
+                  >
+                    CATEGORIAS
+                  </text>
+                </svg>
+              );
+            })()}
+          </div>
+          
+          {/* Legenda */}
+          <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+            {(() => {
+              // Agrupar por categoria para a legenda
+              const categoriasMap = new Map();
+              ativosAtualizados.forEach(ativo => {
+                const categoria = ativo.setor || 'Outros';
+                categoriasMap.set(categoria, (categoriasMap.get(categoria) || 0) + 1);
+              });
+              
+              const categorias = Array.from(categoriasMap.entries()).map(([categoria, quantidade]) => ({
+                categoria,
+                quantidade,
+                porcentagem: (quantidade / ativosAtualizados.length) * 100
+              }));
+              
+              const cores = [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+              ];
+              
+              return categorias.map((categoria, index) => {
+                const cor = cores[index % cores.length];
+                
+                return (
+                  <div key={categoria.categoria} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '2px',
+                      backgroundColor: cor,
+                      flexShrink: 0
+                    }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: '#1e293b', 
+                        fontSize: '14px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {categoria.categoria}
+                      </div>
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {categoria.porcentagem.toFixed(1)}% • {categoria.quantidade} ETF{categoria.quantidade > 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -14,6 +14,8 @@ import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { usePopover } from '@/hooks/use-popover';
+import { useUser } from '@/hooks/use-user';
+import { authClient } from '@/lib/auth/client';
 import { MobileNav } from './mobile-nav';
 import { UserPopover } from './user-popover';
 
@@ -119,8 +121,44 @@ export function MainNav(): React.JSX.Element {
   const userPopover = usePopover<HTMLDivElement>();
   const router = useRouter();
   
+  // 🔥 NOVA ABORDAGEM: Verificação direta do localStorage
+  const { user } = useUser();
+  const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
+  const [lastCheck, setLastCheck] = React.useState<string>('');
+  
   // Carregar ativos dinamicamente
   const ativos = useAtivos();
+
+  // Verificar localStorage diretamente a cada segundo
+  React.useEffect(() => {
+    const checkAvatar = () => {
+      try {
+        const userData = localStorage.getItem('user-data');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          const currentCheck = userData; // Usar string completa como "fingerprint"
+          
+          if (currentCheck !== lastCheck) {
+            if (parsed.avatar && parsed.avatar !== userAvatar) {
+              console.log('🔄 AVATAR ATUALIZADO!');
+              setUserAvatar(parsed.avatar);
+            }
+            setLastCheck(currentCheck);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar avatar:', error);
+      }
+    };
+
+    // Verificar imediatamente
+    checkAvatar();
+    
+    // Verificar a cada 500ms
+    const interval = setInterval(checkAvatar, 500);
+    
+    return () => clearInterval(interval);
+  }, [userAvatar, lastCheck]);
 
   // Navegar para o ativo selecionado
   const handleAtivoSelect = (ativo: {ticker: string, nome: string, setor: string} | null) => {
@@ -239,11 +277,21 @@ export function MainNav(): React.JSX.Element {
                 </IconButton>
               </Badge>
             </Tooltip>
+
             <Avatar
               onClick={userPopover.handleOpen}
               ref={userPopover.anchorRef}
-              src="/assets/avatar.png"
-              sx={{ cursor: 'pointer' }}
+              src={userAvatar}
+              key={userAvatar} // Força re-render
+              sx={{ 
+                cursor: 'pointer',
+                border: '2px solid #E2E8F0',
+                width: 40,
+                height: 40,
+                '&:hover': {
+                  border: '2px solid #3B82F6'
+                }
+              }}            
             />
           </Stack>
         </Stack>

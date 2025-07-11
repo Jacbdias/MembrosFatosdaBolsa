@@ -45,7 +45,7 @@ export function SignInForm(): React.JSX.Element {
     formState: { errors },
   } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
 
-  // ✅ FUNÇÃO CORRIGIDA
+  // 🆕 FUNÇÃO ATUALIZADA - Verifica mustChangePassword
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       setIsPending(true);
@@ -64,6 +64,16 @@ export function SignInForm(): React.JSX.Element {
 
         console.log('✅ Login bem-sucedido, verificando sessão...');
         await checkSession?.();
+        
+        // 🆕 VERIFICAR SE PRECISA ALTERAR SENHA
+        const { data: userData } = await authClient.getUser();
+        console.log('👤 Dados do usuário após login:', userData);
+        
+        if (userData?.mustChangePassword) {
+          console.log('🔐 Usuário precisa alterar senha - redirecionando...');
+          router.push('/auth/change-password');
+          return;
+        }
         
         console.log('🚀 Redirecionando para dashboard...');
         router.push('/dashboard');

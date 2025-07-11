@@ -5,6 +5,9 @@ export interface User {
   email?: string;
   firstName?: string;
   lastName?: string;
-  plan?: 'VIP' | 'LITE' | 'RENDA_PASSIVA' | 'FIIS' | 'AMERICA';  // ✅ MODIFICADO
+  plan?: 'VIP' | 'LITE' | 'RENDA_PASSIVA' | 'FIIS' | 'AMERICA' | 'ADMIN';  // ← Adicionado ADMIN
+  customPermissions?: string[];  // ← Adicionado customPermissions
+  status?: 'ACTIVE' | 'INACTIVE' | 'PENDING';  // ← Adicionado status
+  expirationDate?: string;  // ← Adicionado expirationDate
   [key: string]: unknown;
 }
