@@ -1,559 +1,1810 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
-export default function PortfolioAnalysisForm() {
-  const [formData, setFormData] = useState({
+const getStatusColor = (status) => {
+  const statusLower = status.toLowerCase();
+  switch (statusLower) {
+    case 'completed':
+    case 'analisada':
+      return '#10b981'; // Verde
+    case 'processing':
+    case 'em_analise':
+    case 'em análise':
+      return '#f59e0b'; // Amarelo
+    case 'pending':
+    case 'pendente':
+      return '#64748b'; // Cinza
+    default:
+      return '#64748b';
+  }
+};
 
-    name: '',
-    email: '',
-    phone: '',
-    investmentTime: '',
-    investmentReason: '',
-    portfolioObjective: '',
-    riskTolerance: 25,
-    crashExperience: '',
-    emergencyReserve: '',
-    emergencyReserveLocation: '',
-    opportunityReserve: '',
-    monthlyIncome: '',
-    monthlyContribution: '',
-    knowledgeLevel: '',
-    stocks: 0,
-    fiis: 0,
-    international: 0,
-    fixedIncome: 0,
-    others: 0,
-    othersDescription: '',
-    additionalNotes: ''
+const getStatusText = (status) => {
+  const statusLower = status.toLowerCase();
+  switch (statusLower) {
+    case 'completed':
+    case 'analisada':
+      return 'Analisada';
+    case 'processing':
+    case 'em_analise':
+    case 'em análise':
+      return 'Em Análise';
+    case 'pending':
+    case 'pendente':
+      return 'Pendente';
+    default:
+      return 'Pendente';
+  }
+};
+
+const getStatusIcon = (status) => {
+  const statusLower = status.toLowerCase();
+  switch (statusLower) {
+    case 'completed':
+    case 'analisada':
+      return '✅';
+    case 'processing':
+    case 'em_analise':
+    case 'em análise':
+      return '⏳';
+    case 'pending':
+    case 'pendente':
+      return '📋';
+    default:
+      return '📋';
+  }
+};
+
+function AnaliseCarteiraClientePage() {
+  const [etapaAtual, setEtapaAtual] = useState(1);
+  const [respostas, setRespostas] = useState({
+    tempoInvestimento: '',
+    motivoMercado: '',
+    objetivoCarteira: '',
+    toleranciaOscilacao: '',
+    comportamentoQueda: '',
+    reservaEmergencia: '',
+    reservaOportunidade: '',
+    rendaMensal: '',
+    valorAporte: '',
+    nivelConhecimento: ''
   });
-
-  const [errors, setErrors] = useState({});
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  
+  // 🆕 NOVO ESTADO: Verificar se usuário já enviou carteira
+  const [jaEnviouCarteira, setJaEnviouCarteira] = useState(false);
+  const [carregandoVerificacao, setCarregandoVerificacao] = useState(true);
 
-  const handleInputChange = (field) => (event) => {
-    const value = event.target.value;
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  // 🆕 NOVO useEffect: Verificar se já enviou carteira
+  useEffect(() => {
+    const verificarSeJaEnviou = async () => {
+      try {
+        const response = await fetch('/api/carteiras/minhas');
+        const data = await response.json();
+        
+        if (response.ok && data.carteiras && data.carteiras.length > 0) {
+          setJaEnviouCarteira(true);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar carteiras:', error);
+      } finally {
+        setCarregandoVerificacao(false);
+      }
+    };
+
+    verificarSeJaEnviou();
+  }, []);
+
+  const perguntas = [
+    {
+      id: 'tempoInvestimento',
+      pergunta: 'Há quanto tempo investe na bolsa?',
+      tipo: 'select',
+      opcoes: [
+        'Nunca investi',
+        'Menos de 1 ano',
+        '1-2 anos',
+        '3-5 anos',
+        '6-10 anos',
+        'Mais de 10 anos'
+      ]
+    },
+    {
+      id: 'motivoMercado',
+      pergunta: 'Qual motivo o(a) levou até o mercado de ativos?',
+      tipo: 'textarea'
+    },
+    {
+      id: 'objetivoCarteira',
+      pergunta: 'Qual seu objetivo com sua carteira?',
+      tipo: 'select',
+      opcoes: [
+        'Dividendos (renda passiva)',
+        'Crescimento (valorização)',
+        'Equilibrio (dividendos + crescimento)',
+        'Preservação de capital',
+        'Aposentadoria',
+        'Objetivo específico (casa, viagem, etc.)'
+      ]
+    },
+    {
+      id: 'toleranciaOscilacao',
+      pergunta: 'Quanto você suportaria ver sua carteira total (% patrimônio líquido) oscilar para baixo?',
+      tipo: 'select',
+      opcoes: [
+        'Até 5%',
+        '5% - 10%',
+        '10% - 20%',
+        '20% - 30%',
+        '30% - 50%',
+        'Mais de 50%'
+      ]
+    },
+    {
+      id: 'comportamentoQueda',
+      pergunta: 'Já passou por uma queda muito forte? Qual foi o seu comportamento?',
+      tipo: 'textarea'
+    },
+    {
+      id: 'reservaEmergencia',
+      pergunta: 'Você já possui reserva de emergência? Onde está alocada?',
+      tipo: 'textarea'
+    },
+    {
+      id: 'reservaOportunidade',
+      pergunta: 'Já possui uma reserva de oportunidade?',
+      tipo: 'select',
+      opcoes: [
+        'Sim, tenho reserva de oportunidade',
+        'Não, mas pretendo criar',
+        'Não sei o que é reserva de oportunidade',
+        'Não acho necessário'
+      ]
+    },
+    {
+      id: 'rendaMensal',
+      pergunta: 'Qual sua renda mensal?',
+      tipo: 'select',
+      opcoes: [
+        'Até R$ 2.000',
+        'R$ 2.001 - R$ 5.000',
+        'R$ 5.001 - R$ 10.000',
+        'R$ 10.001 - R$ 20.000',
+        'R$ 20.001 - R$ 50.000',
+        'Acima de R$ 50.000'
+      ]
+    },
+    {
+      id: 'valorAporte',
+      pergunta: 'Quanto sobra para aportar todos os meses?',
+      tipo: 'select',
+      opcoes: [
+        'Até R$ 500',
+        'R$ 501 - R$ 1.000',
+        'R$ 1.001 - R$ 2.000',
+        'R$ 2.001 - R$ 5.000',
+        'R$ 5.001 - R$ 10.000',
+        'Acima de R$ 10.000'
+      ]
+    },
+    {
+      id: 'nivelConhecimento',
+      pergunta: 'Como você avalia seu conhecimento em relação à bolsa?',
+      tipo: 'select',
+      opcoes: [
+        'Não sei nada',
+        'Básico',
+        'Intermediário',
+        'Avançado',
+        'Especialista'
+      ]
+    }
+  ];
+
+  const handleRespostaChange = (id, valor) => {
+    setRespostas(prev => ({
+      ...prev,
+      [id]: valor
+    }));
+  };
+
+  const todasPerguntasRespondidas = () => {
+    return perguntas.every(pergunta => 
+      respostas[pergunta.id] && respostas[pergunta.id].trim() !== ''
+    );
+  };
+
+  const handleFileUpload = (file) => {
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      setUploadedFile(file);
+    } else {
+      alert('Por favor, envie apenas arquivos Excel (.xlsx ou .xls)');
     }
   };
 
-  const handleNumberChange = (field) => (event) => {
-    const value = parseFloat(event.target.value) || 0;
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
-    if (!formData.email.trim()) newErrors.email = 'Email é obrigatório';
-    if (!formData.investmentTime) newErrors.investmentTime = 'Campo obrigatório';
-    if (!formData.investmentReason.trim()) newErrors.investmentReason = 'Campo obrigatório';
-    if (!formData.portfolioObjective) newErrors.portfolioObjective = 'Campo obrigatório';
-    if (!formData.crashExperience.trim()) newErrors.crashExperience = 'Campo obrigatório';
-    if (!formData.emergencyReserve) newErrors.emergencyReserve = 'Campo obrigatório';
-    if (!formData.knowledgeLevel) newErrors.knowledgeLevel = 'Campo obrigatório';
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (formData.email && !emailRegex.test(formData.email)) {
-      newErrors.email = 'Email inválido';
-    }
-    
-    const totalAllocation = formData.stocks + formData.fiis + formData.international + formData.fixedIncome + formData.others;
-    if (totalAllocation > 0 && Math.abs(totalAllocation - 100) > 0.1) {
-      newErrors.allocation = 'A soma das alocações deve ser igual a 100%';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!validateForm()) return;
+  // MODIFIQUE o handleSubmit para atualizar o estado após envio:
+  const handleSubmit = async () => {
+    if (!uploadedFile || !todasPerguntasRespondidas()) return;
     
     setIsSubmitting(true);
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsSubmitted(true);
+      const formData = new FormData();
+      formData.append('arquivo', uploadedFile);
+      formData.append('questionario', JSON.stringify(respostas));
+      
+      console.log('📋 Enviando questionário:', respostas);
+      console.log('📎 Enviando arquivo:', uploadedFile.name);
+      
+      const response = await fetch('/api/carteiras/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // 🆕 MARCAR QUE JÁ ENVIOU
+        setJaEnviouCarteira(true);
+        setEtapaAtual(3);
+        
+        if (result.resumo) {
+          alert(`Carteira enviada com sucesso!
+          
+Resumo do processamento:
+• Valor total: R$ ${result.resumo.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+• Quantidade de ativos: ${result.resumo.quantidadeAtivos}
+• Arquivo processado: ${result.resumo.arquivoProcessado ? 'Sim' : 'Não'}
+• Questionário incluído: ${result.resumo.questionarioIncluido ? 'Sim' : 'Não'}
+
+Nossa equipe entrará em contato em breve com a análise completa.`);
+        } else {
+          alert('Carteira enviada com sucesso! Nossa equipe entrará em contato em breve.');
+        }
+        
+        // Limpar formulário
+        setRespostas({
+          tempoInvestimento: '',
+          motivoMercado: '',
+          objetivoCarteira: '',
+          toleranciaOscilacao: '',
+          comportamentoQueda: '',
+          reservaEmergencia: '',
+          reservaOportunidade: '',
+          rendaMensal: '',
+          valorAporte: '',
+          nivelConhecimento: ''
+        });
+        setUploadedFile(null);
+      } else {
+        alert(`Erro: ${result.error || 'Erro desconhecido'}`);
+      }
     } catch (error) {
-      console.error('Erro ao enviar formulário:', error);
-      setErrors({ submit: 'Erro ao enviar formulário' });
+      console.error('Erro no envio:', error);
+      alert('Erro ao enviar análise. Verifique sua conexão e tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
+  }; 
+
+// FUNÇÃO EXCEL CORRIGIDA - SEM LINKS EXTERNOS E SEM ERROS
+const gerarModeloProfissional = () => {
+  const wb = XLSX.utils.book_new();
+  
+  // ===========================================
+  // 1. ABA INSTRUÇÕES
+  // ===========================================
+  const instrucoes = [
+    ['FATOS DA BOLSA - ANÁLISE DE CARTEIRA PROFISSIONAL'],
+    [''],
+    ['INSTRUÇÕES DE PREENCHIMENTO'],
+    [''],
+    ['📋 IMPORTANTE:'],
+    ['• Preencha apenas as células com 🔵 AZUL'],
+    ['• NÃO altere as células com ⚪ CINZA (calculadas automaticamente)'],
+    ['• Use vírgula (,) para decimais. Ex: 15,75'],
+    ['• Para ações, use códigos da B3: PETR4, VALE3, ITUB4, etc.'],
+    ['• Para FIIs, use códigos: HGLG11, BCFF11, XPML11, etc.'],
+    [''],
+    ['🎨 LEGENDA:'],
+    ['🔵 AZUL = Células para você preencher'],
+    ['⚪ CINZA = Células calculadas automaticamente'],
+    ['⭐ VERDE = Totais e resumos'],
+    [''],
+    ['💡 DICA: Siga os exemplos já preenchidos!'],
+  ];
+  
+  const wsInstrucoes = XLSX.utils.aoa_to_sheet(instrucoes);
+  wsInstrucoes['!cols'] = [{ width: 60 }];
+  XLSX.utils.book_append_sheet(wb, wsInstrucoes, '📋 INSTRUÇÕES');
+  
+  // ===========================================
+  // 2. ABA AÇÕES - FÓRMULAS CORRIGIDAS
+  // ===========================================
+  const acoes = [
+    ['FATOS DA BOLSA - AÇÕES BRASILEIRAS'],
+    [''],
+    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+    [''],
+    ['🔵 CÓDIGO', '🔵 NOME/EMPRESA', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ COTAÇÃO ATUAL', '⚪ VALOR INVESTIDO', '⚪ VALOR ATUAL', '⚪ % CARTEIRA'],
+    [''],
+    ['PETR4', 'Petrobras PN', 100, 25.50, '', '', '', ''],
+    ['VALE3', 'Vale ON', 50, 85.00, '', '', '', ''],
+    ['ITUB4', 'Itaú Unibanco PN', '', '', '', '', '', ''],
+    ['BBSE3', 'BB Seguridade ON', '', '', '', '', '', ''],
+  ];
+
+  // Adicionar mais 15 linhas vazias
+  for (let i = 0; i < 15; i++) {
+    acoes.push(['', '', '', '', '', '', '', '']);
+  }
+
+  acoes.push(['']); // Linha em branco
+  acoes.push(['⭐ TOTAL AÇÕES:', '', '', '', '', '', '', '']);
+
+  const wsAcoes = XLSX.utils.aoa_to_sheet(acoes);
+
+  // FÓRMULAS CORRIGIDAS PARA AÇÕES (linha total = 26)
+  for (let i = 7; i <= 25; i++) {
+    // Cotação Atual: Se vazio, usa o preço médio
+    wsAcoes[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
+    
+    // Valor Investido = Quantidade × Preço Médio
+    wsAcoes[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i},"")` };
+    
+    // Valor Atual = Quantidade × Cotação Atual
+    wsAcoes[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i},"")` };
+    
+    // % Carteira = Valor Atual ÷ Total da Aba × 100 (SEM $)
+    wsAcoes[`H${i}`] = { f: `IF(G${i}="","",IF(G26=0,0,G${i}/G26*100))` };
+  }
+
+  // Fórmulas de TOTAL (linha 26)
+  wsAcoes['F26'] = { f: 'SUM(F7:F25)' }; // Total Valor Investido
+  wsAcoes['G26'] = { f: 'SUM(G7:G25)' }; // Total Valor Atual
+  wsAcoes['H26'] = { f: 'SUM(H7:H25)' }; // Total % (deve dar 100%)
+
+  wsAcoes['!cols'] = [
+    { width: 12 }, { width: 30 }, { width: 12 }, { width: 18 }, 
+    { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
+  ];
+  wsAcoes['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+  XLSX.utils.book_append_sheet(wb, wsAcoes, '🏢 AÇÕES');
+
+  // ===========================================
+  // 3. ABA FIIs - FÓRMULAS CORRIGIDAS
+  // ===========================================
+  const fiis = [
+    ['FATOS DA BOLSA - FUNDOS IMOBILIÁRIOS (FIIs)'],
+    [''],
+    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+    [''],
+    ['🔵 CÓDIGO', '🔵 NOME/DESCRIÇÃO', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ COTAÇÃO ATUAL', '⚪ VALOR INVESTIDO', '⚪ VALOR ATUAL', '⚪ % CARTEIRA'],
+    [''],
+    ['HGLG11', 'Cshg Logística FII', 10, 150.00, '', '', '', ''],
+    ['BCFF11', 'Btg Pactual Fof FII', 20, 85.50, '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+  ];
+
+  for (let i = 0; i < 17; i++) {
+    fiis.push(['', '', '', '', '', '', '', '']);
+  }
+
+  fiis.push(['']);
+  fiis.push(['⭐ TOTAL FIIs:', '', '', '', '', '', '', '']);
+
+  const wsFiis = XLSX.utils.aoa_to_sheet(fiis);
+
+  // FÓRMULAS CORRIGIDAS PARA FIIs (linha total = 26)
+  for (let i = 7; i <= 25; i++) {
+    // Cotação Atual: Se vazio, usa o preço médio
+    wsFiis[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
+    
+    // Valor Investido = Quantidade × Preço Médio
+    wsFiis[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i},"")` };
+    
+    // Valor Atual = Quantidade × Cotação Atual
+    wsFiis[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i},"")` };
+    
+    // % Carteira = Valor Atual ÷ Total da Aba × 100 (SEM $)
+    wsFiis[`H${i}`] = { f: `IF(G${i}="","",IF(G26=0,0,G${i}/G26*100))` };
+  }
+
+  // Totais FIIs
+  wsFiis['F26'] = { f: 'SUM(F7:F25)' };
+  wsFiis['G26'] = { f: 'SUM(G7:G25)' };
+  wsFiis['H26'] = { f: 'SUM(H7:H25)' };
+
+  wsFiis['!cols'] = [
+    { width: 12 }, { width: 30 }, { width: 12 }, { width: 18 }, 
+    { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
+  ];
+  wsFiis['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+  XLSX.utils.book_append_sheet(wb, wsFiis, '🏘️ FIIs');
+
+  // ===========================================
+  // 4. ABA RENDA FIXA - FÓRMULAS CORRIGIDAS
+  // ===========================================
+  const rendaFixa = [
+    ['FATOS DA BOLSA - RENDA FIXA'],
+    [''],
+    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+    [''],
+    ['🔵 PRODUTO', '🔵 BANCO/CORRETORA', '🔵 VALOR INVESTIDO (R$)', '⚪ VALOR ATUAL (R$)', '🔵 VENCIMENTO', '⚪ % DA CARTEIRA'],
+    [''],
+    ['CDB 120% CDI', 'Banco Inter', 10000, '', '31/12/2025', ''],
+    ['LCI 95% CDI', 'Nubank', 5000, '', '15/06/2026', ''],
+    ['Tesouro IPCA+', 'Tesouro Direto', 15000, '', '15/05/2035', ''],
+    ['', '', '', '', '', ''],
+  ];
+
+  for (let i = 0; i < 12; i++) {
+    rendaFixa.push(['', '', '', '', '', '']);
+  }
+
+  rendaFixa.push(['']);
+  rendaFixa.push(['⭐ TOTAL RENDA FIXA:', '', '', '', '', '']);
+
+  const wsRendaFixa = XLSX.utils.aoa_to_sheet(rendaFixa);
+
+  // FÓRMULAS CORRIGIDAS PARA RENDA FIXA (linha total = 20)
+  for (let i = 7; i <= 19; i++) {
+    // Valor Atual: Se vazio, usa valor investido
+    wsRendaFixa[`D${i}`] = { f: `IF(C${i}="","",IF(D${i}="",C${i},D${i}))` };
+    
+    // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 20)
+    wsRendaFixa[`F${i}`] = { f: `IF(D${i}="","",IF(D20=0,0,D${i}/D20*100))` };
+  }
+
+  // Totais Renda Fixa (linha 20)
+  wsRendaFixa['C20'] = { f: 'SUM(C7:C19)' }; // Total Investido
+  wsRendaFixa['D20'] = { f: 'SUM(D7:D19)' }; // Total Atual
+  wsRendaFixa['F20'] = { f: 'SUM(F7:F19)' }; // Total %
+
+  wsRendaFixa['!cols'] = [
+    { width: 25 }, { width: 20 }, { width: 20 }, { width: 18 }, { width: 15 }, { width: 15 }
+  ];
+  wsRendaFixa['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
+  XLSX.utils.book_append_sheet(wb, wsRendaFixa, '💰 RENDA FIXA');
+
+  // ===========================================
+  // 5. ABA EXTERIOR - FÓRMULAS CORRIGIDAS
+  // ===========================================
+  const exterior = [
+    ['FATOS DA BOLSA - INVESTIMENTOS NO EXTERIOR'],
+    [''],
+    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+    [''],
+    ['🔵 CÓDIGO', '🔵 NOME/DESCRIÇÃO', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (USD)', '⚪ COTAÇÃO (USD)', '⚪ VALOR INVEST. (R$)', '⚪ VALOR ATUAL (R$)', '⚪ % CARTEIRA'],
+    [''],
+    ['AAPL', 'Apple Inc', 5, 150.00, '', '', '', ''],
+    ['VTI', 'Vanguard Total Stock', 3, 220.00, '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+  ];
+
+  for (let i = 0; i < 12; i++) {
+    exterior.push(['', '', '', '', '', '', '', '']);
+  }
+
+  exterior.push(['']);
+  exterior.push(['⭐ TOTAL EXTERIOR:', '', '', '', '', '', '', '']);
+
+  const wsExterior = XLSX.utils.aoa_to_sheet(exterior);
+
+  // FÓRMULAS CORRIGIDAS PARA EXTERIOR (linha total = 19, USD para BRL = 5.5)
+  for (let i = 7; i <= 18; i++) {
+    // Cotação USD: Se vazio, usa preço médio
+    wsExterior[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
+    
+    // Valor Investido em R$ = Quantidade × Preço Médio USD × Taxa
+    wsExterior[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i}*5.5,"")` };
+    
+    // Valor Atual em R$ = Quantidade × Cotação USD × Taxa
+    wsExterior[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i}*5.5,"")` };
+    
+    // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 19)
+    wsExterior[`H${i}`] = { f: `IF(G${i}="","",IF(G19=0,0,G${i}/G19*100))` };
+  }
+
+  // Totais Exterior (linha 19)
+  wsExterior['F19'] = { f: 'SUM(F7:F18)' };
+  wsExterior['G19'] = { f: 'SUM(G7:G18)' };
+  wsExterior['H19'] = { f: 'SUM(H7:H18)' };
+
+  wsExterior['!cols'] = [
+    { width: 12 }, { width: 25 }, { width: 12 }, { width: 18 }, 
+    { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
+  ];
+  wsExterior['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+  XLSX.utils.book_append_sheet(wb, wsExterior, '🌎 EXTERIOR');
+
+  // ===========================================
+  // 6. ABA CRIPTO - FÓRMULAS CORRIGIDAS
+  // ===========================================
+  const cripto = [
+    ['FATOS DA BOLSA - CRIPTOMOEDAS'],
+    [''],
+    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+    [''],
+    ['🔵 CRIPTOMOEDA', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ VALOR ATUAL (R$)', '🔵 EXCHANGE', '⚪ % DA CARTEIRA'],
+    [''],
+    ['Bitcoin (BTC)', 0.5, 150000, '', 'Binance', ''],
+    ['Ethereum (ETH)', 2, 8000, '', 'Binance', ''],
+    ['', '', '', '', '', ''],
+  ];
+
+  for (let i = 0; i < 8; i++) {
+    cripto.push(['', '', '', '', '', '']);
+  }
+
+  cripto.push(['']);
+  cripto.push(['⭐ TOTAL CRIPTO:', '', '', '', '', '']);
+
+  const wsCripto = XLSX.utils.aoa_to_sheet(cripto);
+
+  // FÓRMULAS CORRIGIDAS PARA CRIPTO (linha total = 16)
+  for (let i = 7; i <= 15; i++) {
+    // Valor Atual = Quantidade × Preço Médio (se não tiver cotação atual)
+    wsCripto[`D${i}`] = { f: `IF(AND(B${i}<>"",C${i}<>""),B${i}*C${i},"")` };
+    
+    // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 16)
+    wsCripto[`F${i}`] = { f: `IF(D${i}="","",IF(D16=0,0,D${i}/D16*100))` };
+  }
+
+  // Totais Cripto (linha 16)
+  wsCripto['C16'] = { f: 'SUM(C7:C15)' }; // Total Preço Médio
+  wsCripto['D16'] = { f: 'SUM(D7:D15)' }; // Total Valor Atual
+  wsCripto['F16'] = { f: 'SUM(F7:F15)' }; // Total %
+
+  wsCripto['!cols'] = [
+    { width: 20 }, { width: 15 }, { width: 20 }, { width: 20 }, { width: 15 }, { width: 15 }
+  ];
+  wsCripto['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
+  XLSX.utils.book_append_sheet(wb, wsCripto, '₿ CRIPTO');
+
+  // ===========================================
+  // 7. ABA RESERVA - COM FÓRMULAS
+  // ===========================================
+  const reserva = [
+    ['FATOS DA BOLSA - RESERVA DE EMERGÊNCIA'],
+    [''],
+    ['🔵 AZUL = Preencher'],
+    [''],
+    ['🔵 ONDE ESTÁ', '🔵 BANCO/INSTITUIÇÃO', '🔵 VALOR (R$)', '🔵 OBSERVAÇÕES'],
+    [''],
+    ['Conta Corrente', 'Banco do Brasil', 5000, 'Uso diário'],
+    ['Poupança', 'Caixa Econômica', 10000, 'Emergência'],
+    ['CDB Liquidez Diária', 'Inter', 15000, 'Reserva rápida'],
+    ['', '', '', ''],
+  ];
+
+  for (let i = 0; i < 6; i++) {
+    reserva.push(['', '', '', '']);
+  }
+
+  reserva.push(['']);
+  reserva.push(['⭐ TOTAL RESERVA:', '', '', '']);
+
+  const wsReserva = XLSX.utils.aoa_to_sheet(reserva);
+
+  // FÓRMULA para Total Reserva
+  wsReserva['C16'] = { f: 'SUM(C7:C15)' };
+
+  wsReserva['!cols'] = [
+    { width: 25 }, { width: 25 }, { width: 18 }, { width: 35 }
+  ];
+  wsReserva['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+
+  XLSX.utils.book_append_sheet(wb, wsReserva, '🏦 RESERVA');
+
+  // ===========================================
+  // 8. ABA RESUMO MANUAL (SEM LINKS EXTERNOS)
+  // ===========================================
+  const resumoSimples = [
+    ['FATOS DA BOLSA - RESUMO DA CARTEIRA'],
+    [''],
+    ['📋 INSTRUÇÕES:'],
+    ['1. Complete todas as abas de investimentos'],
+    ['2. Anote os totais de cada aba aqui:'],
+    [''],
+    ['CLASSE DE ATIVO', 'VALOR TOTAL (R$)', '% DA CARTEIRA'],
+    [''],
+    ['🏢 Ações Brasileiras', 0, ''],
+    ['🏘️ Fundos Imobiliários', 0, ''],
+    ['💰 Renda Fixa', 0, ''],
+    ['🌎 Exterior', 0, ''],
+    ['₿ Criptomoedas', 0, ''],
+    ['🏦 Reserva Emergência', 0, ''],
+    [''],
+    ['💎 PATRIMÔNIO TOTAL', '', '100%'],
+    [''],
+    ['💡 DICA: Digite os valores na coluna B'],
+    ['Os percentuais serão calculados automaticamente!'],
+  ];
+
+  const wsResumoSimples = XLSX.utils.aoa_to_sheet(resumoSimples);
+
+  // Fórmulas simples sem referências externas
+  wsResumoSimples['B16'] = { f: 'SUM(B9:B14)' }; // Total
+  wsResumoSimples['C9'] = { f: 'IF($B$16=0,"0%",ROUND(B9/$B$16*100,1)&"%")' };
+  wsResumoSimples['C10'] = { f: 'IF($B$16=0,"0%",ROUND(B10/$B$16*100,1)&"%")' };
+  wsResumoSimples['C11'] = { f: 'IF($B$16=0,"0%",ROUND(B11/$B$16*100,1)&"%")' };
+  wsResumoSimples['C12'] = { f: 'IF($B$16=0,"0%",ROUND(B12/$B$16*100,1)&"%")' };
+  wsResumoSimples['C13'] = { f: 'IF($B$16=0,"0%",ROUND(B13/$B$16*100,1)&"%")' };
+  wsResumoSimples['C14'] = { f: 'IF($B$16=0,"0%",ROUND(B14/$B$16*100,1)&"%")' };
+
+  wsResumoSimples['!cols'] = [
+    { width: 30 }, { width: 20 }, { width: 18 }
+  ];
+  wsResumoSimples['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, wsResumoSimples, '📊 RESUMO MANUAL');
+
+  // ===========================================
+  // CONFIGURAÇÕES FINAIS
+  // ===========================================
+  wb.Props = {
+    Title: "Análise Profissional de Carteira - Fatos da Bolsa",
+    Subject: "Modelo com emojis visuais e fórmulas automáticas funcionais",
+    Author: "Fatos da Bolsa - Equipe de Análise",
+    CreatedDate: new Date(),
+    ModifiedDate: new Date()
   };
 
-  const getAllocationTotal = () => {
-    return formData.stocks + formData.fiis + formData.international + formData.fixedIncome + formData.others;
-  };
+  // Download
+  XLSX.writeFile(wb, 'Fatos-da-Bolsa-Modelo-SEM-LINKS-EXTERNOS-v6.xlsx');
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-6 bg-green-500 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Formulário Enviado com Sucesso!</h2>
-          <p className="text-gray-600 mb-6">
-            Recebemos sua solicitação de análise de carteira. Nossa equipe irá avaliar suas informações e retornar com a análise personalizada.
-          </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-blue-800 font-medium">Prazo de resposta: 15 a 30 dias úteis</p>
-          </div>
-          <button
-            onClick={() => window.location.href = '/dashboard/recursos-exclusivos'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Voltar para Recursos Exclusivos
-          </button>
+  // Alerta explicativo
+  alert(`📊 MODELO EXCEL GERADO COM SUCESSO!
+
+🎨 VERSÃO SEM LINKS EXTERNOS:
+• 🔵 Emojis visuais nos cabeçalhos
+• ⚪ Fórmulas automáticas funcionais
+• ⭐ Cálculos de totais e percentuais
+• 📊 Resumo manual (sem alertas de atualização)
+
+🚀 COMO USAR:
+1. Preencha apenas células com 🔵 AZUL
+2. As células ⚪ CINZA calculam sozinhas
+3. No RESUMO MANUAL: digite os totais manualmente
+4. Os percentuais se calcularão automaticamente
+
+✅ SEM ALERTAS DE ATUALIZAÇÃO!`);
+};
+
+  // Componente para exibir score com barra visual
+  const ScoreDisplay = ({ label, score, color, maxScore = 100 }) => (
+    <div style={{
+      backgroundColor: '#ffffff',
+      padding: '20px',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      textAlign: 'center'
+    }}>
+      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '600' }}>
+        {label}
+      </div>
+      <div style={{ fontSize: '32px', fontWeight: '800', color: color, marginBottom: '8px' }}>
+        {score}%
+      </div>
+      <div style={{
+        width: '100%',
+        height: '8px',
+        backgroundColor: '#f1f5f9',
+        borderRadius: '4px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          width: `${(score / maxScore) * 100}%`,
+          height: '100%',
+          backgroundColor: color,
+          borderRadius: '4px',
+          transition: 'width 0.3s ease'
+        }} />
+      </div>
+    </div>
+  );
+
+  // Componente para análise individual de ativos
+  const AtivoAnaliseCard = ({ ativo }) => (
+    <div style={{
+      backgroundColor: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '16px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <h4 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#1e293b' }}>
+            {ativo.codigo}
+          </h4>
+          <span style={{
+            padding: '4px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '600',
+            backgroundColor: 
+              ativo.status === 'excelente' ? '#dcfce7' :
+              ativo.status === 'bom' ? '#dbeafe' :
+              ativo.status === 'regular' ? '#fef3c7' :
+              ativo.status === 'alerta' ? '#fed7aa' : '#fecaca',
+            color:
+              ativo.status === 'excelente' ? '#166534' :
+              ativo.status === 'bom' ? '#1e40af' :
+              ativo.status === 'regular' ? '#d97706' :
+              ativo.status === 'alerta' ? '#ea580c' : '#dc2626'
+          }}>
+            {ativo.status.charAt(0).toUpperCase() + ativo.status.slice(1)}
+          </span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {[...Array(5)].map((_, i) => (
+              <span key={i} style={{
+                color: i < Math.floor(ativo.nota / 2) ? '#fbbf24' : '#e5e7eb',
+                fontSize: '16px'
+              }}>
+                ⭐
+              </span>
+            ))}
+          </div>
+          <span style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
+            {ativo.nota}/10
+          </span>
+        </div>
+      </div>
+      <p style={{ fontSize: '14px', color: '#64748b', margin: 0, lineHeight: '1.6' }}>
+        {ativo.comentario}
+      </p>
+    </div>
+  );
+
+  // Componente para recomendações estruturadas
+  const RecomendacaoCard = ({ recomendacao }) => (
+    <div style={{
+      backgroundColor: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '16px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            padding: '4px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '600',
+            backgroundColor: 
+              recomendacao.prioridade === 'alta' ? '#fecaca' :
+              recomendacao.prioridade === 'média' ? '#fef3c7' : '#dbeafe',
+            color:
+              recomendacao.prioridade === 'alta' ? '#dc2626' :
+              recomendacao.prioridade === 'média' ? '#d97706' : '#2563eb'
+          }}>
+            {recomendacao.prioridade?.charAt(0).toUpperCase() + recomendacao.prioridade?.slice(1)}
+          </span>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+            {recomendacao.categoria}
+          </span>
+        </div>
+      </div>
+      <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#1e293b' }}>
+        {recomendacao.titulo}
+      </h4>
+      <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '12px', lineHeight: '1.6' }}>
+        {recomendacao.descricao}
+      </p>
+      {recomendacao.impacto && (
+        <div style={{
+          backgroundColor: '#f0f9ff',
+          border: '1px solid #3b82f6',
+          borderRadius: '8px',
+          padding: '12px',
+          marginTop: '12px'
+        }}>
+          <p style={{ fontSize: '14px', color: '#1e40af', margin: 0, fontWeight: '500' }}>
+            <strong>💥 Impacto Esperado:</strong> {recomendacao.impacto}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  // Componente do botão PDF
+  const BotaoDownloadPDF = ({ carteiraId, nomeArquivo }) => {
+    const [baixando, setBaixando] = useState(false);
+
+    const handleDownload = async () => {
+      setBaixando(true);
+      
+      try {
+        const response = await fetch(`/api/carteiras/${carteiraId}/download-pdf`);
+        
+        if (!response.ok) {
+          throw new Error('Erro ao gerar PDF');
+        }
+
+        // Criar blob do PDF
+        const blob = await response.blob();
+        
+        // Criar URL temporária
+        const url = window.URL.createObjectURL(blob);
+        
+        // Criar link de download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Analise-Carteira-${nomeArquivo}-${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+      } catch (error) {
+        console.error('Erro no download:', error);
+        alert('Erro ao baixar PDF. Tente novamente.');
+      } finally {
+        setBaixando(false);
+      }
+    };
+
+    return (
+      <button
+        onClick={handleDownload}
+        disabled={baixando}
+        style={{
+          backgroundColor: baixando ? '#9ca3af' : '#10b981',
+          color: 'white',
+          padding: '8px 16px',
+          borderRadius: '8px',
+          border: 'none',
+          fontSize: '14px',
+          fontWeight: '600',
+          cursor: baixando ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s'
+        }}
+      >
+        {baixando ? (
+          <>
+            <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
+            Gerando PDF...
+          </>
+        ) : (
+          <>
+            📥 Baixar PDF
+          </>
+        )}
+      </button>
+    );
+  };
+
+  // Histórico de carteiras APRIMORADO
+  const HistoricoCarteiras = () => {
+    const [carteiras, setCarteiras] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [carteiraExpandida, setCarteiraExpandida] = useState(null);
+
+    useEffect(() => {
+      const buscarCarteiras = async () => {
+        try {
+          const response = await fetch('/api/carteiras/minhas');
+          const data = await response.json();
+          
+          if (response.ok) {
+            setCarteiras(data.carteiras);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar carteiras:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      buscarCarteiras();
+    }, []);
+
+    const toggleExpansao = (carteiraId) => {
+      setCarteiraExpandida(carteiraExpandida === carteiraId ? null : carteiraId);
+    };
+
+    if (loading) {
+      return (
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          padding: '32px',
+          textAlign: 'center',
+          marginTop: '32px'
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
+          <p style={{ color: '#64748b' }}>Carregando histórico...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+        padding: '32px',
+        marginTop: '32px'
+      }}>
+        <h3 style={{ 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          color: '#1e293b', 
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          📊 Minhas Análises de Carteira
+        </h3>
+        
+        {carteiras.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '48px',
+            backgroundColor: '#f8fafc',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📈</div>
+            <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#64748b', margin: '0 0 8px 0' }}>
+              Nenhuma carteira enviada ainda
+            </h4>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+              Envie sua primeira carteira para receber uma análise personalizada!
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '20px' }}>
+            {carteiras.map((carteira) => (
+              <div key={carteira.id} style={{
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                backgroundColor: '#f8fafc',
+                overflow: 'hidden'
+              }}>
+                {/* Header da carteira */}
+                <div 
+                  style={{
+                    padding: '24px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onClick={() => toggleExpansao(carteira.id)}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'start', 
+                    marginBottom: '16px',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <h4 style={{ 
+                        fontSize: '18px', 
+                        fontWeight: '600', 
+                        color: '#1e293b', 
+                        margin: '0 0 8px 0'
+                      }}>
+                        📎 {carteira.nomeArquivo}
+                      </h4>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#64748b', 
+                        margin: '0'
+                      }}>
+                        Enviado em: {new Date(carteira.dataEnvio).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        backgroundColor: getStatusColor(carteira.status),
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span style={{ fontSize: '14px' }}>
+                          {getStatusIcon(carteira.status)}
+                        </span>
+                        {getStatusText(carteira.status)}                      
+                      </div>
+                      
+                      {/* 🆕 BOTÃO PDF - só aparece se carteira foi analisada */}
+                      {getStatusText(carteira.status) === 'Analisada' && (
+                        <BotaoDownloadPDF 
+                          carteiraId={carteira.id} 
+                          nomeArquivo={carteira.nomeArquivo} 
+                        />
+                      )}
+                      
+                      <button style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        transform: carteiraExpandida === carteira.id ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s'
+                      }}>
+                        ⬇️
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Métricas básicas */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: '16px',
+                  }}>
+                    <div style={{
+                      backgroundColor: '#ffffff',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                        VALOR TOTAL
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#10b981' }}>
+                        {carteira.valorTotal ? 
+                          `R$ ${carteira.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                          : 'Processando...'
+                        }
+                      </div>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: '#ffffff',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                        ATIVOS
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
+                        {carteira.quantidadeAtivos || 'Processando...'}
+                      </div>
+                    </div>
+
+                    {carteira.pontuacao && (
+                      <div style={{
+                        backgroundColor: '#ffffff',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                          PONTUAÇÃO GERAL
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b' }}>
+                          {carteira.pontuacao.toFixed(1)}/10
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Conteúdo expandido */}
+                {carteiraExpandida === carteira.id && (getStatusText(carteira.status) === 'Analisada') && (
+                  <div style={{
+                    borderTop: '1px solid #e2e8f0',
+                    backgroundColor: '#ffffff',
+                    padding: '32px'
+                  }}>
+                    {/* Scores detalhados */}
+                    {carteira.dadosEstruturados?.avaliacoes && (
+                      <div style={{ marginBottom: '32px' }}>
+                        <h4 style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#1e293b',
+                          marginBottom: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          📊 Avaliação Detalhada
+                        </h4>
+                        
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: '20px',
+                          marginBottom: '24px'
+                        }}>
+                          <ScoreDisplay 
+                            label="Qualidade dos Ativos" 
+                            score={carteira.dadosEstruturados.avaliacoes.qualidade} 
+                            color="#10b981"
+                          />
+                          <ScoreDisplay 
+                            label="Diversificação" 
+                            score={carteira.dadosEstruturados.avaliacoes.diversificacao} 
+                            color="#3b82f6"
+                          />
+                          <ScoreDisplay 
+                            label="Adaptação ao Perfil" 
+                            score={carteira.dadosEstruturados.avaliacoes.adaptacao} 
+                            color="#8b5cf6"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Feedback geral */}
+                    {carteira.feedback && (
+                      <div style={{
+                        backgroundColor: '#f0f9ff',
+                        border: '2px solid #3b82f6',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        marginBottom: '32px'
+                      }}>
+                        <h4 style={{
+                          fontSize: '16px',
+                          fontWeight: '700',
+                          color: '#1e40af',
+                          marginBottom: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          💬 Análise Geral da Carteira
+                        </h4>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#1e40af',
+                          margin: 0,
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {carteira.feedback}
+                        </p>
+                        
+                        {carteira.analista && (
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#1e40af',
+                            margin: '16px 0 0 0',
+                            textAlign: 'right',
+                            fontStyle: 'italic'
+                          }}>
+                            Analisado por {carteira.analista.name} em {' '}
+                            {carteira.dataAnalise ? new Date(carteira.dataAnalise).toLocaleDateString('pt-BR') : ''}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Recomendações estruturadas */}
+                    {carteira.dadosEstruturados?.recomendacoesDetalhadas?.length > 0 && (
+                      <div style={{ marginBottom: '32px' }}>
+                        <h4 style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#1e293b',
+                          marginBottom: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          💡 Recomendações Personalizadas
+                        </h4>
+                        
+                        {carteira.dadosEstruturados.recomendacoesDetalhadas.map((rec, index) => (
+                          <RecomendacaoCard key={index} recomendacao={rec} />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Análise de ativos individuais */}
+                    {carteira.dadosEstruturados?.ativosAnalise?.length > 0 && (
+                      <div style={{ marginBottom: '32px' }}>
+                        <h4 style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#1e293b',
+                          marginBottom: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          🏢 Análise Individual de Ativos
+                        </h4>
+                        
+                        {carteira.dadosEstruturados.ativosAnalise.map((ativo, index) => (
+                          <AtivoAnaliseCard key={index} ativo={ativo} />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Distribuição da carteira (dados existentes) */}
+                    {carteira.estatisticas?.distribuicaoTipo && (
+                      <div style={{
+                        backgroundColor: '#f0fdf4',
+                        border: '1px solid #10b981',
+                        borderRadius: '12px',
+                        padding: '24px'
+                      }}>
+                        <h4 style={{
+                          fontSize: '16px',
+                          fontWeight: '700',
+                          color: '#065f46',
+                          marginBottom: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          📈 Distribuição da Carteira
+                        </h4>
+                        
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                          gap: '12px'
+                        }}>
+                          {carteira.estatisticas.distribuicaoTipo.map((dist, distIndex) => (
+                            <div key={distIndex} style={{
+                              backgroundColor: '#ffffff',
+                              padding: '12px',
+                              borderRadius: '8px',
+                              textAlign: 'center',
+                              border: '1px solid #10b981'
+                            }}>
+                              <div style={{ fontSize: '11px', color: '#065f46', marginBottom: '4px', fontWeight: '600' }}>
+                                {dist.tipo}
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#059669' }}>
+                                {dist.percentual.toFixed(1)}%
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 🆕 LOADING durante verificação
+  if (carregandoVerificacao) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <div style={{ fontSize: '48px' }}>⏳</div>
+        <p style={{ color: '#64748b', fontSize: '16px' }}>Carregando suas análises...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <button
-            onClick={() => window.location.href = '/dashboard/recursos-exclusivos'}
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Voltar para Recursos Exclusivos
-          </button>
-        </div>
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f5f5', 
+      padding: '24px' 
+    }}>
+      {/* Header modificado */}
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ 
+          fontSize: '48px', 
+          fontWeight: '800', 
+          color: '#1e293b',
+          margin: '0 0 8px 0'
+        }}>
+          {jaEnviouCarteira ? 'Minhas Análises de Carteira' : 'Análise de Carteira Personalizada'}
+        </h1>
+        <p style={{ 
+          color: '#64748b', 
+          fontSize: '18px',
+          margin: '0',
+          lineHeight: '1.5'
+        }}>
+          {jaEnviouCarteira 
+            ? 'Acompanhe o status e resultados da sua análise de carteira'
+            : 'Responda algumas perguntas e envie sua carteira para receber uma análise completa'
+          }
+        </p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Hero */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Análise de Carteira</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Receba uma análise detalhada e personalizada da sua carteira de investimentos
-          </p>
-        </div>
-
-        {/* Info Card */}
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-6 mb-8 rounded-lg">
-          <div className="flex">
-            <svg className="w-6 h-6 text-amber-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <h3 className="text-amber-900 font-semibold mb-1">Tempo de Resposta</h3>
-              <p className="text-amber-800">15 a 30 dias úteis. Analisamos cada carteira individualmente.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            
-            {/* Dados Pessoais */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Dados Pessoais</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nome completo *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={handleInputChange('name')}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Digite seu nome completo"
-                  />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange('email')}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="seu@email.com"
-                  />
-                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Telefone (opcional)</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange('phone')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <hr className="border-gray-200" />
-
-            {/* Perfil do Investidor */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Perfil do Investidor</h2>
-              <div className="space-y-6">
-                
-                {/* Pergunta 1 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">
-                    1. Há quanto tempo investe na bolsa? *
-                  </label>
-                  <select
-                    value={formData.investmentTime}
-                    onChange={handleInputChange('investmentTime')}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.investmentTime ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Selecione uma opção</option>
-                    <option value="menos-6-meses">Menos de 6 meses</option>
-                    <option value="6-meses-1-ano">6 meses a 1 ano</option>
-                    <option value="1-3-anos">1 a 3 anos</option>
-                    <option value="3-5-anos">3 a 5 anos</option>
-                    <option value="5-10-anos">5 a 10 anos</option>
-                    <option value="mais-10-anos">Mais de 10 anos</option>
-                  </select>
-                  {errors.investmentTime && <p className="text-red-500 text-sm mt-1">{errors.investmentTime}</p>}
-                </div>
-
-                {/* Pergunta 2 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">
-                    2. Qual motivo o(a) levou até o mercado de ativos? *
-                  </label>
-                  <textarea
-                    value={formData.investmentReason}
-                    onChange={handleInputChange('investmentReason')}
-                    rows={4}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                      errors.investmentReason ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Descreva sua motivação para investir..."
-                  />
-                  {errors.investmentReason && <p className="text-red-500 text-sm mt-1">{errors.investmentReason}</p>}
-                </div>
-
-                {/* Pergunta 3 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-4">
-                    3. Qual seu objetivo com sua carteira? *
-                  </label>
-                  <div className="space-y-3">
-                    {[
-                      { value: 'dividendos', label: 'Foco em dividendos (renda passiva)' },
-                      { value: 'crescimento', label: 'Foco em crescimento (valorização)' },
-                      { value: 'balanceado', label: 'Balanceado (dividendos + crescimento)' },
-                      { value: 'preservacao', label: 'Preservação de capital' }
-                    ].map((option) => (
-                      <label key={option.value} className="flex items-center">
-                        <input
-                          type="radio"
-                          name="portfolioObjective"
-                          value={option.value}
-                          checked={formData.portfolioObjective === option.value}
-                          onChange={handleInputChange('portfolioObjective')}
-                          className="mr-3 h-4 w-4 text-blue-600"
-                        />
-                        <span className="text-gray-900">{option.label}</span>
-                      </label>
-                    ))}
+      {/* 🆕 CONDICIONAL: Só mostra formulário se NÃO enviou ainda */}
+      {!jaEnviouCarteira && (
+        <>
+          {/* Progress Bar */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '32px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+              {[
+                { numero: 1, titulo: 'Questionário', ativo: etapaAtual === 1 },
+                { numero: 2, titulo: 'Upload da Carteira', ativo: etapaAtual === 2 },
+                { numero: 3, titulo: 'Enviado', ativo: etapaAtual === 3 }
+              ].map((etapa, index) => (
+                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: etapa.ativo ? '#3b82f6' : (etapaAtual > etapa.numero ? '#10b981' : '#e2e8f0'),
+                    color: etapa.ativo || etapaAtual > etapa.numero ? 'white' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '700',
+                    fontSize: '14px'
+                  }}>
+                    {etapaAtual > etapa.numero ? '✓' : etapa.numero}
                   </div>
-                  {errors.portfolioObjective && <p className="text-red-500 text-sm mt-1">{errors.portfolioObjective}</p>}
-                </div>
-
-                {/* Pergunta 4 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-4">
-                    4. Quanto você suportaria ver sua carteira oscilar para baixo? *
-                  </label>
-                  <div className="px-4 py-6 bg-gray-50 rounded-lg">
-                    <input
-                      type="range"
-                      min="0"
-                      max="50"
-                      step="5"
-                      value={formData.riskTolerance}
-                      onChange={(e) => setFormData(prev => ({ ...prev, riskTolerance: parseInt(e.target.value) }))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="flex justify-between text-sm text-gray-600 mt-2">
-                      <span>0%</span>
-                      <span className="font-semibold text-blue-600">{formData.riskTolerance}%</span>
-                      <span>50%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pergunta 5 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">
-                    5. Já passou por uma queda muito forte? Qual foi o seu comportamento? *
-                  </label>
-                  <textarea
-                    value={formData.crashExperience}
-                    onChange={handleInputChange('crashExperience')}
-                    rows={4}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                      errors.crashExperience ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Ex: Vendi tudo, Mantive posição, Aproveitei para comprar mais..."
-                  />
-                  {errors.crashExperience && <p className="text-red-500 text-sm mt-1">{errors.crashExperience}</p>}
-                </div>
-
-                {/* Pergunta 6 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-4">
-                    6. Você já possui reserva de emergência? *
-                  </label>
-                  <div className="space-y-3 mb-4">
-                    {[
-                      { value: 'sim', label: 'Sim' },
-                      { value: 'nao', label: 'Não' },
-                      { value: 'parcial', label: 'Parcialmente' }
-                    ].map((option) => (
-                      <label key={option.value} className="flex items-center">
-                        <input
-                          type="radio"
-                          name="emergencyReserve"
-                          value={option.value}
-                          checked={formData.emergencyReserve === option.value}
-                          onChange={handleInputChange('emergencyReserve')}
-                          className="mr-3 h-4 w-4 text-blue-600"
-                        />
-                        <span className="text-gray-900">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.emergencyReserve && <p className="text-red-500 text-sm mt-1">{errors.emergencyReserve}</p>}
-
-                  {formData.emergencyReserve === 'sim' && (
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Onde está alocada sua reserva de emergência?
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.emergencyReserveLocation}
-                        onChange={handleInputChange('emergencyReserveLocation')}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Ex: Poupança, CDB, Tesouro Selic, etc."
-                      />
-                    </div>
+                  <span style={{
+                    fontWeight: '600',
+                    color: etapa.ativo ? '#3b82f6' : (etapaAtual > etapa.numero ? '#10b981' : '#64748b')
+                  }}>
+                    {etapa.titulo}
+                  </span>
+                  {index < 2 && (
+                    <div style={{
+                      width: '40px',
+                      height: '2px',
+                      backgroundColor: etapaAtual > etapa.numero ? '#10b981' : '#e2e8f0'
+                    }} />
                   )}
                 </div>
-
-                {/* Pergunta 7 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-4">
-                    7. Já possui uma reserva de oportunidade?
-                  </label>
-                  <div className="space-y-3">
-                    {[
-                      { value: 'sim', label: 'Sim' },
-                      { value: 'nao', label: 'Não' },
-                      { value: 'parcial', label: 'Parcialmente' }
-                    ].map((option) => (
-                      <label key={option.value} className="flex items-center">
-                        <input
-                          type="radio"
-                          name="opportunityReserve"
-                          value={option.value}
-                          checked={formData.opportunityReserve === option.value}
-                          onChange={handleInputChange('opportunityReserve')}
-                          className="mr-3 h-4 w-4 text-blue-600"
-                        />
-                        <span className="text-gray-900">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Pergunta 8 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">
-                    8. Qual sua renda mensal? (opcional)
-                  </label>
-                  <div className="relative max-w-sm">
-                    <span className="absolute left-3 top-3 text-gray-500">R$</span>
-                    <input
-                      type="text"
-                      value={formData.monthlyIncome}
-                      onChange={handleInputChange('monthlyIncome')}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="5.000,00"
-                    />
-                  </div>
-                </div>
-
-                {/* Pergunta 9 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">
-                    9. Quanto sobra para aportar todos os meses? (opcional)
-                  </label>
-                  <div className="relative max-w-sm">
-                    <span className="absolute left-3 top-3 text-gray-500">R$</span>
-                    <input
-                      type="text"
-                      value={formData.monthlyContribution}
-                      onChange={handleInputChange('monthlyContribution')}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="1.000,00"
-                    />
-                  </div>
-                </div>
-
-                {/* Pergunta 10 */}
-                <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">
-                    10. Como você avalia seu conhecimento sobre a bolsa? *
-                  </label>
-                  <select
-                    value={formData.knowledgeLevel}
-                    onChange={handleInputChange('knowledgeLevel')}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.knowledgeLevel ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Selecione uma opção</option>
-                    <option value="nao-sei-nada">Não sei nada</option>
-                    <option value="basico">Básico</option>
-                    <option value="intermediario">Intermediário</option>
-                    <option value="avancado">Avançado</option>
-                  </select>
-                  {errors.knowledgeLevel && <p className="text-red-500 text-sm mt-1">{errors.knowledgeLevel}</p>}
-                </div>
-              </div>
+              ))}
             </div>
+          </div>
 
-            <hr className="border-gray-200" />
+          {/* Etapa 1: Questionário */}
+          {etapaAtual === 1 && (
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+              padding: '32px'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+                <h2 style={{
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  color: '#1e293b',
+                  margin: '0 0 12px 0'
+                }}>
+                  Questionário de Perfil
+                </h2>
+                <p style={{
+                  color: '#64748b',
+                  fontSize: '16px',
+                  margin: '0'
+                }}>
+                  Essas informações nos ajudam a fazer uma análise mais precisa e personalizada
+                </p>
+              </div>
 
-            {/* Alocação da Carteira */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Alocação da Carteira</h2>
-              <p className="text-gray-600 mb-6">
-                Informe o percentual que você possui em cada classe de ativo. A soma deve totalizar 100%.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {[
-                  { key: 'stocks', label: 'Ações (%)' },
-                  { key: 'fiis', label: 'FIIs (%)' },
-                  { key: 'international', label: 'Exterior (%)' },
-                  { key: 'fixedIncome', label: 'Renda Fixa (%)' },
-                  { key: 'others', label: 'Outros (%)' }
-                ].map((item) => (
-                  <div key={item.key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{item.label}</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={formData[item.key]}
-                        onChange={handleNumberChange(item.key)}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        className="w-full pr-8 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0.0"
+              <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                {perguntas.map((pergunta, index) => (
+                  <div key={pergunta.id} style={{
+                    marginBottom: '32px',
+                    padding: '24px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#1e293b',
+                      marginBottom: '12px'
+                    }}>
+                      {index + 1}. {pergunta.pergunta}
+                    </label>
+                    
+                    {pergunta.tipo === 'select' ? (
+                      <select
+                        value={respostas[pergunta.id]}
+                        onChange={(e) => handleRespostaChange(pergunta.id, e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          fontSize: '14px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff'
+                        }}
+                      >
+                        <option value="">Selecione uma opção...</option>
+                        {pergunta.opcoes.map((opcao, i) => (
+                          <option key={i} value={opcao}>{opcao}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <textarea
+                        value={respostas[pergunta.id]}
+                        onChange={(e) => handleRespostaChange(pergunta.id, e.target.value)}
+                        placeholder="Digite sua resposta..."
+                        style={{
+                          width: '100%',
+                          minHeight: '80px',
+                          padding: '12px',
+                          fontSize: '14px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
                       />
-                      <span className="absolute right-3 top-3 text-gray-500">%</span>
-                    </div>
+                    )}
                   </div>
                 ))}
-              </div>
-              
-              {formData.others > 0 && (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Especifique "Outros"
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.othersDescription}
-                    onChange={handleInputChange('othersDescription')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ex: Criptomoedas, Commodities, etc."
-                  />
+
+                <div style={{ textAlign: 'center', marginTop: '32px' }}>
+                  <button
+                    onClick={() => setEtapaAtual(2)}
+                    disabled={!todasPerguntasRespondidas()}
+                    style={{
+                      backgroundColor: todasPerguntasRespondidas() ? '#3b82f6' : '#9ca3af',
+                      color: 'white',
+                      padding: '16px 32px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      fontSize: '16px',
+                      fontWeight: '700',
+                      cursor: todasPerguntasRespondidas() ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      margin: '0 auto',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Próximo: Upload da Carteira
+                    <span>→</span>
+                  </button>
                 </div>
-              )}
-              
-              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Total alocado:</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  Math.abs(getAllocationTotal() - 100) < 0.1 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {getAllocationTotal().toFixed(1)}%
-                </span>
               </div>
-              
-              {errors.allocation && (
-                <p className="text-red-500 text-sm mt-2">{errors.allocation}</p>
-              )}
             </div>
+          )}
 
-            <hr className="border-gray-200" />
+          {/* Etapa 2: Upload */}
+          {etapaAtual === 2 && (
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+              padding: '32px'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+                <h2 style={{
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  color: '#1e293b',
+                  margin: '0 0 12px 0'
+                }}>
+                  Envie sua Carteira de Investimentos
+                </h2>
+                <p style={{
+                  color: '#64748b',
+                  fontSize: '16px',
+                  margin: '0'
+                }}>
+                  Use nosso modelo Excel para organizar seus investimentos
+                </p>
+              </div>
 
-            {/* Observações Adicionais */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Observações Adicionais</h2>
-              <textarea
-                value={formData.additionalNotes}
-                onChange={handleInputChange('additionalNotes')}
-                rows={5}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                placeholder="Qualquer informação adicional que considere relevante para a análise..."
-              />
+              {/* Botão para baixar modelo */}
+              <div style={{
+                backgroundColor: '#f0f9ff',
+                border: '1px solid #3b82f6',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '32px',
+                textAlign: 'center'
+              }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: '#1e40af',
+                  margin: '0 0 12px 0'
+                }}>
+                  📥 Baixe o Modelo Oficial
+                </h3>
+                <p style={{
+                  color: '#1e40af',
+                  fontSize: '14px',
+                  marginBottom: '16px'
+                }}>
+                  Modelo com as abas: Ações, FIIs, Exterior, Renda Fixa, Criptomoeda e Reserva de Emergência
+                </p>
+                <button
+                  onClick={gerarModeloProfissional}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    margin: '0 auto'
+                  }}
+                >
+                  📥 Baixar Modelo Excel
+                </button>
+              </div>
+
+              {/* Upload Area */}
+              <div style={{
+                border: '2px dashed #d1d5db',
+                borderRadius: '12px',
+                padding: '48px',
+                textAlign: 'center',
+                backgroundColor: uploadedFile ? '#f0fdf4' : '#fafafa',
+                borderColor: uploadedFile ? '#10b981' : '#d1d5db',
+                marginBottom: '24px'
+              }}>
+                {uploadedFile ? (
+                  <div>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '18px', marginBottom: '8px' }}>
+                      {uploadedFile.name}
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px' }}>
+                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </div>
+                    <button
+                      onClick={() => setUploadedFile(null)}
+                      style={{
+                        color: '#ef4444',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Remover arquivo
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📎</div>
+                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '18px', marginBottom: '12px' }}>
+                      Arraste seu arquivo Excel aqui
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>ou</div>
+                    <label style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      border: 'none',
+                      display: 'inline-block'
+                    }}>
+                      Escolher arquivo
+                      <input
+                        type="file"
+                        style={{ display: 'none' }}
+                        accept=".xlsx,.xls"
+                        onChange={(e) => e.target.files[0] && handleFileUpload(e.target.files[0])}
+                      />
+                    </label>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '12px' }}>
+                      Formatos aceitos: .xlsx, .xls (máximo 10MB)
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botões de navegação */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '32px'
+              }}>
+                <button
+                  onClick={() => setEtapaAtual(1)}
+                  style={{
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ← Voltar ao Questionário
+                </button>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={!uploadedFile || isSubmitting}
+                  style={{
+                    backgroundColor: uploadedFile && !isSubmitting ? '#10b981' : '#9ca3af',
+                    color: 'white',
+                    padding: '16px 32px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    cursor: uploadedFile && !isSubmitting ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
+                      Enviando Análise...
+                    </>
+                  ) : (
+                    <>
+                      🚀 Enviar para Análise
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+          )}
 
-            {/* Botões */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <p className="text-red-800 text-sm">{errors.submit}</p>
-                </div>
-              )}
+          {/* Etapa 3: Enviado */}
+          {etapaAtual === 3 && (
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+              padding: '48px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎉</div>
+              <h2 style={{
+                fontSize: '32px',
+                fontWeight: '800',
+                color: '#10b981',
+                margin: '0 0 16px 0'
+              }}>
+                Análise Enviada com Sucesso!
+              </h2>
+              <p style={{
+                color: '#64748b',
+                fontSize: '18px',
+                margin: '0 0 32px 0',
+                maxWidth: '600px',
+                marginLeft: 'auto',
+                marginRight: 'auto'
+              }}>
+                Recebemos seu questionário e carteira. Nossa equipe de especialistas irá analisar tudo com cuidado e enviar um feedback detalhado em até 48 horas.
+              </p>
               
+              <div style={{
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #10b981',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '32px',
+                maxWidth: '500px',
+                margin: '0 auto 32px auto'
+              }}>
+                <h3 style={{
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#065f46',
+                  margin: '0 0 12px 0'
+                }}>
+                  📧 Próximos Passos:
+                </h3>
+                <ul style={{
+                  color: '#059669',
+                  fontSize: '14px',
+                  margin: '0',
+                  padding: '0 0 0 20px',
+                  textAlign: 'left'
+                }}>
+                  <li>Análise detalhada da sua carteira</li>
+                  <li>Recomendações personalizadas</li>
+                  <li>Sugestões de otimização</li>
+                  <li>Feedback sobre seu perfil de risco</li>
+                </ul>
+              </div>
+
               <button
-                type="button"
-                onClick={() => window.location.href = '/dashboard/recursos-exclusivos'}
-                disabled={isSubmitting}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                onClick={() => {
+                  setEtapaAtual(1);
+                  setRespostas({
+                    tempoInvestimento: '', motivoMercado: '', objetivoCarteira: '',
+                    toleranciaOscilacao: '', comportamentoQueda: '', reservaEmergencia: '',
+                    reservaOportunidade: '', rendaMensal: '', valorAporte: '', nivelConhecimento: ''
+                  });
+                  setUploadedFile(null);
+                }}
+                style={{
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
               >
-                Cancelar
-              </button>
-              
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {isSubmitting ? 'Enviando...' : 'Enviar Análise'}
+                🔄 Nova Análise
               </button>
             </div>
-          </form>
-        </div>
-      </div>
+          )}
+        </>
+      )}
+
+      {/* Histórico sempre visível */}
+      <HistoricoCarteiras />
     </div>
   );
 }
+
+export default AnaliseCarteiraClientePage;

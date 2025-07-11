@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useDataStore } from '@/hooks/useDataStore';
 
 export interface FII {
   id: string;
@@ -13,206 +15,377 @@ export interface FII {
   dy: string;
   precoTeto: string;
   vies: string;
+  performance?: number;
+  variacao?: number;
+  variacaoPercent?: number;
+  volume?: number;
+  statusApi?: string;
+  nomeCompleto?: string;
 }
 
-function calcularVies(precoTeto: string, precoAtual: string): string {
-  const teto = parseFloat(precoTeto.replace('R$ ', '').replace(',', '.'));
-  const atual = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
-  if (isNaN(teto) || isNaN(atual)) return 'Aguardar';
-  return atual < teto ? 'Compra' : 'Aguardar';
+// 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
+function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: string): string {
+  if (!precoTeto || precoAtual === 'N/A') {
+    return 'Aguardar';
+  }
+  
+  // Remover formatação e converter para números
+  const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+  
+  if (isNaN(precoAtualNum)) {
+    return 'Aguardar';
+  }
+  
+  // 🎯 LÓGICA CORRETA: Preço Atual < Preço Teto = COMPRA (FII está barato)
+  if (precoAtualNum < precoTeto) {
+    return 'Compra';
+  } else {
+    return 'Aguardar';
+  }
 }
 
-function calcularDY(dyOriginal: string, precoOriginal: string, precoAtual: number): string {
-  const dyNum = parseFloat(dyOriginal.replace('%', '').replace(',', '.'));
-  const precoOriginalNum = parseFloat(precoOriginal.replace('R$ ', '').replace(',', '.'));
-  if (isNaN(dyNum) || isNaN(precoOriginalNum) || precoOriginalNum === 0) return dyOriginal;
-  const valorDividendo = (dyNum / 100) * precoOriginalNum;
-  const novoDY = (valorDividendo / precoAtual) * 100;
-  return `${novoDY.toFixed(2).replace('.', ',')}%`;
+// 🎯 FUNÇÃO PARA CALCULAR DY DOS ÚLTIMOS 12 MESES BASEADO NOS PROVENTOS UPLOADADOS
+function calcularDY12Meses(ticker: string, precoAtual: number): string {
+  try {
+    if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
+    
+    // Buscar proventos do ticker específico no localStorage
+    const proventosData = localStorage.getItem(`proventos_${ticker}`);
+    if (!proventosData) return '0,00%';
+    
+    const proventos = JSON.parse(proventosData);
+    if (!Array.isArray(proventos) || proventos.length === 0) return '0,00%';
+    
+    // Data de 12 meses atrás
+    const hoje = new Date();
+    const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+    
+    console.log(`🔍 Calculando DY para ${ticker}:`);
+    
+    // Filtrar proventos dos últimos 12 meses
+    const proventosUltimos12Meses = proventos.filter((provento: any) => {
+      let dataProvento: Date;
+      
+      // Tentar várias formas de parsing da data
+      if (provento.dataObj) {
+        dataProvento = new Date(provento.dataObj);
+      } else if (provento.dataCom) {
+        if (provento.dataCom.includes('/')) {
+          const [d, m, a] = provento.dataCom.split('/');
+          dataProvento = new Date(+a, +m - 1, +d);
+        } else {
+          dataProvento = new Date(provento.dataCom);
+        }
+      } else if (provento.data) {
+        if (provento.data.includes('/')) {
+          const [d, m, a] = provento.data.split('/');
+          dataProvento = new Date(+a, +m - 1, +d);
+        } else {
+          dataProvento = new Date(provento.data);
+        }
+      } else {
+        return false;
+      }
+      
+      return dataProvento >= umAnoAtras && dataProvento <= hoje;
+    });
+    
+    if (proventosUltimos12Meses.length === 0) {
+      console.log(`❌ ${ticker}: Nenhum provento nos últimos 12 meses`);
+      return '0,00%';
+    }
+    
+    // Somar valores dos proventos
+    const totalProventos = proventosUltimos12Meses.reduce((total: number, provento: any) => {
+      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
+      return total + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    if (totalProventos <= 0) {
+      return '0,00%';
+    }
+    
+    // Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
+    const dy = (totalProventos / precoAtual) * 100;
+    
+    return `${dy.toFixed(2).replace('.', ',')}%`;
+    
+  } catch (error) {
+    console.error(`❌ Erro ao calcular DY para ${ticker}:`, error);
+    return '0,00%';
+  }
 }
 
-const fiisBase: Omit<FII, 'precoAtual' | 'dy' | 'vies'>[] = [
-  { id: '1', avatar: 'https://www.ivalor.com.br/media/emp/logos/MALL.png', ticker: 'MALL11', setor: 'Shopping', dataEntrada: '26/01/2022', precoEntrada: 'R$ 118,37', dy: '10,09%', precoTeto: 'R$ 103,68' },
-  { id: '2', avatar: 'https://www.ivalor.com.br/media/emp/logos/KNSC.png', ticker: 'KNSC11', setor: 'Papel', dataEntrada: '24/05/2022', precoEntrada: 'R$ 9,31', dy: '11,52%', precoTeto: 'R$ 9,16' },
-  { id: '3', avatar: 'https://www.ivalor.com.br/media/emp/logos/KNHF.png', ticker: 'KNHF11', setor: 'Hedge Fund', dataEntrada: '20/12/2024', precoEntrada: 'R$ 76,31', dy: '12,17%', precoTeto: 'R$ 90,50' },
-  { id: '4', avatar: 'https://www.ivalor.com.br/media/emp/logos/HGBS.png', ticker: 'HGBS11', setor: 'Shopping', dataEntrada: '02/01/2025', precoEntrada: 'R$ 186,08', dy: '10,77%', precoTeto: 'R$ 192,00' },
-  { id: '5', avatar: 'https://www.ivalor.com.br/media/emp/logos/RURA.png', ticker: 'RURA11', setor: 'Fiagro', dataEntrada: '14/02/2023', precoEntrada: 'R$ 10,25', dy: '13,75%', precoTeto: 'R$ 8,70' },
-  { id: '6', avatar: 'https://www.ivalor.com.br/media/emp/logos/BCIA.png', ticker: 'BCIA11', setor: 'FoF', dataEntrada: '12/04/2023', precoEntrada: 'R$ 82,28', dy: '11,80%', precoTeto: 'R$ 87,81' },
-  { id: '7', avatar: 'https://www.ivalor.com.br/media/emp/logos/BPFF.png', ticker: 'BPFF11', setor: 'FoF', dataEntrada: '08/01/2024', precoEntrada: 'R$ 72,12', dy: '12,26%', precoTeto: 'R$ 66,26' },
-  { id: '8', avatar: 'https://www.ivalor.com.br/media/emp/logos/HGFF.png', ticker: 'HGFF11', setor: 'FoF', dataEntrada: '03/04/2023', precoEntrada: 'R$ 69,15', dy: '11,12%', precoTeto: 'R$ 73,59' },
-  { id: '9', avatar: 'https://www.ivalor.com.br/media/emp/logos/BRCO.png', ticker: 'BRCO11', setor: 'Logística', dataEntrada: '09/05/2022', precoEntrada: 'R$ 99,25', dy: '10,18%', precoTeto: 'R$ 109,89' },
-  { id: '10', avatar: 'https://www.ivalor.com.br/media/emp/logos/XPML.png', ticker: 'XPML11', setor: 'Shopping', dataEntrada: '16/02/2022', precoEntrada: 'R$ 93,32', dy: '10,58%', precoTeto: 'R$ 110,40' },
-  { id: '11', avatar: 'https://www.ivalor.com.br/media/emp/logos/HGLG.png', ticker: 'HGLG11', setor: 'Logística', dataEntrada: '20/06/2022', precoEntrada: 'R$ 161,80', dy: '8,62%', precoTeto: 'R$ 146,67' },
-  { id: '12', avatar: 'https://www.ivalor.com.br/media/emp/logos/HSML.png', ticker: 'HSML11', setor: 'Shopping', dataEntrada: '14/06/2022', precoEntrada: 'R$ 78,00', dy: '10,86%', precoTeto: 'R$ 93,60' },
-  { id: '13', avatar: 'https://www.ivalor.com.br/media/emp/logos/VGIP.png', ticker: 'VGIP11', setor: 'Papel', dataEntrada: '02/12/2021', precoEntrada: 'R$ 96,99', dy: '12,51%', precoTeto: 'R$ 88,00' },
-  { id: '14', avatar: 'https://www.ivalor.com.br/media/emp/logos/AFHI.png', ticker: 'AFHI11', setor: 'Papel', dataEntrada: '05/07/2022', precoEntrada: 'R$ 99,91', dy: '12,25%', precoTeto: 'R$ 93,20' },
-  { id: '15', avatar: 'https://www.ivalor.com.br/media/emp/logos/BTLG.png', ticker: 'BTLG11', setor: 'Logística', dataEntrada: '05/01/2022', precoEntrada: 'R$ 103,14', dy: '9,56%', precoTeto: 'R$ 104,00' },
-  { id: '16', avatar: 'https://www.ivalor.com.br/media/emp/logos/VRTA.png', ticker: 'VRTA11', setor: 'Papel', dataEntrada: '27/12/2022', precoEntrada: 'R$ 88,30', dy: '12,30%', precoTeto: 'R$ 94,33' },
-  { id: '17', avatar: 'https://www.ivalor.com.br/media/emp/logos/LVBI.png', ticker: 'LVBI11', setor: 'Logística', dataEntrada: '18/10/2022', precoEntrada: 'R$ 113,85', dy: '10,82%', precoTeto: 'R$ 122,51' },
-  { id: '18', avatar: 'https://www.ivalor.com.br/media/emp/logos/HGRU.png', ticker: 'HGRU11', setor: 'Renda Urbana', dataEntrada: '17/05/2022', precoEntrada: 'R$ 115,00', dy: '10,35%', precoTeto: 'R$ 138,57' },
-  { id: '19', avatar: 'https://www.ivalor.com.br/media/emp/logos/ALZR.png', ticker: 'ALZR11', setor: 'Híbrido', dataEntrada: '02/02/2022', precoEntrada: 'R$ 115,89', dy: '9,14%', precoTeto: 'R$ 101,60' },
-  { id: '20', avatar: 'https://www.ivalor.com.br/media/emp/logos/BCRI.png', ticker: 'BCRI11', setor: 'Papel', dataEntrada: '25/11/2021', precoEntrada: 'R$ 104,53', dy: '14,71%', precoTeto: 'R$ 87,81' },
-  { id: '21', avatar: 'https://www.ivalor.com.br/media/emp/logos/KNRI.png', ticker: 'KNRI11', setor: 'Híbrido', dataEntrada: '27/06/2022', precoEntrada: 'R$ 131,12', dy: '8,82%', precoTeto: 'R$ 146,67' },
-  { id: '22', avatar: 'https://www.ivalor.com.br/media/emp/logos/IRDM.png', ticker: 'IRDM11', setor: 'Papel', dataEntrada: '05/01/2022', precoEntrada: 'R$ 107,04', dy: '13,21%', precoTeto: 'R$ 73,20' },
-  { id: '23', avatar: 'https://www.ivalor.com.br/media/emp/logos/MXRF.png', ticker: 'MXRF11', setor: 'Papel', dataEntrada: '12/07/2022', precoEntrada: 'R$ 9,69', dy: '12,91%', precoTeto: 'R$ 9,40' }
-];
-
+// 🚀 HOOK CORRIGIDO PARA BUSCAR COTAÇÕES DOS FIIS DO DATASTORE
 export function useFiisCotacoesBrapi() {
+  const { dados } = useDataStore(); // 🔥 USAR dados DIRETAMENTE
   const [fiis, setFiis] = useState<FII[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null);
 
-  const fetchCotacoes = useCallback(async () => {
-    // Verifica se já fez uma requisição nos últimos 2 minutos
-    const agora = new Date();
-    if (ultimaAtualizacao && (agora.getTime() - ultimaAtualizacao.getTime()) < 2 * 60 * 1000) {
-      console.log('⏰ Aguardando intervalo mínimo entre requisições...');
-      return;
-    }
+  // 📊 OBTER DADOS DA CARTEIRA FIIS DO DATASTORE
+  const fiisData = dados.fiis || [];
 
-    setLoading(true);
-    setErro(null);
-    
-    const token = process.env.NEXT_PUBLIC_BRAPI_TOKEN;
-    const tickers = fiisBase.map(fii => fii.ticker);
-    
-    // Logs para debug
-    console.log('🔍 Buscando cotações para:', tickers);
-    console.log('📊 Total de FIIs na carteira:', tickers.length);
-    console.log('🔑 Token configurado:', token ? 'Sim' : 'Não');
-    
-    // Divide em lotes menores para evitar rate limit (máximo 10 por vez)
-    const loteSize = 10;
-    const lotes = [];
-    for (let i = 0; i < tickers.length; i += loteSize) {
-      lotes.push(tickers.slice(i, i + loteSize));
-    }
-    
-    console.log(`📦 Dividindo em ${lotes.length} lotes de até ${loteSize} FIIs`);
-    
-    const todasCotacoes = new Map();
-    
+  const fetchCotacoes = useCallback(async () => {
     try {
-      // Processa cada lote com delay
-      for (let i = 0; i < lotes.length; i++) {
-        const lote = lotes[i];
-        console.log(`📡 Processando lote ${i + 1}/${lotes.length}:`, lote);
-        
-        try {
-          // Monta URL para o lote atual
-          const baseUrl = `https://brapi.dev/api/quote/${lote.join(',')}`;
-          const url = token ? `${baseUrl}?token=${token}` : baseUrl;
-          
-          const response = await fetch(url);
-          
-          console.log(`📡 Lote ${i + 1} - Status:`, response.status);
-          
-          if (!response.ok) {
-            if (response.status === 429) {
-              console.warn(`⚠️ Rate limit no lote ${i + 1}, aguardando...`);
-              await new Promise(resolve => setTimeout(resolve, 10000)); // 10 segundos
-              continue; // Pula este lote
-            }
-            throw new Error(`Erro no lote ${i + 1}: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data.results && Array.isArray(data.results)) {
-            data.results.forEach((cotacao: any) => {
-              if (cotacao.symbol && 
-                  cotacao.regularMarketPrice !== null &&
-                  typeof cotacao.regularMarketPrice === 'number' && 
-                  cotacao.regularMarketPrice > 0) {
-                todasCotacoes.set(cotacao.symbol, cotacao);
-              }
-            });
-          }
-          
-          // Delay entre lotes para evitar rate limit
-          if (i < lotes.length - 1) {
-            console.log('⏳ Aguardando 2s antes do próximo lote...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          
-        } catch (err) {
-          console.error(`❌ Erro no lote ${i + 1}:`, err);
-          continue; // Continua com os próximos lotes
-        }
+      setLoading(true);
+      setErro(null);
+
+      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA FIIS');
+      console.log('📋 Ativos do DataStore:', fiisData);
+
+      if (fiisData.length === 0) {
+        console.log('⚠️ Nenhum FII encontrado no DataStore');
+        setFiis([]);
+        setLoading(false);
+        return;
       }
-      
-      console.log('✅ Cotações coletadas:', Array.from(todasCotacoes.keys()));
-      
-      // Processa os resultados finais
-      const atualizados: FII[] = fiisBase.map(fii => {
-        const cotacao = todasCotacoes.get(fii.ticker);
+
+      // Verifica se já fez uma requisição nos últimos 2 minutos
+      const agora = new Date();
+      if (ultimaAtualizacao && (agora.getTime() - ultimaAtualizacao.getTime()) < 2 * 60 * 1000) {
+        console.log('⏰ Aguardando intervalo mínimo entre requisições...');
+        setLoading(false);
+        return;
+      }
+
+      // 🔑 TOKEN BRAPI FUNCIONANDO
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+      // 📋 EXTRAIR TODOS OS TICKERS
+      const tickers = fiisData.map(fii => fii.ticker);
+      console.log('🎯 Tickers para buscar:', tickers.join(', '));
+
+      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN E TIMEOUT
+      const LOTE_SIZE = 5;
+      const cotacoesMap = new Map();
+      let sucessosTotal = 0;
+      let falhasTotal = 0;
+
+      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
+        const lote = tickers.slice(i, i + LOTE_SIZE);
+        const tickersString = lote.join(',');
         
-        if (cotacao && cotacao.regularMarketPrice) {
-          const precoAtualNum = cotacao.regularMarketPrice;
-          const precoAtual = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
+        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
+        
+        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+
+        try {
+          // 🔥 ADICIONAR TIMEOUT DE 8 SEGUNDOS PARA LOTES MÚLTIPLOS
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'FIIs-Portfolio-App'
+            },
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const apiData = await response.json();
+            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+
+            if (apiData.results && Array.isArray(apiData.results)) {
+              apiData.results.forEach((quote: any) => {
+                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
+                  cotacoesMap.set(quote.symbol, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName,
+                    dadosCompletos: quote
+                  });
+                  sucessosTotal++;
+                  console.log(`✅ ${quote.symbol}: R$ ${quote.regularMarketPrice}`);
+                } else {
+                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
+                  falhasTotal++;
+                }
+              });
+            }
+          } else {
+            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+            falhasTotal += lote.length;
+          }
+        } catch (loteError) {
+          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
+          falhasTotal += lote.length;
+        }
+
+        // DELAY entre requisições para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+
+      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS
+      const ativosComCotacoes = fiisData.map((fii, index) => {
+        const cotacao = cotacoesMap.get(fii.ticker);
+        
+        console.log(`\n🔄 Processando ${fii.ticker}:`);
+        console.log(`💵 Preço entrada: R$ ${fii.precoEntrada}`);
+        
+        if (cotacao && cotacao.precoAtual > 0) {
+          // 📊 PREÇO E PERFORMANCE REAIS
+          const precoAtualNum = cotacao.precoAtual;
+          const performance = ((precoAtualNum - fii.precoEntrada) / fii.precoEntrada) * 100;
           
-          console.log(`💰 ${fii.ticker}: R$ ${precoAtualNum.toFixed(2)} (API)`);
+          console.log(`💰 Preço atual: R$ ${precoAtualNum}`);
+          console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          
+          // VALIDAR SE O PREÇO FAZ SENTIDO
+          const diferencaPercent = Math.abs(performance);
+          if (diferencaPercent > 500) {
+            console.warn(`🚨 ${fii.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+            return {
+              ...fii,
+              id: String(fii.id || index + 1),
+              avatar: `https://www.ivalor.com.br/media/emp/logos/${fii.ticker.replace(/\d+$/, '')}.png`,
+              precoAtual: `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`,
+              precoEntrada: `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`,
+              precoTeto: fii.precoTeto ? `R$ ${fii.precoTeto.toFixed(2).replace('.', ',')}` : undefined,
+              performance: 0,
+              variacao: 0,
+              variacaoPercent: 0,
+              volume: 0,
+              vies: calcularViesAutomatico(fii.precoTeto, `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`),
+              dy: '0,00%',
+              statusApi: 'suspicious_price',
+              nomeCompleto: cotacao.nome
+            };
+          }
+          
+          const precoAtualFormatado = `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`;
+          const precoEntradaFormatado = `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`;
+          const precoTetoFormatado = fii.precoTeto ? `R$ ${fii.precoTeto.toFixed(2).replace('.', ',')}` : undefined;
           
           return {
             ...fii,
-            precoAtual,
-            dy: calcularDY(fii.dy, fii.precoEntrada, precoAtualNum),
-            vies: calcularVies(fii.precoTeto, precoAtual)
+            id: String(fii.id || index + 1),
+            avatar: `https://www.ivalor.com.br/media/emp/logos/${fii.ticker.replace(/\d+$/, '')}.png`,
+            precoAtual: precoAtualFormatado,
+            precoEntrada: precoEntradaFormatado,
+            precoTeto: precoTetoFormatado,
+            performance: performance,
+            variacao: cotacao.variacao,
+            variacaoPercent: cotacao.variacaoPercent,
+            volume: cotacao.volume,
+            vies: calcularViesAutomatico(fii.precoTeto, precoAtualFormatado),
+            dy: calcularDY12Meses(fii.ticker, precoAtualNum), // 🔥 DY REAL DOS ÚLTIMOS 12 MESES
+            statusApi: 'success',
+            nomeCompleto: cotacao.nome
           };
         } else {
-          console.warn(`❌ ${fii.ticker}: usando preço de entrada (fallback)`);
+          // ⚠️ FALLBACK PARA FIIS SEM COTAÇÃO
+          console.warn(`⚠️ ${fii.ticker}: Sem cotação válida, usando preço de entrada`);
+          
+          const precoEntradaFormatado = `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`;
+          const precoTetoFormatado = fii.precoTeto ? `R$ ${fii.precoTeto.toFixed(2).replace('.', ',')}` : undefined;
+          
           return {
             ...fii,
-            precoAtual: fii.precoEntrada,
-            dy: fii.dy,
-            vies: calcularVies(fii.precoTeto, fii.precoEntrada)
+            id: String(fii.id || index + 1),
+            avatar: `https://www.ivalor.com.br/media/emp/logos/${fii.ticker.replace(/\d+$/, '')}.png`,
+            precoAtual: precoEntradaFormatado,
+            precoEntrada: precoEntradaFormatado,
+            precoTeto: precoTetoFormatado,
+            performance: 0,
+            variacao: 0,
+            variacaoPercent: 0,
+            volume: 0,
+            vies: calcularViesAutomatico(fii.precoTeto, precoEntradaFormatado),
+            dy: calcularDY12Meses(fii.ticker, fii.precoEntrada), // 🔥 DY REAL DOS ÚLTIMOS 12 MESES
+            statusApi: 'not_found',
+            nomeCompleto: 'N/A'
           };
         }
       });
 
-      setFiis(atualizados);
-      setUltimaAtualizacao(new Date());
-      console.log(`🎯 Carteira atualizada! ${todasCotacoes.size}/${tickers.length} cotações obtidas`);
+      // 📊 ESTATÍSTICAS FINAIS
+      const sucessos = ativosComCotacoes.filter(a => a.statusApi === 'success').length;
+      const suspeitos = ativosComCotacoes.filter(a => a.statusApi === 'suspicious_price').length;
+      const naoEncontrados = ativosComCotacoes.filter(a => a.statusApi === 'not_found').length;
       
+      console.log('\n📊 ESTATÍSTICAS FINAIS:');
+      console.log(`✅ Sucessos: ${sucessos}/${ativosComCotacoes.length}`);
+      console.log(`🚨 Preços suspeitos: ${suspeitos}/${ativosComCotacoes.length}`);
+      console.log(`❌ Não encontrados: ${naoEncontrados}/${ativosComCotacoes.length}`);
+
+      setFiis(ativosComCotacoes);
+      setUltimaAtualizacao(new Date());
+
+      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
+      if (sucessos < ativosComCotacoes.length / 2) {
+        setErro(`Apenas ${sucessos} de ${ativosComCotacoes.length} FIIs com cotação válida`);
+      } else if (suspeitos > 0) {
+        setErro(`${suspeitos} FIIs com preços suspeitos foram ignorados`);
+      }
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar cotações:', errorMessage);
       setErro(errorMessage);
+      console.error('❌ Erro geral ao buscar cotações:', err);
       
-      // Fallback: usa preços de entrada
-      const fallbackData = fiisBase.map(fii => ({
+      // 🔄 FALLBACK: USAR DADOS DO DATASTORE SEM COTAÇÕES
+      console.log('🔄 Usando fallback com dados do DataStore...');
+      const ativosFallback = fiisData.map((fii, index) => ({
         ...fii,
-        precoAtual: fii.precoEntrada,
-        dy: fii.dy,
-        vies: calcularVies(fii.precoTeto, fii.precoEntrada)
+        id: String(fii.id || index + 1),
+        avatar: `https://www.ivalor.com.br/media/emp/logos/${fii.ticker.replace(/\d+$/, '')}.png`,
+        precoAtual: `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`,
+        precoEntrada: `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`,
+        precoTeto: fii.precoTeto ? `R$ ${fii.precoTeto.toFixed(2).replace('.', ',')}` : undefined,
+        performance: 0,
+        variacao: 0,
+        variacaoPercent: 0,
+        volume: 0,
+        vies: calcularViesAutomatico(fii.precoTeto, `R$ ${fii.precoEntrada.toFixed(2).replace('.', ',')}`),
+        dy: calcularDY12Meses(fii.ticker, fii.precoEntrada), // 🔥 DY REAL DOS ÚLTIMOS 12 MESES
+        statusApi: 'error',
+        nomeCompleto: 'Erro'
       }));
-      
-      setFiis(fallbackData);
-      console.log('🔄 Usando dados fallback (preços de entrada)');
+      setFiis(ativosFallback);
     } finally {
       setLoading(false);
     }
-  }, [ultimaAtualizacao]);
+  }, [fiisData, ultimaAtualizacao]);
 
+  // 🔄 EXECUTAR QUANDO OS DADOS DO DATASTORE MUDAREM
   useEffect(() => {
-    fetchCotacoes();
+    console.log('🔄 EFFECT DISPARADO - DADOS DO DATASTORE MUDARAM');
+    console.log('📊 FIIs data length:', dados.fiis?.length || 0);
     
-    // Auto-update durante horário comercial (reduzido para evitar erro 429)
+    if (fiisData.length > 0) {
+      fetchCotacoes();
+    } else {
+      setLoading(false);
+      setFiis([]);
+    }
+  }, [dados.fiis?.length]); // 🔥 USAR LENGTH PARA EVITAR LOOP INFINITO
+
+  // ATUALIZAR COTAÇÕES A CADA 15 MINUTOS
+  useEffect(() => {
     const interval = setInterval(() => {
       const agora = new Date();
       const hora = agora.getHours();
       const diaSemana = agora.getDay();
       
-      // Segunda a sexta, das 10h às 17h (horário reduzido)
-      if (diaSemana >= 1 && diaSemana <= 5 && hora >= 10 && hora <= 17) {
+      // Segunda a sexta, das 10h às 17h (horário comercial)
+      if (diaSemana >= 1 && diaSemana <= 5 && hora >= 10 && hora <= 17 && fiisData.length > 0) {
         console.log('🔄 Auto-atualizando carteira de FIIs...');
         fetchCotacoes();
       }
-    }, 15 * 60 * 1000); // 15 minutos (reduzido de 5 para 15 minutos)
+    }, 15 * 60 * 1000); // 15 minutos
 
     return () => clearInterval(interval);
-  }, [fetchCotacoes]);
+  }, [fetchCotacoes, fiisData.length]);
 
   return { 
     fiis, 

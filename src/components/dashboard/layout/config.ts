@@ -142,10 +142,17 @@ export const navItems = [
         icon: 'chat',
         page: 'recursos-telegram'
       },
+      {
+        key: 'recursos-reserva',
+        title: 'Reserva de Emergência',
+        href: paths.dashboard.recursosExclusivos + '/reserva-emergencia',
+        icon: 'shield',
+        page: 'recursos-reserva'
+      },
     ],
   },
 
-  // 🛡️ MENU ADMINISTRATIVO (sem ícone no título)
+  // 🛡️ MENU ADMINISTRATIVO
   {
     key: 'administracao',
     title: 'Administração',
@@ -161,25 +168,41 @@ export const navItems = [
         page: 'admin-dashboard'
       },
       {
-        key: 'admin-proventos',
-        title: 'Central de Proventos',
-        href: paths.dashboard.adminProventos,
-        icon: 'chart-line-up',
-        page: 'admin-proventos'
-      },
-      {
         key: 'admin-usuarios',
         title: 'Gestão de Usuários',
         href: paths.dashboard.adminUsuarios,
         icon: 'users',
         page: 'admin-usuarios'
       },
+      // 📱 NOVO - Admin Instagram Close Friends
+      {
+        key: 'admin-instagram',
+        title: 'Instagram Close Friends',
+        href: '/dashboard/admin/instagram-cadastros',
+        icon: 'instagram',
+        page: 'admin-instagram'
+      },
+      // ✨ NOVA SEÇÃO - INTEGRAÇÕES HOTMART (NOME ÚNICO)
+      {
+        key: 'admin-hotmart',
+        title: 'Integração Hotmart',
+        href: '/dashboard/admin/integracoes/hotmart',
+        icon: 'link',
+        page: 'admin-usuarios'
+      },
       {
         key: 'admin-empresas',
         title: 'Gestão de Empresas',
-        href: paths.dashboard.adminEmpresas,
+        href: '/dashboard/gerenciamento',
         icon: 'buildings',
         page: 'admin-empresas'
+      },
+      {
+        key: 'admin-proventos',
+        title: 'Central de Proventos',
+        href: paths.dashboard.adminProventos,
+        icon: 'chart-line-up',
+        page: 'admin-proventos'
       },
       {
         key: 'admin-relatorios',
@@ -188,6 +211,7 @@ export const navItems = [
         icon: 'chart-bar',
         page: 'admin-relatorios'
       },
+      // ✅ MANTIDO EXATAMENTE COMO ESTAVA
       {
         key: 'admin-integracoes',
         title: 'Agenda Corporativa',
@@ -212,10 +236,4 @@ export const navItems = [
     ]
   },
 
-  { 
-    key: 'error', 
-    title: 'Error', 
-    href: paths.errors.notFound, 
-    icon: 'x-square'
-  },
 ] satisfies NavItemConfig[];

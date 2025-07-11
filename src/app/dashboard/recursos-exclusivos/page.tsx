@@ -1,194 +1,267 @@
 'use client';
 
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Stack from '@mui/material/Stack';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
+import React from 'react';
 
-export default function Page() {
+export default function RecursosExclusivos() {
   const recursos = [
     {
       title: 'Dicas de Investimentos',
       description: 'Estratégias e insights exclusivos para maximizar seus retornos no mercado financeiro',
       href: '/dashboard/recursos-exclusivos/dicas-de-investimentos',
-      color: '#f59e0b',
+      icon: '💡',
       badge: 'NOVO'
     },
     {
       title: 'Análise de Carteira',
       description: 'Relatórios detalhados e análises personalizadas da sua carteira de investimentos',
       href: '/dashboard/recursos-exclusivos/analise-de-carteira',
-      color: '#10b981',
+      icon: '📊',
       badge: 'NOVO'
+    },
+    {
+      title: 'Reserva de Emergência',
+      description: 'Guia completo com as melhores opções de investimento para sua reserva de emergência',
+      href: '/dashboard/recursos-exclusivos/reserva-emergencia',
+      icon: '🏦'
     },
     {
       title: 'Imposto de Renda',
       description: 'Ferramentas, calculadoras e guias completos para declaração do IR com investimentos',
       href: '/dashboard/recursos-exclusivos/imposto-de-renda',
-      color: '#dc2626',
+      icon: '📋',
       badge: 'NOVIDADE'
     },
     {
       title: 'Acesso ao Telegram', 
       description: 'Entre no nosso grupo exclusivo para dicas, análises e discussões sobre investimentos',
       href: '/dashboard/recursos-exclusivos/telegram',
-      color: '#2563eb',
+      icon: '💬',
       badge: 'ATIVO'
     },
     {
       title: 'Lives e Aulas',
       description: 'Biblioteca completa de vídeos educativos, webinars e aulas ao vivo gravadas',
       href: '/dashboard/recursos-exclusivos/lives-e-aulas',
-      color: '#7c3aed'
+      icon: '🎥'
     },
     {
       title: 'Milhas Aéreas',
       description: 'Estratégias e dicas para acumular milhas através de investimentos e cartões de crédito',
       href: '/dashboard/recursos-exclusivos/milhas-aereas',
-      color: '#059669'
+      icon: '✈️'
     },
     {
       title: 'Ebooks',
       description: 'Material de estudo em PDF sobre investimentos, análise fundamentalista e estratégias',
       href: '/dashboard/recursos-exclusivos/ebooks',
-      color: '#ea580c'
+      icon: '📚'
     },
     {
       title: 'Planilhas',
       description: 'Templates exclusivos para controle de carteira, análise de ações e planejamento financeiro',
       href: '/dashboard/recursos-exclusivos/planilhas',
-      color: '#0891b2',
+      icon: '📈',
       badge: 'POPULAR'
     }
   ];
 
+  const handleNavigation = (href: string) => {
+    window.location.href = href;
+  };
+
   return (
-    <Box sx={{ p: 3 }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f5f5', 
+      padding: '24px' 
+    }}>
       {/* Header */}
-      <Stack spacing={1} sx={{ mb: 4 }}>
-        <Typography 
-          variant="h4" 
-          sx={{ 
-            fontWeight: 700,
-            color: 'text.primary',
-            fontSize: { xs: '1.75rem', sm: '2.125rem' }
-          }}
-        >
-          Recursos Exclusivos
-        </Typography>
-        <Typography 
-          variant="body1" 
-          sx={{ 
-            color: 'text.secondary',
-            fontSize: '1.1rem',
-            maxWidth: '800px'
-          }}
-        >
-          Acesse ferramentas, conteúdos e recursos exclusivos para potencializar seus investimentos e conhecimento no mercado financeiro.
-        </Typography>
-      </Stack>
+      <div style={{ marginBottom: '48px' }}>
+        <div>
+          <h1 style={{ 
+            fontSize: '48px', 
+            fontWeight: '800', 
+            color: '#1e293b',
+            margin: '0 0 8px 0'
+          }}>
+            Recursos Exclusivos
+          </h1>
+          <p style={{ 
+            color: '#64748b', 
+            fontSize: '18px',
+            margin: '0',
+            maxWidth: '800px',
+            lineHeight: '1.5'
+          }}>
+            Acesse ferramentas, conteúdos e recursos exclusivos para potencializar seus investimentos e conhecimento no mercado financeiro.
+          </p>
+        </div>
+      </div>
 
       {/* Recursos Grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            md: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
-          },
-          gap: 3,
-          maxWidth: '1600px'
-        }}
-      >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '24px',
+        maxWidth: '1400px',
+        margin: '0 auto'
+      }}>
         {recursos.map((recurso, index) => (
-          <Card
+          <div
             key={index}
-            onClick={() => window.location.href = recurso.href}
-            sx={{
-              cursor: 'pointer',
-              height: '220px',
-              background: `linear-gradient(135deg, ${recurso.color}dd, ${recurso.color})`,
-              color: 'white',
+            onClick={() => handleNavigation(recurso.href)}
+            style={{
               position: 'relative',
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-8px)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-              }
+              height: '280px',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              cursor: 'pointer',
+              border: '1px solid #374151',
+              background: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              transition: 'all 0.3s ease',
+              transform: 'translateY(0)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 16px 48px rgba(0, 0, 0, 0.4)';
+              const title = e.currentTarget.querySelector('.card-title');
+              if (title) title.style.color = '#00ff41';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+              const title = e.currentTarget.querySelector('.card-title');
+              if (title) title.style.color = '#ffffff';
             }}
           >
-            {/* Badge */}
-            {recurso.badge && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(10px)',
-                  px: 2,
-                  py: 0.5,
-                  borderRadius: '12px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  zIndex: 3,
+            {/* Badge - removido para manter o padrão original */}
+
+            {/* Linha verde no topo */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '4px',
+              background: 'linear-gradient(90deg, rgba(0,255,65,0) 0%, rgba(0,255,65,1) 50%, rgba(0,255,65,0) 100%)',
+              zIndex: 30
+            }} />
+            
+            {/* Content */}
+            <div style={{
+              padding: '24px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              position: 'relative',
+              zIndex: 20
+            }}>
+              {/* Ícone */}
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                transition: 'all 0.3s ease',
+                marginBottom: '24px',
+                fontSize: '36px'
+              }}>
+                {recurso.icon}
+              </div>
+              
+              {/* Título principal */}
+              <h3 
+                className="card-title"
+                style={{
+                  fontWeight: 'bold',
+                  color: '#ffffff',
+                  fontSize: '24px',
+                  lineHeight: '1.2',
+                  marginBottom: '16px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.02em',
+                  transition: 'color 0.3s ease',
+                  margin: '0 0 16px 0'
                 }}
               >
-                {recurso.badge}
-              </Box>
-            )}
+                {recurso.title}
+              </h3>
+              
+              {/* Descrição */}
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                fontSize: '14px',
+                lineHeight: '1.4',
+                fontWeight: '400',
+                maxWidth: '200px',
+                margin: '0'
+              }}>
+                {recurso.description}
+              </p>
+            </div>
 
-            <CardContent sx={{ p: 4, height: '100%' }}>
-              <Stack spacing={3} sx={{ height: '100%' }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 700,
-                    fontSize: '1.2rem',
-                    lineHeight: 1.2
-                  }}
-                >
-                  {recurso.title}
-                </Typography>
-                
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    opacity: 0.9,
-                    fontSize: '0.9rem',
-                    lineHeight: 1.4,
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  {recurso.description}
-                </Typography>
-              </Stack>
-            </CardContent>
-          </Card>
+            {/* Elementos decorativos de fundo */}
+            <div style={{
+              position: 'absolute',
+              bottom: '-20px',
+              right: '-20px',
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              opacity: 0.5,
+              background: 'radial-gradient(circle, rgba(0,255,65,0.1) 0%, transparent 70%)'
+            }} />
+            
+            <div style={{
+              position: 'absolute',
+              top: '-32px',
+              left: '-32px',
+              width: '96px',
+              height: '96px',
+              borderRadius: '50%',
+              opacity: 0.8,
+              background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 70%)'
+            }} />
+          </div>
         ))}
-      </Box>
+      </div>
 
       {/* Call to Action */}
-      <Box 
-        sx={{ 
-          mt: 6, 
-          p: 4, 
-          backgroundColor: 'grey.50', 
-          borderRadius: 2,
-          textAlign: 'center'
-        }}
-      >
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+      <div style={{
+        marginTop: '64px',
+        padding: '32px',
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        textAlign: 'center',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+      }}>
+        <h3 style={{
+          fontWeight: '600',
+          fontSize: '24px',
+          margin: '0 0 16px 0',
+          color: '#1e293b'
+        }}>
           Precisa de ajuda com algum recurso?
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        </h3>
+        <p style={{
+          color: '#64748b',
+          fontSize: '16px',
+          margin: '0',
+          lineHeight: '1.5'
+        }}>
           Nossa equipe está pronta para te ajudar a aproveitar ao máximo todos os recursos disponíveis.
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }

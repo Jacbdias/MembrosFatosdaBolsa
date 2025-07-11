@@ -115,12 +115,6 @@ async function fetchYahooFinanceData(symbol: string, retries = 2) {
       console.log(`   Preço anterior: ${previousClose?.toFixed(2) || 'N/A'}`);
       console.log(`   Variação: ${change.toFixed(2)} (${changePercent.toFixed(2)}%)`);
       console.log(`   Valor formatado: ${formatMarketValue(currentPrice)}`);
-      console.log(`   Meta completa:`, {
-        regularMarketPrice: meta.regularMarketPrice,
-        previousClose: meta.previousClose,
-        regularMarketChange: meta.regularMarketChange,
-        regularMarketChangePercent: meta.regularMarketChangePercent
-      });
       
       return {
         value: formatMarketValue(currentPrice),
@@ -153,6 +147,77 @@ async function fetchYahooFinanceData(symbol: string, retries = 2) {
   return null;
 }
 
+// 🇧🇷 FUNÇÃO PARA BUSCAR DADOS DA BRAPI
+async function fetchBrapiData(symbol: string) {
+  try {
+    let brapiSymbol = symbol;
+    
+    // Mapear símbolos para formato BRAPI
+    if (symbol === 'IBOV') {
+      brapiSymbol = 'IBOV';
+    } else if (symbol === 'SMLL') {
+      brapiSymbol = 'SMLL11';
+    }
+    
+    console.log(`🇧🇷 Buscando ${symbol} (${brapiSymbol}) via BRAPI...`);
+    
+    // BRAPI tem endpoints diferentes para índices e ações
+    const endpoint = symbol === 'IBOV' 
+      ? `https://brapi.dev/api/quote/list?search=${brapiSymbol}&limit=1`
+      : `https://brapi.dev/api/quote/${brapiSymbol}`;
+    
+    const response = await fetch(endpoint, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'FatosdaBolsa/1.0'
+      },
+      next: { revalidate: 0 }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`BRAPI HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const quote = data.results?.[0];
+    
+    if (!quote) {
+      throw new Error('Nenhum dado retornado pela BRAPI');
+    }
+    
+    const currentPrice = quote.regularMarketPrice || quote.price;
+    const changePercent = quote.regularMarketChangePercent || quote.changePercent || 0;
+    const change = quote.regularMarketChange || quote.change || 0;
+    
+    if (!currentPrice) {
+      throw new Error('Preço não encontrado na resposta BRAPI');
+    }
+    
+    console.log(`✅ ${symbol} via BRAPI:`);
+    console.log(`   Preço: ${currentPrice.toFixed(2)}`);
+    console.log(`   Variação: ${change.toFixed(2)} (${changePercent.toFixed(2)}%)`);
+    
+    return {
+      value: formatMarketValue(currentPrice),
+      trend: getTrendDirection(changePercent),
+      diff: Number(changePercent.toFixed(2)),
+      source: 'brapi',
+      rawData: {
+        currentPrice,
+        change,
+        changePercent,
+        currency: quote.currency,
+        symbol: quote.symbol,
+        fullQuote: quote
+      }
+    };
+    
+  } catch (error) {
+    console.error(`❌ Erro BRAPI para ${symbol}:`, error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 // 🎯 FUNÇÃO ALTERNATIVA USANDO API v7/finance/quote
 async function fetchYahooQuoteData(symbol: string) {
   try {
@@ -164,7 +229,7 @@ async function fetchYahooQuoteData(symbol: string) {
       yahooSymbol = '^BVSP';
     }
     
-    console.log(`🔄 Buscando ${symbol} via Quote API...`);
+    console.log(`🔄 Buscando ${symbol} via Yahoo Quote API...`);
     
     const response = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${yahooSymbol}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,previousClose,currency`, {
       headers: {
@@ -186,7 +251,7 @@ async function fetchYahooQuoteData(symbol: string) {
     const changePercent = quote.regularMarketChangePercent || 0;
     const change = quote.regularMarketChange || 0;
     
-    console.log(`✅ ${symbol} via Quote API:`);
+    console.log(`✅ ${symbol} via Yahoo Quote API:`);
     console.log(`   Preço: ${currentPrice}`);
     console.log(`   Variação: ${change} (${changePercent}%)`);
     
@@ -198,22 +263,33 @@ async function fetchYahooQuoteData(symbol: string) {
     };
     
   } catch (error) {
-    console.error(`❌ Erro Quote API para ${symbol}:`, error);
+    console.error(`❌ Erro Yahoo Quote API para ${symbol}:`, error);
     return null;
   }
 }
 
-// 🚀 FUNÇÃO PRINCIPAL PARA BUSCAR DADOS COM FALLBACK
+// 🚀 FUNÇÃO PRINCIPAL PARA BUSCAR DADOS COM MÚLTIPLOS FALLBACKS
 async function fetchMarketData(symbol: string) {
   console.log(`📊 Buscando dados para ${symbol}...`);
   
-  // Tentar Chart API primeiro (mais confiável)
+  // 1️⃣ Tentar Yahoo Finance Chart API primeiro (mais rápido)
   let result = await fetchYahooFinanceData(symbol);
   
-  // Se falhar, tentar Quote API
+  // 2️⃣ Se falhar, tentar BRAPI (dados brasileiros confiáveis)
   if (!result) {
-    console.log(`⚠️ Chart API falhou para ${symbol}, tentando Quote API...`);
+    console.log(`⚠️ Yahoo falhou para ${symbol}, tentando BRAPI...`);
+    result = await fetchBrapiData(symbol);
+  }
+  
+  // 3️⃣ Se BRAPI falhar, tentar Yahoo Quote API
+  if (!result) {
+    console.log(`⚠️ BRAPI falhou para ${symbol}, tentando Yahoo Quote API...`);
     result = await fetchYahooQuoteData(symbol);
+  }
+  
+  // 4️⃣ Se tudo falhar, será usado fallback no handler principal
+  if (!result) {
+    console.warn(`❌ Todas as APIs falharam para ${symbol}`);
   }
   
   return result;
@@ -224,7 +300,7 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now();
   
   try {
-    console.log('🚀 Market Data API iniciada - Yahoo Finance com variação corrigida');
+    console.log('🚀 Market Data API iniciada - Yahoo Finance + BRAPI + Fallbacks');
     
     // Buscar dados em paralelo
     const [ibovespaResult, smllResult] = await Promise.allSettled([
@@ -232,10 +308,10 @@ export async function GET(request: NextRequest) {
       fetchMarketData('SMLL')
     ]);
     
-    // Dados de fallback atualizados COM OS VALORES CORRETOS DO YAHOO
+    // Dados de fallback atualizados
     let marketData = {
       ibovespa: { value: "136.431", trend: "down" as const, diff: -0.26 },
-      indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 }, // ⬅️ VALOR CORRETO DO YAHOO
+      indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 },
       carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
       dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
       ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },
@@ -254,7 +330,7 @@ export async function GET(request: NextRequest) {
       };
       sources.ibovespa = ibovespaResult.value.source;
       debugInfo.ibovespaRawData = ibovespaResult.value.rawData;
-      console.log('✅ Ibovespa atualizado via', ibovespaResult.value.source);
+      console.log(`✅ Ibovespa atualizado via ${ibovespaResult.value.source}`);
     } else {
       console.warn('⚠️ Usando fallback para Ibovespa');
       debugInfo.ibovespaError = ibovespaResult.status === 'rejected' ? ibovespaResult.reason?.message : 'Unknown error';
@@ -269,7 +345,7 @@ export async function GET(request: NextRequest) {
       };
       sources.smll = smllResult.value.source;
       debugInfo.smllRawData = smllResult.value.rawData;
-      console.log('✅ SMLL atualizado via', smllResult.value.source);
+      console.log(`✅ SMLL atualizado via ${smllResult.value.source}`);
     } else {
       console.warn('⚠️ Usando fallback para SMLL');
       debugInfo.smllError = smllResult.status === 'rejected' ? smllResult.reason?.message : 'Unknown error';
@@ -287,7 +363,7 @@ export async function GET(request: NextRequest) {
         lastUpdate: new Date().toLocaleString('pt-BR', { 
           timeZone: 'America/Sao_Paulo' 
         }),
-        version: '5.0-fixed-variation',
+        version: '6.0-with-brapi',
         debug: debugInfo
       }
     };
@@ -312,7 +388,7 @@ export async function GET(request: NextRequest) {
       error: `Falha ao buscar dados: ${errorMessage}`,
       marketData: {
         ibovespa: { value: "136.431", trend: "down" as const, diff: -0.26 },
-        indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 }, // ⬅️ VALOR CORRETO
+        indiceSmall: { value: "2.237,86", trend: "up" as const, diff: 1.56 },
         carteiraHoje: { value: "88.7%", trend: "up" as const, diff: 88.7 },
         dividendYield: { value: "7.4%", trend: "up" as const, diff: 7.4 },
         ibovespaPeriodo: { value: "6.1%", trend: "up" as const, diff: 6.1 },

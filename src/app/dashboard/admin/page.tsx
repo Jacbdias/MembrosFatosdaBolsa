@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function AdminDashboard() {
   const [notification, setNotification] = useState('');
-  const router = useRouter();
 
   const navigateTo = (url: string) => {
     if (url.startsWith('/')) {
-      router.push(url);
+      window.location.href = url;
     } else {
       window.open(url, '_blank');
     }
@@ -18,7 +16,8 @@ export default function AdminDashboard() {
 
   const getPageName = (url: string) => {
     if (url.includes('central-proventos')) return 'Central de Proventos';
-    if (url.includes('central-relatorios')) return 'Central de Relatórios'; // NOVO
+    if (url.includes('central-relatorios')) return 'Central de Relatórios';
+    if (url.includes('instagram-cadastros')) return 'Instagram Close Friends'; // NOVO
     if (url.includes('customers')) return 'Gestão de Clientes';
     if (url.includes('empresa')) return 'Gestão de Empresas';
     return 'página solicitada';
@@ -263,27 +262,41 @@ export default function AdminDashboard() {
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Gestão de Usuários')}
+            onClick={() => navigateTo('/dashboard/admin/usuarios')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
             <div style={styles.cardIcon}>👥</div>
             <h3 style={styles.cardTitle}>Gestão de Usuários</h3>
             <p style={styles.cardText}>Administre contas de usuários, permissões e níveis de acesso ao sistema.</p>
-            <span style={styles.statusDevelopment}>Em Desenvolvimento</span>
+            <span style={styles.statusActive}>Ativo</span>
+          </div>
+
+          {/* 📱 NOVO CARD - INSTAGRAM CLOSE FRIENDS */}
+          <div 
+            className="admin-card"
+            style={styles.card} 
+            onClick={() => navigateTo('/dashboard/admin/instagram-cadastros')}
+            onMouseEnter={handleCardHover}
+            onMouseLeave={handleCardLeave}
+          >
+            <div style={styles.cardIcon}>📱</div>
+            <h3 style={styles.cardTitle}>Instagram Close Friends</h3>
+            <p style={styles.cardText}>Gerencie cadastros de Instagram dos usuários para conteúdos exclusivos do Close Friends.</p>
+            <span style={styles.statusActive}>Ativo</span>
           </div>
 
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('Gestão de Empresas')}
+            onClick={() => navigateTo('/dashboard/admin/integracoes/hotmart')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
-            <div style={styles.cardIcon}>🏢</div>
-            <h3 style={styles.cardTitle}>Gestão de Empresas</h3>
-            <p style={styles.cardText}>Cadastre e gerencie informações das empresas listadas na bolsa.</p>
-            <span style={styles.statusDevelopment}>Em Desenvolvimento</span>
+            <div style={styles.cardIcon}>🔗</div>
+            <h3 style={styles.cardTitle}>Integrações</h3>
+            <p style={styles.cardText}>Central de gerenciamentos das integrações com a hotmart.</p>
+            <span style={styles.statusActive}>Ativo</span>
           </div>
 
           {/* CARD RELATÓRIOS MODIFICADO */}
@@ -303,14 +316,14 @@ export default function AdminDashboard() {
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => showComingSoon('/dashboard/central-agenda')}
+            onClick={() => navigateTo('/dashboard/central-agenda')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
             <div style={styles.cardIcon}>📅</div>
             <h3 style={styles.cardTitle}>Agenda Corporativa</h3>
             <p style={styles.cardText}>Insira informações (notícias) sobre os ativos.</p>
-            <span style={styles.statusDevelopment}>Em Desenvolvimento</span>
+            <span style={styles.statusActive}>Ativo</span>
           </div>
 
           <div 
@@ -337,6 +350,14 @@ export default function AdminDashboard() {
               onMouseLeave={handleButtonLeave}
             >
               💰 Central Proventos
+            </button>
+            <button 
+              style={styles.actionBtn} 
+              onClick={() => navigateTo('/dashboard/admin/instagram-cadastros')}
+              onMouseEnter={handleButtonHover}
+              onMouseLeave={handleButtonLeave}
+            >
+              📱 Instagram Admin
             </button>
             <button 
               style={styles.actionBtn} 

@@ -26,6 +26,7 @@ interface ExtendedPlanInfo {
   pages: string[];
   isAdmin?: boolean;
   adminPermissions?: any;
+userEmail?: string;
 }
 
 export function SideNav(): React.JSX.Element {
@@ -40,12 +41,20 @@ export function SideNav(): React.JSX.Element {
     const loadPlanInfo = async () => {
       try {
         console.log('🔄 Carregando planInfo...');
+const userEmail = localStorage.getItem('user-email') || '';
         const info = await authClient.getPlanInfo();
         console.log('📋 PlanInfo recebido:', info);
         
         if (info) {
-          setPlanInfo(info);
-          console.log('✅ PlanInfo definido:', info);
+   const enhancedInfo = {
+    ...info,
+    userEmail,
+    pages: info.isAdmin 
+      ? [...(info.pages || []), 'admin-instagram']
+      : (info.pages || [])
+  };
+  
+  setPlanInfo(enhancedInfo);
           
           // 🛡️ Log especial para admins
           if (info.isAdmin) {
@@ -88,6 +97,13 @@ export function SideNav(): React.JSX.Element {
       console.log('⚠️ planInfo não carregado ainda');
       return true; // Se não carregou ainda, mostra tudo
     }
+
+// ADICIONE ESTA VERIFICAÇÃO no início da função, antes do if (page.startsWith('admin')):
+if (page === 'admin-instagram') {
+  const isInstagramAdmin = planInfo.isAdmin || planInfo.userEmail === 'jacbdias@gmail.com';
+  console.log(`📱 Verificando acesso Instagram Admin para ${planInfo.userEmail}: ${isInstagramAdmin}`);
+  return isInstagramAdmin;
+}
     
     // 🛡️ VERIFICAÇÃO ESPECIAL PARA PÁGINAS ADMINISTRATIVAS
     if (page.startsWith('admin')) {
@@ -128,57 +144,59 @@ export function SideNav(): React.JSX.Element {
     }));
   };
 
-  // ✅ LÓGICA SIMPLIFICADA E MAIS ROBUSTA
-  const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
-    return items.filter(item => {
-      console.log(`📋 Processando item: ${item.title} (key: ${item.key})`);
+// ✅ FUNÇÃO CORRIGIDA - Substitua a função getFilteredNavItems existente por esta:
+const getFilteredNavItems = (items: NavItemConfig[]): NavItemConfig[] => {
+  return items.map(item => {
+    console.log(`📋 Processando item: ${item.title} (key: ${item.key})`);
+    
+    // Se tem subitens
+    if (item.items && item.items.length > 0) {
+      console.log(`📁 ${item.title} tem ${item.items.length} subitens`);
       
-      // Se tem subitens
-      if (item.items && item.items.length > 0) {
-        console.log(`📁 ${item.title} tem ${item.items.length} subitens`);
-        
-        // Filtrar subitens - criar nova lista para não modificar o original
-        const filteredSubItems = item.items.filter(subItem => {
-          if (!subItem.page) {
-            console.log(`📄 ${subItem.title} sem página - sempre visível`);
-            return true;
-          }
-          const subItemAccess = hasAccessSync(subItem.page);
-          console.log(`📄 ${subItem.title} (${subItem.page}): ${subItemAccess}`);
-          return subItemAccess;
-        });
-        
-        console.log(`📁 ${item.title} subitens após filtro: ${filteredSubItems.length}`);
-        
-        // Verificar se deve mostrar o item principal
-        const hasMainAccess = !item.page || hasAccessSync(item.page);
-        const hasSubItems = filteredSubItems.length > 0;
-        const shouldShow = hasMainAccess || hasSubItems;
-        
-        console.log(`🔍 ${item.title} - MainAccess: ${hasMainAccess}, SubItems: ${hasSubItems}, Show: ${shouldShow}`);
-        
-        if (shouldShow) {
-          // IMPORTANTE: Modificar uma cópia, não o original
-          item.items = filteredSubItems;
-          console.log(`✅ ${item.title} INCLUÍDO com ${filteredSubItems.length} subitens`);
+      // Filtrar subitens - criar nova lista para não modificar o original
+      const filteredSubItems = item.items.filter(subItem => {
+        if (!subItem.page) {
+          console.log(`📄 ${subItem.title} sem página - sempre visível`);
           return true;
-        } else {
-          console.log(`❌ ${item.title} REMOVIDO`);
-          return false;
         }
-      }
+        const subItemAccess = hasAccessSync(subItem.page);
+        console.log(`📄 ${subItem.title} (${subItem.page}): ${subItemAccess}`);
+        return subItemAccess;
+      });
       
-      // Para itens sem subitens
-      if (!item.page) {
-        console.log(`✅ ${item.title} sem página - sempre visível`);
-        return true;
-      }
+      console.log(`📁 ${item.title} subitens após filtro: ${filteredSubItems.length}`);
       
-      const itemAccess = hasAccessSync(item.page);
-      console.log(`🔍 ${item.title} (${item.page}): ${itemAccess}`);
-      return itemAccess;
-    });
-  };
+      // Verificar se deve mostrar o item principal
+      const hasMainAccess = !item.page || hasAccessSync(item.page);
+      const hasSubItems = filteredSubItems.length > 0;
+      const shouldShow = hasMainAccess || hasSubItems;
+      
+      console.log(`🔍 ${item.title} - MainAccess: ${hasMainAccess}, SubItems: ${hasSubItems}, Show: ${shouldShow}`);
+      
+      if (shouldShow) {
+        // ✅ CORREÇÃO: Retornar uma nova instância do item, não mutar o original
+        console.log(`✅ ${item.title} INCLUÍDO com ${filteredSubItems.length} subitens`);
+        return {
+          ...item,
+          items: filteredSubItems
+        };
+      } else {
+        console.log(`❌ ${item.title} REMOVIDO`);
+        return null; // Será filtrado abaixo
+      }
+    }
+    
+    // Para itens sem subitens
+    if (!item.page) {
+      console.log(`✅ ${item.title} sem página - sempre visível`);
+      return item;
+    }
+    
+    const itemAccess = hasAccessSync(item.page);
+    console.log(`🔍 ${item.title} (${item.page}): ${itemAccess}`);
+    return itemAccess ? item : null; // Será filtrado abaixo
+  }).filter(item => item !== null) as NavItemConfig[]; // ✅ Remover itens null
+};
 
   const filteredNavItems = getFilteredNavItems([...navItems]);
   console.log('🎯 Itens finais:', filteredNavItems.map(item => item.title));
