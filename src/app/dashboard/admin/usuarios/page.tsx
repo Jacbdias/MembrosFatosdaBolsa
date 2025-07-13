@@ -84,9 +84,9 @@ export default function AdminUsersPage() {
       const response = await fetch('/api/admin/users', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
-          'X-User-Email': userEmail,
-          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token || ''}`,
+          'x-user-email': userEmail,
+          'content-type': 'application/json',
           'Accept': 'application/json'
         }
       });
@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
-          'X-User-Email': userEmail || '',
+          'x-user-email': userEmail || '',
           'Content-Type': 'application/json'
         }
       });
