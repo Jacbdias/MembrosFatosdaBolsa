@@ -4,8 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
-  log: ['error', 'warn'],
-  errorFormat: 'pretty',
+  datasourceUrl: process.env.NODE_ENV === 'production' 
+    ? process.env.DATABASE_URL 
+    : 'file:./dev.db'
 });
 
 // Função de autenticação
