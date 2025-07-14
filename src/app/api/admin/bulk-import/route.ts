@@ -41,16 +41,25 @@ function generateSecurePassword(): string {
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
-// Função para calcular data de expiração
+// Função para calcular data de expiração - PRIORIZA DATA DO CSV
 function calculateExpirationDate(plan: string, customDate?: string): Date | null {
-  if (customDate) {
+  // PRIORIDADE 1: Data informada no CSV
+  if (customDate && customDate.trim()) {
     try {
-      return new Date(customDate);
-    } catch {
-      // Se data inválida, calcular baseado no plano
+      const parsedDate = new Date(customDate.trim());
+      // Verificar se a data é válida
+      if (!isNaN(parsedDate.getTime())) {
+        console.log(`📅 Usando data do CSV: ${customDate} → ${parsedDate.toISOString()}`);
+        return parsedDate;
+      } else {
+        console.warn(`⚠️ Data inválida no CSV: ${customDate}, calculando baseado no plano`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Erro ao processar data ${customDate}:`, error);
     }
   }
 
+  // PRIORIDADE 2: Calcular baseado no plano (se não tem data no CSV)
   const expirationMap = {
     'VIP': 365,
     'LITE': 365,
@@ -60,10 +69,14 @@ function calculateExpirationDate(plan: string, customDate?: string): Date | null
   };
 
   const days = expirationMap[plan as keyof typeof expirationMap];
-  if (days === null) return null;
+  if (days === null) {
+    console.log(`📅 Plano ${plan} é vitalício - sem data de expiração`);
+    return null; // Acesso vitalício
+  }
 
   const expirationDate = new Date();
   expirationDate.setDate(expirationDate.getDate() + days);
+  console.log(`📅 Calculado para plano ${plan}: ${expirationDate.toISOString()}`);
   return expirationDate;
 }
 
@@ -141,6 +154,9 @@ export async function POST(request: NextRequest) {
           // ATUALIZAR usuário existente
           console.log(`🔄 Atualizando usuário existente: ${email}`);
           
+          const expirationDate = calculateExpirationDate(user.plan || 'VIP', user.expirationDate);
+          console.log(`📅 Data de expiração para ${email}: ${expirationDate?.toISOString() || 'Vitalício'}`);
+          
           const updatedUser = await prisma.user.update({
             where: { email },
             data: {
@@ -148,7 +164,7 @@ export async function POST(request: NextRequest) {
               lastName: user.lastName.trim(),
               plan: user.plan || 'VIP',
               status: user.status || 'ACTIVE',
-              expirationDate: calculateExpirationDate(user.plan || 'VIP', user.expirationDate),
+              expirationDate: expirationDate,
               // NÃO sobrescrever senha se já existir
               ...(existingUser.password ? {} : { 
                 password: generateSecurePassword(),
@@ -159,11 +175,14 @@ export async function POST(request: NextRequest) {
           });
 
           result.updated++;
-          console.log(`✅ Usuário atualizado: ${email} → Plano: ${updatedUser.plan}`);
+          console.log(`✅ Usuário atualizado: ${email} → Plano: ${updatedUser.plan} → Expira: ${updatedUser.expirationDate?.toISOString() || 'Vitalício'}`);
           
         } else {
           // CRIAR novo usuário
           console.log(`➕ Criando novo usuário: ${email}`);
+          
+          const expirationDate = calculateExpirationDate(user.plan || 'VIP', user.expirationDate);
+          console.log(`📅 Data de expiração para ${email}: ${expirationDate?.toISOString() || 'Vitalício'}`);
           
           const newUser = await prisma.user.create({
             data: {
@@ -175,13 +194,13 @@ export async function POST(request: NextRequest) {
               password: generateSecurePassword(),
               passwordCreatedAt: new Date(),
               mustChangePassword: true,
-              expirationDate: calculateExpirationDate(user.plan || 'VIP', user.expirationDate),
+              expirationDate: expirationDate,
               customPermissions: '[]'
             }
           });
 
           result.success++;
-          console.log(`✅ Usuário criado: ${email} → Plano: ${newUser.plan}`);
+          console.log(`✅ Usuário criado: ${email} → Plano: ${newUser.plan} → Expira: ${newUser.expirationDate?.toISOString() || 'Vitalício'}`);
         }
 
       } catch (userError: any) {
