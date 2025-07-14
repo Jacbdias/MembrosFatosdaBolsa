@@ -27,6 +27,7 @@ interface ImportUser {
   email: string;
   plan: string;
   status?: string;
+  expirationDate?: string;
 }
 
 interface ImportResult {
@@ -60,7 +61,8 @@ export default function ImportUsuariosPage() {
           lastName: values[1] || 'Sobrenome',
           email: values[2] || '',
           plan: values[3] || 'VIP',
-          status: values[4] || 'ACTIVE'
+          status: values[4] || 'ACTIVE',
+          expirationDate: values[5] || '' // Nova coluna de data de vencimento
         };
         
         if (user.email && user.email.includes('@')) {
@@ -202,10 +204,13 @@ export default function ImportUsuariosPage() {
             Seu arquivo deve ter as colunas na seguinte ordem:
           </Typography>
           <Box sx={{ fontFamily: 'monospace', backgroundColor: '#F1F5F9', p: 2, borderRadius: 1 }}>
-            <strong>nome,sobrenome,email,plano,status</strong>
+            <strong>nome,sobrenome,email,plano,status,vencimento</strong>
           </Box>
           <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#64748B' }}>
-            Exemplo: João,Silva,joao@email.com,VIP,ACTIVE
+            Exemplo: João,Silva,joao@email.com,VIP,ACTIVE,2025-12-31
+          </Typography>
+          <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#EF4444' }}>
+            ⚠️ Data de vencimento no formato: AAAA-MM-DD (ex: 2025-12-31)
           </Typography>
         </CardContent>
       </Card>
@@ -272,6 +277,7 @@ export default function ImportUsuariosPage() {
                     <TableCell>Email</TableCell>
                     <TableCell>Plano</TableCell>
                     <TableCell>Status</TableCell>
+                    <TableCell>Vencimento</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -294,6 +300,13 @@ export default function ImportUsuariosPage() {
                           label={user.status}
                           size="small"
                           color={user.status === 'ACTIVE' ? 'success' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.expirationDate || 'Não definida'}
+                          size="small"
+                          color={user.expirationDate ? 'primary' : 'default'}
                         />
                       </TableCell>
                     </TableRow>
