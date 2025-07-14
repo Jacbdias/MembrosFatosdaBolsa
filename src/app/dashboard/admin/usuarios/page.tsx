@@ -342,7 +342,7 @@ export default function AdminUsersPage() {
         </Alert>
       )}
 
-      {/* Busca */}
+      {/* Busca e Botões */}
       <Box mb={4} display="flex" justifyContent="space-between" alignItems="center" gap={3}>
         <TextField
           placeholder="Buscar usuários..."
@@ -372,26 +372,56 @@ export default function AdminUsersPage() {
           }}
         />
         
-        <Button
-          variant="contained"
-          disabled={loading}
-          sx={{ 
-            bgcolor: '#3B82F6', 
-            color: '#FFFFFF', 
-            fontWeight: '600',
-            '&:hover': { bgcolor: '#2563EB' },
-            '&:disabled': { bgcolor: '#94A3B8' },
-            borderRadius: 2,
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontSize: '0.95rem',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}
-          onClick={() => router.push('/dashboard/admin/usuarios/novo')}
-        >
-          ➕ Novo Usuário
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            disabled={loading}
+            sx={{ 
+              borderColor: '#10B981', 
+              color: '#10B981', 
+              fontWeight: '600',
+              '&:hover': { 
+                borderColor: '#059669', 
+                backgroundColor: '#F0FDF4',
+                color: '#059669'
+              },
+              '&:disabled': { 
+                borderColor: '#94A3B8',
+                color: '#94A3B8'
+              },
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontSize: '0.95rem',
+              boxShadow: 'none'
+            }}
+            onClick={() => router.push('/dashboard/admin/import-usuarios')}
+          >
+            📤 Importar em Massa
+          </Button>
+          
+          <Button
+            variant="contained"
+            disabled={loading}
+            sx={{ 
+              bgcolor: '#3B82F6', 
+              color: '#FFFFFF', 
+              fontWeight: '600',
+              '&:hover': { bgcolor: '#2563EB' },
+              '&:disabled': { bgcolor: '#94A3B8' },
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontSize: '0.95rem',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            }}
+            onClick={() => router.push('/dashboard/admin/usuarios/novo')}
+          >
+            ➕ Novo Usuário
+          </Button>
+        </Box>
       </Box>
 
       {/* Stats */}
