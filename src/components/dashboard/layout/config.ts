@@ -236,4 +236,4 @@ export const navItems = [
     ]
   },
 
-] satisfies NavItemConfig[];
+] satisfies NavItemConfig[];"// Updated" 
