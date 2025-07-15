@@ -37,9 +37,9 @@ model User {
 model Purchase {
   id                   String   @id @default(cuid())
   userId               String
-  amount               Float
+  amount               Float    // Pode ser negativo para reembolsos (-valor)
   productName          String?
-  status               String   @default("COMPLETED")
+  status               String   @default("COMPLETED") // COMPLETED, REFUNDED, CANCELLED, CHARGEBACK
   hotmartTransactionId String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -123,4 +123,18 @@ model InstagramCadastro {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("instagram_cadastros")
+}
+
+// NOVO: Model para armazenar integrações Hotmart (opcional - para persistir as configurações)
+model HotmartIntegration {
+  id          String   @id @default(cuid())
+  name        String   // Nome da integração (ex: "Projeto Trump")
+  token       String   @unique // Token único para o webhook
+  plan        String   // Plano que será atribuído (VIP, LITE, etc.)
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  totalSales  Int      @default(0) // Contador de vendas
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("hotmart_integrations")
 }
