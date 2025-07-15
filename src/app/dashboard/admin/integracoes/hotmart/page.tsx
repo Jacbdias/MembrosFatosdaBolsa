@@ -1,706 +1,534 @@
 'use client';
 
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  Grid,
-  TextField,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Alert,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
   Chip,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Switch,
-  FormControlLabel,
-  Snackbar,
-  Tooltip,
-  Divider,
-  LinearProgress,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Avatar,
+  Grid,
   Paper
 } from '@mui/material';
-import {
-  ContentCopy as CopyIcon,
-  Refresh as RefreshIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon
-} from '@mui/icons-material';
 
-interface HotmartProduct {
+interface HotmartIntegration {
   id: string;
-  name: string;
-  plan: string;
-  active: boolean;
-  lastSale?: string;
-  totalSales: number;
-  createdAt?: string;
-}
-
-interface HotmartConfig {
-  webhookUrl: string;
-  webhookActive: boolean;
-  webhookSecret?: string;
-  products: HotmartProduct[];
-  lastWebhookReceived?: string;
-  totalWebhooksReceived: number;
-}
-
-interface WebhookLog {
-  id: string;
-  timestamp: string;
+  productName: string;
   productId: string;
-  customerEmail: string;
-  status: 'success' | 'error';
-  message: string;
+  plan: string;
+  webhookUrl: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  totalSales?: number;
 }
 
-export default function HotmartPage() {
-  const [config, setConfig] = React.useState<HotmartConfig>({
-    webhookUrl: '',
-    webhookActive: false,
-    webhookSecret: '',
-    products: [],
-    totalWebhooksReceived: 0
-  });
-  
-  const [loading, setLoading] = React.useState(false);
-  const [showProductDialog, setShowProductDialog] = React.useState(false);
-  const [editingProduct, setEditingProduct] = React.useState<HotmartProduct | null>(null);
-  const [testResult, setTestResult] = React.useState<string | null>(null);
-  const [snackbar, setSnackbar] = React.useState<{open: boolean, message: string, severity: 'success' | 'error' | 'info'}>({
-    open: false,
-    message: '',
-    severity: 'info'
+export default function IntegracoesPage() {
+  const [integrations, setIntegrations] = useState<HotmartIntegration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState<HotmartIntegration | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    productName: '',
+    productId: '',
+    plan: 'VIP'
   });
 
-  const [newProduct, setNewProduct] = React.useState({
-    id: '',
-    name: '',
-    plan: 'VIP',
-    active: true
-  });
-
-  const availablePlans = [
-    { value: 'VIP', label: 'Close Friends VIP', color: '#9c27b0' },
-    { value: 'LITE', label: 'Close Friends LITE', color: '#2196f3' },
-    { value: 'RENDA_PASSIVA', label: 'Projeto Renda Passiva', color: '#4caf50' },
-    { value: 'FIIS', label: 'Projeto FIIs', color: '#ff9800' },
-    { value: 'AMERICA', label: 'Projeto América', color: '#f44336' }
-  ];
-
-  React.useEffect(() => {
-    loadConfig();
+  // Carregar integrações
+  useEffect(() => {
+    loadIntegrations();
   }, []);
 
-  const loadConfig = async () => {
+  const loadIntegrations = async () => {
     try {
       setLoading(true);
+      // Simular dados das integrações (você implementará a API real)
+      const mockIntegrations: HotmartIntegration[] = [
+        {
+          id: '124159',
+          productName: 'Projeto Trump',
+          productId: 'fb056612-bcc6-4217-9e6d-2a5d1110ac2f',
+          plan: 'VIP',
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/124159`,
+          status: 'ACTIVE',
+          createdAt: '2024-01-15',
+          totalSales: 45
+        },
+        {
+          id: '99519',
+          productName: 'Troca de Plano - VIP',
+          productId: 'upgrade-vip-2024',
+          plan: 'VIP',
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/99519`,
+          status: 'ACTIVE',
+          createdAt: '2024-02-20',
+          totalSales: 23
+        },
+        {
+          id: '99516',
+          productName: 'Projeto FIIs',
+          productId: 'projeto-fiis-2024',
+          plan: 'FIIS',
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/99516`,
+          status: 'ACTIVE',
+          createdAt: '2024-03-10',
+          totalSales: 67
+        },
+        {
+          id: '85078',
+          productName: 'Close Friends LITE 2024',
+          productId: 'cf-lite-2024',
+          plan: 'LITE',
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/85078`,
+          status: 'ACTIVE',
+          createdAt: '2024-04-05',
+          totalSales: 89
+        },
+        {
+          id: '85075',
+          productName: 'Close Friends VIP 2024',
+          productId: 'cf-vip-2024',
+          plan: 'VIP',
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/85075`,
+          status: 'ACTIVE',
+          createdAt: '2024-04-05',
+          totalSales: 156
+        }
+      ];
       
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const mockConfig: HotmartConfig = {
-        webhookUrl: `${window.location.origin}/api/hotmart/webhook`,
-        webhookActive: true,
-        webhookSecret: 'hmac-secret-key-2024',
-        totalWebhooksReceived: 127,
-        lastWebhookReceived: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        products: [
-          {
-            id: 'close-friends-vip-123',
-            name: 'Close Friends VIP - Acesso Completo',
-            plan: 'VIP',
-            active: true,
-            totalSales: 45,
-            lastSale: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString()
-          },
-          {
-            id: 'renda-passiva-pro-456',
-            name: 'Projeto Renda Passiva Professional',
-            plan: 'RENDA_PASSIVA',
-            active: true,
-            totalSales: 23,
-            lastSale: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString()
-          }
-        ]
-      };
-
-      setConfig(mockConfig);
-      
+      setIntegrations(mockIntegrations);
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
-      showSnackbar('Erro ao carregar configurações', 'error');
+      console.error('Erro ao carregar integrações:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info') => {
-    setSnackbar({ open: true, message, severity });
+  const handleCreateIntegration = () => {
+    setEditingIntegration(null);
+    setFormData({ productName: '', productId: '', plan: 'VIP' });
+    setOpenDialog(true);
   };
 
-  const handleSaveConfig = async () => {
-    try {
-      setLoading(true);
-      
-      if (!config.webhookUrl) {
-        showSnackbar('URL do webhook é obrigatória', 'error');
-        return;
-      }
-
-      console.log('Salvando configurações:', config);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      showSnackbar('Configurações salvas com sucesso', 'success');
-      
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      showSnackbar('Erro ao salvar configurações', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddProduct = () => {
-    if (!newProduct.id.trim() || !newProduct.name.trim()) {
-      showSnackbar('Preencha ID e Nome do produto', 'error');
-      return;
-    }
-
-    if (config.products.find(p => p.id === newProduct.id)) {
-      showSnackbar('Já existe um produto com este ID', 'error');
-      return;
-    }
-
-    const product: HotmartProduct = {
-      ...newProduct,
-      totalSales: 0,
-      createdAt: new Date().toISOString()
-    };
-
-    setConfig(prev => ({
-      ...prev,
-      products: [...prev.products, product]
-    }));
-
-    setNewProduct({ id: '', name: '', plan: 'VIP', active: true });
-    setShowProductDialog(false);
-    showSnackbar('Produto adicionado com sucesso', 'success');
-  };
-
-  const handleEditProduct = (product: HotmartProduct) => {
-    setEditingProduct(product);
-    setNewProduct({
-      id: product.id,
-      name: product.name,
-      plan: product.plan,
-      active: product.active
+  const handleEditIntegration = (integration: HotmartIntegration) => {
+    setEditingIntegration(integration);
+    setFormData({
+      productName: integration.productName,
+      productId: integration.productId,
+      plan: integration.plan
     });
-    setShowProductDialog(true);
+    setOpenDialog(true);
   };
 
-  const handleUpdateProduct = () => {
-    if (!editingProduct) return;
-
-    if (!newProduct.name.trim()) {
-      showSnackbar('Nome do produto é obrigatório', 'error');
-      return;
-    }
-
-    setConfig(prev => ({
-      ...prev,
-      products: prev.products.map(p => 
-        p.id === editingProduct.id 
-          ? { ...p, ...newProduct }
-          : p
-      )
-    }));
-
-    setEditingProduct(null);
-    setNewProduct({ id: '', name: '', plan: 'VIP', active: true });
-    setShowProductDialog(false);
-    showSnackbar('Produto atualizado com sucesso', 'success');
-  };
-
-  const handleDeleteProduct = (productId: string) => {
-    if (confirm('Tem certeza que deseja remover este produto?')) {
-      setConfig(prev => ({
-        ...prev,
-        products: prev.products.filter(p => p.id !== productId)
-      }));
-      showSnackbar('Produto removido com sucesso', 'success');
-    }
-  };
-
-  const handleTestWebhook = async () => {
+  const handleSaveIntegration = async () => {
     try {
-      setTestResult('Testando webhook...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const success = Math.random() > 0.3;
-      
-      if (success) {
-        setTestResult(`Webhook funcionando corretamente`);
+      if (editingIntegration) {
+        // Atualizar integração existente
+        setIntegrations(prev => 
+          prev.map(int => 
+            int.id === editingIntegration.id 
+              ? { ...int, ...formData }
+              : int
+          )
+        );
       } else {
-        setTestResult('Webhook não está respondendo');
+        // Criar nova integração
+        const newIntegration: HotmartIntegration = {
+          id: Math.random().toString().slice(2, 8),
+          ...formData,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/${Math.random().toString().slice(2, 8)}`,
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString().split('T')[0],
+          totalSales: 0
+        };
+        
+        setIntegrations(prev => [...prev, newIntegration]);
       }
+      
+      setOpenDialog(false);
     } catch (error) {
-      setTestResult('Erro ao testar webhook');
+      console.error('Erro ao salvar integração:', error);
     }
   };
 
-  const handleCopyWebhookUrl = () => {
-    navigator.clipboard.writeText(config.webhookUrl);
-    showSnackbar('URL copiada para a área de transferência', 'success');
+  const handleDeleteIntegration = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta integração?')) {
+      setIntegrations(prev => prev.filter(int => int.id !== id));
+    }
   };
 
-  const handleGenerateSecret = () => {
-    const newSecret = 'hmac-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-    setConfig(prev => ({ ...prev, webhookSecret: newSecret }));
-    showSnackbar('Nova chave secreta gerada', 'info');
+  const toggleIntegrationStatus = async (id: string) => {
+    setIntegrations(prev =>
+      prev.map(int =>
+        int.id === id
+          ? { ...int, status: int.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }
+          : int
+      )
+    );
+  };
+
+  const copyWebhookUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    alert('URL copiada para a área de transferência!');
   };
 
   const getPlanInfo = (plan: string) => {
-    const planInfo = availablePlans.find(p => p.value === plan);
-    return planInfo || { label: plan, color: '#757575' };
+    const planMap: Record<string, { label: string; color: string; emoji: string }> = {
+      'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
+      'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
+      'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
+      'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
+      'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' }
+    };
+    return planMap[plan] || { label: plan, color: '#6B7280', emoji: '📋' };
   };
 
-  const formatRelativeTime = (dateString?: string) => {
-    if (!dateString) return 'Nunca';
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    
-    if (diffMins < 1) return 'Agora mesmo';
-    if (diffMins < 60) return `${diffMins} min atrás`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h atrás`;
-    
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} dias atrás`;
-  };
-
-  const closeDialog = () => {
-    setShowProductDialog(false);
-    setEditingProduct(null);
-    setNewProduct({ id: '', name: '', plan: 'VIP', active: true });
-  };
+  const totalSales = integrations.reduce((sum, int) => sum + (int.totalSales || 0), 0);
+  const activeIntegrations = integrations.filter(int => int.status === 'ACTIVE').length;
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#fafafa', minHeight: '100vh' }}>
-      {loading && (
-        <LinearProgress 
-          sx={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 9999
-          }} 
-        />
-      )}
-
+    <Box sx={{ p: 4, backgroundColor: '#F8FAFC', minHeight: '100vh' }}>
       {/* Header */}
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, color: '#1a1a1a' }}>
-          Integração Hotmart
+      <Box mb={5}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#1E293B', fontWeight: '700' }}>
+          🔥 Integrações Hotmart
         </Typography>
-        <Typography variant="body1" sx={{ color: '#666' }}>
-          Configure a integração com a Hotmart para liberação automática de acesso
+        <Typography variant="body1" sx={{ color: '#64748B' }}>
+          Configure webhooks específicos para cada produto da Hotmart
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* Configurações do Webhook */}
-        <Grid item xs={12} lg={8}>
-          <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      {/* Stats */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Configurações do Webhook
-              </Typography>
-
-              <Box mb={3}>
-                <Box display="flex" alignItems="center" gap={1} mb={2}>
-                  <TextField
-                    fullWidth
-                    label="URL do Webhook"
-                    value={config.webhookUrl}
-                    onChange={(e) => setConfig(prev => ({ ...prev, webhookUrl: e.target.value }))}
-                    size="small"
-                    InputProps={{ 
-                      style: { fontFamily: 'monospace', fontSize: '0.9rem' },
-                      readOnly: true
-                    }}
-                    sx={{ 
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: '#f8f9fa'
-                      }
-                    }}
-                  />
-                  <Tooltip title="Copiar URL">
-                    <IconButton onClick={handleCopyWebhookUrl} size="small">
-                      <CopyIcon />
-                    </IconButton>
-                  </Tooltip>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#EFF6FF', color: '#3B82F6', mr: 2, fontSize: '20px' }}>
+                  🔗
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Instaladas
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    {integrations.length}
+                  </Typography>
                 </Box>
-                <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 3 }}>
-                  Use esta URL na configuração de webhook na sua conta Hotmart
-                </Typography>
-
-                <Grid container spacing={2} alignItems="center" mb={3}>
-                  <Grid item xs={12} sm={6}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={config.webhookActive}
-                          onChange={(e) => setConfig(prev => ({ ...prev, webhookActive: e.target.checked }))}
-                        />
-                      }
-                      label="Webhook Ativo"
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Button
-                      variant="outlined"
-                      onClick={handleTestWebhook}
-                      startIcon={<RefreshIcon />}
-                      disabled={!config.webhookActive}
-                      size="small"
-                    >
-                      Testar Webhook
-                    </Button>
-                  </Grid>
-                </Grid>
-
-                <Box display="flex" alignItems="center" gap={1} mb={2}>
-                  <TextField
-                    fullWidth
-                    label="Chave Secreta"
-                    value={config.webhookSecret}
-                    onChange={(e) => setConfig(prev => ({ ...prev, webhookSecret: e.target.value }))}
-                    size="small"
-                    InputProps={{ 
-                      style: { fontFamily: 'monospace' },
-                      type: 'password'
-                    }}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleGenerateSecret}
-                    size="small"
-                    sx={{ minWidth: '100px' }}
-                  >
-                    Gerar
-                  </Button>
-                </Box>
-                <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 3 }}>
-                  Chave secreta para validar a autenticidade dos webhooks
-                </Typography>
-
-                <Divider sx={{ my: 3 }} />
-
-                <Button
-                  variant="contained"
-                  onClick={handleSaveConfig}
-                  disabled={loading}
-                >
-                  {loading ? 'Salvando...' : 'Salvar Configurações'}
-                </Button>
-
-                {testResult && (
-                  <Alert 
-                    severity={testResult.includes('funcionando') ? 'success' : testResult.includes('Testando') ? 'info' : 'error'} 
-                    sx={{ mt: 2 }}
-                  >
-                    {testResult}
-                  </Alert>
-                )}
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Status da Integração */}
-        <Grid item xs={12} lg={4}>
-          <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Status da Integração
-              </Typography>
-
-              <Box mb={2}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Status do Webhook
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#F0FDF4', color: '#059669', mr: 2, fontSize: '20px' }}>
+                  ✅
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Ativas
                   </Typography>
-                  <Chip
-                    label={config.webhookActive ? 'Ativo' : 'Inativo'}
-                    color={config.webhookActive ? 'success' : 'error'}
-                    size="small"
-                  />
-                </Box>
-                
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Produtos Configurados
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {config.products.length}
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    {activeIntegrations}
                   </Typography>
                 </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="body2" color="text.secondary">
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#FFFBEB', color: '#D97706', mr: 2, fontSize: '20px' }}>
+                  💰
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
                     Total de Vendas
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {config.products.reduce((total, p) => total + p.totalSales, 0)}
-                  </Typography>
-                </Box>
-
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Webhooks Recebidos
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {config.totalWebhooksReceived}
-                  </Typography>
-                </Box>
-
-                <Divider sx={{ my: 2 }} />
-
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    Último Webhook
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatRelativeTime(config.lastWebhookReceived)}
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    {totalSales}
                   </Typography>
                 </Box>
               </Box>
-
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  Após configurar os produtos, adicione a URL do webhook na sua conta Hotmart
-                </Typography>
-              </Alert>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Lista de Produtos */}
-        <Grid item xs={12}>
-          <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Produtos Hotmart
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={() => setShowProductDialog(true)}
-                  startIcon={<AddIcon />}
-                >
-                  Adicionar Produto
-                </Button>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#FEF2F2', color: '#DC2626', mr: 2, fontSize: '20px' }}>
+                  📊
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Disponíveis
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    ∞
+                  </Typography>
+                </Box>
               </Box>
-
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>ID do Produto</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Nome</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Plano</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Vendas</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Última Venda</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Ações</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {config.products.map((product) => {
-                      const planInfo = getPlanInfo(product.plan);
-                      return (
-                        <TableRow key={product.id} hover>
-                          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
-                            {product.id}
-                          </TableCell>
-                          <TableCell>{product.name}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={planInfo.label}
-                              variant="outlined"
-                              size="small"
-                              sx={{ 
-                                borderColor: planInfo.color,
-                                color: planInfo.color
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={product.active ? 'Ativo' : 'Inativo'}
-                              color={product.active ? 'success' : 'error'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>
-                            {product.totalSales}
-                          </TableCell>
-                          <TableCell sx={{ color: '#666', fontSize: '0.85rem' }}>
-                            {formatRelativeTime(product.lastSale)}
-                          </TableCell>
-                          <TableCell>
-                            <Tooltip title="Editar">
-                              <IconButton
-                                onClick={() => handleEditProduct(product)}
-                                size="small"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Remover">
-                              <IconButton
-                                onClick={() => handleDeleteProduct(product.id)}
-                                size="small"
-                                color="error"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {config.products.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: '#666' }}>
-                          <Typography variant="body1" sx={{ mb: 1 }}>
-                            Nenhum produto configurado
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Adicione produtos para começar a receber webhooks da Hotmart
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Dialog para Adicionar/Editar Produto */}
-      <Dialog 
-        open={showProductDialog} 
-        onClose={closeDialog} 
-        maxWidth="sm" 
-        fullWidth
-      >
-        <DialogTitle>
-          {editingProduct ? 'Editar Produto' : 'Adicionar Produto'}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <TextField
-            fullWidth
-            label="ID do Produto na Hotmart"
-            value={newProduct.id}
-            onChange={(e) => setNewProduct(prev => ({ ...prev, id: e.target.value }))}
-            margin="normal"
-            size="small"
-            InputProps={{ 
-              style: { fontFamily: 'monospace' },
-              readOnly: !!editingProduct
-            }}
-            helperText="ID único do produto na Hotmart"
-          />
-          
-          <TextField
-            fullWidth
-            label="Nome do Produto"
-            value={newProduct.name}
-            onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
-            margin="normal"
-            size="small"
-            helperText="Nome descritivo para identificar o produto"
-          />
+      {/* Actions */}
+      <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6" sx={{ color: '#1E293B', fontWeight: '600' }}>
+          Suas Integrações ({integrations.length})
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={handleCreateIntegration}
+          sx={{ 
+            bgcolor: '#059669', 
+            '&:hover': { bgcolor: '#047857' },
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: '600'
+          }}
+        >
+          🔗 Nova Integração
+        </Button>
+      </Box>
 
-          <FormControl fullWidth margin="normal" size="small">
-            <InputLabel>Plano de Acesso</InputLabel>
-            <Select
-              value={newProduct.plan}
-              onChange={(e) => setNewProduct(prev => ({ ...prev, plan: e.target.value }))}
-              label="Plano de Acesso"
+      {/* Integrações Table */}
+      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#F8FAFC' }}>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Produto</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Plano</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Webhook URL</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Vendas</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {integrations.map((integration) => {
+                const planInfo = getPlanInfo(integration.plan);
+                
+                return (
+                  <TableRow key={integration.id} hover>
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <Avatar sx={{ 
+                          bgcolor: '#FEF2F2', 
+                          color: '#DC2626', 
+                          mr: 2, 
+                          width: 32, 
+                          height: 32 
+                        }}>
+                          🔥
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: '500' }}>
+                            Webhook Hotmart #{integration.id}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#64748B' }}>
+                            {integration.productName}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <span style={{ fontSize: '16px' }}>{planInfo.emoji}</span>
+                        <Chip
+                          label={planInfo.label}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: `${planInfo.color}20`,
+                            color: planInfo.color,
+                            fontWeight: '500'
+                          }}
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={integration.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                        size="small"
+                        color={integration.status === 'ACTIVE' ? 'success' : 'default'}
+                        sx={{ fontWeight: '500' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="caption" sx={{ 
+                          fontFamily: 'monospace', 
+                          color: '#64748B',
+                          maxWidth: 300,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {integration.webhookUrl}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => copyWebhookUrl(integration.webhookUrl)}
+                          sx={{ color: '#3B82F6' }}
+                          title="Copiar URL"
+                        >
+                          📋
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: '500' }}>
+                        {integration.totalSales || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" gap={1}>
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleIntegrationStatus(integration.id)}
+                          sx={{ 
+                            color: integration.status === 'ACTIVE' ? '#DC2626' : '#059669',
+                            backgroundColor: integration.status === 'ACTIVE' ? '#FEF2F2' : '#F0FDF4'
+                          }}
+                          title={integration.status === 'ACTIVE' ? 'Desativar' : 'Ativar'}
+                        >
+                          {integration.status === 'ACTIVE' ? '⏸️' : '▶️'}
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditIntegration(integration)}
+                          sx={{ color: '#3B82F6', backgroundColor: '#EFF6FF' }}
+                          title="Editar"
+                        >
+                          ⚙️
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteIntegration(integration.id)}
+                          sx={{ color: '#DC2626', backgroundColor: '#FEF2F2' }}
+                          title="Excluir"
+                        >
+                          🗑️
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {integrations.length === 0 && !loading && (
+          <Box p={6} textAlign="center">
+            <Typography variant="h6" sx={{ color: '#64748B', mb: 2 }}>
+              🔗 Nenhuma integração configurada
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
+              Crie sua primeira integração com a Hotmart para começar a receber vendas automaticamente.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleCreateIntegration}
+              sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
             >
-              {availablePlans.map(plan => (
-                <MenuItem key={plan.value} value={plan.value}>
-                  {plan.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              Criar Primeira Integração
+            </Button>
+          </Box>
+        )}
+      </Card>
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={newProduct.active}
-                onChange={(e) => setNewProduct(prev => ({ ...prev, active: e.target.checked }))}
-              />
-            }
-            label="Produto Ativo"
-            sx={{ mt: 2 }}
-          />
+      {/* Dialog para criar/editar integração */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingIntegration ? 'Editar Integração' : 'Nova Integração Hotmart'}
+        </DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={3} mt={2}>
+            <TextField
+              label="Nome do Produto"
+              value={formData.productName}
+              onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
+              fullWidth
+              placeholder="Ex: Close Friends VIP 2024"
+            />
+            
+            <TextField
+              label="Product ID da Hotmart"
+              value={formData.productId}
+              onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
+              fullWidth
+              placeholder="Ex: fb056612-bcc6-4217-9e6d-2a5d1110ac2f"
+              helperText="Encontre o Product ID no painel da Hotmart"
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Plano do Sistema</InputLabel>
+              <Select
+                value={formData.plan}
+                onChange={(e) => setFormData(prev => ({ ...prev, plan: e.target.value }))}
+                label="Plano do Sistema"
+              >
+                <MenuItem value="VIP">👑 Close Friends VIP</MenuItem>
+                <MenuItem value="LITE">⭐ Close Friends LITE</MenuItem>
+                <MenuItem value="RENDA_PASSIVA">💰 Projeto Renda Passiva</MenuItem>
+                <MenuItem value="FIIS">🏢 Projeto FIIs</MenuItem>
+                <MenuItem value="AMERICA">🇺🇸 Projeto América</MenuItem>
+              </Select>
+            </FormControl>
+            
+            {!editingIntegration && (
+              <Alert severity="info">
+                <Typography variant="body2">
+                  Após criar a integração, use a URL do webhook gerada na configuração do seu produto na Hotmart.
+                </Typography>
+              </Alert>
+            )}
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={closeDialog}>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenDialog(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={editingProduct ? handleUpdateProduct : handleAddProduct}
+          <Button
             variant="contained"
+            onClick={handleSaveIntegration}
+            disabled={!formData.productName || !formData.productId}
+            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
           >
-            {editingProduct ? 'Atualizar' : 'Adicionar'}
+            {editingIntegration ? 'Salvar Alterações' : 'Criar Integração'}
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar para notificações */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }
