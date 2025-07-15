@@ -41,8 +41,8 @@ function generateSecurePassword(): string {
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
-// Função para calcular data de expiração - PRIORIZA DATA DO CSV
-function calculateExpirationDate(plan: string, customDate?: string): Date | null {
+// Função para calcular data de expiração - TODOS OS PLANOS = 1 ANO
+function calculateExpirationDate(plan: string, customDate?: string): Date {
   // PRIORIDADE 1: Data informada no CSV
   if (customDate && customDate.trim()) {
     try {
@@ -52,31 +52,17 @@ function calculateExpirationDate(plan: string, customDate?: string): Date | null
         console.log(`📅 Usando data do CSV: ${customDate} → ${parsedDate.toISOString()}`);
         return parsedDate;
       } else {
-        console.warn(`⚠️ Data inválida no CSV: ${customDate}, calculando baseado no plano`);
+        console.warn(`⚠️ Data inválida no CSV: ${customDate}, usando 1 ano a partir de hoje`);
       }
     } catch (error) {
       console.warn(`⚠️ Erro ao processar data ${customDate}:`, error);
     }
   }
 
-  // PRIORIDADE 2: Calcular baseado no plano (se não tem data no CSV)
-  const expirationMap = {
-    'VIP': 365,
-    'LITE': 365,
-    'RENDA_PASSIVA': null, // Vitalício
-    'FIIS': null, // Vitalício
-    'AMERICA': 365
-  };
-
-  const days = expirationMap[plan as keyof typeof expirationMap];
-  if (days === null) {
-    console.log(`📅 Plano ${plan} é vitalício - sem data de expiração`);
-    return null; // Acesso vitalício
-  }
-
+  // PRIORIDADE 2: TODOS os planos = 1 ano (365 dias)
   const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + days);
-  console.log(`📅 Calculado para plano ${plan}: ${expirationDate.toISOString()}`);
+  expirationDate.setDate(expirationDate.getDate() + 365);
+  console.log(`📅 Plano ${plan}: Expira em ${expirationDate.toISOString().split('T')[0]} (365 dias)`);
   return expirationDate;
 }
 
