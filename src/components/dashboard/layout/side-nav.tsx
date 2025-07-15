@@ -50,7 +50,7 @@ const userEmail = localStorage.getItem('user-email') || '';
     ...info,
     userEmail,
     pages: info.isAdmin 
-      ? [...(info.pages || []), 'admin-instagram']
+      ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes']
       : (info.pages || [])
   };
   
@@ -98,11 +98,18 @@ const userEmail = localStorage.getItem('user-email') || '';
       return true; // Se não carregou ainda, mostra tudo
     }
 
-// ADICIONE ESTA VERIFICAÇÃO no início da função, antes do if (page.startsWith('admin')):
+// VERIFICAÇÕES ESPECÍFICAS PARA PÁGINAS ADMIN
 if (page === 'admin-instagram') {
   const isInstagramAdmin = planInfo.isAdmin || planInfo.userEmail === 'jacbdias@gmail.com';
   console.log(`📱 Verificando acesso Instagram Admin para ${planInfo.userEmail}: ${isInstagramAdmin}`);
   return isInstagramAdmin;
+}
+
+// 📊 NOVA VERIFICAÇÃO PARA RENOVAÇÕES
+if (page === 'admin-renovacoes') {
+  const isRenovacoesAdmin = planInfo.isAdmin;
+  console.log(`📊 Verificando acesso Renovações Admin para ${planInfo.userEmail}: ${isRenovacoesAdmin}`);
+  return isRenovacoesAdmin;
 }
     
     // 🛡️ VERIFICAÇÃO ESPECIAL PARA PÁGINAS ADMINISTRATIVAS
