@@ -203,9 +203,9 @@ export default function IntegracoesPage() {
     );
   };
 
-  const copyWebhookUrl = (url: string) => {
-    navigator.clipboard.writeText(url);
-    alert('URL copiada para a área de transferência!');
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Copiado para a área de transferência!');
   };
 
   const getPlanInfo = (plan: string) => {
@@ -345,6 +345,7 @@ export default function IntegracoesPage() {
               <TableRow sx={{ backgroundColor: '#F8FAFC' }}>
                 <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Produto</TableCell>
                 <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Plano</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Token</TableCell>
                 <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Webhook URL</TableCell>
                 <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Vendas</TableCell>
@@ -393,6 +394,29 @@ export default function IntegracoesPage() {
                       </Box>
                     </TableCell>
                     <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="caption" sx={{ 
+                          fontFamily: 'monospace', 
+                          color: '#64748B',
+                          backgroundColor: '#F8FAFC',
+                          padding: '4px 8px',
+                          borderRadius: 1,
+                          border: '1px solid #E2E8F0',
+                          fontSize: '0.75rem'
+                        }}>
+                          {integration.token?.substring(0, 12)}...
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => copyToClipboard(integration.token || '')}
+                          sx={{ color: '#3B82F6' }}
+                          title="Copiar Token"
+                        >
+                          📋
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
                       <Chip
                         label={integration.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
                         size="small"
@@ -405,7 +429,7 @@ export default function IntegracoesPage() {
                         <Typography variant="caption" sx={{ 
                           fontFamily: 'monospace', 
                           color: '#64748B',
-                          maxWidth: 300,
+                          maxWidth: 200,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}>
@@ -413,11 +437,11 @@ export default function IntegracoesPage() {
                         </Typography>
                         <IconButton
                           size="small"
-                          onClick={() => copyWebhookUrl(integration.webhookUrl)}
+                          onClick={() => copyToClipboard(integration.webhookUrl)}
                           sx={{ color: '#3B82F6' }}
-                          title="Copiar URL"
+                          title="Copiar URL Completa"
                         >
-                          📋
+                          🔗
                         </IconButton>
                       </Box>
                     </TableCell>
