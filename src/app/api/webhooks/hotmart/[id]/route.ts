@@ -74,20 +74,131 @@ export async function POST(
 
     console.log('📦 Dados do webhook:', JSON.stringify(webhookData, null, 2));
 
-    // Extrair dados do webhook de forma flexível
+    // Extrair evento
     const event = webhookData.event || 'PURCHASE_APPROVED';
-    const productData = webhookData.data?.product || webhookData.product || webhookData;
+    console.log(`🎯 Evento recebido: ${event}`);
+
+    // Extrair informações básicas para todos os eventos
     const buyerData = webhookData.data?.buyer || webhookData.buyer || webhookData;
     const purchaseData = webhookData.data?.purchase || webhookData.purchase || webhookData;
-
-    // Extrair informações essenciais
     const buyerEmail = buyerData?.email || webhookData.email;
     const buyerName = buyerData?.name || buyerData?.full_name || webhookData.name || 'Cliente Hotmart';
     const transactionId = purchaseData?.transaction || purchaseData?.transaction_id || 
                          webhookData.transaction || `TXN_${integration.integrationId}_${Date.now()}`;
     const amount = purchaseData?.price?.value || purchaseData?.amount || webhookData.price || 0;
 
-    console.log('🔍 Dados extraídos:', {
+    // Processar diferentes tipos de eventos
+    if (event === 'PURCHASE_REFUNDED' || event === 'PURCHASE_CANCELLED' || event === 'PURCHASE_CHARGEBACK') {
+      // REEMBOLSO/CANCELAMENTO - BLOQUEAR USUÁRIO
+      console.log(`🚫 Evento de ${event} recebido - bloqueando usuário`);
+      
+      if (!buyerEmail || !buyerEmail.includes('@')) {
+        console.log('❌ Email inválido para reembolso:', buyerEmail);
+        return NextResponse.json({
+          error: 'Email do comprador é obrigatório para processar reembolso',
+          received_email: buyerEmail
+        }, { status: 400 });
+      }
+
+      // Conectar ao banco
+      await prisma.$connect();
+
+      const email = buyerEmail.toLowerCase().trim();
+      let user = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (user) {
+        // BLOQUEAR usuário por reembolso
+        user = await prisma.user.update({
+          where: { email },
+          data: {
+            status: 'INACTIVE',
+            // Opcional: definir data de expiração para ontem (força expiração)
+            expirationDate: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        });
+
+        // Registrar reembolso
+        try {
+          await prisma.purchase.create({
+            data: {
+              userId: user.id,
+              amount: -(amount || 0), // Valor negativo para reembolso
+              productName: `${integration.name} - REEMBOLSO`,
+              hotmartTransactionId: transactionId,
+              status: 'REFUNDED'
+            }
+          });
+          console.log(`💸 Reembolso registrado: -${amount} - ${integration.name}`);
+        } catch (purchaseError) {
+          console.error('⚠️ Erro ao registrar reembolso (não crítico):', purchaseError);
+        }
+
+        await prisma.$disconnect();
+
+        const response = {
+          success: true,
+          message: `Reembolso processado - usuário bloqueado`,
+          event: event,
+          integration: {
+            id: integration.integrationId,
+            name: integration.name,
+            plan: integration.plan,
+            token: token
+          },
+          user: {
+            id: user.id,
+            email: user.email,
+            status: user.status,
+            blocked: true
+          },
+          refund: {
+            id: transactionId,
+            amount: amount,
+            product: integration.name
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        console.log(`🚫 Reembolso ${token} processado - usuário bloqueado:`, response);
+        return NextResponse.json(response);
+
+      } else {
+        // Usuário não encontrado para reembolso
+        await prisma.$disconnect();
+        console.log(`⚠️ Usuário ${email} não encontrado para reembolso`);
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Usuário não encontrado - reembolso registrado',
+          email: email,
+          event: event
+        });
+      }
+    }
+
+    // EVENTOS DE COMPRA (comportamento atual mantido)
+    if (!['PURCHASE_APPROVED', 'PURCHASE_COMPLETE', 'PURCHASE_PAID'].includes(event)) {
+      console.log(`📝 Evento ${event} não processado pelo sistema`);
+      return NextResponse.json({
+        success: true,
+        message: `Evento ${event} recebido mas não processado`,
+        event: event
+      });
+    }
+
+    console.log(`✅ Processando evento de compra: ${event}`);
+
+    // Extrair dados do webhook de forma flexível
+    const productData = webhookData.data?.product || webhookData.product || webhookData;
+    const buyerData = webhookData.data?.buyer || webhookData.buyer || webhookData;
+    const purchaseData = webhookData.data?.purchase || webhookData.purchase || webhookData;
+
+    // Extrair informações específicas de compra
+    const productData = webhookData.data?.product || webhookData.product || webhookData;
+
+    console.log('🔍 Dados extraídos para compra:', {
       event, buyerEmail, buyerName, transactionId, amount,
       plan: integration.plan,
       integrationName: integration.name,
