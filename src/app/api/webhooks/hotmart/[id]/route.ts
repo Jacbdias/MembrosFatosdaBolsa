@@ -81,6 +81,7 @@ export async function POST(
     // Extrair informações básicas para todos os eventos
     const buyerData = webhookData.data?.buyer || webhookData.buyer || webhookData;
     const purchaseData = webhookData.data?.purchase || webhookData.purchase || webhookData;
+    const productData = webhookData.data?.product || webhookData.product || webhookData;
     const buyerEmail = buyerData?.email || webhookData.email;
     const buyerName = buyerData?.name || buyerData?.full_name || webhookData.name || 'Cliente Hotmart';
     const transactionId = purchaseData?.transaction || purchaseData?.transaction_id || 
@@ -189,14 +190,6 @@ export async function POST(
     }
 
     console.log(`✅ Processando evento de compra: ${event}`);
-
-    // Extrair dados do webhook de forma flexível
-    const productData = webhookData.data?.product || webhookData.product || webhookData;
-    const buyerData = webhookData.data?.buyer || webhookData.buyer || webhookData;
-    const purchaseData = webhookData.data?.purchase || webhookData.purchase || webhookData;
-
-    // Extrair informações específicas de compra
-    const productData = webhookData.data?.product || webhookData.product || webhookData;
 
     console.log('🔍 Dados extraídos para compra:', {
       event, buyerEmail, buyerName, transactionId, amount,
