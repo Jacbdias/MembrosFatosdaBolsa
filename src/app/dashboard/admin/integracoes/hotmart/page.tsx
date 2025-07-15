@@ -33,7 +33,7 @@ import {
 interface HotmartIntegration {
   id: string;
   productName: string;
-  productId: string;
+  token: string;
   plan: string;
   webhookUrl: string;
   status: 'ACTIVE' | 'INACTIVE';
@@ -50,7 +50,6 @@ export default function IntegracoesPage() {
   // Form state
   const [formData, setFormData] = useState({
     productName: '',
-    productId: '',
     plan: 'VIP'
   });
 
@@ -67,9 +66,9 @@ export default function IntegracoesPage() {
         {
           id: '124159',
           productName: 'Projeto Trump',
-          productId: 'fb056612-bcc6-4217-9e6d-2a5d1110ac2f',
+          token: 'EtgWA9f64vpgWvg6m9oSSnpn',
           plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/124159`,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/EtgWA9f64vpgWvg6m9oSSnpn`,
           status: 'ACTIVE',
           createdAt: '2024-01-15',
           totalSales: 45
@@ -77,9 +76,9 @@ export default function IntegracoesPage() {
         {
           id: '99519',
           productName: 'Troca de Plano - VIP',
-          productId: 'upgrade-vip-2024',
+          token: 'Abc123def456ghi789jkl012',
           plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/99519`,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Abc123def456ghi789jkl012`,
           status: 'ACTIVE',
           createdAt: '2024-02-20',
           totalSales: 23
@@ -87,9 +86,9 @@ export default function IntegracoesPage() {
         {
           id: '99516',
           productName: 'Projeto FIIs',
-          productId: 'projeto-fiis-2024',
+          token: 'Xyz789uvw456rst123opq890',
           plan: 'FIIS',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/99516`,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Xyz789uvw456rst123opq890`,
           status: 'ACTIVE',
           createdAt: '2024-03-10',
           totalSales: 67
@@ -97,9 +96,9 @@ export default function IntegracoesPage() {
         {
           id: '85078',
           productName: 'Close Friends LITE 2024',
-          productId: 'cf-lite-2024',
+          token: 'Mno345pqr678stu901vwx234',
           plan: 'LITE',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/85078`,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Mno345pqr678stu901vwx234`,
           status: 'ACTIVE',
           createdAt: '2024-04-05',
           totalSales: 89
@@ -107,9 +106,9 @@ export default function IntegracoesPage() {
         {
           id: '85075',
           productName: 'Close Friends VIP 2024',
-          productId: 'cf-vip-2024',
+          token: 'Def567ghi890jkl123mno456',
           plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/85075`,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Def567ghi890jkl123mno456`,
           status: 'ACTIVE',
           createdAt: '2024-04-05',
           totalSales: 156
@@ -126,7 +125,7 @@ export default function IntegracoesPage() {
 
   const handleCreateIntegration = () => {
     setEditingIntegration(null);
-    setFormData({ productName: '', productId: '', plan: 'VIP' });
+    setFormData({ productName: '', plan: 'VIP' });
     setOpenDialog(true);
   };
 
@@ -134,7 +133,6 @@ export default function IntegracoesPage() {
     setEditingIntegration(integration);
     setFormData({
       productName: integration.productName,
-      productId: integration.productId,
       plan: integration.plan
     });
     setOpenDialog(true);
@@ -142,6 +140,9 @@ export default function IntegracoesPage() {
 
   const handleSaveIntegration = async () => {
     try {
+      // Gerar token único para a integração
+      const token = generateUniqueToken();
+      
       if (editingIntegration) {
         // Atualizar integração existente
         setIntegrations(prev => 
@@ -153,22 +154,37 @@ export default function IntegracoesPage() {
         );
       } else {
         // Criar nova integração
+        const integrationId = Math.random().toString().slice(2, 8);
         const newIntegration: HotmartIntegration = {
-          id: Math.random().toString().slice(2, 8),
+          id: integrationId,
           ...formData,
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/${Math.random().toString().slice(2, 8)}`,
+          token: token,
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/${token}`,
           status: 'ACTIVE',
           createdAt: new Date().toISOString().split('T')[0],
           totalSales: 0
         };
         
         setIntegrations(prev => [...prev, newIntegration]);
+        
+        // Salvar no backend (implementar depois)
+        console.log('✅ Nova integração criada:', newIntegration);
       }
       
       setOpenDialog(false);
     } catch (error) {
       console.error('Erro ao salvar integração:', error);
     }
+  };
+
+  // Função para gerar token único
+  const generateUniqueToken = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let token = '';
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
   };
 
   const handleDeleteIntegration = async (id: string) => {
@@ -475,20 +491,12 @@ export default function IntegracoesPage() {
         <DialogContent>
           <Box display="flex" flexDirection="column" gap={3} mt={2}>
             <TextField
-              label="Nome do Produto"
+              label="Nome do Produto/Configuração"
               value={formData.productName}
               onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
               fullWidth
-              placeholder="Ex: Close Friends VIP 2024"
-            />
-            
-            <TextField
-              label="Product ID da Hotmart"
-              value={formData.productId}
-              onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
-              fullWidth
-              placeholder="Ex: fb056612-bcc6-4217-9e6d-2a5d1110ac2f"
-              helperText="Encontre o Product ID no painel da Hotmart"
+              placeholder="Ex: Projeto Trump, Close Friends VIP 2024"
+              helperText="Nome para identificar esta integração internamente"
             />
             
             <FormControl fullWidth>
@@ -508,8 +516,14 @@ export default function IntegracoesPage() {
             
             {!editingIntegration && (
               <Alert severity="info">
-                <Typography variant="body2">
-                  Após criar a integração, use a URL do webhook gerada na configuração do seu produto na Hotmart.
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>📋 Como configurar na Hotmart:</strong>
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                  1. Vá em <strong>Ferramentas → Webhook (API e Notificações)</strong><br/>
+                  2. Crie uma nova configuração<br/>
+                  3. Use a URL gerada automaticamente<br/>
+                  4. Marque todos os eventos de venda
                 </Typography>
               </Alert>
             )}
@@ -522,7 +536,7 @@ export default function IntegracoesPage() {
           <Button
             variant="contained"
             onClick={handleSaveIntegration}
-            disabled={!formData.productName || !formData.productId}
+            disabled={!formData.productName}
             sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
           >
             {editingIntegration ? 'Salvar Alterações' : 'Criar Integração'}
