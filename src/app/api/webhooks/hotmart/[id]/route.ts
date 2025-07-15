@@ -30,21 +30,14 @@ function generateSecurePassword(): string {
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
-// Calcular data de expiração
-function calculateExpirationDate(plan: string): Date | null {
-  const expirationMap = {
-    'VIP': 365,
-    'LITE': 365,
-    'RENDA_PASSIVA': null, // Vitalício
-    'FIIS': null, // Vitalício
-    'AMERICA': 365
-  };
-
-  const days = expirationMap[plan as keyof typeof expirationMap];
-  if (days === null) return null;
-
+// Calcular data de expiração - TODOS OS PLANOS = 1 ANO
+function calculateExpirationDate(plan: string): Date {
+  // TODOS os planos têm duração de 1 ano (365 dias)
   const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + days);
+  expirationDate.setDate(expirationDate.getDate() + 365);
+  
+  console.log(`📅 Plano ${plan}: Expira em ${expirationDate.toISOString().split('T')[0]} (365 dias a partir de hoje)`);
+  
   return expirationDate;
 }
 
