@@ -5,13 +5,13 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Mapeamento de IDs de integração para produtos/planos
-const INTEGRATION_MAPPING: Record<string, { productId: string; plan: string; name: string }> = {
-  '124159': { productId: 'fb056612-bcc6-4217-9e6d-2a5d1110ac2f', plan: 'VIP', name: 'Projeto Trump' },
-  '99519': { productId: 'upgrade-vip-2024', plan: 'VIP', name: 'Troca de Plano - VIP' },
-  '99516': { productId: 'projeto-fiis-2024', plan: 'FIIS', name: 'Projeto FIIs' },
-  '85078': { productId: 'cf-lite-2024', plan: 'LITE', name: 'Close Friends LITE 2024' },
-  '85075': { productId: 'cf-vip-2024', plan: 'VIP', name: 'Close Friends VIP 2024' }
+// Mapeamento de TOKENS para configurações (não mais Product IDs!)
+const TOKEN_MAPPING: Record<string, { name: string; plan: string; integrationId: string }> = {
+  'EtgWA9f64vpgWvg6m9oSSnpn': { name: 'Projeto Trump', plan: 'VIP', integrationId: '124159' },
+  'Abc123def456ghi789jkl012': { name: 'Troca de Plano - VIP', plan: 'VIP', integrationId: '99519' },
+  'Xyz789uvw456rst123opq890': { name: 'Projeto FIIs', plan: 'FIIS', integrationId: '99516' },
+  'Mno345pqr678stu901vwx234': { name: 'Close Friends LITE 2024', plan: 'LITE', integrationId: '85078' },
+  'Def567ghi890jkl123mno456': { name: 'Close Friends VIP 2024', plan: 'VIP', integrationId: '85075' }
 };
 
 // Função para gerar senha segura
@@ -53,15 +53,15 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const integrationId = params.id;
-    console.log(`🔔 Webhook recebido para integração ID: ${integrationId}`);
+    const token = params.id; // Este é o token único da integração
+    console.log(`🔔 Webhook recebido para token: ${token}`);
 
-    // Verificar se a integração existe
-    const integration = INTEGRATION_MAPPING[integrationId];
+    // Verificar se o token existe
+    const integration = TOKEN_MAPPING[token];
     if (!integration) {
-      console.log(`❌ Integração ${integrationId} não encontrada`);
+      console.log(`❌ Token ${token} não encontrado`);
       return NextResponse.json(
-        { error: `Integração ${integrationId} não configurada` },
+        { error: `Token ${token} não configurado` },
         { status: 404 }
       );
     }
@@ -91,13 +91,14 @@ export async function POST(
     const buyerEmail = buyerData?.email || webhookData.email;
     const buyerName = buyerData?.name || buyerData?.full_name || webhookData.name || 'Cliente Hotmart';
     const transactionId = purchaseData?.transaction || purchaseData?.transaction_id || 
-                         webhookData.transaction || `TXN_${integrationId}_${Date.now()}`;
+                         webhookData.transaction || `TXN_${integration.integrationId}_${Date.now()}`;
     const amount = purchaseData?.price?.value || purchaseData?.amount || webhookData.price || 0;
 
     console.log('🔍 Dados extraídos:', {
       event, buyerEmail, buyerName, transactionId, amount,
       plan: integration.plan,
-      integrationName: integration.name
+      integrationName: integration.name,
+      token: token
     });
 
     // Validação mínima
@@ -138,7 +139,7 @@ export async function POST(
         }
       });
       
-      console.log(`✅ Usuário atualizado: ${email} → ${integration.plan} via integração ${integrationId}`);
+      console.log(`✅ Usuário atualizado: ${email} → ${integration.plan} via token ${token}`);
       
     } else {
       // CRIAR novo usuário
@@ -164,7 +165,7 @@ export async function POST(
         }
       });
       
-      console.log(`✅ Novo usuário criado: ${email} → ${integration.plan} via integração ${integrationId}`);
+      console.log(`✅ Novo usuário criado: ${email} → ${integration.plan} via token ${token}`);
     }
 
     // Registrar compra
@@ -187,11 +188,12 @@ export async function POST(
 
     const response = {
       success: true,
-      message: `Webhook processado com sucesso via integração ${integrationId}`,
+      message: `Webhook processado com sucesso via token ${token}`,
       integration: {
-        id: integrationId,
+        id: integration.integrationId,
         name: integration.name,
-        plan: integration.plan
+        plan: integration.plan,
+        token: token
       },
       user: {
         id: user.id,
@@ -208,7 +210,7 @@ export async function POST(
       timestamp: new Date().toISOString()
     };
 
-    console.log(`🎉 Webhook ${integrationId} processado com sucesso:`, response);
+    console.log(`🎉 Webhook ${token} processado com sucesso:`, response);
 
     return NextResponse.json(response);
 
@@ -224,7 +226,7 @@ export async function POST(
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
-        integration_id: params.id,
+        token: params.id,
         message: error.message,
         timestamp: new Date().toISOString()
       },
@@ -238,12 +240,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const integrationId = params.id;
-  const integration = INTEGRATION_MAPPING[integrationId];
+  const token = params.id;
+  const integration = TOKEN_MAPPING[token];
 
   if (!integration) {
     return NextResponse.json(
-      { error: `Integração ${integrationId} não encontrada` },
+      { error: `Token ${token} não encontrado` },
       { status: 404 }
     );
   }
@@ -251,14 +253,14 @@ export async function GET(
   return NextResponse.json({
     success: true,
     integration: {
-      id: integrationId,
+      id: integration.integrationId,
       name: integration.name,
       plan: integration.plan,
-      productId: integration.productId,
+      token: token,
       status: 'ACTIVE',
-      webhookUrl: `${new URL(request.url).origin}/api/webhooks/hotmart/${integrationId}`
+      webhookUrl: `${new URL(request.url).origin}/api/webhooks/hotmart/${token}`
     },
-    message: `Integração ${integrationId} ativa e funcionando`,
+    message: `Integração ${integration.name} ativa e funcionando`,
     timestamp: new Date().toISOString()
   });
 }
