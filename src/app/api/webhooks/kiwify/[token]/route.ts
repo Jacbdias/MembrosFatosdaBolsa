@@ -2,19 +2,20 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { enviarEmailCredenciais } from '@/lib/auth/email'; // ✅ ADICIONADO
+import { hashPassword } from '@/lib/auth/password'; // ✅ ADICIONADO
 
 const prisma = new PrismaClient();
 
-// Mapeamento de tokens Kiwify para configurações
+// ✅ TOKEN ÚNICO DA KIWIFY CONFIGURADO
 const KIWIFY_TOKEN_MAPPING: Record<string, { name: string; plan: string; integrationId: string }> = {
-  'KW123abc456def789': { name: 'Projeto Trump Kiwify', plan: 'VIP', integrationId: 'KW001' },
-  'KW456def789ghi012': { name: 'Close Friends LITE Kiwify', plan: 'LITE', integrationId: 'KW002' },
-  // Adicionar mais conforme necessário
+  '27419sqm9vm': { name: 'Produto Fatos da Bolsa', plan: 'VIP', integrationId: 'KW001' },
+  // Se tiver produtos diferentes, pode mapear por outro campo no futuro
 };
 
 // Função para gerar senha segura
 function generateSecurePassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   const symbols = '!@#$%&*';
   let password = '';
   
@@ -177,6 +178,9 @@ export async function POST(
       where: { email }
     });
 
+    let isNewUser = false;
+    let tempPassword = '';
+
     if (user) {
       // ATUALIZAR usuário existente
       console.log(`🔄 Atualizando usuário existente: ${email}`);
@@ -187,13 +191,7 @@ export async function POST(
           plan: integration.plan,
           status: 'ACTIVE',
           hotmartCustomerId: transactionId,
-          expirationDate: calculateExpirationDate(),
-          // Manter senha existente se houver
-          ...(user.password ? {} : { 
-            password: generateSecurePassword(),
-            passwordCreatedAt: new Date(),
-            mustChangePassword: true 
-          })
+          expirationDate: calculateExpirationDate()
         }
       });
       
@@ -201,6 +199,10 @@ export async function POST(
       
     } else {
       // CRIAR novo usuário
+      isNewUser = true;
+      tempPassword = generateSecurePassword();
+      const hashedPassword = await hashPassword(tempPassword);
+      
       console.log(`➕ Criando novo usuário via Kiwify: ${email}`);
       
       const nameParts = buyerName.split(' ');
@@ -216,7 +218,7 @@ export async function POST(
           status: 'ACTIVE',
           hotmartCustomerId: transactionId,
           expirationDate: calculateExpirationDate(),
-          password: generateSecurePassword(),
+          password: hashedPassword, // ✅ USANDO HASH SEGURO
           passwordCreatedAt: new Date(),
           mustChangePassword: true,
           customPermissions: '[]'
@@ -242,6 +244,22 @@ export async function POST(
       console.error('⚠️ Erro ao registrar compra Kiwify:', purchaseError);
     }
 
+    // ❌ REMOVIDO ENVIO DE EMAIL (TEMPORARIAMENTE)
+    // let emailSent = false;
+    // let emailError = null;
+    
+    // if (isNewUser && tempPassword) {
+    //   try {
+    //     console.log(`📧 Enviando email de boas-vindas para ${email}...`);
+    //     await enviarEmailCredenciais(email, user.firstName || buyerName, tempPassword);
+    //     emailSent = true;
+    //     console.log('✅ Email enviado com sucesso via Kiwify!');
+    //   } catch (error: any) {
+    //     emailError = error.message;
+    //     console.error('❌ Erro ao enviar email via Kiwify:', error);
+    //   }
+    // }
+
     await prisma.$disconnect();
 
     const response = {
@@ -259,7 +277,8 @@ export async function POST(
         email: user.email,
         plan: user.plan,
         status: user.status,
-        isNewUser: !user.password
+        isNewUser: isNewUser,
+        tempPassword: isNewUser ? tempPassword : undefined // ✅ Mostra senha para debug
       },
       transaction: {
         id: transactionId,
