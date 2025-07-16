@@ -41,7 +41,7 @@ export async function enviarEmailCredenciais(
           box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         .header { 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #000000 0%, #4bf700 100%);
           padding: 40px 30px;
           text-align: center;
           color: white;
@@ -88,7 +88,7 @@ export async function enviarEmailCredenciais(
           left: 0;
           right: 0;
           height: 4px;
-          background: linear-gradient(90deg, #667eea, #764ba2);
+          background: linear-gradient(90deg, #000000, #4bf700);
         }
         .credentials h3 {
           color: #2d3748;
@@ -123,7 +123,7 @@ export async function enviarEmailCredenciais(
         }
         .login-button { 
           display: block;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #000000 0%, #4bf700 100%);
           color: white; 
           padding: 16px 32px; 
           text-decoration: none; 
@@ -132,13 +132,13 @@ export async function enviarEmailCredenciais(
           text-align: center;
           font-weight: 700;
           font-size: 18px;
-          box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 8px 25px rgba(75, 247, 0, 0.3);
           transition: all 0.3s ease;
           max-width: 250px;
         }
         .login-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+          box-shadow: 0 12px 35px rgba(75, 247, 0, 0.4);
         }
         .info-box { 
           background: linear-gradient(135deg, #fef5e7 0%, #fef3cd 100%);
@@ -167,14 +167,14 @@ export async function enviarEmailCredenciais(
           margin-bottom: 8px;
         }
         .resources-section {
-          background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+          background: linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%);
           padding: 25px;
           border-radius: 12px;
           margin: 30px 0;
-          border-left: 5px solid #38b2ac;
+          border-left: 5px solid #4bf700;
         }
         .resources-section h4 {
-          color: #234e52;
+          color: #1a5e1a;
           margin: 0 0 15px 0;
           font-size: 18px;
           font-weight: 700;
@@ -190,10 +190,10 @@ export async function enviarEmailCredenciais(
           padding: 15px;
           border-radius: 8px;
           text-align: center;
-          border: 1px solid #81e6d9;
+          border: 1px solid #4bf700;
         }
         .resource-item strong {
-          color: #234e52;
+          color: #1a5e1a;
           display: block;
           margin-bottom: 5px;
         }
@@ -219,17 +219,21 @@ export async function enviarEmailCredenciais(
           font-size: 14px;
         }
         .logo {
-          width: 60px;
-          height: 60px;
+          width: 80px;
+          height: 80px;
           background: white;
           border-radius: 50%;
           margin: 0 auto 20px auto;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
-          font-weight: bold;
-          color: #667eea;
+          overflow: hidden;
+          border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        .logo img {
+          width: 70px;
+          height: 70px;
+          object-fit: contain;
         }
         @media (max-width: 600px) {
           .container { margin: 0 10px; }
@@ -244,7 +248,9 @@ export async function enviarEmailCredenciais(
       <div class="container">
         <!-- Header -->
         <div class="header">
-          <div class="logo">📈</div>
+          <div class="logo">
+            <img src="${loginUrl}/assets/avatar.png" alt="Fatos da Bolsa Logo" />
+          </div>
           <h1>🎉 Bem-vindo ao Fatos da Bolsa!</h1>
           <p>Sua jornada de sucesso nos investimentos começa agora</p>
         </div>
@@ -367,9 +373,9 @@ export async function enviarEmailResetSenha(
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); margin: 0; padding: 40px 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center; color: white; }
+        .header { background: linear-gradient(135deg, #000000 0%, #4bf700 100%); padding: 40px 30px; text-align: center; color: white; }
         .content { padding: 40px 30px; text-align: center; }
-        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; margin: 20px 0; font-weight: 700; }
+        .button { display: inline-block; background: linear-gradient(135deg, #000000 0%, #4bf700 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; margin: 20px 0; font-weight: 700; }
         .footer { background: #2d3748; color: white; padding: 30px; text-align: center; }
       </style>
     </head>
