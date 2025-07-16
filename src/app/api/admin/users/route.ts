@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { enviarEmailCredenciais } from '@/lib/auth/email'; // ✅ ADICIONADO
+import { enviarEmailCredenciais } from '@/lib/auth/email';
+import { hashPassword, gerarSenhaSegura } from '@/lib/auth/password'; // ✅ ADICIONADO
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.NODE_ENV === 'production' 
@@ -275,21 +276,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 POST /api/admin/users - CRIANDO COM HOTMART E EMAIL');
+  console.log('🚀 POST /api/admin/users - CRIANDO COM HASH SEGURO');
   
   try {
     const headers = {
       'Content-Type': 'application/json'
     };
-    
-    // 🔍 Testar configuração SMTP
-    console.log('🔍 Testando configuração SMTP:');
-    console.log('SMTP_HOST:', process.env.SMTP_HOST || 'NÃO CONFIGURADO');
-    console.log('SMTP_PORT:', process.env.SMTP_PORT || 'NÃO CONFIGURADO');
-    console.log('SMTP_USER:', process.env.SMTP_USER ? 'Configurado' : 'NÃO CONFIGURADO');
-    console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'Configurado' : 'NÃO CONFIGURADO');
-    console.log('SMTP_FROM:', process.env.SMTP_FROM || 'NÃO CONFIGURADO');
-    console.log('NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL || 'NÃO CONFIGURADO');
     
     // Verificar autenticação
     const admin = await verifyAuth(request);
@@ -318,7 +310,7 @@ export async function POST(request: NextRequest) {
     }
     
     const { firstName, lastName, email, plan, expirationDate, hotmartCustomerId } = requestData;
-    console.log('📝 Criando usuário com dados Hotmart:', { firstName, lastName, email, plan, expirationDate, hotmartCustomerId });
+    console.log('📝 Criando usuário com senha segura:', { firstName, lastName, email, plan });
     
     // Validações
     if (!firstName || !lastName || !email || !plan) {
@@ -352,9 +344,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400, headers });
     }
     
-    // Gerar senha temporária
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase() + '!';
-    console.log(`🔑 Senha temporária gerada para ${email}: ${tempPassword}`);
+    // ✅ GERAR SENHA SEGURA
+    const tempPassword = gerarSenhaSegura();
+    console.log(`🔑 Senha segura gerada: ${tempPassword}`);
+    
+    // ✅ HASH DA SENHA
+    const hashedPassword = await hashPassword(tempPassword);
+    console.log('🔒 Senha hasheada com sucesso');
     
     // Criar usuário no banco
     const novoUsuario = await prisma.user.create({
@@ -362,9 +358,10 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase(),
         firstName,
         lastName,
-        password: tempPassword, // Em produção, use hash da senha
+        password: hashedPassword, // ✅ USANDO HASH SEGURO
         plan: plan as any,
         status: 'ACTIVE',
+        mustChangePassword: true, // ✅ FORÇA MUDANÇA NO PRIMEIRO ACESSO
         hotmartCustomerId: hotmartCustomerId || null
       }
     });
@@ -390,7 +387,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('✅ Usuário criado com integração Hotmart:', novoUsuario.email);
+    console.log('✅ Usuário criado com senha segura:', novoUsuario.email);
     
     // 📧 ENVIAR EMAIL COM CREDENCIAIS
     let emailSent = false;
@@ -404,7 +401,6 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       emailError = error.message;
       console.error('❌ Erro ao enviar email:', error);
-      console.error('❌ Stack do erro:', error.stack);
       // Não falha a criação do usuário por causa do email
     }
     
@@ -412,7 +408,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: emailSent 
         ? 'Usuário criado com sucesso! Email com credenciais enviado.' 
-        : 'Usuário criado, mas houve erro no envio do email.',
+        : 'Usuário criado com senha segura, mas houve erro no envio do email.',
       user: {
         id: novoUsuario.id,
         email: novoUsuario.email,
@@ -428,16 +424,14 @@ export async function POST(request: NextRequest) {
       },
       // ✅ Só retorna a senha se o email falhou (para segurança)
       tempPassword: emailSent ? undefined : tempPassword,
+      security: {
+        passwordHashed: true,
+        passwordSecure: true,
+        message: 'Senha gerada e armazenada com hash seguro'
+      },
       hotmartIntegration: {
         enabled: true,
         message: 'Usuário preparado para validação via Hotmart'
-      },
-      // ✅ Debug info sobre SMTP
-      smtpConfig: {
-        configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
-        host: process.env.SMTP_HOST || 'NOT_SET',
-        port: process.env.SMTP_PORT || 'NOT_SET',
-        from: process.env.SMTP_FROM || 'NOT_SET'
       }
     }, {
       status: 201,
