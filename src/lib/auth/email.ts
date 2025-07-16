@@ -41,7 +41,7 @@ export async function enviarEmailCredenciais(
           box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         .header { 
-          background: linear-gradient(135deg, #010101 0%, #2d2d2d 70%, #4bf700 100%);
+          background: #010101;
           padding: 40px 30px;
           text-align: center;
           color: white;
@@ -377,7 +377,7 @@ export async function enviarEmailResetSenha(
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); margin: 0; padding: 40px 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #010101 0%, #2d2d2d 70%, #4bf700 100%); padding: 40px 30px; text-align: center; color: white; }
+        .header { background: #010101; padding: 40px 30px; text-align: center; color: white; }
         .content { padding: 40px 30px; text-align: center; }
         .button { display: inline-block; background: #010101; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; margin: 20px 0; font-weight: 700; border: 2px solid #4bf700; }
         .footer { background: #2d3748; color: white; padding: 30px; text-align: center; }
