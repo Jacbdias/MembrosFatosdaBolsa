@@ -5,9 +5,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ✅ TOKEN ÚNICO DA EDUZZ CONFIGURADO
+// ✅ TOKENS DA EDUZZ CONFIGURADOS
 const EDUZZ_TOKEN_MAPPING: Record<string, { name: string; plan: string; integrationId: string }> = {
-  'EDm2rYeqZWZHmCVmA': { name: 'Produto Fatos da Bolsa Eduzz', plan: 'VIP', integrationId: 'ED001' }, // Será substituído pela detecção automática
+  'EDm2rYeqZWZHmCVmA': { name: 'Produto Fatos da Bolsa Eduzz', plan: 'VIP', integrationId: 'ED001' }, // Token original
+  'EDgZhmhuBZN4CP4uD': { name: 'Produto Fatos da Bolsa Eduzz', plan: 'VIP', integrationId: 'ED002' }, // ✅ SEU TOKEN ATUAL
+  // Será substituído pela detecção automática
 };
 
 // 🔍 FUNÇÃO PARA DETECTAR PLANO AUTOMATICAMENTE PELOS SEUS PRODUTOS EDUZZ
