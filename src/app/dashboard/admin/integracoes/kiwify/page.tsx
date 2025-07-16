@@ -57,17 +57,6 @@ function detectarPlanoKiwify(webhookData: any): { plan: string; productName: str
         productName: `Migração CF LITE - ${productName}` 
       };
     }
-        productName: `Close Friends LITE - ${productName}` 
-      };
-    }
-    
-    // 🔄 MIGRAÇÃO CF LITE (provavelmente é LITE V1)
-    if (produtoLower.includes('migração') && produtoLower.includes('lite')) {
-      return { 
-        plan: 'LITE_V1', 
-        productName: `Migração CF LITE - ${productName}` 
-      };
-    }
     
     // 👑 CLOSE FRIENDS VIP (todas as turmas)
     if (produtoLower.includes('close friends vip') || 
@@ -92,9 +81,9 @@ function detectarPlanoKiwify(webhookData: any): { plan: string; productName: str
     
     // 📹 ANÁLISE EM VÍDEO (qual versão do LITE?)
     if (produtoLower.includes('análise') && produtoLower.includes('vídeo')) {
-      // Por padrão, análise em vídeo = LITE V1 (você pode ajustar)
+      // Por padrão, análise em vídeo = LITE original (você pode ajustar)
       return { 
-        plan: 'LITE_V1', 
+        plan: 'LITE', 
         productName: `Análise em Vídeo - ${productName}` 
       };
     }
@@ -173,18 +162,6 @@ export async function POST(
       );
     }
 
-    // 🔍 DETECTAR PLANO AUTOMATICAMENTE
-    const { plan: planoDetectado, productName: nomeDetectado } = detectarPlanoKiwify(webhookData);
-    
-    // ✅ SOBRESCREVER DADOS DA INTEGRAÇÃO COM DETECÇÃO AUTOMÁTICA
-    const integrationData = {
-      name: nomeDetectado,
-      plan: planoDetectado,
-      integrationId: integration.integrationId
-    };
-
-    console.log(`✅ Integração Kiwify encontrada: ${integrationData.name} → Plano ${integrationData.plan}`);
-
     let webhookData;
     try {
       webhookData = await request.json();
@@ -197,6 +174,18 @@ export async function POST(
     }
 
     console.log('📦 Dados do webhook Kiwify:', JSON.stringify(webhookData, null, 2));
+
+    // 🔍 DETECTAR PLANO AUTOMATICAMENTE (AGORA DEPOIS DO PARSE)
+    const { plan: planoDetectado, productName: nomeDetectado } = detectarPlanoKiwify(webhookData);
+    
+    // ✅ SOBRESCREVER DADOS DA INTEGRAÇÃO COM DETECÇÃO AUTOMÁTICA
+    const integrationData = {
+      name: nomeDetectado,
+      plan: planoDetectado,
+      integrationId: integration.integrationId
+    };
+
+    console.log(`✅ Integração Kiwify encontrada: ${integrationData.name} → Plano ${integrationData.plan}`);
 
     // Extrair evento (Kiwify usa diferentes eventos)
     const event = webhookData.event || webhookData.type || 'order.paid';
@@ -213,8 +202,8 @@ export async function POST(
 
     console.log('🔍 Dados extraídos do Kiwify:', {
       event, buyerEmail, buyerName, transactionId, amount,
-      plan: integration.plan,
-      integrationName: integration.name,
+      plan: integrationData.plan, // ✅ CORRIGIDO
+      integrationName: integrationData.name, // ✅ CORRIGIDO
       token: token
     });
 
