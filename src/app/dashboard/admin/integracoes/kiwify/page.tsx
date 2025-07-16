@@ -45,7 +45,18 @@ function detectarPlanoKiwify(webhookData: any): { plan: string; productName: str
         produtoLower.includes('cf lite') ||
         (produtoLower.includes('lite') && !produtoLower.includes('2.0'))) {
       return { 
-        plan: 'LITE_V1', 
+        plan: 'LITE', 
+        productName: `Close Friends LITE - ${productName}` 
+      };
+    }
+    
+    // 🔄 MIGRAÇÃO CF LITE (provavelmente é LITE original)
+    if (produtoLower.includes('migração') && produtoLower.includes('lite')) {
+      return { 
+        plan: 'LITE', 
+        productName: `Migração CF LITE - ${productName}` 
+      };
+    }
         productName: `Close Friends LITE - ${productName}` 
       };
     }
