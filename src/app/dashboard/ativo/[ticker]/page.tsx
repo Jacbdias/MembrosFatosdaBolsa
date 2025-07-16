@@ -1878,14 +1878,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
               </div>
             ))}
             
-            {/* Rodapé informativo */}
-            <div style={{
-              marginTop: '16px',
-              padding: '12px',
-              backgroundColor: '#f8fafc',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
           </div>
         )}
       </div>
