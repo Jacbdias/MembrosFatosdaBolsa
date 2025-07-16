@@ -84,8 +84,6 @@ export default function Page(): React.JSX.Element {
             <Card 
               sx={{ 
                 height: '100%',
-                border: '2px solid #4CAF50',
-                position: 'relative',
                 '&:hover': {
                   transform: 'translateY(-4px)',
                   boxShadow: 6,
@@ -93,18 +91,6 @@ export default function Page(): React.JSX.Element {
                 }
               }}
             >
-              <Chip
-                label="RECOMENDADA"
-                color="success"
-                size="small"
-                sx={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  fontWeight: 'bold',
-                  fontSize: '0.75rem'
-                }}
-              />
               <CardContent sx={{ p: 3 }}>
                 <Stack spacing={2}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -355,7 +341,6 @@ export default function Page(): React.JSX.Element {
                       fontSize: '2rem'
                     }}
                   >
-                    💼
                   </Box>
                   
                   <Button
@@ -396,7 +381,7 @@ export default function Page(): React.JSX.Element {
       <Card sx={{ border: '1px solid #E0E0E0' }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: 'text.primary' }}>
-            📚 Como usar as planilhas
+           Como usar as planilhas
           </Typography>
           
           <Grid container spacing={3}>
