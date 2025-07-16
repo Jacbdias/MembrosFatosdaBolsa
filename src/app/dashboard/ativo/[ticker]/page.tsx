@@ -1880,23 +1880,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
               </div>
             ))}
             
-            {/* Rodapé informativo */}
-            <div style={{
-              marginTop: '16px',
-              padding: '12px',
-              backgroundColor: '#f8fafc',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <p style={{ 
-                margin: '0', 
-                fontSize: '12px', 
-                color: '#64748b',
-                textAlign: 'center'
-              }}>
-                💡 <strong>Sistema Híbrido:</strong> ≤3MB em Base64 (instantâneo) • &gt;3MB como referência (re-upload)
-              </p>
-            </div>
           </div>
         )}
       </div>
