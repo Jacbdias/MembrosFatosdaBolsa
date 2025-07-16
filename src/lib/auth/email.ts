@@ -41,7 +41,7 @@ export async function enviarEmailCredenciais(
           box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         .header { 
-          background: linear-gradient(135deg, #000000 0%, #4bf700 100%);
+          background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 70%, #4bf700 100%);
           padding: 40px 30px;
           text-align: center;
           color: white;
@@ -88,7 +88,7 @@ export async function enviarEmailCredenciais(
           left: 0;
           right: 0;
           height: 4px;
-          background: linear-gradient(90deg, #000000, #4bf700);
+          background: linear-gradient(90deg, #2d2d2d, #4bf700);
         }
         .credentials h3 {
           color: #2d3748;
@@ -123,7 +123,7 @@ export async function enviarEmailCredenciais(
         }
         .login-button { 
           display: block;
-          background: linear-gradient(135deg, #000000 0%, #4bf700 100%);
+          background: #1a1a1a;
           color: white; 
           padding: 16px 32px; 
           text-decoration: none; 
@@ -132,12 +132,15 @@ export async function enviarEmailCredenciais(
           text-align: center;
           font-weight: 700;
           font-size: 18px;
-          box-shadow: 0 8px 25px rgba(75, 247, 0, 0.3);
+          border: 2px solid #4bf700;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
           transition: all 0.3s ease;
           max-width: 250px;
         }
         .login-button:hover {
           transform: translateY(-2px);
+          background: #4bf700;
+          color: #1a1a1a;
           box-shadow: 0 12px 35px rgba(75, 247, 0, 0.4);
         }
         .info-box { 
@@ -167,14 +170,14 @@ export async function enviarEmailCredenciais(
           margin-bottom: 8px;
         }
         .resources-section {
-          background: linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%);
+          background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%);
           padding: 25px;
           border-radius: 12px;
           margin: 30px 0;
           border-left: 5px solid #4bf700;
         }
         .resources-section h4 {
-          color: #1a5e1a;
+          color: #1a1a1a;
           margin: 0 0 15px 0;
           font-size: 18px;
           font-weight: 700;
@@ -190,10 +193,10 @@ export async function enviarEmailCredenciais(
           padding: 15px;
           border-radius: 8px;
           text-align: center;
-          border: 1px solid #4bf700;
+          border: 1px solid #e0e0e0;
         }
         .resource-item strong {
-          color: #1a5e1a;
+          color: #1a1a1a;
           display: block;
           margin-bottom: 5px;
         }
@@ -219,8 +222,8 @@ export async function enviarEmailCredenciais(
           font-size: 14px;
         }
         .logo {
-          width: 80px;
-          height: 80px;
+          width: 120px;
+          height: 120px;
           background: white;
           border-radius: 50%;
           margin: 0 auto 20px auto;
@@ -228,11 +231,12 @@ export async function enviarEmailCredenciais(
           align-items: center;
           justify-content: center;
           overflow: hidden;
-          border: 3px solid rgba(255, 255, 255, 0.3);
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         .logo img {
-          width: 70px;
-          height: 70px;
+          width: 100px;
+          height: 100px;
           object-fit: contain;
         }
         @media (max-width: 600px) {
@@ -373,9 +377,9 @@ export async function enviarEmailResetSenha(
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); margin: 0; padding: 40px 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #000000 0%, #4bf700 100%); padding: 40px 30px; text-align: center; color: white; }
+        .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 70%, #4bf700 100%); padding: 40px 30px; text-align: center; color: white; }
         .content { padding: 40px 30px; text-align: center; }
-        .button { display: inline-block; background: linear-gradient(135deg, #000000 0%, #4bf700 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; margin: 20px 0; font-weight: 700; }
+        .button { display: inline-block; background: #1a1a1a; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; margin: 20px 0; font-weight: 700; border: 2px solid #4bf700; }
         .footer { background: #2d3748; color: white; padding: 30px; text-align: center; }
       </style>
     </head>
