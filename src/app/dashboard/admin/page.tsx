@@ -17,7 +17,8 @@ export default function AdminDashboard() {
   const getPageName = (url: string) => {
     if (url.includes('central-proventos')) return 'Central de Proventos';
     if (url.includes('central-relatorios')) return 'Central de Relatórios';
-    if (url.includes('instagram-cadastros')) return 'Instagram Close Friends'; // NOVO
+    if (url.includes('instagram-cadastros')) return 'Instagram Close Friends';
+    if (url.includes('renovacoes')) return 'Renovações'; // NOVO
     if (url.includes('customers')) return 'Gestão de Clientes';
     if (url.includes('empresa')) return 'Gestão de Empresas';
     return 'página solicitada';
@@ -272,7 +273,7 @@ export default function AdminDashboard() {
             <span style={styles.statusActive}>Ativo</span>
           </div>
 
-          {/* 📱 NOVO CARD - INSTAGRAM CLOSE FRIENDS */}
+          {/* 📱 CARD - INSTAGRAM CLOSE FRIENDS */}
           <div 
             className="admin-card"
             style={styles.card} 
@@ -286,20 +287,34 @@ export default function AdminDashboard() {
             <span style={styles.statusActive}>Ativo</span>
           </div>
 
+          {/* 📊 NOVO CARD - RENOVAÇÕES */}
           <div 
             className="admin-card"
             style={styles.card} 
-            onClick={() => navigateTo('/dashboard/admin/integracoes/hotmart')}
+            onClick={() => navigateTo('/dashboard/admin/renovacoes')}
+            onMouseEnter={handleCardHover}
+            onMouseLeave={handleCardLeave}
+          >
+            <div style={styles.cardIcon}>📊</div>
+            <h3 style={styles.cardTitle}>Renovações</h3>
+            <p style={styles.cardText}>Controle e monitore renovações de assinaturas, vencimentos e status de pagamentos dos usuários.</p>
+            <span style={styles.statusActive}>Ativo</span>
+          </div>
+
+          <div 
+            className="admin-card"
+            style={styles.card} 
+            onClick={() => navigateTo('/dashboard/admin/integracoes')}
             onMouseEnter={handleCardHover}
             onMouseLeave={handleCardLeave}
           >
             <div style={styles.cardIcon}>🔗</div>
             <h3 style={styles.cardTitle}>Integrações</h3>
-            <p style={styles.cardText}>Central de gerenciamentos das integrações com a hotmart.</p>
+            <p style={styles.cardText}>Central de gerenciamentos das integrações.</p>
             <span style={styles.statusActive}>Ativo</span>
           </div>
 
-          {/* CARD RELATÓRIOS MODIFICADO */}
+          {/* CARD RELATÓRIOS */}
           <div 
             className="admin-card"
             style={styles.card} 
@@ -359,6 +374,15 @@ export default function AdminDashboard() {
             >
               📱 Instagram Admin
             </button>
+            {/* 📊 NOVO BOTÃO - RENOVAÇÕES */}
+            <button 
+              style={styles.actionBtn} 
+              onClick={() => navigateTo('/dashboard/admin/renovacoes')}
+              onMouseEnter={handleButtonHover}
+              onMouseLeave={handleButtonLeave}
+            >
+              📊 Renovações
+            </button>
             <button 
               style={styles.actionBtn} 
               onClick={() => showComingSoon('Novo Usuário')}
@@ -375,7 +399,6 @@ export default function AdminDashboard() {
             >
               🏢 Nova Empresa
             </button>
-            {/* BOTÃO RELATÓRIOS MODIFICADO */}
             <button 
               style={styles.actionBtn} 
               onClick={() => navigateTo('/dashboard/central-relatorios')}
