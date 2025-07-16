@@ -81,7 +81,7 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-integracoes', 'admin-settings', 'admin-logs'
+            'admin-relatorios', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 📊 ADICIONADO admin-renovacoes
           ]
         };
 
@@ -140,7 +140,7 @@ export function useAuthAccess() {
       return false;
     }
 
-    // Admin sempre tem acesso (incluindo Instagram)
+    // Admin sempre tem acesso (incluindo Instagram e Renovações)
     if (user.plan === 'ADMIN') {
       console.log('✅ Admin - acesso liberado para:', page);
       return true;
@@ -151,6 +151,13 @@ export function useAuthAccess() {
       const isInstagramAdmin = user.plan === 'ADMIN' || user.email === 'jacbdias@gmail.com';
       console.log(`📱 Verificando acesso Instagram Admin para ${user.email}:`, isInstagramAdmin);
       return isInstagramAdmin;
+    }
+
+    // 📊 Verificação específica para Renovações Admin
+    if (page === 'admin-renovacoes') {
+      const isRenovacoesAdmin = user.plan === 'ADMIN';
+      console.log(`📊 Verificando acesso Renovações Admin para ${user.email}:`, isRenovacoesAdmin);
+      return isRenovacoesAdmin;
     }
 
     const hasAccess = planInfo.pages.includes(page);
@@ -195,19 +202,34 @@ export function useAuthAccess() {
     return isInstagramAdmin;
   };
 
+  // 📊 NOVA FUNÇÃO para verificar acesso às Renovações
+  const hasRenovacoesAdminAccess = (): boolean => {
+    if (!user) {
+      console.log('❌ Usuário não logado - sem acesso Renovações');
+      return false;
+    }
+
+    const isRenovacoesAdmin = user.plan === 'ADMIN';
+    console.log(`📊 Verificando acesso Renovações Admin para ${user.email}:`, isRenovacoesAdmin);
+    
+    return isRenovacoesAdmin;
+  };
+
   return {
     planInfo,
     loading,
     hasAccessSync,
     hasContentAccess, // Nova função para conteúdos específicos
-    hasInstagramAdminAccess, // 📱 NOVA FUNÇÃO PARA INSTAGRAM
+    hasInstagramAdminAccess, // 📱 FUNÇÃO PARA INSTAGRAM
+    hasRenovacoesAdminAccess, // 📊 NOVA FUNÇÃO PARA RENOVAÇÕES
     user,
     debugInfo: {
       userPlan: user?.plan,
       customPermissions: user?.customPermissions,
       allPages: planInfo?.pages,
       isAdmin: user?.plan === 'ADMIN',
-      hasInstagramAccess: user?.plan === 'ADMIN' || user?.email === 'jacbdias@gmail.com' // 📱 DEBUG INFO
+      hasInstagramAccess: user?.plan === 'ADMIN' || user?.email === 'jacbdias@gmail.com', // 📱 DEBUG INFO
+      hasRenovacoesAccess: user?.plan === 'ADMIN' // 📊 DEBUG INFO RENOVAÇÕES
     }
   };
 }
