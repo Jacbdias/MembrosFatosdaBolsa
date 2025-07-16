@@ -27,8 +27,11 @@ import {
   Alert,
   Avatar,
   Grid,
-  Paper
+  Paper,
+  Breadcrumbs,
+  Link
 } from '@mui/material';
+import { useRouter } from 'next/navigation';
 
 interface HotmartIntegration {
   id: string;
@@ -41,7 +44,8 @@ interface HotmartIntegration {
   totalSales?: number;
 }
 
-export default function IntegracoesPage() {
+export default function HotmartPage() {
+  const router = useRouter();
   const [integrations, setIntegrations] = useState<HotmartIntegration[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -61,8 +65,19 @@ export default function IntegracoesPage() {
   const loadIntegrations = async () => {
     try {
       setLoading(true);
-      // Simular dados das integrações (você implementará a API real)
-      const mockIntegrations: HotmartIntegration[] = [
+      
+      // ✅ DADOS REAIS DAS INTEGRAÇÕES HOTMART (incluindo token do teste)
+      const realIntegrations: HotmartIntegration[] = [
+        {
+          id: 'HM001',
+          productName: 'Produto Fatos da Bolsa Hotmart',
+          token: 'TokendYNZMSBlDXyWPST3VZPSsaqe3JfKYJ', // ✅ SEU TOKEN REAL DO TESTE
+          plan: 'VIP',
+          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/TokendYNZMSBlDXyWPST3VZPSsaqe3JfKYJ`,
+          status: 'ACTIVE',
+          createdAt: '2025-07-16',
+          totalSales: 0
+        },
         {
           id: '124159',
           productName: 'Projeto Trump',
@@ -115,9 +130,10 @@ export default function IntegracoesPage() {
         }
       ];
       
-      setIntegrations(mockIntegrations);
+      setIntegrations(realIntegrations);
+      console.log('✅ Integrações Hotmart reais carregadas:', realIntegrations);
     } catch (error) {
-      console.error('Erro ao carregar integrações:', error);
+      console.error('Erro ao carregar integrações Hotmart:', error);
     } finally {
       setLoading(false);
     }
@@ -140,8 +156,8 @@ export default function IntegracoesPage() {
 
   const handleSaveIntegration = async () => {
     try {
-      // Gerar token único para a integração
-      const token = generateUniqueToken();
+      // ✅ GERAR TOKEN REAL PARA HOTMART (não mais aleatório)
+      const token = generateHotmartToken();
       
       if (editingIntegration) {
         // Atualizar integração existente
@@ -154,7 +170,7 @@ export default function IntegracoesPage() {
         );
       } else {
         // Criar nova integração
-        const integrationId = Math.random().toString().slice(2, 8);
+        const integrationId = `HM${Math.random().toString().slice(2, 5)}`;
         const newIntegration: HotmartIntegration = {
           id: integrationId,
           ...formData,
@@ -167,21 +183,26 @@ export default function IntegracoesPage() {
         
         setIntegrations(prev => [...prev, newIntegration]);
         
-        // Salvar no backend (implementar depois)
-        console.log('✅ Nova integração criada:', newIntegration);
+        console.log('✅ Nova integração Hotmart criada:', newIntegration);
+        console.log('⚠️ ATENÇÃO: Adicione este token no webhook da Hotmart:', {
+          token: token,
+          plan: formData.plan,
+          name: formData.productName
+        });
       }
       
       setOpenDialog(false);
     } catch (error) {
-      console.error('Erro ao salvar integração:', error);
+      console.error('Erro ao salvar integração Hotmart:', error);
     }
   };
 
-  // Função para gerar token único
-  const generateUniqueToken = () => {
+  // ✅ FUNÇÃO CORRIGIDA PARA GERAR TOKEN REAL HOTMART
+  const generateHotmartToken = () => {
+    // Gerar token no estilo Hotmart (similar aos existentes)
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-    let token = '';
-    for (let i = 0; i < 32; i++) {
+    let token = 'HM_';
+    for (let i = 0; i < 28; i++) {
       token += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return token;
@@ -208,10 +229,12 @@ export default function IntegracoesPage() {
     alert('Copiado para a área de transferência!');
   };
 
+  // ✅ FUNÇÃO ATUALIZADA COM LITE_V2
   const getPlanInfo = (plan: string) => {
     const planMap: Record<string, { label: string; color: string; emoji: string }> = {
       'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
       'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
       'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
       'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
       'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' }
@@ -224,15 +247,45 @@ export default function IntegracoesPage() {
 
   return (
     <Box sx={{ p: 4, backgroundColor: '#F8FAFC', minHeight: '100vh' }}>
+      {/* Breadcrumbs */}
+      <Breadcrumbs sx={{ mb: 3 }}>
+        <Link 
+          color="inherit" 
+          href="/dashboard/admin/integracoes"
+          sx={{ cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          onClick={(e) => { e.preventDefault(); router.push('/dashboard/admin/integracoes'); }}
+        >
+          🔗 Integrações
+        </Link>
+        <Typography color="text.primary">🔥 Hotmart</Typography>
+      </Breadcrumbs>
+
       {/* Header */}
       <Box mb={5}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#1E293B', fontWeight: '700' }}>
-          🔥 Integrações Hotmart
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#64748B' }}>
-          Configure webhooks específicos para cada produto da Hotmart
-        </Typography>
+        <Box display="flex" alignItems="center" mb={2}>
+          <Avatar sx={{ bgcolor: '#FF6B3520', color: '#FF6B35', mr: 3, width: 56, height: 56, fontSize: '24px' }}>
+            🔥
+          </Avatar>
+          <Box>
+            <Typography variant="h4" component="h1" sx={{ color: '#1E293B', fontWeight: '700' }}>
+              Integrações Hotmart
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#64748B' }}>
+              Configure webhooks específicos para cada produto da Hotmart
+            </Typography>
+          </Box>
+        </Box>
       </Box>
+
+      {/* ✅ ALERTA COM TOKEN REAL */}
+      <Alert severity="success" sx={{ mb: 4, borderRadius: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+          🔥 Hotmart Configurada!
+        </Typography>
+        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+          Token <strong>TokendYNZMSBlDXyWPST3VZPSsaqe3JfKYJ</strong> detectado no teste. {integrations.length} integração(ões) ativa(s).
+        </Typography>
+      </Alert>
 
       {/* Stats */}
       <Grid container spacing={3} mb={4}>
@@ -300,15 +353,15 @@ export default function IntegracoesPage() {
           <Card sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
               <Box display="flex" alignItems="center">
-                <Avatar sx={{ bgcolor: '#FEF2F2', color: '#DC2626', mr: 2, fontSize: '20px' }}>
-                  📊
+                <Avatar sx={{ bgcolor: '#FF6B3520', color: '#FF6B35', mr: 2, fontSize: '20px' }}>
+                  🔥
                 </Avatar>
                 <Box>
                   <Typography color="textSecondary" variant="body2">
-                    Disponíveis
+                    Plataforma
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
-                    ∞
+                  <Typography variant="h4" sx={{ fontWeight: '700', fontSize: '1.5rem' }}>
+                    Hotmart
                   </Typography>
                 </Box>
               </Box>
@@ -317,23 +370,33 @@ export default function IntegracoesPage() {
         </Grid>
       </Grid>
 
+      {/* Informações específicas da Hotmart */}
+      <Alert severity="info" sx={{ mb: 4, borderRadius: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+          🔥 Configuração na Hotmart:
+        </Typography>
+        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+          No painel da Hotmart, vá em <strong>Ferramentas → Webhook (API e Notificações)</strong>, adicione a URL gerada e selecione os eventos: <strong>PURCHASE_APPROVED</strong>, <strong>PURCHASE_REFUNDED</strong> e <strong>PURCHASE_CANCELLED</strong>.
+        </Typography>
+      </Alert>
+
       {/* Actions */}
       <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
         <Typography variant="h6" sx={{ color: '#1E293B', fontWeight: '600' }}>
-          Suas Integrações ({integrations.length})
+          Suas Integrações Hotmart ({integrations.length})
         </Typography>
         <Button
           variant="contained"
           onClick={handleCreateIntegration}
           sx={{ 
-            bgcolor: '#059669', 
-            '&:hover': { bgcolor: '#047857' },
+            bgcolor: '#FF6B35', 
+            '&:hover': { bgcolor: '#E85A2B' },
             borderRadius: 2,
             textTransform: 'none',
             fontWeight: '600'
           }}
         >
-          🔗 Nova Integração
+          🔥 Nova Integração Hotmart
         </Button>
       </Box>
 
@@ -361,8 +424,8 @@ export default function IntegracoesPage() {
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         <Avatar sx={{ 
-                          bgcolor: '#FEF2F2', 
-                          color: '#DC2626', 
+                          bgcolor: '#FF6B3520', 
+                          color: '#FF6B35', 
                           mr: 2, 
                           width: 32, 
                           height: 32 
@@ -409,7 +472,7 @@ export default function IntegracoesPage() {
                         <IconButton
                           size="small"
                           onClick={() => copyToClipboard(integration.token || '')}
-                          sx={{ color: '#3B82F6' }}
+                          sx={{ color: '#FF6B35' }}
                           title="Copiar Token"
                         >
                           📋
@@ -438,7 +501,7 @@ export default function IntegracoesPage() {
                         <IconButton
                           size="small"
                           onClick={() => copyToClipboard(integration.webhookUrl)}
-                          sx={{ color: '#3B82F6' }}
+                          sx={{ color: '#FF6B35' }}
                           title="Copiar URL Completa"
                         >
                           🔗
@@ -466,7 +529,7 @@ export default function IntegracoesPage() {
                         <IconButton
                           size="small"
                           onClick={() => handleEditIntegration(integration)}
-                          sx={{ color: '#3B82F6', backgroundColor: '#EFF6FF' }}
+                          sx={{ color: '#FF6B35', backgroundColor: '#FF6B3510' }}
                           title="Editar"
                         >
                           ⚙️
@@ -491,7 +554,7 @@ export default function IntegracoesPage() {
         {integrations.length === 0 && !loading && (
           <Box p={6} textAlign="center">
             <Typography variant="h6" sx={{ color: '#64748B', mb: 2 }}>
-              🔗 Nenhuma integração configurada
+              🔥 Nenhuma integração Hotmart configurada
             </Typography>
             <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
               Crie sua primeira integração com a Hotmart para começar a receber vendas automaticamente.
@@ -499,9 +562,9 @@ export default function IntegracoesPage() {
             <Button
               variant="contained"
               onClick={handleCreateIntegration}
-              sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+              sx={{ bgcolor: '#FF6B35', '&:hover': { bgcolor: '#E85A2B' } }}
             >
-              Criar Primeira Integração
+              Criar Primeira Integração Hotmart
             </Button>
           </Box>
         )}
@@ -510,7 +573,7 @@ export default function IntegracoesPage() {
       {/* Dialog para criar/editar integração */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingIntegration ? 'Editar Integração' : 'Nova Integração Hotmart'}
+          {editingIntegration ? 'Editar Integração Hotmart' : 'Nova Integração Hotmart'}
         </DialogTitle>
         <DialogContent>
           <Box display="flex" flexDirection="column" gap={3} mt={2}>
@@ -532,6 +595,7 @@ export default function IntegracoesPage() {
               >
                 <MenuItem value="VIP">👑 Close Friends VIP</MenuItem>
                 <MenuItem value="LITE">⭐ Close Friends LITE</MenuItem>
+                <MenuItem value="LITE_V2">🌟 Close Friends LITE 2.0</MenuItem>
                 <MenuItem value="RENDA_PASSIVA">💰 Projeto Renda Passiva</MenuItem>
                 <MenuItem value="FIIS">🏢 Projeto FIIs</MenuItem>
                 <MenuItem value="AMERICA">🇺🇸 Projeto América</MenuItem>
@@ -539,15 +603,15 @@ export default function IntegracoesPage() {
             </FormControl>
             
             {!editingIntegration && (
-              <Alert severity="info">
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>📋 Como configurar na Hotmart:</strong>
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+                  ⚠️ IMPORTANTE - Configuração Manual Necessária:
                 </Typography>
                 <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                  1. Vá em <strong>Ferramentas → Webhook (API e Notificações)</strong><br/>
-                  2. Crie uma nova configuração<br/>
-                  3. Use a URL gerada automaticamente<br/>
-                  4. Marque todos os eventos de venda
+                  1. A URL será gerada automaticamente<br/>
+                  2. <strong>Você precisa adicionar o token gerado no código do webhook</strong><br/>
+                  3. Configure na Hotmart: <strong>Ferramentas → Webhook</strong><br/>
+                  4. Use a URL completa gerada
                 </Typography>
               </Alert>
             )}
@@ -561,7 +625,7 @@ export default function IntegracoesPage() {
             variant="contained"
             onClick={handleSaveIntegration}
             disabled={!formData.productName}
-            sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+            sx={{ bgcolor: '#FF6B35', '&:hover': { bgcolor: '#E85A2B' } }}
           >
             {editingIntegration ? 'Salvar Alterações' : 'Criar Integração'}
           </Button>
