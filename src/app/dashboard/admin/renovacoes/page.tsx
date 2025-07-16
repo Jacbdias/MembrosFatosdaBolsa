@@ -181,6 +181,19 @@ export default function RenovacoesDashboard() {
           totalPurchases: 1800,
           status: 'ACTIVE',
           emailSent: false
+        },
+        // ✅ ADICIONADO: Usuário com LITE_V2
+        {
+          id: '5',
+          name: 'Carlos Ferreira',
+          email: 'carlos.ferreira@email.com',
+          plan: 'LITE_V2',
+          expirationDate: '2025-07-23',
+          daysUntilExpiry: 8,
+          lastRenewal: '2024-07-23',
+          totalPurchases: 970,
+          status: 'ACTIVE',
+          emailSent: false
         }
       ];
 
@@ -238,10 +251,12 @@ export default function RenovacoesDashboard() {
     }
   };
 
+  // ✅ FUNÇÃO ATUALIZADA COM LITE_V2
   const getPlanInfo = (plan: string) => {
     const planMap: Record<string, { label: string; color: string; emoji: string }> = {
       'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
       'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
       'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
       'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
       'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' }
