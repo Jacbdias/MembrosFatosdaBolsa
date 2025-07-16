@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { enviarEmailCredenciais } from '@/lib/email'; // ✅ ADICIONADO
+import { enviarEmailCredenciais } from '@/lib/auth/email'; // ✅ ADICIONADO
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.NODE_ENV === 'production' 
