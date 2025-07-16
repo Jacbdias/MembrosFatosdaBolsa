@@ -11,7 +11,7 @@ import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
 import { ArrowLeft as ArrowLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowLeft';
 import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { FileSpreadsheet as FileSpreadsheetIcon } from '@phosphor-icons/react/dist/ssr/FileSpreadsheet';
+import { FileText as FileSpreadsheetIcon } from '@phosphor-icons/react/dist/ssr/FileText';
 import { Star as StarIcon } from '@phosphor-icons/react/dist/ssr/Star';
 import { CheckCircle as CheckCircleIcon } from '@phosphor-icons/react/dist/ssr/CheckCircle';
 
