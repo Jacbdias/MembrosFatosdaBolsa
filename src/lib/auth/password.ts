@@ -17,9 +17,22 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, salt);
 }
 
-// Verificar senha
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+// ✅ VERIFICAR SENHA - CORRIGIDA PARA ACEITAR TEXTO PLANO E HASH
+export async function verifyPassword(password: string, storedPassword: string): Promise<boolean> {
+  try {
+    // Se a senha armazenada não parece ser um hash bcrypt
+    if (!storedPassword.startsWith('$2a$') && !storedPassword.startsWith('$2b$') && !storedPassword.startsWith('$2y$')) {
+      console.log('🔍 Comparando senha em texto plano (usuário legado)');
+      return password === storedPassword;
+    }
+    
+    // Se parece ser um hash, usar bcrypt
+    console.log('🔍 Comparando senha com hash bcrypt');
+    return await bcrypt.compare(password, storedPassword);
+  } catch (error) {
+    console.error('❌ Erro na verificação de senha:', error);
+    return false;
+  }
 }
 
 // Gerar token para reset
