@@ -115,6 +115,71 @@ const TelegramPage = () => {
           }}>
             Seu @ do Instagram foi {existingInstagram ? 'atualizado' : 'cadastrado'} com sucesso. Você será adicionado aos Close Friends do Fatos da Bolsa em breve!
           </p>
+          
+          {/* 📲 TELEGRAM BOT INSTRUCTIONS APÓS SUCESSO */}
+          <div style={{
+            backgroundColor: '#f0f9ff',
+            padding: '24px',
+            borderRadius: '12px',
+            marginBottom: '32px',
+            border: '1px solid #0ea5e9',
+            textAlign: 'left'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#0c4a6e',
+              marginBottom: '16px',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              📲 Agora acesse nosso Telegram!
+            </h3>
+            <p style={{
+              color: '#0c4a6e',
+              fontSize: '14px',
+              marginBottom: '16px',
+              textAlign: 'center',
+              lineHeight: '1.5'
+            }}>
+              Acesse os canais exclusivos da sua assinatura através do nosso bot:
+            </p>
+            <a
+              href="https://t.me/fatosdabolsacfbot"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                backgroundColor: '#0ea5e9',
+                color: 'white',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontSize: '16px',
+                fontWeight: '600',
+                textAlign: 'center',
+                margin: '0 0 16px 0',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0284c7'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0ea5e9'}
+            >
+              🤖 Acessar Bot do Telegram
+            </a>
+            <p style={{
+              color: '#0c4a6e',
+              fontSize: '12px',
+              textAlign: 'center',
+              margin: 0,
+              lineHeight: '1.4'
+            }}>
+              O bot fará a autenticação automática e liberará acesso aos canais da sua assinatura.
+            </p>
+          </div>
+
           <button
             onClick={resetForm}
             style={{
@@ -155,30 +220,44 @@ const TelegramPage = () => {
           color: '#1e293b',
           margin: '0 0 16px 0'
         }}>
-          📱 Close Friends - Instagram
+          📱📲 Recursos Exclusivos
         </h1>
         <p style={{ 
           color: '#64748b', 
           fontSize: '20px',
           margin: '0',
-          maxWidth: '600px',
+          maxWidth: '700px',
           marginLeft: 'auto',
           marginRight: 'auto',
           lineHeight: '1.6'
         }}>
-          Cadastre seu @ do Instagram para receber conteúdos exclusivos nos Stories do Close Friends
+          Configure seu acesso aos conteúdos exclusivos do Instagram e Telegram
         </p>
       </div>
 
-      {/* Card Principal */}
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        
+        {/* 📱 SEÇÃO INSTAGRAM */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
           padding: '32px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          marginBottom: '32px'
         }}>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1e293b',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            📱 Instagram Close Friends
+          </h2>
+          
           {/* Mostrar Instagram atual se existir */}
           {existingInstagram && (
             <div style={{
@@ -399,6 +478,309 @@ const TelegramPage = () => {
               <li style={{ marginBottom: '8px' }}>A adição pode levar até <strong>48 horas</strong> para ser processada</li>
               <li style={{ marginBottom: '8px' }}>Você receberá conteúdos <strong>exclusivos</strong> nos Stories</li>
               <li>Caso não seja adicionado, verifique se seu @ está correto</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* 📲 SEÇÃO TELEGRAM */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '32px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1e293b',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            📲 Acesso ao Telegram
+          </h2>
+
+          {/* Card principal do Telegram */}
+          <div style={{
+            backgroundColor: '#f0f9ff',
+            padding: '24px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            border: '1px solid #0ea5e9'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🤖</div>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#0c4a6e',
+                marginBottom: '12px'
+              }}>
+                Bot Fatos da Bolsa
+              </h3>
+              <p style={{
+                color: '#0c4a6e',
+                fontSize: '16px',
+                margin: '0',
+                lineHeight: '1.5'
+              }}>
+                Acesse os canais exclusivos da sua assinatura através do nosso bot automatizado.
+              </p>
+            </div>
+
+            <a
+              href="https://t.me/fatosdabolsacfbot"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                backgroundColor: '#0ea5e9',
+                color: 'white',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontSize: '18px',
+                fontWeight: '700',
+                textAlign: 'center',
+                marginBottom: '20px',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0284c7';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(14, 165, 233, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0ea5e9';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(14, 165, 233, 0.3)';
+              }}
+            >
+              🚀 Acessar Bot do Telegram
+            </a>
+          </div>
+
+          {/* Passo a passo */}
+          <div style={{
+            backgroundColor: '#f8fafc',
+            padding: '24px',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <h4 style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#1e293b',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              📋 Como acessar:
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }}>
+                  1
+                </div>
+                <div>
+                  <p style={{
+                    color: '#1e293b',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Clique no botão acima
+                  </p>
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '14px',
+                    margin: 0,
+                    lineHeight: '1.5'
+                  }}>
+                    Isso abrirá o Telegram e levará você diretamente ao nosso bot.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }}>
+                  2
+                </div>
+                <div>
+                  <p style={{
+                    color: '#1e293b',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Inicie a conversa
+                  </p>
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '14px',
+                    margin: 0,
+                    lineHeight: '1.5'
+                  }}>
+                    Digite <strong>/start</strong> para iniciar a conversa com o bot.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }}>
+                  3
+                </div>
+                <div>
+                  <p style={{
+                    color: '#1e293b',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Faça a autenticação
+                  </p>
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '14px',
+                    margin: 0,
+                    lineHeight: '1.5'
+                  }}>
+                    O bot verificará automaticamente sua assinatura e liberará o acesso.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }}>
+                  ✓
+                </div>
+                <div>
+                  <p style={{
+                    color: '#1e293b',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Acesse os canais
+                  </p>
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '14px',
+                    margin: 0,
+                    lineHeight: '1.5'
+                  }}>
+                    Você terá acesso aos canais exclusivos da sua assinatura!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Informações importantes */}
+          <div style={{
+            marginTop: '24px',
+            padding: '20px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '12px',
+            border: '1px solid #f59e0b'
+          }}>
+            <h4 style={{
+              fontSize: '16px',
+              fontWeight: '700',
+              color: '#92400e',
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              💡 Dica importante:
+            </h4>
+            <ul style={{
+              color: '#92400e',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              margin: 0,
+              paddingLeft: '20px'
+            }}>
+              <li style={{ marginBottom: '8px' }}>O bot funciona <strong>24 horas por dia</strong>, 7 dias por semana</li>
+              <li style={{ marginBottom: '8px' }}>A <strong>autenticação é automática</strong> - você só precisa estar logado aqui</li>
+              <li style={{ marginBottom: '8px' }}>Você receberá acesso aos canais <strong>específicos da sua assinatura</strong></li>
+              <li>Em caso de problemas, entre em contato conosco</li>
             </ul>
           </div>
         </div>
