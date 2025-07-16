@@ -50,7 +50,9 @@ const RestoreIcon = () => <span style={{ fontSize: '16px' }}>🔄</span>;
 const CheckIcon = () => <span style={{ fontSize: '16px' }}>✅</span>;
 const DatabaseIcon = () => <span style={{ fontSize: '16px' }}>🗃️</span>;
 
-// Simulação do sistema IndexedDB (substitua pelo arquivo real)
+// Importar sistema IndexedDB real
+import { useRelatoriosDB } from '../../../utils/relatoriosDB';
+
 interface RelatorioAdmin {
   id: string;
   ticker: string;
@@ -78,77 +80,6 @@ interface NovoRelatorio {
   linkExterno: string;
   tipoVisualizacao: 'iframe' | 'canva' | 'link' | 'pdf';
   arquivoPdf: File | null;
-}
-
-// Hook simulado para IndexedDB
-function useRelatoriosDB() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const salvarRelatorios = useCallback(async (relatorios: RelatorioAdmin[]): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      localStorage.setItem('relatorios_indexeddb_sim', JSON.stringify(relatorios));
-      return true;
-    } catch (err: any) {
-      setError('Erro ao salvar: ' + err.message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const carregarRelatorios = useCallback(async (): Promise<RelatorioAdmin[]> => {
-    setLoading(true);
-    setError(null);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const dados = localStorage.getItem('relatorios_indexeddb_sim');
-      return dados ? JSON.parse(dados) : [];
-    } catch (err: any) {
-      setError('Erro ao carregar: ' + err.message);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const exportarBackup = useCallback(async (): Promise<string | null> => {
-    setLoading(true);
-    try {
-      const dados = localStorage.getItem('relatorios_indexeddb_sim');
-      return dados || '{}';
-    } catch (err: any) {
-      setError('Erro ao exportar: ' + err.message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const importarBackup = useCallback(async (dadosJson: string): Promise<boolean> => {
-    setLoading(true);
-    try {
-      localStorage.setItem('relatorios_indexeddb_sim', dadosJson);
-      return true;
-    } catch (err: any) {
-      setError('Erro ao importar: ' + err.message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return {
-    loading,
-    error,
-    salvarRelatorios,
-    carregarRelatorios,
-    exportarBackup,
-    importarBackup
-  };
 }
 
 const LIMITE_BASE64 = 3 * 1024 * 1024; // 3MB
