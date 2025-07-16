@@ -474,7 +474,6 @@ const TelegramPage = () => {
               margin: 0,
               paddingLeft: '20px'
             }}>
-              <li style={{ marginBottom: '8px' }}>Seu perfil deve estar <strong>público</strong> ou você deve seguir @fatosbolsa</li>
               <li style={{ marginBottom: '8px' }}>A adição pode levar até <strong>48 horas</strong> para ser processada</li>
               <li style={{ marginBottom: '8px' }}>Você receberá conteúdos <strong>exclusivos</strong> nos Stories</li>
               <li>Caso não seja adicionado, verifique se seu @ está correto</li>
@@ -777,8 +776,6 @@ const TelegramPage = () => {
               margin: 0,
               paddingLeft: '20px'
             }}>
-              <li style={{ marginBottom: '8px' }}>O bot funciona <strong>24 horas por dia</strong>, 7 dias por semana</li>
-              <li style={{ marginBottom: '8px' }}>A <strong>autenticação é automática</strong> - você só precisa estar logado aqui</li>
               <li style={{ marginBottom: '8px' }}>Você receberá acesso aos canais <strong>específicos da sua assinatura</strong></li>
               <li>Em caso de problemas, entre em contato conosco</li>
             </ul>

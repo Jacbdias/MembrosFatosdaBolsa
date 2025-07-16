@@ -133,7 +133,7 @@ export const navItems = [
       },
       {
         key: 'recursos-telegram',
-        title: 'Telegram',
+        title: 'Stories e Telegram',
         href: paths.dashboard.recursosExclusivos + '/telegram',
         icon: 'chat',
         page: 'recursos-telegram'
