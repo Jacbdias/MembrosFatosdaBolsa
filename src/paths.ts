@@ -16,11 +16,13 @@ export const paths = {
     settings: '/dashboard/settings',
     rentabilidades: '/dashboard/rentabilidades',
     
-    // 🛡️ NOVAS ROTAS ADMINISTRATIVAS
+    // 🛡️ ROTAS ADMINISTRATIVAS
     admin: '/dashboard/admin',
     adminUsuarios: '/dashboard/admin/usuarios',
+    adminRenovacoes: '/dashboard/admin/renovacoes', // 📊 ADICIONAR ESTA LINHA!
+    adminIntegracoesPlatformas: '/dashboard/admin/integracoes', // 🔗 INTEGRAÇÕES COMPLETAS
     adminEmpresas: '/dashboard/gerenciamento',
-    adminProventos: '/dashboard/central-proventos', // Sua página existente
+    adminProventos: '/dashboard/central-proventos',
     adminRelatorios: '/dashboard/central-relatorios',
     adminIntegracoes: '/dashboard/central-agenda',
     adminSettings: '/dashboard/admin/settings',
@@ -34,15 +36,5 @@ export const paths = {
 
 // Export default também para compatibilidade
 export default paths;
-
 // Export tipo para TypeScript
 export type Paths = typeof paths;
-
-// DEBUG: Adicione temporariamente para debug
-console.log('=== DEBUG PATHS ===');
-console.log('Paths loaded:', paths);
-console.log('recursosExclusivos path:', paths.dashboard.recursosExclusivos);
-console.log('rentabilidades path:', paths.dashboard.rentabilidades);
-console.log('🛡️ admin path:', paths.dashboard.admin); // ✨ NOVA LINHA
-console.log('🛡️ adminUsuarios path:', paths.dashboard.adminUsuarios); // ✨ NOVA LINHA
-console.log('==================');
