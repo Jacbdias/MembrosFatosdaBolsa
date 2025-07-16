@@ -1789,31 +1789,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           </div>
         ) : (
           <div>
-            {/* Indicador de fonte dos dados */}
-            <div style={{
-              marginBottom: '16px',
-              padding: '12px',
-              backgroundColor: '#f0f9ff',
-              borderRadius: '8px',
-              border: '1px solid #bfdbfe'
-            }}>
-              <p style={{ 
-                margin: '0', 
-                fontSize: '14px', 
-                color: '#1e40af',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <strong>📊 {relatorios.length} relatório(s) encontrado(s)</strong>
-                {relatorios[0]?.arquivo === 'PDF_INDEXEDDB' && (
-                  <span style={{ color: '#22c55e' }}>• Fonte: IndexedDB ✅</span>
-                )}
-                {relatorios[0]?.arquivo === 'PDF_LOCALSTORAGE' && (
-                  <span style={{ color: '#f59e0b' }}>• Fonte: localStorage ⚠️</span>
-                )}
-              </p>
-            </div>
 
             {relatorios.map((relatorio, index) => (
               <div key={relatorio.id || index} style={{ 
