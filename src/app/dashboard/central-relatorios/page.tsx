@@ -710,9 +710,9 @@ export default function CentralRelatoriosAvancada() {
   return (
     <div className="p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 space-y-4 lg:space-y-0">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
             🚀 Central de Relatórios Avançada
           </h1>
           <p className="text-gray-600">
@@ -720,17 +720,17 @@ export default function CentralRelatoriosAvancada() {
           </p>
         </div>
         
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full lg:w-auto">
           <button
             onClick={() => setDialogStorage(true)}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2"
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2"
           >
             <span>💾</span>
             <span>Armazenamento</span>
           </button>
           <button
             onClick={() => setDialogAberto(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
           >
             <span>➕</span>
             <span>Novo Relatório</span>
@@ -754,46 +754,46 @@ export default function CentralRelatoriosAvancada() {
       )}
 
       {/* Estatísticas Avançadas */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <div className="bg-white rounded-lg p-6 text-center shadow-sm">
-          <div className="text-3xl font-bold text-blue-600 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-8">
+        <div className="bg-white rounded-lg p-4 lg:p-6 text-center shadow-sm border">
+          <div className="text-2xl lg:text-3xl font-bold text-blue-600 mb-1 lg:mb-2">
             {estatisticas.totalRelatorios}
           </div>
-          <div className="text-sm text-gray-600">Total de Relatórios</div>
+          <div className="text-xs lg:text-sm text-gray-600">Total de Relatórios</div>
         </div>
-        <div className="bg-white rounded-lg p-6 text-center shadow-sm">
-          <div className="text-3xl font-bold text-green-600 mb-2">
+        <div className="bg-white rounded-lg p-4 lg:p-6 text-center shadow-sm border">
+          <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-1 lg:mb-2">
             {estatisticas.relatoriosComPdf}
           </div>
-          <div className="text-sm text-gray-600">Com PDFs</div>
+          <div className="text-xs lg:text-sm text-gray-600">Com PDFs</div>
         </div>
-        <div className="bg-white rounded-lg p-6 text-center shadow-sm">
-          <div className="text-3xl font-bold text-yellow-600 mb-2">
+        <div className="bg-white rounded-lg p-4 lg:p-6 text-center shadow-sm border">
+          <div className="text-2xl lg:text-3xl font-bold text-yellow-600 mb-1 lg:mb-2">
             {estatisticas.tamanhoTotalMB}
           </div>
-          <div className="text-sm text-gray-600">MB Armazenados</div>
+          <div className="text-xs lg:text-sm text-gray-600">MB Armazenados</div>
         </div>
-        <div className="bg-white rounded-lg p-6 text-center shadow-sm">
-          <div className="text-3xl font-bold text-purple-600 mb-2">
+        <div className="bg-white rounded-lg p-4 lg:p-6 text-center shadow-sm border">
+          <div className="text-2xl lg:text-3xl font-bold text-purple-600 mb-1 lg:mb-2">
             {estatisticas.sistemasStorage.localStorage}
           </div>
-          <div className="text-sm text-gray-600">localStorage</div>
+          <div className="text-xs lg:text-sm text-gray-600">localStorage</div>
         </div>
-        <div className="bg-white rounded-lg p-6 text-center shadow-sm">
-          <div className="text-3xl font-bold text-cyan-600 mb-2">
+        <div className="bg-white rounded-lg p-4 lg:p-6 text-center shadow-sm border">
+          <div className="text-2xl lg:text-3xl font-bold text-cyan-600 mb-1 lg:mb-2">
             {estatisticas.sistemasStorage.indexedDB}
           </div>
-          <div className="text-sm text-gray-600">IndexedDB</div>
+          <div className="text-xs lg:text-sm text-gray-600">IndexedDB</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm mb-8">
+      <div className="bg-white rounded-lg shadow-sm mb-8 border">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-4 lg:space-x-8 px-4 lg:px-6">
             <button
               onClick={() => setTabAtiva(0)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 lg:py-4 px-1 border-b-2 font-medium text-sm lg:text-base transition-colors ${
                 tabAtiva === 0 
                   ? 'border-blue-500 text-blue-600' 
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -803,7 +803,7 @@ export default function CentralRelatoriosAvancada() {
             </button>
             <button
               onClick={() => setTabAtiva(1)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 lg:py-4 px-1 border-b-2 font-medium text-sm lg:text-base transition-colors ${
                 tabAtiva === 1 
                   ? 'border-blue-500 text-blue-600' 
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -816,18 +816,19 @@ export default function CentralRelatoriosAvancada() {
 
         {/* Tab 0: Lista de Relatórios */}
         {tabAtiva === 0 && (
-          <div className="p-6">
+          <div className="p-4 lg:p-6">
             {relatorios.length === 0 ? (
-              <div className="text-center py-16">
-                <h3 className="text-xl font-medium text-gray-500 mb-2">
-                  🚀 Sistema avançado pronto!
+              <div className="text-center py-12 lg:py-16">
+                <div className="text-4xl lg:text-6xl mb-4">🚀</div>
+                <h3 className="text-lg lg:text-xl font-medium text-gray-500 mb-2">
+                  Sistema avançado pronto!
                 </h3>
-                <p className="text-gray-400 mb-6">
-                  Comece adicionando relatórios sem limite de tamanho
+                <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                  Comece adicionando relatórios sem limite de tamanho. O sistema usa armazenamento híbrido para máxima eficiência.
                 </p>
                 <button
                   onClick={() => setDialogAberto(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   ➕ Adicionar Primeiro Relatório
                 </button>
@@ -837,52 +838,62 @@ export default function CentralRelatoriosAvancada() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referência</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PDF</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sistema</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                      <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
+                      <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                      <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                      <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referência</th>
+                      <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PDF</th>
+                      <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sistema</th>
+                      <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {relatorios.map((relatorio) => (
                       <tr key={relatorio.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {relatorio.ticker}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                          {relatorio.nome}
+                        <td className="px-3 lg:px-6 py-4">
+                          <div className="font-medium text-gray-900 text-sm lg:text-base">
+                            {relatorio.nome}
+                          </div>
+                          <div className="lg:hidden">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                              {relatorio.tipo}
+                            </span>
+                            {relatorio.dataReferencia && (
+                              <span className="text-xs text-gray-500">{relatorio.dataReferencia}</span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                             {relatorio.tipo}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {relatorio.dataReferencia}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
                           {relatorio.nomeArquivoPdf ? (
-                            <div className="flex items-center space-x-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mb-1 lg:mb-0">
                                 {(relatorio.tamanhoArquivo! / 1024 / 1024).toFixed(1)}MB
                               </span>
                               <button
                                 onClick={() => downloadPdf(relatorio)}
-                                className="text-blue-600 hover:text-blue-900 text-sm"
+                                className="text-blue-600 hover:text-blue-900 text-xs lg:text-sm"
                               >
                                 📥 Baixar
                               </button>
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-sm">Sem PDF</span>
+                            <span className="text-gray-400 text-xs lg:text-sm">Sem PDF</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             relatorio.tipoPdf === 'localStorage' 
                               ? 'bg-yellow-100 text-yellow-800' 
@@ -894,10 +905,11 @@ export default function CentralRelatoriosAvancada() {
                              relatorio.arquivoNoIndexedDB ? 'IndexedDB' : 'N/A'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => excluirRelatorio(relatorio.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 text-lg lg:text-xl"
+                            title="Excluir relatório"
                           >
                             🗑️
                           </button>
@@ -913,20 +925,20 @@ export default function CentralRelatoriosAvancada() {
 
         {/* Tab 1: Upload em Lote */}
         {tabAtiva === 1 && (
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
+          <div className="p-4 lg:p-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
               <h3 className="text-lg font-medium">📤 Upload em Lote Avançado</h3>
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full lg:w-auto">
                 <button
                   onClick={adicionarLinhaLote}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   ➕ Adicionar Linha
                 </button>
                 <button
                   onClick={salvarLoteCompleto}
                   disabled={uploadsLote.length === 0 || loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   {loading ? 'Processando...' : `Salvar ${uploadsLote.length} Relatórios`}
                 </button>
@@ -934,9 +946,9 @@ export default function CentralRelatoriosAvancada() {
             </div>
 
             {uploadsLote.length === 0 ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h4 className="font-medium text-blue-900 mb-2">🚀 Upload em Lote Avançado:</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 lg:p-6">
+                <h4 className="font-medium text-blue-900 mb-3">🚀 Upload em Lote Avançado:</h4>
+                <ul className="text-sm text-blue-700 space-y-2">
                   <li>• Sistema híbrido automático (localStorage + IndexedDB)</li>
                   <li>• Suporte a arquivos de até 50MB</li>
                   <li>• Compressão inteligente de dados</li>
@@ -944,81 +956,89 @@ export default function CentralRelatoriosAvancada() {
                 </ul>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-96">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticker *</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome *</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PDF</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {uploadsLote.map((upload, index) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4">
-                          <select
-                            value={upload.ticker}
-                            onChange={(e) => atualizarLinhaLote(index, 'ticker', e.target.value)}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                          >
-                            <option value="">Selecione...</option>
-                            {TICKERS_DISPONIVEIS.map(ticker => (
-                              <option key={ticker} value={ticker}>{ticker}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={upload.nome}
-                            onChange={(e) => atualizarLinhaLote(index, 'nome', e.target.value)}
-                            placeholder="Nome do relatório"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <select
-                            value={upload.tipo}
-                            onChange={(e) => atualizarLinhaLote(index, 'tipo', e.target.value)}
-                            className="border border-gray-300 rounded-md px-3 py-2"
-                          >
-                            <option value="trimestral">Trimestral</option>
-                            <option value="anual">Anual</option>
-                            <option value="apresentacao">Apresentação</option>
-                            <option value="outros">Outros</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            onChange={(e) => {
-                              const arquivo = e.target.files?.[0];
-                              if (arquivo && arquivo.size <= LIMITE_MAXIMO) {
-                                atualizarLinhaLote(index, 'arquivoPdf', arquivo);
-                              } else if (arquivo) {
-                                alert(`❌ Arquivo muito grande! Máximo 50MB.`);
-                                e.target.value = '';
-                              }
-                            }}
-                            className="text-sm"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => removerLinhaLote(index)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            🗑️
-                          </button>
-                        </td>
+              <div className="overflow-x-auto">
+                <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticker *</th>
+                        <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome *</th>
+                        <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PDF</th>
+                        <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {uploadsLote.map((upload, index) => (
+                        <tr key={index}>
+                          <td className="px-3 lg:px-6 py-4">
+                            <select
+                              value={upload.ticker}
+                              onChange={(e) => atualizarLinhaLote(index, 'ticker', e.target.value)}
+                              className="w-full border border-gray-300 rounded-md px-2 lg:px-3 py-1 lg:py-2 text-sm"
+                            >
+                              <option value="">Selecione...</option>
+                              {TICKERS_DISPONIVEIS.map(ticker => (
+                                <option key={ticker} value={ticker}>{ticker}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-3 lg:px-6 py-4">
+                            <input
+                              type="text"
+                              value={upload.nome}
+                              onChange={(e) => atualizarLinhaLote(index, 'nome', e.target.value)}
+                              placeholder="Nome do relatório"
+                              className="w-full border border-gray-300 rounded-md px-2 lg:px-3 py-1 lg:py-2 text-sm"
+                            />
+                          </td>
+                          <td className="hidden lg:table-cell px-6 py-4">
+                            <select
+                              value={upload.tipo}
+                              onChange={(e) => atualizarLinhaLote(index, 'tipo', e.target.value)}
+                              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            >
+                              <option value="trimestral">Trimestral</option>
+                              <option value="anual">Anual</option>
+                              <option value="apresentacao">Apresentação</option>
+                              <option value="outros">Outros</option>
+                            </select>
+                          </td>
+                          <td className="px-3 lg:px-6 py-4">
+                            <input
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              onChange={(e) => {
+                                const arquivo = e.target.files?.[0];
+                                if (arquivo && arquivo.size <= LIMITE_MAXIMO) {
+                                  atualizarLinhaLote(index, 'arquivoPdf', arquivo);
+                                } else if (arquivo) {
+                                  alert(`❌ Arquivo muito grande! Máximo 50MB.`);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="text-xs lg:text-sm w-full"
+                            />
+                            {upload.arquivoPdf && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {(upload.arquivoPdf.size / 1024 / 1024).toFixed(1)}MB
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 lg:px-6 py-4">
+                            <button
+                              onClick={() => removerLinhaLote(index)}
+                              className="text-red-600 hover:text-red-900 text-lg"
+                              title="Remover linha"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
