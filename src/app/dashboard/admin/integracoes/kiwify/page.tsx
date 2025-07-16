@@ -1,483 +1,568 @@
-export const dynamic = 'force-dynamic';
+'use client';
 
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { enviarEmailCredenciais } from '@/lib/auth/email'; // ✅ ADICIONADO
-import { hashPassword } from '@/lib/auth/password'; // ✅ ADICIONADO
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Avatar,
+  Grid,
+  Breadcrumbs,
+  Link
+} from '@mui/material';
+import { useRouter } from 'next/navigation';
 
-const prisma = new PrismaClient();
-
-// ✅ TOKEN ÚNICO DA KIWIFY CONFIGURADO
-const KIWIFY_TOKEN_MAPPING: Record<string, { name: string; plan: string; integrationId: string }> = {
-  '27419sqm9vm': { name: 'Produto Fatos da Bolsa', plan: 'VIP', integrationId: 'KW001' }, // Será substituído pela detecção automática
-};
-
-// 🔍 FUNÇÃO PARA DETECTAR PLANO AUTOMATICAMENTE PELOS SEUS PRODUTOS
-function detectarPlanoKiwify(webhookData: any): { plan: string; productName: string } {
-  try {
-    console.log('🔍 Detectando plano do produto Kiwify:', webhookData);
-    
-    // Extrair nome do produto de diferentes campos possíveis
-    const productName = webhookData.product_name || 
-                       webhookData.product?.name ||
-                       webhookData.offer_name ||
-                       webhookData.product_title ||
-                       webhookData.name ||
-                       '';
-    
-    console.log(`📋 Nome do produto recebido: "${productName}"`);
-    
-    // 🔍 DETECTAR POR NOME (seus produtos reais) - ORDEM IMPORTA!
-    const produtoLower = productName.toLowerCase();
-    
-    // ⭐ CLOSE FRIENDS LITE 2.0 (detectar PRIMEIRO - mais específico)
-    if (produtoLower.includes('close friends lite 2.0') || 
-        produtoLower.includes('cf lite 2.0') ||
-        produtoLower.includes('lite 2.0')) {
-      return { 
-        plan: 'LITE_V2', 
-        productName: `Close Friends LITE 2.0 - ${productName}` 
-      };
-    }
-    
-    // ⭐ CLOSE FRIENDS LITE ORIGINAL (detectar depois - menos específico)
-    if (produtoLower.includes('close friends lite') || 
-        produtoLower.includes('cf lite') ||
-        (produtoLower.includes('lite') && !produtoLower.includes('2.0'))) {
-      return { 
-        plan: 'LITE', 
-        productName: `Close Friends LITE - ${productName}` 
-      };
-    }
-    
-    // 🔄 MIGRAÇÃO CF LITE (provavelmente é LITE original)
-    if (produtoLower.includes('migração') && produtoLower.includes('lite')) {
-      return { 
-        plan: 'LITE', 
-        productName: `Migração CF LITE - ${productName}` 
-      };
-    }
-    
-    // 👑 CLOSE FRIENDS VIP (todas as turmas)
-    if (produtoLower.includes('close friends vip') || 
-        produtoLower.includes('cf vip') ||
-        produtoLower.includes('vip') ||
-        produtoLower.includes('turma')) {
-      return { 
-        plan: 'VIP', 
-        productName: `Close Friends VIP - ${productName}` 
-      };
-    }
-    
-    // 🏢 PROJETO FIIs
-    if (produtoLower.includes('projeto fiis') || 
-        produtoLower.includes('fiis') ||
-        produtoLower.includes('fii')) {
-      return { 
-        plan: 'FIIS', 
-        productName: `Projeto FIIs - ${productName}` 
-      };
-    }
-    
-    // 📹 ANÁLISE EM VÍDEO (qual versão do LITE?)
-    if (produtoLower.includes('análise') && produtoLower.includes('vídeo')) {
-      // Por padrão, análise em vídeo = LITE original (você pode ajustar)
-      return { 
-        plan: 'LITE', 
-        productName: `Análise em Vídeo - ${productName}` 
-      };
-    }
-    
-    // 🔢 FALLBACK POR VALOR (se não conseguir pelo nome)
-    const valor = webhookData.amount || webhookData.total_value || webhookData.value || 0;
-    console.log(`💰 Valor da compra: R$ ${valor}`);
-    
-    if (valor > 0) {
-      // Ajustar valores conforme seus preços reais
-      if (valor >= 150) {
-        return { plan: 'VIP', productName: `Produto VIP - R$ ${valor}` };
-      } else if (valor >= 100) {
-        return { plan: 'FIIS', productName: `Projeto FIIs - R$ ${valor}` };
-      } else {
-        // Para LITE, como diferenciar V1 de V2 por valor?
-        // Assumir V2 como padrão para novos produtos
-        return { plan: 'LITE_V2', productName: `Close Friends LITE 2.0 - R$ ${valor}` };
-      }
-    }
-    
-    // 🎯 FALLBACK FINAL: LITE V2 como padrão mais seguro (produto mais recente)
-    console.log(`⚠️ Não foi possível detectar o plano específico, usando LITE V2 como padrão`);
-    return { 
-      plan: 'LITE_V2', 
-      productName: `Produto Não Identificado - ${productName || 'Sem Nome'}` 
-    };
-    
-  } catch (error) {
-    console.error('❌ Erro ao detectar plano:', error);
-    return { 
-      plan: 'LITE_V2', 
-      productName: 'Produto com Erro de Detecção'
-    };
-  }
+interface KiwifyIntegration {
+  id: string;
+  productName: string;
+  token: string;
+  plan: string;
+  webhookUrl: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  totalSales?: number;
 }
 
-// Função para gerar senha segura
-function generateSecurePassword(): string {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const symbols = '!@#$%&*';
-  let password = '';
-  
-  for (let i = 0; i < 6; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  for (let i = 0; i < 2; i++) {
-    password += symbols.charAt(Math.floor(Math.random() * symbols.length));
-  }
-  
-  return password.split('').sort(() => Math.random() - 0.5).join('');
-}
+export default function KiwifyPage() {
+  const router = useRouter();
+  const [integrations, setIntegrations] = useState<KiwifyIntegration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState<KiwifyIntegration | null>(null);
 
-// Calcular data de expiração - TODOS OS PLANOS = 1 ANO
-function calculateExpirationDate(): Date {
-  const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + 365);
-  return expirationDate;
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { token: string } }
-) {
-  try {
-    const token = params.token;
-    console.log(`🥝 Webhook Kiwify recebido para token: ${token}`);
-
-    // Verificar se o token existe
-    const integration = KIWIFY_TOKEN_MAPPING[token];
-    if (!integration) {
-      console.log(`❌ Token Kiwify ${token} não encontrado`);
-      return NextResponse.json(
-        { error: `Token Kiwify ${token} não configurado` },
-        { status: 404 }
-      );
-    }
-
-    let webhookData;
-    try {
-      webhookData = await request.json();
-    } catch (jsonError) {
-      console.error('❌ Erro ao parsear JSON:', jsonError);
-      return NextResponse.json(
-        { error: 'JSON inválido' },
-        { status: 400 }
-      );
-    }
-
-    console.log('📦 Dados do webhook Kiwify:', JSON.stringify(webhookData, null, 2));
-
-    // 🔍 DETECTAR PLANO AUTOMATICAMENTE (AGORA DEPOIS DO PARSE)
-    const { plan: planoDetectado, productName: nomeDetectado } = detectarPlanoKiwify(webhookData);
-    
-    // ✅ SOBRESCREVER DADOS DA INTEGRAÇÃO COM DETECÇÃO AUTOMÁTICA
-    const integrationData = {
-      name: nomeDetectado,
-      plan: planoDetectado,
-      integrationId: integration.integrationId
-    };
-
-    console.log(`✅ Integração Kiwify encontrada: ${integrationData.name} → Plano ${integrationData.plan}`);
-
-    // Extrair evento (Kiwify usa diferentes eventos)
-    const event = webhookData.event || webhookData.type || 'order.paid';
-    console.log(`🎯 Evento Kiwify recebido: ${event}`);
-
-    // Extrair informações do Kiwify (estrutura diferente do Hotmart)
-    const orderData = webhookData.order || webhookData.data || webhookData;
-    const customerData = orderData.Customer || orderData.customer || orderData;
-    
-    const buyerEmail = customerData?.email || orderData?.email || webhookData.email;
-    const buyerName = customerData?.name || customerData?.full_name || orderData?.customer_name || 'Cliente Kiwify';
-    const transactionId = orderData?.order_id || orderData?.id || webhookData.order_id || `KW_${Date.now()}`;
-    const amount = orderData?.total_value || orderData?.amount || orderData?.value || 0;
-
-    console.log('🔍 Dados extraídos do Kiwify:', {
-      event, buyerEmail, buyerName, transactionId, amount,
-      plan: integrationData.plan, // ✅ CORRIGIDO
-      integrationName: integrationData.name, // ✅ CORRIGIDO
-      token: token
-    });
-
-    // Processar diferentes tipos de eventos Kiwify
-    if (event === 'order.refunded' || event === 'order.cancelled' || event === 'order.chargeback') {
-      // REEMBOLSO/CANCELAMENTO - BLOQUEAR USUÁRIO
-      console.log(`🚫 Evento de ${event} no Kiwify - bloqueando usuário`);
-      
-      if (!buyerEmail || !buyerEmail.includes('@')) {
-        console.log('❌ Email inválido para reembolso Kiwify:', buyerEmail);
-        return NextResponse.json({
-          error: 'Email do comprador é obrigatório para processar reembolso',
-          received_email: buyerEmail
-        }, { status: 400 });
-      }
-
-      await prisma.$connect();
-
-      const email = buyerEmail.toLowerCase().trim();
-      let user = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (user) {
-        // BLOQUEAR usuário por reembolso
-        user = await prisma.user.update({
-          where: { email },
-          data: {
-            status: 'INACTIVE',
-            expirationDate: new Date(Date.now() - 24 * 60 * 60 * 1000) // Ontem
-          }
-        });
-
-        // Registrar reembolso
-        try {
-          await prisma.purchase.create({
-            data: {
-              userId: user.id,
-              amount: -(amount || 0),
-              productName: `${integrationData.name} - REEMBOLSO`,
-              hotmartTransactionId: transactionId,
-              status: 'REFUNDED'
-            }
-          });
-          console.log(`💸 Reembolso Kiwify registrado: -${amount} - ${integrationData.name}`);
-        } catch (purchaseError) {
-          console.error('⚠️ Erro ao registrar reembolso Kiwify:', purchaseError);
-        }
-
-        await prisma.$disconnect();
-
-        return NextResponse.json({
-          success: true,
-          message: `Reembolso Kiwify processado - usuário bloqueado`,
-          platform: 'Kiwify',
-          event: event,
-          user: { id: user.id, email: user.email, status: user.status, blocked: true }
-        });
-      }
-    }
-
-    // EVENTOS DE COMPRA (order.paid, order.approved, etc.)
-    if (!['order.paid', 'order.approved', 'order.completed'].includes(event)) {
-      console.log(`📝 Evento Kiwify ${event} não processado pelo sistema`);
-      return NextResponse.json({
-        success: true,
-        message: `Evento Kiwify ${event} recebido mas não processado`,
-        platform: 'Kiwify',
-        event: event
-      });
-    }
-
-    console.log(`✅ Processando evento de compra Kiwify: ${event}`);
-
-    // Validação mínima
-    if (!buyerEmail || !buyerEmail.includes('@')) {
-      console.log('❌ Email inválido:', buyerEmail);
-      return NextResponse.json({
-        error: 'Email do comprador é obrigatório e deve ser válido',
-        received_email: buyerEmail
-      }, { status: 400 });
-    }
-
-    // Conectar ao banco
-    await prisma.$connect();
-
-    // Verificar se usuário já existe
-    const email = buyerEmail.toLowerCase().trim();
-    let user = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    let isNewUser = false;
-    let tempPassword = '';
-
-    if (user) {
-      // ATUALIZAR usuário existente
-      console.log(`🔄 Atualizando usuário existente: ${email}`);
-      
-      user = await prisma.user.update({
-        where: { email },
-        data: {
-          plan: integrationData.plan, // 🔥 PLANO DETECTADO AUTOMATICAMENTE
-          status: 'ACTIVE',
-          hotmartCustomerId: transactionId,
-          expirationDate: calculateExpirationDate()
-        }
-      });
-      
-      console.log(`✅ Usuário atualizado via Kiwify: ${email} → ${integrationData.plan}`);
-      
-    } else {
-      // CRIAR novo usuário
-      isNewUser = true;
-      tempPassword = generateSecurePassword();
-      const hashedPassword = await hashPassword(tempPassword);
-      
-      console.log(`➕ Criando novo usuário via Kiwify: ${email}`);
-      
-      const nameParts = buyerName.split(' ');
-      const firstName = nameParts[0] || 'Cliente';
-      const lastName = nameParts.slice(1).join(' ') || 'Kiwify';
-      
-      user = await prisma.user.create({
-        data: {
-          email: email,
-          firstName: firstName,
-          lastName: lastName,
-          plan: integrationData.plan, // 🔥 PLANO DETECTADO AUTOMATICAMENTE
-          status: 'ACTIVE',
-          hotmartCustomerId: transactionId,
-          expirationDate: calculateExpirationDate(),
-          password: hashedPassword, // ✅ USANDO HASH SEGURO
-          passwordCreatedAt: new Date(),
-          mustChangePassword: true,
-          customPermissions: '[]'
-        }
-      });
-      
-      console.log(`✅ Novo usuário criado via Kiwify: ${email} → ${integrationData.plan}`);
-    }
-
-    // Registrar compra
-    try {
-      await prisma.purchase.create({
-        data: {
-          userId: user.id,
-          amount: amount || 0,
-          productName: integrationData.name, // 🔥 NOME DETECTADO
-          hotmartTransactionId: transactionId,
-          status: 'COMPLETED'
-        }
-      });
-      console.log(`💰 Compra Kiwify registrada: ${amount} - ${integrationData.name}`);
-    } catch (purchaseError) {
-      console.error('⚠️ Erro ao registrar compra Kiwify:', purchaseError);
-    }
-
-    // ❌ REMOVIDO ENVIO DE EMAIL (TEMPORARIAMENTE)
-    // let emailSent = false;
-    // let emailError = null;
-    
-    // if (isNewUser && tempPassword) {
-    //   try {
-    //     console.log(`📧 Enviando email de boas-vindas para ${email}...`);
-    //     await enviarEmailCredenciais(email, user.firstName || buyerName, tempPassword);
-    //     emailSent = true;
-    //     console.log('✅ Email enviado com sucesso via Kiwify!');
-    //   } catch (error: any) {
-    //     emailError = error.message;
-    //     console.error('❌ Erro ao enviar email via Kiwify:', error);
-    //   }
-    // }
-
-    await prisma.$disconnect();
-
-    const response = {
-      success: true,
-      message: `Webhook Kiwify processado com sucesso`,
-      platform: 'Kiwify',
-      integration: {
-        id: integrationData.integrationId,
-        name: integrationData.name,
-        plan: integrationData.plan,
-        token: token
-      },
-      productDetection: {
-        detectedPlan: integrationData.plan,
-        detectedProductName: integrationData.name,
-        originalProductName: webhookData.product_name || webhookData.name || 'N/A',
-        amount: amount
-      },
-      user: {
-        id: user.id,
-        email: user.email,
-        plan: user.plan,
-        status: user.status,
-        isNewUser: isNewUser,
-        tempPassword: isNewUser ? tempPassword : undefined // ✅ Mostra senha para debug
-      },
-      transaction: {
-        id: transactionId,
-        amount: amount,
-        product: integrationData.name
-      },
-      timestamp: new Date().toISOString()
-    };
-
-    console.log(`🥝 Webhook Kiwify ${token} processado com sucesso:`, response);
-
-    return NextResponse.json(response);
-
-  } catch (error: any) {
-    console.error(`❌ Erro no webhook Kiwify ${params.token}:`, error);
-
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error('❌ Erro ao desconectar:', disconnectError);
-    }
-
-    return NextResponse.json(
-      { 
-        error: 'Erro interno do servidor',
-        platform: 'Kiwify',
-        token: params.token,
-        message: error.message,
-        timestamp: new Date().toISOString()
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// GET para status da integração Kiwify
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { token: string } }
-) {
-  const token = params.token;
-  const integration = KIWIFY_TOKEN_MAPPING[token];
-
-  if (!integration) {
-    return NextResponse.json(
-      { error: `Token Kiwify ${token} não encontrado` },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json({
-    success: true,
-    platform: 'Kiwify',
-    integration: {
-      id: integration.integrationId,
-      name: 'Detecção Automática de Produtos',
-      plan: 'DETECTADO_AUTOMATICAMENTE',
-      token: token,
-      status: 'ACTIVE',
-      webhookUrl: `${new URL(request.url).origin}/api/webhooks/kiwify/${token}`,
-      supportedProducts: [
-        'Close Friends LITE 2.0',
-        'Close Friends VIP - Turma 7',
-        'Close Friends VIP - Turma 6',
-        'Close Friends VIP - Turma 5',
-        'Close Friends VIP - Turma 4', 
-        'Close Friends VIP - Turma 3',
-        'Close Friends VIP - Turma 2',
-        'Close Friends LITE',
-        'Projeto FIIs - Assinatura anual',
-        'Análise em vídeo - até 30 minutos',
-        'Migração CF Lite'
-      ]
-    },
-    message: `Integração Kiwify com detecção automática de ${11} produtos`,
-    timestamp: new Date().toISOString()
+  // Form state
+  const [formData, setFormData] = useState({
+    productName: '',
+    plan: 'VIP'
   });
+
+  // Carregar integrações
+  useEffect(() => {
+    loadIntegrations();
+  }, []);
+
+  const loadIntegrations = async () => {
+    try {
+      setLoading(true);
+      
+      // ✅ DADOS REAIS DA KIWIFY (não mock)
+      const realIntegrations: KiwifyIntegration[] = [
+        {
+          id: 'KW001',
+          productName: 'Produto Fatos da Bolsa',
+          token: '27419sqm9vm', // ✅ TOKEN REAL FUNCIONANDO
+          plan: 'VIP',
+          webhookUrl: `${window.location.origin}/api/webhooks/kiwify/27419sqm9vm`,
+          status: 'ACTIVE',
+          createdAt: '2024-07-16',
+          totalSales: 1 // ✅ JÁ TEM 1 USUÁRIO CRIADO
+        }
+      ];
+      
+      setIntegrations(realIntegrations);
+      console.log('✅ Integração Kiwify real carregada:', realIntegrations[0]);
+    } catch (error) {
+      console.error('Erro ao carregar integrações Kiwify:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateIntegration = () => {
+    setEditingIntegration(null);
+    setFormData({ productName: '', plan: 'VIP' });
+    setOpenDialog(true);
+  };
+
+  const handleEditIntegration = (integration: KiwifyIntegration) => {
+    setEditingIntegration(integration);
+    setFormData({
+      productName: integration.productName,
+      plan: integration.plan
+    });
+    setOpenDialog(true);
+  };
+
+  const handleSaveIntegration = async () => {
+    try {
+      // Gerar token único para Kiwify
+      const token = generateKiwifyToken();
+      
+      if (editingIntegration) {
+        // Atualizar integração existente
+        setIntegrations(prev => 
+          prev.map(int => 
+            int.id === editingIntegration.id 
+              ? { ...int, ...formData }
+              : int
+          )
+        );
+      } else {
+        // Criar nova integração
+        const integrationId = `KW${Math.random().toString().slice(2, 5)}`;
+        const newIntegration: KiwifyIntegration = {
+          id: integrationId,
+          ...formData,
+          token: token,
+          webhookUrl: `${window.location.origin}/api/webhooks/kiwify/${token}`,
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString().split('T')[0],
+          totalSales: 0
+        };
+        
+        setIntegrations(prev => [...prev, newIntegration]);
+        
+        console.log('✅ Nova integração Kiwify criada:', newIntegration);
+      }
+      
+      setOpenDialog(false);
+    } catch (error) {
+      console.error('Erro ao salvar integração Kiwify:', error);
+    }
+  };
+
+  // Função para gerar token único do Kiwify
+  const generateKiwifyToken = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let token = 'KW';
+    for (let i = 0; i < 15; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
+  };
+
+  const handleDeleteIntegration = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta integração?')) {
+      setIntegrations(prev => prev.filter(int => int.id !== id));
+    }
+  };
+
+  const toggleIntegrationStatus = async (id: string) => {
+    setIntegrations(prev =>
+      prev.map(int =>
+        int.id === id
+          ? { ...int, status: int.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }
+          : int
+      )
+    );
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Copiado para a área de transferência!');
+  };
+
+  const getPlanInfo = (plan: string) => {
+    const planMap: Record<string, { label: string; color: string; emoji: string }> = {
+      'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
+      'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
+      'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
+      'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
+      'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' }
+    };
+    return planMap[plan] || { label: plan, color: '#6B7280', emoji: '📋' };
+  };
+
+  const totalSales = integrations.reduce((sum, int) => sum + (int.totalSales || 0), 0);
+  const activeIntegrations = integrations.filter(int => int.status === 'ACTIVE').length;
+
+  return (
+    <Box sx={{ p: 4, backgroundColor: '#F8FAFC', minHeight: '100vh' }}>
+      {/* Breadcrumbs */}
+      <Breadcrumbs sx={{ mb: 3 }}>
+        <Link 
+          color="inherit" 
+          href="/dashboard/admin/integracoes"
+          sx={{ cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          onClick={(e) => { e.preventDefault(); router.push('/dashboard/admin/integracoes'); }}
+        >
+          🔗 Integrações
+        </Link>
+        <Typography color="text.primary">🥝 Kiwify</Typography>
+      </Breadcrumbs>
+
+      {/* Header */}
+      <Box mb={5}>
+        <Box display="flex" alignItems="center" mb={2}>
+          <Avatar sx={{ bgcolor: '#4ECDC420', color: '#4ECDC4', mr: 3, width: 56, height: 56, fontSize: '24px' }}>
+            🥝
+          </Avatar>
+          <Box>
+            <Typography variant="h4" component="h1" sx={{ color: '#1E293B', fontWeight: '700' }}>
+              Integrações Kiwify
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#64748B' }}>
+              Gerencie webhooks para produtos da plataforma Kiwify
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Stats */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#EFF6FF', color: '#3B82F6', mr: 2, fontSize: '20px' }}>
+                  🔗
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Total Integrações
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    {integrations.length}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#F0FDF4', color: '#059669', mr: 2, fontSize: '20px' }}>
+                  ✅
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Ativas
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    {activeIntegrations}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#FFFBEB', color: '#D97706', mr: 2, fontSize: '20px' }}>
+                  💰
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Total Vendas
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
+                    {totalSales}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center">
+                <Avatar sx={{ bgcolor: '#4ECDC420', color: '#4ECDC4', mr: 2, fontSize: '20px' }}>
+                  🥝
+                </Avatar>
+                <Box>
+                  <Typography color="textSecondary" variant="body2">
+                    Plataforma
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: '700', fontSize: '1.5rem' }}>
+                    Kiwify
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Informações específicas do Kiwify */}
+      <Alert severity="info" sx={{ mb: 4, borderRadius: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+          🥝 Configuração no Kiwify:
+        </Typography>
+        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+          No painel do Kiwify, vá em <strong>Integrações → Webhooks</strong>, adicione a URL gerada e selecione os eventos: <strong>order.paid</strong>, <strong>order.refunded</strong> e <strong>order.cancelled</strong>.
+        </Typography>
+      </Alert>
+
+      {/* Actions */}
+      <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6" sx={{ color: '#1E293B', fontWeight: '600' }}>
+          Suas Integrações Kiwify ({integrations.length})
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={handleCreateIntegration}
+          sx={{ 
+            bgcolor: '#4ECDC4', 
+            '&:hover': { bgcolor: '#45B7B8' },
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: '600'
+          }}
+        >
+          🥝 Nova Integração Kiwify
+        </Button>
+      </Box>
+
+      {/* Integrações Table */}
+      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#F8FAFC' }}>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Produto</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Plano</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Token</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Webhook URL</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Vendas</TableCell>
+                <TableCell sx={{ fontWeight: '600', color: '#475569' }}>Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {integrations.map((integration) => {
+                const planInfo = getPlanInfo(integration.plan);
+                
+                return (
+                  <TableRow key={integration.id} hover>
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <Avatar sx={{ 
+                          bgcolor: '#4ECDC420', 
+                          color: '#4ECDC4', 
+                          mr: 2, 
+                          width: 32, 
+                          height: 32 
+                        }}>
+                          🥝
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: '500' }}>
+                            Webhook Kiwify #{integration.id}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#64748B' }}>
+                            {integration.productName}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <span style={{ fontSize: '16px' }}>{planInfo.emoji}</span>
+                        <Chip
+                          label={planInfo.label}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: `${planInfo.color}20`,
+                            color: planInfo.color,
+                            fontWeight: '500'
+                          }}
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="caption" sx={{ 
+                          fontFamily: 'monospace', 
+                          color: '#64748B',
+                          backgroundColor: '#F8FAFC',
+                          padding: '4px 8px',
+                          borderRadius: 1,
+                          border: '1px solid #E2E8F0',
+                          fontSize: '0.75rem'
+                        }}>
+                          {integration.token?.substring(0, 12)}...
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => copyToClipboard(integration.token || '')}
+                          sx={{ color: '#4ECDC4' }}
+                          title="Copiar Token"
+                        >
+                          📋
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={integration.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                        size="small"
+                        color={integration.status === 'ACTIVE' ? 'success' : 'default'}
+                        sx={{ fontWeight: '500' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="caption" sx={{ 
+                          fontFamily: 'monospace', 
+                          color: '#64748B',
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {integration.webhookUrl}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => copyToClipboard(integration.webhookUrl)}
+                          sx={{ color: '#4ECDC4' }}
+                          title="Copiar URL Completa"
+                        >
+                          🔗
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: '500' }}>
+                        {integration.totalSales || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" gap={1}>
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleIntegrationStatus(integration.id)}
+                          sx={{ 
+                            color: integration.status === 'ACTIVE' ? '#DC2626' : '#059669',
+                            backgroundColor: integration.status === 'ACTIVE' ? '#FEF2F2' : '#F0FDF4'
+                          }}
+                          title={integration.status === 'ACTIVE' ? 'Desativar' : 'Ativar'}
+                        >
+                          {integration.status === 'ACTIVE' ? '⏸️' : '▶️'}
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditIntegration(integration)}
+                          sx={{ color: '#4ECDC4', backgroundColor: '#4ECDC410' }}
+                          title="Editar"
+                        >
+                          ⚙️
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteIntegration(integration.id)}
+                          sx={{ color: '#DC2626', backgroundColor: '#FEF2F2' }}
+                          title="Excluir"
+                        >
+                          🗑️
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {integrations.length === 0 && !loading && (
+          <Box p={6} textAlign="center">
+            <Typography variant="h6" sx={{ color: '#64748B', mb: 2 }}>
+              🥝 Nenhuma integração Kiwify configurada
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#64748B', mb: 3 }}>
+              Crie sua primeira integração com a Kiwify para começar a receber vendas automaticamente.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleCreateIntegration}
+              sx={{ bgcolor: '#4ECDC4', '&:hover': { bgcolor: '#45B7B8' } }}
+            >
+              Criar Primeira Integração Kiwify
+            </Button>
+          </Box>
+        )}
+      </Card>
+
+      {/* Dialog para criar/editar integração */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingIntegration ? 'Editar Integração Kiwify' : 'Nova Integração Kiwify'}
+        </DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={3} mt={2}>
+            <TextField
+              label="Nome do Produto/Configuração"
+              value={formData.productName}
+              onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
+              fullWidth
+              placeholder="Ex: Projeto Trump Kiwify, Close Friends VIP Kiwify"
+              helperText="Nome para identificar esta integração internamente"
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Plano do Sistema</InputLabel>
+              <Select
+                value={formData.plan}
+                onChange={(e) => setFormData(prev => ({ ...prev, plan: e.target.value }))}
+                label="Plano do Sistema"
+              >
+                <MenuItem value="VIP">👑 Close Friends VIP</MenuItem>
+                <MenuItem value="LITE">⭐ Close Friends LITE</MenuItem>
+                <MenuItem value="LITE_V2">🌟 Close Friends LITE 2.0</MenuItem>
+                <MenuItem value="RENDA_PASSIVA">💰 Projeto Renda Passiva</MenuItem>
+                <MenuItem value="FIIS">🏢 Projeto FIIs</MenuItem>
+                <MenuItem value="AMERICA">🇺🇸 Projeto América</MenuItem>
+              </Select>
+            </FormControl>
+            
+            {!editingIntegration && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+                  ✅ Configuração no Kiwify:
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                  1. Acesse <strong>Integrações → Webhooks</strong> no painel Kiwify<br/>
+                  2. Cole a URL gerada automaticamente<br/>
+                  3. Selecione eventos: <strong>order.paid</strong>, <strong>order.refunded</strong>, <strong>order.cancelled</strong><br/>
+                  4. Salve a configuração
+                </Typography>
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenDialog(false)}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveIntegration}
+            disabled={!formData.productName}
+            sx={{ bgcolor: '#4ECDC4', '&:hover': { bgcolor: '#45B7B8' } }}
+          >
+            {editingIntegration ? 'Salvar Alterações' : 'Criar Integração'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 }
