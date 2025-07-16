@@ -1828,9 +1828,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
                   
                   {relatorio.tamanhoArquivo && (
                     <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                      📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
-                      {relatorio.tipoPdf === 'base64' && ' (Base64)'}
-                      {relatorio.tipoPdf === 'referencia' && ' (Referência)'}
+                      {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
                     </p>
                   )}
                 </div>
@@ -1880,6 +1878,14 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
               </div>
             ))}
             
+            {/* Rodapé informativo */}
+            <div style={{
+              marginTop: '16px',
+              padding: '12px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
           </div>
         )}
       </div>
