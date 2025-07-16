@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { enviarEmailCredenciais } from '@/lib/email'; // ✅ ADICIONADO
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.NODE_ENV === 'production' 
@@ -274,12 +275,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 POST /api/admin/users - CRIANDO COM HOTMART');
+  console.log('🚀 POST /api/admin/users - CRIANDO COM HOTMART E EMAIL');
   
   try {
     const headers = {
       'Content-Type': 'application/json'
     };
+    
+    // 🔍 Testar configuração SMTP
+    console.log('🔍 Testando configuração SMTP:');
+    console.log('SMTP_HOST:', process.env.SMTP_HOST || 'NÃO CONFIGURADO');
+    console.log('SMTP_PORT:', process.env.SMTP_PORT || 'NÃO CONFIGURADO');
+    console.log('SMTP_USER:', process.env.SMTP_USER ? 'Configurado' : 'NÃO CONFIGURADO');
+    console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'Configurado' : 'NÃO CONFIGURADO');
+    console.log('SMTP_FROM:', process.env.SMTP_FROM || 'NÃO CONFIGURADO');
+    console.log('NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL || 'NÃO CONFIGURADO');
     
     // Verificar autenticação
     const admin = await verifyAuth(request);
@@ -344,7 +354,7 @@ export async function POST(request: NextRequest) {
     
     // Gerar senha temporária
     const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase() + '!';
-    console.log(`🔑 Senha temporária gerada para ${email}`);
+    console.log(`🔑 Senha temporária gerada para ${email}: ${tempPassword}`);
     
     // Criar usuário no banco
     const novoUsuario = await prisma.user.create({
@@ -382,9 +392,27 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Usuário criado com integração Hotmart:', novoUsuario.email);
     
+    // 📧 ENVIAR EMAIL COM CREDENCIAIS
+    let emailSent = false;
+    let emailError = null;
+    
+    try {
+      console.log(`📧 Enviando email de credenciais para ${email}...`);
+      await enviarEmailCredenciais(email, firstName, tempPassword);
+      emailSent = true;
+      console.log('✅ Email enviado com sucesso!');
+    } catch (error: any) {
+      emailError = error.message;
+      console.error('❌ Erro ao enviar email:', error);
+      console.error('❌ Stack do erro:', error.stack);
+      // Não falha a criação do usuário por causa do email
+    }
+    
     return NextResponse.json({
       success: true,
-      message: 'Usuário criado com sucesso com integração Hotmart',
+      message: emailSent 
+        ? 'Usuário criado com sucesso! Email com credenciais enviado.' 
+        : 'Usuário criado, mas houve erro no envio do email.',
       user: {
         id: novoUsuario.id,
         email: novoUsuario.email,
@@ -394,10 +422,22 @@ export async function POST(request: NextRequest) {
         status: novoUsuario.status,
         hotmartCustomerId: novoUsuario.hotmartCustomerId
       },
-      tempPassword, // Em produção, envie por email
+      email: {
+        sent: emailSent,
+        error: emailError
+      },
+      // ✅ Só retorna a senha se o email falhou (para segurança)
+      tempPassword: emailSent ? undefined : tempPassword,
       hotmartIntegration: {
         enabled: true,
         message: 'Usuário preparado para validação via Hotmart'
+      },
+      // ✅ Debug info sobre SMTP
+      smtpConfig: {
+        configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+        host: process.env.SMTP_HOST || 'NOT_SET',
+        port: process.env.SMTP_PORT || 'NOT_SET',
+        from: process.env.SMTP_FROM || 'NOT_SET'
       }
     }, {
       status: 201,
