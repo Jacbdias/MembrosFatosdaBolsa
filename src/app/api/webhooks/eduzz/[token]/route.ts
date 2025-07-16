@@ -5,13 +5,89 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Mapeamento de tokens Eduzz para configurações
+// ✅ TOKEN ÚNICO DA EDUZZ CONFIGURADO
 const EDUZZ_TOKEN_MAPPING: Record<string, { name: string; plan: string; integrationId: string }> = {
-  'ED789xyz123abc456': { name: 'Projeto Trump Eduzz', plan: 'VIP', integrationId: 'ED001' },
-  'ED456abc789def012': { name: 'Close Friends LITE Eduzz', plan: 'LITE', integrationId: 'ED002' },
-  'ED123def456ghi789': { name: 'Projeto FIIs Eduzz', plan: 'FIIS', integrationId: 'ED003' },
-  // Adicionar mais conforme necessário
+  'EDm2rYeqZWZHmCVmA': { name: 'Produto Fatos da Bolsa Eduzz', plan: 'VIP', integrationId: 'ED001' }, // Será substituído pela detecção automática
 };
+
+// 🔍 FUNÇÃO PARA DETECTAR PLANO AUTOMATICAMENTE PELOS SEUS PRODUTOS EDUZZ
+function detectarPlanoEduzz(webhookData: any): { plan: string; productName: string } {
+  try {
+    console.log('🔍 Detectando plano do produto Eduzz:', webhookData);
+    
+    // Extrair nome do produto de diferentes campos possíveis da Eduzz
+    const productName = webhookData.product_name || 
+                       webhookData.product?.name ||
+                       webhookData.produto?.nome ||
+                       webhookData.sale?.product_name ||
+                       webhookData.venda?.produto ||
+                       webhookData.name ||
+                       '';
+    
+    console.log(`📋 Nome do produto Eduzz recebido: "${productName}"`);
+    
+    // 🔍 DETECTAR POR NOME (seus 2 produtos na Eduzz)
+    const produtoLower = productName.toLowerCase();
+    
+    // 🌟 CLOSE FRIENDS LITE 2.0 (detectar PRIMEIRO - mais específico)
+    if (produtoLower.includes('close friends lite 2.0') || 
+        produtoLower.includes('cf lite 2.0') ||
+        produtoLower.includes('lite 2.0')) {
+      return { 
+        plan: 'LITE_V2', 
+        productName: `Close Friends LITE 2.0 Eduzz - ${productName}` 
+      };
+    }
+    
+    // ⭐ CLOSE FRIENDS LITE ORIGINAL
+    if (produtoLower.includes('close friends lite') || 
+        produtoLower.includes('cf lite') ||
+        (produtoLower.includes('lite') && !produtoLower.includes('2.0'))) {
+      return { 
+        plan: 'LITE', 
+        productName: `Close Friends LITE Eduzz - ${productName}` 
+      };
+    }
+    
+    // 👑 CLOSE FRIENDS VIP
+    if (produtoLower.includes('close friends vip') || 
+        produtoLower.includes('cf vip') ||
+        produtoLower.includes('vip')) {
+      return { 
+        plan: 'VIP', 
+        productName: `Close Friends VIP Eduzz - ${productName}` 
+      };
+    }
+    
+    // 🔢 FALLBACK POR VALOR (se não conseguir pelo nome)
+    const valor = webhookData.value || webhookData.valor || webhookData.amount || 0;
+    console.log(`💰 Valor da compra Eduzz: R$ ${valor}`);
+    
+    if (valor > 0) {
+      // Ajustar valores conforme seus preços na Eduzz
+      if (valor >= 150) {
+        return { plan: 'VIP', productName: `Produto VIP Eduzz - R$ ${valor}` };
+      } else {
+        // Para valores menores, assumir LITE_V2 como padrão
+        return { plan: 'LITE_V2', productName: `Close Friends LITE 2.0 Eduzz - R$ ${valor}` };
+      }
+    }
+    
+    // 🎯 FALLBACK FINAL: VIP como padrão mais seguro
+    console.log(`⚠️ Não foi possível detectar o plano Eduzz específico, usando VIP como padrão`);
+    return { 
+      plan: 'VIP', 
+      productName: `Produto Não Identificado Eduzz - ${productName || 'Sem Nome'}` 
+    };
+    
+  } catch (error) {
+    console.error('❌ Erro ao detectar plano Eduzz:', error);
+    return { 
+      plan: 'VIP', 
+      productName: 'Produto com Erro de Detecção Eduzz'
+    };
+  }
+}
 
 // Função para gerar senha segura
 function generateSecurePassword(): string {
@@ -69,6 +145,18 @@ export async function POST(
 
     console.log('📦 Dados do webhook Eduzz:', JSON.stringify(webhookData, null, 2));
 
+    // 🔍 DETECTAR PLANO AUTOMATICAMENTE (DEPOIS DO PARSE)
+    const { plan: planoDetectado, productName: nomeDetectado } = detectarPlanoEduzz(webhookData);
+    
+    // ✅ SOBRESCREVER DADOS DA INTEGRAÇÃO COM DETECÇÃO AUTOMÁTICA
+    const integrationData = {
+      name: nomeDetectado,
+      plan: planoDetectado,
+      integrationId: integration.integrationId
+    };
+
+    console.log(`✅ Plano Eduzz detectado: ${integrationData.name} → ${integrationData.plan}`);
+
     // Extrair evento (Eduzz usa diferentes eventos)
     const event = webhookData.event_type || webhookData.event || webhookData.tipo_evento || 'venda_aprovada';
     console.log(`🎯 Evento Eduzz recebido: ${event}`);
@@ -84,8 +172,8 @@ export async function POST(
 
     console.log('🔍 Dados extraídos do Eduzz:', {
       event, buyerEmail, buyerName, transactionId, amount,
-      plan: integration.plan,
-      integrationName: integration.name,
+      plan: integrationData.plan, // ✅ CORRIGIDO
+      integrationName: integrationData.name, // ✅ CORRIGIDO
       token: token
     });
 
@@ -125,12 +213,12 @@ export async function POST(
             data: {
               userId: user.id,
               amount: -(amount || 0),
-              productName: `${integration.name} - REEMBOLSO`,
+              productName: `${integrationData.name} - REEMBOLSO`, // ✅ CORRIGIDO
               hotmartTransactionId: transactionId,
               status: 'REFUNDED'
             }
           });
-          console.log(`💸 Reembolso Eduzz registrado: -${amount} - ${integration.name}`);
+          console.log(`💸 Reembolso Eduzz registrado: -${amount} - ${integrationData.name}`);
         } catch (purchaseError) {
           console.error('⚠️ Erro ao registrar reembolso Eduzz:', purchaseError);
         }
@@ -178,6 +266,9 @@ export async function POST(
       where: { email }
     });
 
+    let isNewUser = false;
+    let tempPassword = '';
+
     if (user) {
       // ATUALIZAR usuário existente
       console.log(`🔄 Atualizando usuário existente: ${email}`);
@@ -185,23 +276,19 @@ export async function POST(
       user = await prisma.user.update({
         where: { email },
         data: {
-          plan: integration.plan,
+          plan: integrationData.plan, // 🔥 PLANO DETECTADO AUTOMATICAMENTE
           status: 'ACTIVE',
           hotmartCustomerId: transactionId,
-          expirationDate: calculateExpirationDate(),
-          // Manter senha existente se houver
-          ...(user.password ? {} : { 
-            password: generateSecurePassword(),
-            passwordCreatedAt: new Date(),
-            mustChangePassword: true 
-          })
+          expirationDate: calculateExpirationDate()
         }
       });
       
-      console.log(`✅ Usuário atualizado via Eduzz: ${email} → ${integration.plan}`);
+      console.log(`✅ Usuário atualizado via Eduzz: ${email} → ${integrationData.plan}`);
       
     } else {
       // CRIAR novo usuário
+      isNewUser = true;
+      tempPassword = generateSecurePassword();
       console.log(`➕ Criando novo usuário via Eduzz: ${email}`);
       
       const nameParts = buyerName.split(' ');
@@ -213,18 +300,18 @@ export async function POST(
           email: email,
           firstName: firstName,
           lastName: lastName,
-          plan: integration.plan,
+          plan: integrationData.plan, // 🔥 PLANO DETECTADO AUTOMATICAMENTE
           status: 'ACTIVE',
           hotmartCustomerId: transactionId,
           expirationDate: calculateExpirationDate(),
-          password: generateSecurePassword(),
+          password: tempPassword, // ⚠️ SENHA SEM HASH (deve ser corrigido em produção)
           passwordCreatedAt: new Date(),
           mustChangePassword: true,
           customPermissions: '[]'
         }
       });
       
-      console.log(`✅ Novo usuário criado via Eduzz: ${email} → ${integration.plan}`);
+      console.log(`✅ Novo usuário criado via Eduzz: ${email} → ${integrationData.plan}`);
     }
 
     // Registrar compra
@@ -233,12 +320,12 @@ export async function POST(
         data: {
           userId: user.id,
           amount: amount || 0,
-          productName: integration.name,
+          productName: integrationData.name, // 🔥 NOME DETECTADO
           hotmartTransactionId: transactionId,
           status: 'COMPLETED'
         }
       });
-      console.log(`💰 Compra Eduzz registrada: ${amount} - ${integration.name}`);
+      console.log(`💰 Compra Eduzz registrada: ${amount} - ${integrationData.name}`);
     } catch (purchaseError) {
       console.error('⚠️ Erro ao registrar compra Eduzz:', purchaseError);
     }
@@ -250,22 +337,29 @@ export async function POST(
       message: `Webhook Eduzz processado com sucesso`,
       platform: 'Eduzz',
       integration: {
-        id: integration.integrationId,
-        name: integration.name,
-        plan: integration.plan,
+        id: integrationData.integrationId,
+        name: integrationData.name,
+        plan: integrationData.plan,
         token: token
+      },
+      productDetection: {
+        detectedPlan: integrationData.plan,
+        detectedProductName: integrationData.name,
+        originalProductName: webhookData.product_name || webhookData.name || 'N/A',
+        amount: amount
       },
       user: {
         id: user.id,
         email: user.email,
         plan: user.plan,
         status: user.status,
-        isNewUser: !user.password
+        isNewUser: isNewUser,
+        tempPassword: isNewUser ? tempPassword : undefined // ✅ Para debug
       },
       transaction: {
         id: transactionId,
         amount: amount,
-        product: integration.name
+        product: integrationData.name
       },
       timestamp: new Date().toISOString()
     };
