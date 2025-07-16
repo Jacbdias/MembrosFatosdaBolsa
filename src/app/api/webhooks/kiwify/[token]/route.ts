@@ -9,9 +9,117 @@ const prisma = new PrismaClient();
 
 // ✅ TOKEN ÚNICO DA KIWIFY CONFIGURADO
 const KIWIFY_TOKEN_MAPPING: Record<string, { name: string; plan: string; integrationId: string }> = {
-  '27419sqm9vm': { name: 'Produto Fatos da Bolsa', plan: 'VIP', integrationId: 'KW001' },
-  // Se tiver produtos diferentes, pode mapear por outro campo no futuro
+  '27419sqm9vm': { name: 'Produto Fatos da Bolsa', plan: 'VIP', integrationId: 'KW001' }, // Será substituído pela detecção automática
 };
+
+// 🔍 FUNÇÃO PARA DETECTAR PLANO AUTOMATICAMENTE PELOS SEUS PRODUTOS
+function detectarPlanoKiwify(webhookData: any): { plan: string; productName: string } {
+  try {
+    console.log('🔍 Detectando plano do produto Kiwify:', webhookData);
+    
+    // Extrair nome do produto de diferentes campos possíveis
+    const productName = webhookData.product_name || 
+                       webhookData.product?.name ||
+                       webhookData.offer_name ||
+                       webhookData.product_title ||
+                       webhookData.name ||
+                       '';
+    
+    console.log(`📋 Nome do produto recebido: "${productName}"`);
+    
+    // 🔍 DETECTAR POR NOME (seus produtos reais) - ORDEM IMPORTA!
+    const produtoLower = productName.toLowerCase();
+    
+    // ⭐ CLOSE FRIENDS LITE 2.0 (detectar PRIMEIRO - mais específico)
+    if (produtoLower.includes('close friends lite 2.0') || 
+        produtoLower.includes('cf lite 2.0') ||
+        produtoLower.includes('lite 2.0')) {
+      return { 
+        plan: 'LITE_V2', 
+        productName: `Close Friends LITE 2.0 - ${productName}` 
+      };
+    }
+    
+    // ⭐ CLOSE FRIENDS LITE ORIGINAL (detectar depois - menos específico)
+    if (produtoLower.includes('close friends lite') || 
+        produtoLower.includes('cf lite') ||
+        (produtoLower.includes('lite') && !produtoLower.includes('2.0'))) {
+      return { 
+        plan: 'LITE', 
+        productName: `Close Friends LITE - ${productName}` 
+      };
+    }
+    
+    // 🔄 MIGRAÇÃO CF LITE (provavelmente é LITE original)
+    if (produtoLower.includes('migração') && produtoLower.includes('lite')) {
+      return { 
+        plan: 'LITE', 
+        productName: `Migração CF LITE - ${productName}` 
+      };
+    }
+    
+    // 👑 CLOSE FRIENDS VIP (todas as turmas)
+    if (produtoLower.includes('close friends vip') || 
+        produtoLower.includes('cf vip') ||
+        produtoLower.includes('vip') ||
+        produtoLower.includes('turma')) {
+      return { 
+        plan: 'VIP', 
+        productName: `Close Friends VIP - ${productName}` 
+      };
+    }
+    
+    // 🏢 PROJETO FIIs
+    if (produtoLower.includes('projeto fiis') || 
+        produtoLower.includes('fiis') ||
+        produtoLower.includes('fii')) {
+      return { 
+        plan: 'FIIS', 
+        productName: `Projeto FIIs - ${productName}` 
+      };
+    }
+    
+    // 📹 ANÁLISE EM VÍDEO (qual versão do LITE?)
+    if (produtoLower.includes('análise') && produtoLower.includes('vídeo')) {
+      // Por padrão, análise em vídeo = LITE original (você pode ajustar)
+      return { 
+        plan: 'LITE', 
+        productName: `Análise em Vídeo - ${productName}` 
+      };
+    }
+    
+    // 🔢 FALLBACK POR VALOR (se não conseguir pelo nome)
+    const valor = webhookData.amount || webhookData.total_value || webhookData.value || 0;
+    console.log(`💰 Valor da compra: R$ ${valor}`);
+    
+    if (valor > 0) {
+      // Ajustar valores conforme seus preços reais
+      if (valor >= 150) {
+        return { plan: 'VIP', productName: `Produto VIP - R$ ${valor}` };
+      } else if (valor >= 100) {
+        return { plan: 'FIIS', productName: `Projeto FIIs - R$ ${valor}` };
+      } else {
+        // Para LITE, como diferenciar V1 de V2 por valor?
+        // Assumir V2 como padrão para novos produtos
+        return { plan: 'LITE_V2', productName: `Close Friends LITE 2.0 - R$ ${valor}` };
+      }
+    }
+    
+    // 🎯 FALLBACK FINAL: LITE V2 como padrão mais seguro (produto mais recente)
+    console.log(`⚠️ Não foi possível detectar o plano específico, usando LITE V2 como padrão`);
+    return { 
+      plan: 'LITE_V2', 
+      productName: `Produto Não Identificado - ${productName || 'Sem Nome'}` 
+    };
+    
+  } catch (error) {
+    console.error('❌ Erro ao detectar plano:', error);
+    return { 
+      plan: 'LITE_V2', 
+      productName: 'Produto com Erro de Detecção'
+    };
+  }
+}
 
 // Função para gerar senha segura
 function generateSecurePassword(): string {
@@ -54,8 +162,6 @@ export async function POST(
       );
     }
 
-    console.log(`✅ Integração Kiwify encontrada: ${integration.name} → Plano ${integration.plan}`);
-
     let webhookData;
     try {
       webhookData = await request.json();
@@ -68,6 +174,18 @@ export async function POST(
     }
 
     console.log('📦 Dados do webhook Kiwify:', JSON.stringify(webhookData, null, 2));
+
+    // 🔍 DETECTAR PLANO AUTOMATICAMENTE (AGORA DEPOIS DO PARSE)
+    const { plan: planoDetectado, productName: nomeDetectado } = detectarPlanoKiwify(webhookData);
+    
+    // ✅ SOBRESCREVER DADOS DA INTEGRAÇÃO COM DETECÇÃO AUTOMÁTICA
+    const integrationData = {
+      name: nomeDetectado,
+      plan: planoDetectado,
+      integrationId: integration.integrationId
+    };
+
+    console.log(`✅ Integração Kiwify encontrada: ${integrationData.name} → Plano ${integrationData.plan}`);
 
     // Extrair evento (Kiwify usa diferentes eventos)
     const event = webhookData.event || webhookData.type || 'order.paid';
@@ -84,8 +202,8 @@ export async function POST(
 
     console.log('🔍 Dados extraídos do Kiwify:', {
       event, buyerEmail, buyerName, transactionId, amount,
-      plan: integration.plan,
-      integrationName: integration.name,
+      plan: integrationData.plan, // ✅ CORRIGIDO
+      integrationName: integrationData.name, // ✅ CORRIGIDO
       token: token
     });
 
@@ -125,12 +243,12 @@ export async function POST(
             data: {
               userId: user.id,
               amount: -(amount || 0),
-              productName: `${integration.name} - REEMBOLSO`,
+              productName: `${integrationData.name} - REEMBOLSO`,
               hotmartTransactionId: transactionId,
               status: 'REFUNDED'
             }
           });
-          console.log(`💸 Reembolso Kiwify registrado: -${amount} - ${integration.name}`);
+          console.log(`💸 Reembolso Kiwify registrado: -${amount} - ${integrationData.name}`);
         } catch (purchaseError) {
           console.error('⚠️ Erro ao registrar reembolso Kiwify:', purchaseError);
         }
@@ -188,14 +306,14 @@ export async function POST(
       user = await prisma.user.update({
         where: { email },
         data: {
-          plan: integration.plan,
+          plan: integrationData.plan, // 🔥 PLANO DETECTADO AUTOMATICAMENTE
           status: 'ACTIVE',
           hotmartCustomerId: transactionId,
           expirationDate: calculateExpirationDate()
         }
       });
       
-      console.log(`✅ Usuário atualizado via Kiwify: ${email} → ${integration.plan}`);
+      console.log(`✅ Usuário atualizado via Kiwify: ${email} → ${integrationData.plan}`);
       
     } else {
       // CRIAR novo usuário
@@ -214,7 +332,7 @@ export async function POST(
           email: email,
           firstName: firstName,
           lastName: lastName,
-          plan: integration.plan,
+          plan: integrationData.plan, // 🔥 PLANO DETECTADO AUTOMATICAMENTE
           status: 'ACTIVE',
           hotmartCustomerId: transactionId,
           expirationDate: calculateExpirationDate(),
@@ -225,7 +343,7 @@ export async function POST(
         }
       });
       
-      console.log(`✅ Novo usuário criado via Kiwify: ${email} → ${integration.plan}`);
+      console.log(`✅ Novo usuário criado via Kiwify: ${email} → ${integrationData.plan}`);
     }
 
     // Registrar compra
@@ -234,12 +352,12 @@ export async function POST(
         data: {
           userId: user.id,
           amount: amount || 0,
-          productName: integration.name,
+          productName: integrationData.name, // 🔥 NOME DETECTADO
           hotmartTransactionId: transactionId,
           status: 'COMPLETED'
         }
       });
-      console.log(`💰 Compra Kiwify registrada: ${amount} - ${integration.name}`);
+      console.log(`💰 Compra Kiwify registrada: ${amount} - ${integrationData.name}`);
     } catch (purchaseError) {
       console.error('⚠️ Erro ao registrar compra Kiwify:', purchaseError);
     }
@@ -267,10 +385,16 @@ export async function POST(
       message: `Webhook Kiwify processado com sucesso`,
       platform: 'Kiwify',
       integration: {
-        id: integration.integrationId,
-        name: integration.name,
-        plan: integration.plan,
+        id: integrationData.integrationId,
+        name: integrationData.name,
+        plan: integrationData.plan,
         token: token
+      },
+      productDetection: {
+        detectedPlan: integrationData.plan,
+        detectedProductName: integrationData.name,
+        originalProductName: webhookData.product_name || webhookData.name || 'N/A',
+        amount: amount
       },
       user: {
         id: user.id,
@@ -283,7 +407,7 @@ export async function POST(
       transaction: {
         id: transactionId,
         amount: amount,
-        product: integration.name
+        product: integrationData.name
       },
       timestamp: new Date().toISOString()
     };
@@ -334,13 +458,26 @@ export async function GET(
     platform: 'Kiwify',
     integration: {
       id: integration.integrationId,
-      name: integration.name,
-      plan: integration.plan,
+      name: 'Detecção Automática de Produtos',
+      plan: 'DETECTADO_AUTOMATICAMENTE',
       token: token,
       status: 'ACTIVE',
-      webhookUrl: `${new URL(request.url).origin}/api/webhooks/kiwify/${token}`
+      webhookUrl: `${new URL(request.url).origin}/api/webhooks/kiwify/${token}`,
+      supportedProducts: [
+        'Close Friends LITE 2.0',
+        'Close Friends VIP - Turma 7',
+        'Close Friends VIP - Turma 6',
+        'Close Friends VIP - Turma 5',
+        'Close Friends VIP - Turma 4', 
+        'Close Friends VIP - Turma 3',
+        'Close Friends VIP - Turma 2',
+        'Close Friends LITE',
+        'Projeto FIIs - Assinatura anual',
+        'Análise em vídeo - até 30 minutos',
+        'Migração CF Lite'
+      ]
     },
-    message: `Integração Kiwify ${integration.name} ativa e funcionando`,
+    message: `Integração Kiwify com detecção automática de ${11} produtos`,
     timestamp: new Date().toISOString()
   });
 }
