@@ -32,7 +32,7 @@ interface User {
   lastName: string;
   email: string;
   avatar?: string;
-  plan: 'VIP' | 'LITE' | 'RENDA_PASSIVA' | 'FIIS' | 'AMERICA' | 'ADMIN';
+  plan: 'VIP' | 'LITE' | 'LITE_V2' | 'RENDA_PASSIVA' | 'FIIS' | 'AMERICA' | 'ADMIN'; // ✅ ADICIONADO LITE_V2
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   hotmartCustomerId?: string;
   createdAt: string;
@@ -172,10 +172,12 @@ export default function AdminUsersPage() {
     }
   };
 
+  // ✅ FUNÇÃO ATUALIZADA COM LITE_V2
   const getPlanInfo = (plan: string) => {
     const planMap = {
       'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
       'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
       'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
       'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
       'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' },
@@ -228,6 +230,24 @@ export default function AdminUsersPage() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ✅ STATS ATUALIZADAS INCLUINDO LITE_V2
+  const planStats = React.useMemo(() => {
+    const stats = {
+      total: users.length,
+      active: users.filter(u => u.status === 'ACTIVE').length,
+      byPlan: {
+        VIP: users.filter(u => u.plan === 'VIP').length,
+        LITE: users.filter(u => u.plan === 'LITE').length,
+        LITE_V2: users.filter(u => u.plan === 'LITE_V2').length, // ✅ ADICIONADO
+        FIIS: users.filter(u => u.plan === 'FIIS').length,
+        RENDA_PASSIVA: users.filter(u => u.plan === 'RENDA_PASSIVA').length,
+        AMERICA: users.filter(u => u.plan === 'AMERICA').length,
+        ADMIN: users.filter(u => u.plan === 'ADMIN').length
+      }
+    };
+    return stats;
+  }, [users]);
+
   // Debug info para desenvolvimento
   const debugInfo = React.useMemo(() => {
     const token = localStorage.getItem('custom-auth-token');
@@ -238,9 +258,10 @@ export default function AdminUsersPage() {
       userEmail,
       currentUser: user,
       usersCount: users.length,
+      planStats: planStats.byPlan,
       apiUrl: '/api/admin/users'
     };
-  }, [user, users.length]);
+  }, [user, users.length, planStats]);
 
   if (loading) {
     return (
@@ -268,9 +289,22 @@ export default function AdminUsersPage() {
           🛡️ Gerenciamento de Usuários
         </Typography>
         <Typography variant="body1" sx={{ color: '#64748B', fontSize: '1rem' }}>
-          Gerencie usuários, planos e integrações com Hotmart
+          Gerencie usuários, planos e integrações com Hotmart/Kiwify
         </Typography>
       </Box>
+
+      {/* ✅ ALERTA MOSTRANDO STATS DOS PLANOS */}
+      {planStats.byPlan.LITE_V2 > 0 && (
+        <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+            🌟 Close Friends LITE 2.0 Detectado!
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+            {planStats.byPlan.LITE_V2} usuário(s) com plano LITE 2.0 encontrado(s). 
+            LITE Original: {planStats.byPlan.LITE} | VIP: {planStats.byPlan.VIP} | FIIs: {planStats.byPlan.FIIS}
+          </Typography>
+        </Alert>
+      )}
 
       {/* Debug info em desenvolvimento */}
       {process.env.NODE_ENV === 'development' && (
@@ -285,6 +319,8 @@ export default function AdminUsersPage() {
         >
           <Typography variant="caption">
             Debug Info: API: {debugInfo.apiUrl} | Token: {debugInfo.hasToken ? '✅' : '❌'} | Email: {debugInfo.userEmail || 'N/A'} | Users: {debugInfo.usersCount}
+            <br />
+            Planos: VIP({planStats.byPlan.VIP}) LITE({planStats.byPlan.LITE}) LITE_V2({planStats.byPlan.LITE_V2}) FIIS({planStats.byPlan.FIIS})
           </Typography>
         </Alert>
       )}
@@ -621,6 +657,20 @@ export default function AdminUsersPage() {
                             fontSize: '0.75rem'
                           }}
                         />
+                        {/* ✅ BADGE ESPECIAL PARA LITE_V2 */}
+                        {user.plan === 'LITE_V2' && (
+                          <Chip
+                            label="NOVO"
+                            size="small"
+                            sx={{ 
+                              backgroundColor: '#1d4ed8',
+                              color: 'white',
+                              fontWeight: '700',
+                              fontSize: '10px',
+                              height: '18px'
+                            }}
+                          />
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell sx={{ borderBottom: '1px solid #F1F5F9', py: 2 }}>
