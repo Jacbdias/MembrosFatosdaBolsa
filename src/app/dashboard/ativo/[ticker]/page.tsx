@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
+import { relatoriosDB } from '../../../../utils/relatoriosDB';
 
 // ✅ IMPORT ÚNICO CORRIGIDO - todos os hooks e utilitários em um só lugar
 import { 
@@ -1575,30 +1576,81 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
 
 // Gerenciador de Relatórios
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
-  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [relatorios, setRelatorios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const dadosCentralizados = localStorage.getItem('relatorios_central');
-      
-      if (dadosCentralizados) {
-        const dados = JSON.parse(dadosCentralizados);
-        const relatoriosTicker = dados[ticker] || [];
-        
-        const relatoriosFormatados = relatoriosTicker.map((rel: any) => ({
-          ...rel,
-          arquivo: rel.arquivoPdf ? 'PDF_CENTRALIZADO' : undefined,
-          tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
-        }));
-        
-        setRelatorios(relatoriosFormatados);
-      } else {
-        setRelatorios([]);
+    const carregarRelatorios = async () => {
+      if (!ticker) {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Erro ao carregar relatórios:', error);
-      setRelatorios([]);
-    }
+
+      try {
+        setLoading(true);
+        console.log(`🔍 Buscando relatórios para ${ticker}...`);
+
+        // MÉTODO 1: Tentar IndexedDB real primeiro
+        try {
+          await relatoriosDB.init();
+          const relatoriosIndexedDB = await relatoriosDB.buscarRelatoriosTicker(ticker);
+          
+          if (relatoriosIndexedDB.length > 0) {
+            console.log(`✅ IndexedDB: ${relatoriosIndexedDB.length} relatórios encontrados para ${ticker}`);
+            
+            const relatoriosFormatados = relatoriosIndexedDB.map((rel: any) => ({
+              ...rel,
+              ticker, // Adicionar ticker de volta
+              arquivo: rel.arquivoPdf ? 'PDF_INDEXEDDB' : undefined,
+              tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
+            }));
+            
+            setRelatorios(relatoriosFormatados);
+            setLoading(false);
+            return;
+          }
+        } catch (indexedDBError) {
+          console.warn('IndexedDB falhou, tentando localStorage:', indexedDBError);
+        }
+
+        // MÉTODO 2: Buscar no localStorage como fallback
+        const dadosCentralizados = localStorage.getItem('relatorios_central');
+        if (dadosCentralizados) {
+          try {
+            const dados = JSON.parse(dadosCentralizados);
+            const relatoriosTicker = dados[ticker] || [];
+            
+            if (relatoriosTicker.length > 0) {
+              console.log(`✅ localStorage: ${relatoriosTicker.length} relatórios encontrados para ${ticker}`);
+              
+              const relatoriosFormatados = relatoriosTicker.map((rel: any) => ({
+                ...rel,
+                ticker,
+                arquivo: rel.arquivoPdf ? 'PDF_LOCALSTORAGE' : undefined,
+                tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
+              }));
+              
+              setRelatorios(relatoriosFormatados);
+              setLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.warn('Erro ao ler localStorage:', error);
+          }
+        }
+
+        console.log(`❌ Nenhum relatório encontrado para ${ticker}`);
+        setRelatorios([]);
+
+      } catch (error) {
+        console.error('Erro ao carregar relatórios:', error);
+        setRelatorios([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarRelatorios();
   }, [ticker]);
 
   const getIconePorTipo = (tipo: string) => {
@@ -1610,6 +1662,32 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
       default: return '📄';
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
+      }}>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 20px 0'
+        }}>
+          📋 Relatórios da Empresa
+        </h3>
+        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
+          <p>Carregando relatórios de {ticker}...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
