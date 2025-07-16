@@ -63,6 +63,12 @@ export function useAuthAccess() {
             'internacional', 'internacional-etfs', 'internacional-stocks',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
           ],
+          // ✅ ADICIONADO: Close Friends LITE 2.0
+          'LITE_V2': [
+            'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            // Nota: Não inclui 'internacional' (diferença do LITE original)
+          ],
           'RENDA_PASSIVA': [
             'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
@@ -81,7 +87,7 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 📊 ADICIONADO admin-renovacoes
+            'admin-relatorios', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs'
           ]
         };
 
@@ -102,6 +108,7 @@ export function useAuthAccess() {
         const planNames = {
           'VIP': 'Close Friends VIP',
           'LITE': 'Close Friends LITE', 
+          'LITE_V2': 'Close Friends LITE 2.0', // ✅ ADICIONADO
           'RENDA_PASSIVA': 'Projeto Renda Passiva',
           'FIIS': 'Projeto FIIs',
           'AMERICA': 'Projeto América',
