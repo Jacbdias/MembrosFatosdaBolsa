@@ -1574,10 +1574,12 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
   );
 });
 
-// Gerenciador de Relatórios
+// GerenciadorRelatorios com funcionalidades de visualização e download
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   const [relatorios, setRelatorios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
+  const [relatorioSelecionado, setRelatorioSelecionado] = useState<any>(null);
 
   useEffect(() => {
     const carregarRelatorios = async () => {
@@ -1663,6 +1665,70 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
     }
   };
 
+  // 🔥 FUNÇÃO PARA VISUALIZAR RELATÓRIO
+  const visualizarRelatorio = (relatorio: any) => {
+    console.log('👁️ Abrindo relatório:', relatorio.nome);
+    
+    if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
+      // Abrir link externo em nova aba
+      window.open(relatorio.linkExterno, '_blank');
+      return;
+    }
+    
+    if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
+      // Abrir Canva em nova aba
+      window.open(relatorio.linkCanva, '_blank');
+      return;
+    }
+    
+    if (relatorio.tipoVisualizacao === 'iframe' && relatorio.linkExterno) {
+      // Abrir em dialog/modal para iframe
+      setRelatorioSelecionado(relatorio);
+      setDialogVisualizacao(true);
+      return;
+    }
+    
+    // Fallback: tentar abrir link se existir
+    if (relatorio.linkExterno) {
+      window.open(relatorio.linkExterno, '_blank');
+    } else if (relatorio.linkCanva) {
+      window.open(relatorio.linkCanva, '_blank');
+    } else {
+      alert('📋 Link de visualização não disponível para este relatório');
+    }
+  };
+
+  // 🔥 FUNÇÃO PARA BAIXAR PDF
+  const baixarPDF = (relatorio: any) => {
+    console.log('📥 Baixando PDF:', relatorio.nome);
+    
+    if (relatorio.solicitarReupload) {
+      alert('⚠️ Este arquivo precisa de re-upload.\n\nMotivo: Arquivo muito grande (>3MB) foi salvo apenas como referência.\nPor favor, faça o upload novamente na Central de Relatórios.');
+      return;
+    }
+    
+    if (relatorio.arquivoPdf) {
+      try {
+        // Se é Base64, converter e baixar
+        if (relatorio.arquivoPdf.startsWith('data:')) {
+          const link = document.createElement('a');
+          link.href = relatorio.arquivoPdf;
+          link.download = relatorio.nomeArquivoPdf || `${relatorio.nome}.pdf`;
+          link.click();
+          console.log('✅ PDF baixado via Base64');
+        } else {
+          // Fallback: tentar como URL
+          window.open(relatorio.arquivoPdf, '_blank');
+        }
+      } catch (error) {
+        console.error('Erro ao baixar PDF:', error);
+        alert('❌ Erro ao baixar PDF. Arquivo pode estar corrompido.');
+      }
+    } else {
+      alert('📄 Arquivo PDF não disponível.\n\nEste relatório pode não ter PDF anexado ou o arquivo foi perdido.');
+    }
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -1690,105 +1756,244 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   }
 
   return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      borderRadius: '16px',
-      padding: '24px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      marginBottom: '32px'
-    }}>
-      <h3 style={{
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#1e293b',
-        margin: '0 0 20px 0'
+    <>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
       }}>
-        📋 Relatórios da Empresa
-      </h3>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 20px 0'
+        }}>
+          📋 Relatórios da Empresa
+        </h3>
 
-      {relatorios.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-          <p>Nenhum relatório cadastrado para {ticker}</p>
-        </div>
-      ) : (
-        <div>
-          {relatorios.map((relatorio) => (
-            <div key={relatorio.id} style={{ 
-              border: '1px solid #e2e8f0', 
-              borderRadius: '8px', 
-              marginBottom: '8px',
-              backgroundColor: 'white',
-              padding: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+        {relatorios.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+            <div style={{ marginBottom: '16px', fontSize: '48px' }}>📭</div>
+            <h4 style={{ marginBottom: '8px', color: '#1e293b' }}>
+              Nenhum relatório encontrado
+            </h4>
+            <p style={{ marginBottom: '16px' }}>
+              Não há relatórios cadastrados para <strong>{ticker}</strong>
+            </p>
+            <p style={{ fontSize: '14px', color: '#94a3b8' }}>
+              💡 Adicione relatórios através da Central de Relatórios
+            </p>
+          </div>
+        ) : (
+          <div>
+            {/* Indicador de fonte dos dados */}
+            <div style={{
+              marginBottom: '16px',
+              padding: '12px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '8px',
+              border: '1px solid #bfdbfe'
             }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
-                  <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
-                    {relatorio.nome}
-                  </h4>
-                  {relatorio.solicitarReupload && (
-                    <span style={{
-                      backgroundColor: '#f59e0b',
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: '600'
-                    }}>
-                      Re-upload
-                    </span>
+              <p style={{ 
+                margin: '0', 
+                fontSize: '14px', 
+                color: '#1e40af',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <strong>📊 {relatorios.length} relatório(s) encontrado(s)</strong>
+                {relatorios[0]?.arquivo === 'PDF_INDEXEDDB' && (
+                  <span style={{ color: '#22c55e' }}>• Fonte: IndexedDB ✅</span>
+                )}
+                {relatorios[0]?.arquivo === 'PDF_LOCALSTORAGE' && (
+                  <span style={{ color: '#f59e0b' }}>• Fonte: localStorage ⚠️</span>
+                )}
+              </p>
+            </div>
+
+            {relatorios.map((relatorio, index) => (
+              <div key={relatorio.id || index} style={{ 
+                border: '1px solid #e2e8f0', 
+                borderRadius: '8px', 
+                marginBottom: '8px',
+                backgroundColor: 'white',
+                padding: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
+                    <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
+                      {relatorio.nome}
+                    </h4>
+                    
+                    {relatorio.solicitarReupload && (
+                      <span style={{
+                        backgroundColor: '#f59e0b',
+                        color: 'white',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: '600'
+                      }}>
+                        Re-upload
+                      </span>
+                    )}
+                  </div>
+                  
+                  <p style={{ margin: '0', fontSize: '14px', color: '#64748b' }}>
+                    {relatorio.tipo} • {relatorio.dataReferencia}
+                  </p>
+                  
+                  {relatorio.tamanhoArquivo && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                      📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
+                      {relatorio.tipoPdf === 'base64' && ' (Base64)'}
+                      {relatorio.tipoPdf === 'referencia' && ' (Referência)'}
+                    </p>
                   )}
                 </div>
-                <p style={{ margin: '0', fontSize: '14px', color: '#64748b' }}>
-                  {relatorio.tipo} • {relatorio.dataReferencia}
-                </p>
-                {relatorio.tamanhoArquivo && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                    📊 {(relatorio.tamanhoArquivo / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  style={{
-                    backgroundColor: '#e3f2fd',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                  title="Visualizar conteúdo"
-                >
-                  👁 Ver
-                </button>
                 
-                {(relatorio.arquivoPdf || relatorio.nomeArquivoPdf) && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {/* Botão Ver - FUNCIONAL */}
                   <button
+                    onClick={() => visualizarRelatorio(relatorio)}
                     style={{
-                      backgroundColor: relatorio.solicitarReupload ? '#f59e0b' : '#22c55e',
-                      color: 'white',
+                      backgroundColor: '#e3f2fd',
                       border: 'none',
                       borderRadius: '6px',
                       padding: '8px 12px',
                       cursor: 'pointer',
-                      fontSize: '12px'
+                      fontSize: '12px',
+                      color: '#1976d2',
+                      transition: 'all 0.2s',
+                      ':hover': {
+                        backgroundColor: '#bbdefb'
+                      }
                     }}
-                    title={relatorio.solicitarReupload ? "Re-upload necessário" : "Baixar PDF"}
+                    title="Visualizar conteúdo"
                   >
-                    {relatorio.solicitarReupload ? '📤 Upload' : '📥 PDF'}
+                    👁 Ver
                   </button>
-                )}
+                  
+                  {/* Botão PDF - FUNCIONAL */}
+                  {(relatorio.arquivoPdf || relatorio.nomeArquivoPdf) && (
+                    <button
+                      onClick={() => baixarPDF(relatorio)}
+                      style={{
+                        backgroundColor: relatorio.solicitarReupload ? '#f59e0b' : '#22c55e',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        transition: 'all 0.2s'
+                      }}
+                      title={relatorio.solicitarReupload ? "Re-upload necessário" : "Baixar PDF"}
+                    >
+                      {relatorio.solicitarReupload ? '📤 Upload' : '📥 PDF'}
+                    </button>
+                  )}
+                </div>
               </div>
+            ))}
+            
+            {/* Rodapé informativo */}
+            <div style={{
+              marginTop: '16px',
+              padding: '12px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <p style={{ 
+                margin: '0', 
+                fontSize: '12px', 
+                color: '#64748b',
+                textAlign: 'center'
+              }}>
+                💡 <strong>Sistema Híbrido:</strong> ≤3MB em Base64 (instantâneo) • &gt;3MB como referência (re-upload)
+              </p>
             </div>
-          ))}
+          </div>
+        )}
+      </div>
+
+      {/* 🔥 MODAL DE VISUALIZAÇÃO PARA IFRAME */}
+      {dialogVisualizacao && relatorioSelecionado && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            height: '90%',
+            maxWidth: '1200px',
+            maxHeight: '800px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Header do modal */}
+            <div style={{
+              padding: '16px 24px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                {relatorioSelecionado.nome}
+              </h3>
+              <button
+                onClick={() => setDialogVisualizacao(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#64748b'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Conteúdo do iframe */}
+            <div style={{ flex: 1, padding: '16px' }}>
+              <iframe
+                src={relatorioSelecionado.linkExterno || relatorioSelecionado.linkCanva}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  borderRadius: '8px'
+                }}
+                title={relatorioSelecionado.nome}
+              />
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 });
 
