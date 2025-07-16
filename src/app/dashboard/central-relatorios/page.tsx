@@ -1,6 +1,54 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  CircularProgress,
+  LinearProgress,
+  Grid,
+  Stack,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  IconButton,
+  Tabs,
+  Tab,
+  Divider
+} from '@mui/material';
+
+// Ícones simples seguindo o padrão
+const ArrowLeftIcon = () => <span style={{ fontSize: '16px' }}>←</span>;
+const UploadIcon = () => <span style={{ fontSize: '16px' }}>📤</span>;
+const DownloadIcon = () => <span style={{ fontSize: '16px' }}>📥</span>;
+const DeleteIcon = () => <span style={{ fontSize: '16px' }}>🗑</span>;
+const EditIcon = () => <span style={{ fontSize: '16px' }}>✏️</span>;
+const SaveIcon = () => <span style={{ fontSize: '16px' }}>💾</span>;
+const AddIcon = () => <span style={{ fontSize: '16px' }}>➕</span>;
+const FileIcon = () => <span style={{ fontSize: '16px' }}>📄</span>;
+const CloudUploadIcon = () => <span style={{ fontSize: '16px' }}>☁️</span>;
+const BackupIcon = () => <span style={{ fontSize: '16px' }}>💿</span>;
+const RestoreIcon = () => <span style={{ fontSize: '16px' }}>🔄</span>;
+const CheckIcon = () => <span style={{ fontSize: '16px' }}>✅</span>;
+const DatabaseIcon = () => <span style={{ fontSize: '16px' }}>🗃️</span>;
 
 // Simulação do sistema IndexedDB (substitua pelo arquivo real)
 interface RelatorioAdmin {
@@ -41,7 +89,6 @@ function useRelatoriosDB() {
     setLoading(true);
     setError(null);
     try {
-      // Simular armazenamento em IndexedDB
       await new Promise(resolve => setTimeout(resolve, 500));
       localStorage.setItem('relatorios_indexeddb_sim', JSON.stringify(relatorios));
       return true;
@@ -110,17 +157,6 @@ const TICKERS_DISPONIVEIS = [
   'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'TRIS3', 'FESA4', 'CEAB3'
 ];
 
-// Ícones como emoji
-const UploadIcon = () => <span>📤</span>;
-const DownloadIcon = () => <span>📥</span>;
-const DeleteIcon = () => <span>🗑</span>;
-const AddIcon = () => <span>➕</span>;
-const SaveIcon = () => <span>💾</span>;
-const BackupIcon = () => <span>💿</span>;
-const RestoreIcon = () => <span>🔄</span>;
-const CloudUploadIcon = () => <span>☁️</span>;
-const DatabaseIcon = () => <span>🗃️</span>;
-
 const calcularHash = async (arquivo: File): Promise<string> => {
   const arrayBuffer = await arquivo.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
@@ -159,6 +195,8 @@ const processarPdfHibrido = async (arquivo: File): Promise<any> => {
 };
 
 export default function CentralRelatorios() {
+  const router = useRouter();
+  
   // Usar o hook do IndexedDB
   const { 
     loading: dbLoading, 
@@ -325,78 +363,6 @@ export default function CentralRelatorios() {
     }
   }, [novoRelatorio, relatorios, salvarDadosCentralizados]);
 
-  const adicionarLinhaLote = useCallback(() => {
-    setUploadsLote(prev => [...prev, {
-      ticker: '',
-      nome: '',
-      tipo: 'trimestral',
-      dataReferencia: '',
-      linkCanva: '',
-      linkExterno: '',
-      tipoVisualizacao: 'iframe',
-      arquivoPdf: null
-    }]);
-  }, []);
-
-  const atualizarLinhaLote = useCallback((index: number, campo: keyof NovoRelatorio, valor: any) => {
-    setUploadsLote(prev => {
-      const nova = [...prev];
-      nova[index] = { ...nova[index], [campo]: valor };
-      return nova;
-    });
-  }, []);
-
-  const removerLinhaLote = useCallback((index: number) => {
-    setUploadsLote(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const salvarLoteCompleto = useCallback(async () => {
-    const linhasValidas = uploadsLote.filter(upload => upload.ticker && upload.nome);
-    
-    if (linhasValidas.length === 0) {
-      alert('Adicione pelo menos um relatório válido (ticker + nome)');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const novosRelatorios: RelatorioAdmin[] = [];
-
-      for (const upload of linhasValidas) {
-        let dadosPdf = {};
-        if (upload.arquivoPdf) {
-          dadosPdf = await processarPdfHibrido(upload.arquivoPdf);
-        }
-
-        const novoId = `${upload.ticker}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        novosRelatorios.push({
-          id: novoId,
-          ticker: upload.ticker,
-          nome: upload.nome,
-          tipo: upload.tipo,
-          dataReferencia: upload.dataReferencia,
-          dataUpload: new Date().toISOString(),
-          linkCanva: upload.linkCanva || undefined,
-          linkExterno: upload.linkExterno || undefined,
-          tipoVisualizacao: upload.tipoVisualizacao,
-          ...dadosPdf
-        });
-      }
-
-      const novaLista = [...relatorios, ...novosRelatorios];
-      await salvarDadosCentralizados(novaLista);
-      
-      setUploadsLote([]);
-      alert(`✅ ${novosRelatorios.length} relatórios salvos com sucesso!`);
-      
-    } catch (error) {
-      console.error('Erro ao salvar lote:', error);
-      alert('Erro ao processar lote de relatórios');
-    } finally {
-      setLoading(false);
-    }
-  }, [uploadsLote, relatorios, salvarDadosCentralizados]);
-
   const excluirRelatorio = useCallback((id: string) => {
     if (confirm('Excluir este relatório?')) {
       const novaLista = relatorios.filter(r => r.id !== id);
@@ -463,612 +429,924 @@ export default function CentralRelatorios() {
   const isCarregando = loading || dbLoading;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🗃️ Central de Relatórios (IndexedDB)
-          </h1>
-          <p className="text-gray-600">
-            Sistema aprimorado com IndexedDB - Sem limitações de espaço
-          </p>
-          {dbError && (
-            <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-red-700 text-sm">
-              ⚠️ {dbError}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex gap-3">
-          <button
-            onClick={() => setDialogBackup(true)}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-          >
-            <BackupIcon /> Backup/Restore
-          </button>
-          <button
-            onClick={() => setDialogAberto(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-          >
-            <AddIcon /> Novo Relatório
-          </button>
-        </div>
-      </div>
+    <Box sx={{ 
+      p: 4, 
+      maxWidth: 1400, 
+      mx: 'auto',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      minHeight: '100vh',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    }}>
+      {/* Header com botão voltar */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+        <Button 
+          onClick={() => router.back()} 
+          startIcon={<ArrowLeftIcon />} 
+          sx={{
+            color: '#64748b',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '8px 16px',
+            textTransform: 'none',
+            fontWeight: 500,
+            '&:hover': {
+              backgroundColor: '#f1f5f9',
+              borderColor: '#cbd5e1'
+            }
+          }}
+        >
+          Voltar
+        </Button>
+      </Stack>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-6 rounded-lg border text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-1">
-            {estatisticas.totalRelatorios}
-          </div>
-          <div className="text-gray-600 text-sm">Total de Relatórios</div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border text-center">
-          <div className="text-3xl font-bold text-green-600 mb-1">
-            {estatisticas.tickersComRelatorios}
-          </div>
-          <div className="text-gray-600 text-sm">Tickers com Relatórios</div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border text-center">
-          <div className="text-3xl font-bold text-yellow-600 mb-1">
-            {estatisticas.relatoriosComPdf}
-          </div>
-          <div className="text-gray-600 text-sm">Relatórios com PDF</div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border text-center">
-          <div className="text-3xl font-bold text-purple-600 mb-1">
-            {estatisticas.tamanhoTotalMB}
-          </div>
-          <div className="text-gray-600 text-sm">MB Armazenados</div>
-        </div>
-      </div>
+      {/* Card principal com título e estatísticas */}
+      <Card sx={{ 
+        mb: 4, 
+        background: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+      }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box mb={3}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#1e293b',
+                mb: 1,
+                fontSize: '2rem'
+              }}
+            >
+              🗃️ Central de Relatórios (IndexedDB)
+            </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#64748b', 
+                fontWeight: 400,
+                fontSize: '1.125rem'
+              }}
+            >
+              Sistema aprimorado com IndexedDB - Sem limitações de espaço
+            </Typography>
+            {dbError && (
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  mt: 2,
+                  borderRadius: '12px',
+                  border: '1px solid #fecaca',
+                  backgroundColor: '#fef2f2'
+                }}
+              >
+                ⚠️ {dbError}
+              </Alert>
+            )}
+          </Box>
+
+          {/* Estatísticas */}
+          <Grid container spacing={3}>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#3b82f6',
+                    mb: 0.5
+                  }}
+                >
+                  {estatisticas.totalRelatorios}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Total de Relatórios
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#22c55e',
+                    mb: 0.5
+                  }}
+                >
+                  {estatisticas.tickersComRelatorios}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Tickers com Relatórios
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#f59e0b',
+                    mb: 0.5
+                  }}
+                >
+                  {estatisticas.relatoriosComPdf}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Relatórios com PDF
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Box 
+                sx={{
+                  textAlign: 'center',
+                  p: 2,
+                  borderRadius: '12px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: '#8b5cf6',
+                    mb: 0.5
+                  }}
+                >
+                  {estatisticas.tamanhoTotalMB}
+                </Typography>
+                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  MB Armazenados
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Botões de ação */}
+      <Grid container spacing={2} mb={4}>
+        <Grid item xs={12} md={4}>
+          <Button 
+            fullWidth 
+            onClick={() => setDialogAberto(true)} 
+            startIcon={<AddIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: 'white',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              '&:hover': {
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }
+            }}
+          >
+            Novo Relatório
+          </Button>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Button 
+            fullWidth 
+            onClick={() => setDialogBackup(true)} 
+            startIcon={<BackupIcon />}
+            sx={{
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Backup/Restore
+          </Button>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Button 
+            fullWidth 
+            onClick={inicializarDados} 
+            startIcon={<RestoreIcon />}
+            sx={{
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Atualizar
+          </Button>
+        </Grid>
+      </Grid>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg border">
-        <div className="border-b">
-          <div className="flex">
-            <button
-              onClick={() => setTabAtiva(0)}
-              className={`px-6 py-3 font-medium text-sm border-b-2 ${
-                tabAtiva === 0 
-                ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              📋 Lista de Relatórios
-            </button>
-            <button
-              onClick={() => setTabAtiva(1)}
-              className={`px-6 py-3 font-medium text-sm border-b-2 ${
-                tabAtiva === 1 
-                ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              📤 Upload em Lote
-            </button>
-          </div>
-        </div>
+      <Card sx={{ 
+        mb: 4,
+        background: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+      }}>
+        <Tabs 
+          value={tabAtiva} 
+          onChange={(_, newValue) => setTabAtiva(newValue)}
+          sx={{
+            borderBottom: '1px solid #e2e8f0',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              color: '#64748b',
+              '&.Mui-selected': {
+                color: '#3b82f6',
+                backgroundColor: '#f0f9ff'
+              }
+            }
+          }}
+        >
+          <Tab label="📋 Lista de Relatórios" />
+          <Tab label="📤 Upload em Lote" />
+        </Tabs>
 
         {/* Loading indicator */}
         {isCarregando && (
-          <div className="w-full bg-blue-200 h-1">
-            <div className="bg-blue-600 h-1 animate-pulse"></div>
-          </div>
+          <LinearProgress 
+            sx={{
+              height: 2,
+              backgroundColor: '#e2e8f0',
+              '& .MuiLinearProgress-bar': {
+                backgroundColor: '#3b82f6'
+              }
+            }}
+          />
         )}
 
         {/* Tab 0: Lista de Relatórios */}
         {tabAtiva === 0 && (
-          <div className="p-6">
+          <CardContent sx={{ p: 4 }}>
             {relatorios.length === 0 ? (
-              <div className="text-center py-16">
-                <h3 className="text-xl font-medium text-gray-900 mb-2">
-                  🗃️ Nenhum relatório cadastrado
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Comece adicionando um novo relatório no sistema IndexedDB
-                </p>
-                <button
-                  onClick={() => setDialogAberto(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <DatabaseIcon />
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1e293b', 
+                    fontWeight: 600, 
+                    mb: 1, 
+                    mt: 2 
+                  }}
                 >
-                  <AddIcon /> Adicionar Primeiro Relatório
-                </button>
-              </div>
+                  🗃️ Nenhum relatório cadastrado
+                </Typography>
+                <Typography 
+                  sx={{ 
+                    color: '#64748b', 
+                    mb: 4,
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  Comece adicionando um novo relatório no sistema IndexedDB
+                </Typography>
+                <Button
+                  onClick={() => setDialogAberto(true)}
+                  startIcon={<AddIcon />}
+                  sx={{
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    color: 'white',
+                    borderRadius: '12px',
+                    padding: '12px 24px',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    fontSize: '0.95rem',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                    '&:hover': {
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    }
+                  }}
+                >
+                  Adicionar Primeiro Relatório
+                </Button>
+              </Box>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-semibold">Ticker</th>
-                      <th className="text-left py-3 px-4 font-semibold">Nome</th>
-                      <th className="text-left py-3 px-4 font-semibold">Tipo</th>
-                      <th className="text-left py-3 px-4 font-semibold">Referência</th>
-                      <th className="text-left py-3 px-4 font-semibold">Visualização</th>
-                      <th className="text-left py-3 px-4 font-semibold">PDF</th>
-                      <th className="text-left py-3 px-4 font-semibold">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <TableContainer sx={{ borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <Table>
+                  <TableHead sx={{ backgroundColor: '#f8fafc' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Ticker</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Nome</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Tipo</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Referência</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Visualização</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>PDF</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Ações</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
                     {relatorios.map((relatorio) => (
-                      <tr key={relatorio.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {relatorio.ticker}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-medium">{relatorio.nome}</td>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {relatorio.tipo}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">{relatorio.dataReferencia}</td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm">
-                            {relatorio.tipoVisualizacao === 'canva' && '🎨 '}
-                            {relatorio.tipoVisualizacao === 'iframe' && '🖼️ '}
-                            {relatorio.tipoVisualizacao === 'link' && '🔗 '}
-                            {relatorio.tipoVisualizacao === 'pdf' && '📄 '}
-                            {relatorio.tipoVisualizacao}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
+                      <TableRow 
+                        key={relatorio.id} 
+                        sx={{ 
+                          '&:hover': { backgroundColor: '#f8fafc' },
+                          borderBottom: '1px solid #f1f5f9'
+                        }}
+                      >
+                        <TableCell>
+                          <Chip 
+                            label={relatorio.ticker} 
+                            size="small" 
+                            sx={{
+                              backgroundColor: '#dbeafe',
+                              color: '#1e40af',
+                              fontWeight: 500,
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
+                          {relatorio.nome}
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={relatorio.tipo} 
+                            size="small" 
+                            variant="outlined"
+                            sx={{
+                              borderColor: '#e2e8f0',
+                              color: '#64748b',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ color: '#64748b' }}>
+                          {relatorio.dataReferencia}
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {relatorio.tipoVisualizacao === 'canva' && '🎨'}
+                            {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
+                            {relatorio.tipoVisualizacao === 'link' && '🔗'}
+                            {relatorio.tipoVisualizacao === 'pdf' && '📄'}
+                            <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
+                              {relatorio.tipoVisualizacao}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
                           {relatorio.nomeArquivoPdf ? (
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                                relatorio.tipoPdf === 'base64' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {(relatorio.tamanhoArquivo! / 1024 / 1024).toFixed(1)}MB
-                              </span>
-                              {relatorio.tipoPdf === 'referencia' && <span>⚠️</span>}
-                            </div>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip
+                                label={`${(relatorio.tamanhoArquivo! / 1024 / 1024).toFixed(1)}MB`}
+                                size="small"
+                                sx={{
+                                  backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
+                                  color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
+                                  borderRadius: '6px',
+                                  fontSize: '0.75rem'
+                                }}
+                              />
+                              {relatorio.tipoPdf === 'referencia' && (
+                                <span style={{ fontSize: '14px' }}>⚠️</span>
+                              )}
+                            </Box>
                           ) : (
-                            <span className="text-gray-400 text-sm">Sem PDF</span>
+                            <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
+                              Sem PDF
+                            </Typography>
                           )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <button
+                        </TableCell>
+                        <TableCell>
+                          <IconButton 
+                            size="small" 
                             onClick={() => excluirRelatorio(relatorio.id)}
-                            className="text-red-600 hover:text-red-800 p-1"
+                            sx={{
+                              color: '#dc2626',
+                              '&:hover': {
+                                backgroundColor: '#fef2f2'
+                              }
+                            }}
                           >
                             <DeleteIcon />
-                          </button>
-                        </td>
-                      </tr>
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
-          </div>
+          </CardContent>
         )}
 
         {/* Tab 1: Upload em Lote */}
         {tabAtiva === 1 && (
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">📤 Upload em Lote</h3>
-              <div className="flex gap-3">
-                <button
-                  onClick={adicionarLinhaLote}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <AddIcon /> Adicionar Linha
-                </button>
-                <button
-                  onClick={salvarLoteCompleto}
-                  disabled={uploadsLote.length === 0 || isCarregando}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  <SaveIcon /> 
-                  {isCarregando ? 'Processando...' : `Salvar ${uploadsLote.length} Relatórios`}
-                </button>
-              </div>
-            </div>
-
-            {uploadsLote.length === 0 ? (
-              <div className="text-center py-16 bg-blue-50 rounded-lg">
-                <div className="text-blue-600 mb-4">
-                  <DatabaseIcon />
-                </div>
-                <h3 className="text-lg font-medium text-blue-900 mb-2">
-                  Sistema IndexedDB Ativo
-                </h3>
-                <p className="text-blue-700 mb-6 max-w-md mx-auto">
-                  • Capacidade muito maior que localStorage<br/>
-                  • Performance aprimorada para grandes volumes<br/>
-                  • Suporte a transações e consultas avançadas
-                </p>
-                <button
-                  onClick={adicionarLinhaLote}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
-                >
-                  <AddIcon /> Começar Upload em Lote
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left py-3 px-3 font-semibold border">Ticker *</th>
-                      <th className="text-left py-3 px-3 font-semibold border">Nome *</th>
-                      <th className="text-left py-3 px-3 font-semibold border">Tipo</th>
-                      <th className="text-left py-3 px-3 font-semibold border">Referência</th>
-                      <th className="text-left py-3 px-3 font-semibold border">Visualização</th>
-                      <th className="text-left py-3 px-3 font-semibold border">Link</th>
-                      <th className="text-left py-3 px-3 font-semibold border">PDF</th>
-                      <th className="text-left py-3 px-3 font-semibold border">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {uploadsLote.map((upload, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="py-2 px-3 border">
-                          <select
-                            value={upload.ticker}
-                            onChange={(e) => atualizarLinhaLote(index, 'ticker', e.target.value)}
-                            className="w-full p-2 border rounded text-sm"
-                          >
-                            <option value="">Selecione...</option>
-                            {TICKERS_DISPONIVEIS.map(ticker => (
-                              <option key={ticker} value={ticker}>{ticker}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <input
-                            type="text"
-                            value={upload.nome}
-                            onChange={(e) => atualizarLinhaLote(index, 'nome', e.target.value)}
-                            placeholder="Nome do relatório"
-                            className="w-full p-2 border rounded text-sm"
-                          />
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <select
-                            value={upload.tipo}
-                            onChange={(e) => atualizarLinhaLote(index, 'tipo', e.target.value)}
-                            className="w-full p-2 border rounded text-sm"
-                          >
-                            <option value="trimestral">Trimestral</option>
-                            <option value="anual">Anual</option>
-                            <option value="apresentacao">Apresentação</option>
-                            <option value="outros">Outros</option>
-                          </select>
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <input
-                            type="text"
-                            value={upload.dataReferencia}
-                            onChange={(e) => atualizarLinhaLote(index, 'dataReferencia', e.target.value)}
-                            placeholder="Q1 2024"
-                            className="w-full p-2 border rounded text-sm"
-                          />
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <select
-                            value={upload.tipoVisualizacao}
-                            onChange={(e) => atualizarLinhaLote(index, 'tipoVisualizacao', e.target.value)}
-                            className="w-full p-2 border rounded text-sm"
-                          >
-                            <option value="iframe">🖼️ Iframe</option>
-                            <option value="canva">🎨 Canva</option>
-                            <option value="link">🔗 Link</option>
-                            <option value="pdf">📄 PDF</option>
-                          </select>
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <input
-                            type="text"
-                            value={
-                              upload.tipoVisualizacao === 'canva' 
-                                ? upload.linkCanva 
-                                : upload.linkExterno
-                            }
-                            onChange={(e) => {
-                              const campo = upload.tipoVisualizacao === 'canva' ? 'linkCanva' : 'linkExterno';
-                              atualizarLinhaLote(index, campo, e.target.value);
-                            }}
-                            placeholder="https://..."
-                            className="w-full p-2 border rounded text-sm"
-                          />
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <input
-                            type="file"
-                            accept=".pdf"
-                            style={{ display: 'none' }}
-                            id={`upload-pdf-${index}`}
-                            onChange={(e) => {
-                              const arquivo = e.target.files?.[0];
-                              if (arquivo) {
-                                atualizarLinhaLote(index, 'arquivoPdf', arquivo);
-                              }
-                            }}
-                          />
-                          <label htmlFor={`upload-pdf-${index}`}>
-                            <button
-                              type="button"
-                              className={`px-3 py-1 text-sm rounded border ${
-                                upload.arquivoPdf 
-                                  ? 'bg-green-50 border-green-200 text-green-700' 
-                                  : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              {upload.arquivoPdf ? '✅' : 'PDF'}
-                            </button>
-                          </label>
-                          {upload.arquivoPdf && (
-                            <div className="text-xs text-gray-600 mt-1">
-                              {(upload.arquivoPdf.size / 1024 / 1024).toFixed(1)}MB
-                              {upload.arquivoPdf.size > LIMITE_BASE64 ? ' (Ref)' : ' (B64)'}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-2 px-3 border">
-                          <button
-                            onClick={() => removerLinhaLote(index)}
-                            className="text-red-600 hover:text-red-800 p-1"
-                          >
-                            <DeleteIcon />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Box sx={{ color: '#3b82f6', mb: 2, fontSize: '3rem' }}>
+                <DatabaseIcon />
+              </Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: '#1e293b', 
+                  fontWeight: 600, 
+                  mb: 1 
+                }}
+              >
+                Sistema IndexedDB Ativo
+              </Typography>
+              <Typography 
+                sx={{ 
+                  color: '#64748b', 
+                  mb: 4,
+                  fontSize: '0.95rem',
+                  maxWidth: '500px',
+                  mx: 'auto'
+                }}
+              >
+                • Capacidade muito maior que localStorage<br/>
+                • Performance aprimorada para grandes volumes<br/>
+                • Suporte a transações e consultas avançadas<br/>
+                • Sistema híbrido Base64/Referência funcional
+              </Typography>
+              <Button
+                onClick={() => setDialogAberto(true)}
+                startIcon={<AddIcon />}
+                sx={{
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  '&:hover': {
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  }
+                }}
+              >
+                Começar com Novo Relatório
+              </Button>
+            </Box>
+          </CardContent>
         )}
-      </div>
+      </Card>
 
       {/* Dialog - Novo Relatório Individual */}
-      {dialogAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold">➕ Adicionar Novo Relatório</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Ticker *</label>
-                  <select
-                    value={novoRelatorio.ticker}
-                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, ticker: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                  >
-                    <option value="">Selecione um ticker...</option>
-                    {TICKERS_DISPONIVEIS.map(ticker => (
-                      <option key={ticker} value={ticker}>{ticker}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nome do Relatório *</label>
-                  <input
-                    type="text"
-                    value={novoRelatorio.nome}
-                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                    placeholder="Nome do relatório"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tipo</label>
-                  <select
-                    value={novoRelatorio.tipo}
-                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
-                    className="w-full p-3 border rounded-lg"
-                  >
-                    <option value="trimestral">Trimestral</option>
-                    <option value="anual">Anual</option>
-                    <option value="apresentacao">Apresentação</option>
-                    <option value="outros">Outros</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Data de Referência</label>
-                  <input
-                    type="text"
-                    value={novoRelatorio.dataReferencia}
-                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                    placeholder="Q1 2024"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Tipo de Visualização</label>
-                <select
+      <Dialog 
+        open={dialogAberto} 
+        onClose={() => !isCarregando && setDialogAberto(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontSize: '1.25rem', 
+          fontWeight: 600, 
+          color: '#1e293b',
+          borderBottom: '1px solid #e2e8f0'
+        }}>
+          ➕ Adicionar Novo Relatório
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Ticker *</InputLabel>
+                <Select
+                  value={novoRelatorio.ticker}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, ticker: e.target.value }))}
+                  sx={{
+                    borderRadius: '8px'
+                  }}
+                >
+                  {TICKERS_DISPONIVEIS.map(ticker => (
+                    <MenuItem key={ticker} value={ticker}>{ticker}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Nome do Relatório *"
+                value={novoRelatorio.nome}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, nome: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px'
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Tipo</InputLabel>
+                <Select
+                  value={novoRelatorio.tipo}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+                  sx={{
+                    borderRadius: '8px'
+                  }}
+                >
+                  <MenuItem value="trimestral">Trimestral</MenuItem>
+                  <MenuItem value="anual">Anual</MenuItem>
+                  <MenuItem value="apresentacao">Apresentação</MenuItem>
+                  <MenuItem value="outros">Outros</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Data de Referência"
+                value={novoRelatorio.dataReferencia}
+                onChange={(e) => setNovoRelatorio(prev => ({ ...prev, dataReferencia: e.target.value }))}
+                placeholder="Q1 2024"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px'
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Tipo de Visualização</InputLabel>
+                <Select
                   value={novoRelatorio.tipoVisualizacao}
                   onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
-                  className="w-full p-3 border rounded-lg"
+                  sx={{
+                    borderRadius: '8px'
+                  }}
                 >
-                  <option value="iframe">🖼️ Iframe Genérico</option>
-                  <option value="canva">🎨 Canva</option>
-                  <option value="link">🔗 Link Externo</option>
-                  <option value="pdf">📄 PDF para Download</option>
-                </select>
-              </div>
-
-              {novoRelatorio.tipoVisualizacao === 'canva' && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Link do Canva</label>
-                  <input
-                    type="text"
-                    value={novoRelatorio.linkCanva}
-                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkCanva: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                    placeholder="https://www.canva.com/design/..."
-                  />
-                </div>
-              )}
-
-              {(novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Link Externo</label>
-                  <input
-                    type="text"
-                    value={novoRelatorio.linkExterno}
-                    onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
-                    className="w-full p-3 border rounded-lg"
-                    placeholder="https://..."
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium mb-2">📄 Upload de PDF (Sistema Híbrido IndexedDB)</label>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-blue-700">
-                    <strong>🗃️ Sistema IndexedDB:</strong><br/>
-                    • <strong>≤3MB:</strong> Base64 (acesso instantâneo)<br/>
-                    • <strong>&gt;3MB:</strong> Referência (re-upload quando necessário)<br/>
-                    • <strong>Vantagem:</strong> Muito mais espaço disponível que localStorage
-                  </p>
-                </div>
-                
-                <input
-                  accept="application/pdf"
-                  style={{ display: 'none' }}
-                  id="upload-pdf-individual"
-                  type="file"
-                  onChange={(e) => {
-                    const arquivo = e.target.files?.[0];
-                    if (arquivo) {
-                      if (arquivo.size > 10 * 1024 * 1024) {
-                        alert('Arquivo muito grande! Máximo 10MB.');
-                        e.target.value = '';
-                        return;
-                      }
-                      setNovoRelatorio(prev => ({ ...prev, arquivoPdf: arquivo }));
+                  <MenuItem value="iframe">🖼️ Iframe Genérico</MenuItem>
+                  <MenuItem value="canva">🎨 Canva</MenuItem>
+                  <MenuItem value="link">🔗 Link Externo</MenuItem>
+                  <MenuItem value="pdf">📄 PDF para Download</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            {novoRelatorio.tipoVisualizacao === 'canva' && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Link do Canva"
+                  value={novoRelatorio.linkCanva}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkCanva: e.target.value }))}
+                  placeholder="https://www.canva.com/design/..."
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px'
                     }
                   }}
                 />
-                <label htmlFor="upload-pdf-individual">
-                  <button
-                    type="button"
-                    className={`w-full py-3 px-4 border-2 border-dashed rounded-lg flex items-center justify-center gap-2 ${
-                      novoRelatorio.arquivoPdf 
-                        ? 'border-green-300 bg-green-50 text-green-700' 
-                        : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <CloudUploadIcon />
-                    {novoRelatorio.arquivoPdf ? '✅ PDF Selecionado' : '📁 Selecionar PDF'}
-                  </button>
-                </label>
-                
-                {novoRelatorio.arquivoPdf && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-700">
-                      <strong>📄 Arquivo:</strong> {novoRelatorio.arquivoPdf.name}<br/>
-                      <strong>📊 Tamanho:</strong> {(novoRelatorio.arquivoPdf.size / 1024 / 1024).toFixed(2)} MB<br/>
-                      <strong>💾 Estratégia:</strong> {novoRelatorio.arquivoPdf.size <= LIMITE_BASE64 ? 'Base64 (Instantâneo)' : 'Referência (Re-upload)'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+              </Grid>
+            )}
             
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setDialogAberto(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            {(novoRelatorio.tipoVisualizacao === 'iframe' || novoRelatorio.tipoVisualizacao === 'link') && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Link Externo"
+                  value={novoRelatorio.linkExterno}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, linkExterno: e.target.value }))}
+                  placeholder="https://..."
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px'
+                    }
+                  }}
+                />
+              </Grid>
+            )}
+            
+            <Grid item xs={12}>
+              <Typography 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  color: '#1e293b',
+                  fontSize: '1rem'
+                }}
               >
-                Cancelar
-              </button>
-              <button
-                onClick={salvarRelatorioIndividual}
-                disabled={!novoRelatorio.ticker || !novoRelatorio.nome || isCarregando}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                📄 Upload de PDF (Sistema Híbrido IndexedDB)
+              </Typography>
+              
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mb: 3,
+                  borderRadius: '12px',
+                  border: '1px solid #dbeafe',
+                  backgroundColor: '#f0f9ff'
+                }}
               >
-                <SaveIcon />
-                {isCarregando ? 'Salvando...' : 'Salvar Relatório'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <Typography sx={{ fontSize: '0.875rem' }}>
+                  <strong>🗃️ Sistema IndexedDB:</strong><br/>
+                  • <strong>≤3MB:</strong> Base64 (acesso instantâneo)<br/>
+                  • <strong>&gt;3MB:</strong> Referência (re-upload quando necessário)<br/>
+                  • <strong>Vantagem:</strong> Muito mais espaço disponível que localStorage
+                </Typography>
+              </Alert>
+              
+              <input
+                accept="application/pdf"
+                style={{ display: 'none' }}
+                id="upload-pdf-individual"
+                type="file"
+                onChange={(e) => {
+                  const arquivo = e.target.files?.[0];
+                  if (arquivo) {
+                    if (arquivo.size > 10 * 1024 * 1024) {
+                      alert('Arquivo muito grande! Máximo 10MB.');
+                      e.target.value = '';
+                      return;
+                    }
+                    setNovoRelatorio(prev => ({ ...prev, arquivoPdf: arquivo }));
+                  }
+                }}
+              />
+              <label htmlFor="upload-pdf-individual">
+                <Button
+                  component="span"
+                  fullWidth
+                  startIcon={<CloudUploadIcon />}
+                  sx={{
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    color: novoRelatorio.arquivoPdf ? '#16a34a' : '#64748b',
+                    backgroundColor: novoRelatorio.arquivoPdf ? '#f0fdf4' : '#f8fafc',
+                    '&:hover': {
+                      backgroundColor: '#f1f5f9',
+                      borderColor: '#94a3b8'
+                    }
+                  }}
+                >
+                  {novoRelatorio.arquivoPdf ? '✅ PDF Selecionado' : '📁 Selecionar PDF'}
+                </Button>
+              </label>
+              
+              {novoRelatorio.arquivoPdf && (
+                <Alert 
+                  severity="success" 
+                  sx={{ 
+                    mt: 2,
+                    borderRadius: '12px',
+                    border: '1px solid #bbf7d0',
+                    backgroundColor: '#f0fdf4'
+                  }}
+                >
+                  <Typography sx={{ fontSize: '0.875rem' }}>
+                    <strong>📄 Arquivo:</strong> {novoRelatorio.arquivoPdf.name}<br/>
+                    <strong>📊 Tamanho:</strong> {(novoRelatorio.arquivoPdf.size / 1024 / 1024).toFixed(2)} MB<br/>
+                    <strong>💾 Estratégia:</strong> {novoRelatorio.arquivoPdf.size <= LIMITE_BASE64 ? 'Base64 (Instantâneo)' : 'Referência (Re-upload)'}
+                  </Typography>
+                </Alert>
+              )}
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #e2e8f0' }}>
+          <Button 
+            onClick={() => setDialogAberto(false)}
+            disabled={isCarregando}
+            sx={{
+              color: '#64748b',
+              textTransform: 'none',
+              fontWeight: 500
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={salvarRelatorioIndividual}
+            disabled={!novoRelatorio.ticker || !novoRelatorio.nome || isCarregando}
+            startIcon={isCarregando ? <CircularProgress size={16} /> : <SaveIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: 'white',
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:disabled': {
+                backgroundColor: '#e2e8f0',
+                color: '#94a3b8'
+              }
+            }}
+          >
+            {isCarregando ? 'Salvando...' : 'Salvar Relatório'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog - Backup/Restore */}
-      {dialogBackup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-md w-full mx-4">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold">💿 Backup & Restore (IndexedDB)</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-700">
-                  <strong>💡 Sistema IndexedDB:</strong><br/>
-                  • Backup inclui dados binários (PDFs em Base64)<br/>
-                  • Compatível com formato localStorage anterior<br/>
-                  • Restauração automática de estruturas
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-2">📤 Exportar Dados</h3>
-                <button
-                  onClick={exportarDados}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                >
-                  <DownloadIcon /> Baixar Backup Completo
-                </button>
-              </div>
-              
-              <hr className="my-4" />
-              
-              <div>
-                <h3 className="font-medium mb-2">📥 Importar Dados</h3>
-                <input
-                  accept=".json"
-                  style={{ display: 'none' }}
-                  id="import-backup"
-                  type="file"
-                  onChange={importarDados}
-                />
-                <label htmlFor="import-backup">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
-                  >
-                    <RestoreIcon /> Restaurar do Backup
-                  </button>
-                </label>
-              </div>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-700">
-                  <strong>⚠️ Atenção:</strong> Importar dados irá <strong>substituir</strong> todos os relatórios existentes no IndexedDB!
-                </p>
-              </div>
-            </div>
+      <Dialog 
+        open={dialogBackup} 
+        onClose={() => setDialogBackup(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontSize: '1.25rem', 
+          fontWeight: 600, 
+          color: '#1e293b',
+          borderBottom: '1px solid #e2e8f0'
+        }}>
+          💿 Backup & Restore (IndexedDB)
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <Alert 
+              severity="info" 
+              sx={{
+                borderRadius: '12px',
+                border: '1px solid #dbeafe',
+                backgroundColor: '#f0f9ff'
+              }}
+            >
+              <Typography sx={{ fontSize: '0.875rem' }}>
+                <strong>💡 Sistema IndexedDB:</strong><br/>
+                • Backup inclui dados binários (PDFs em Base64)<br/>
+                • Compatível com formato localStorage anterior<br/>
+                • Restauração automática de estruturas
+              </Typography>
+            </Alert>
             
-            <div className="p-6 border-t bg-gray-50 flex justify-end">
-              <button
-                onClick={() => setDialogBackup(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            <Box>
+              <Typography 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  color: '#1e293b' 
+                }}
               >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
+                📤 Exportar Dados
+              </Typography>
+              <Button
+                fullWidth
+                onClick={exportarDados}
+                startIcon={<DownloadIcon />}
+                sx={{
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '12px 20px',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  '&:hover': {
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  }
+                }}
+              >
+                Baixar Backup Completo
+              </Button>
+            </Box>
+            
+            <Divider />
+            
+            <Box>
+              <Typography 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  color: '#1e293b' 
+                }}
+              >
+                📥 Importar Dados
+              </Typography>
+              <input
+                accept=".json"
+                style={{ display: 'none' }}
+                id="import-backup"
+                type="file"
+                onChange={importarDados}
+              />
+              <label htmlFor="import-backup">
+                <Button
+                  component="span"
+                  fullWidth
+                  startIcon={<RestoreIcon />}
+                  sx={{
+                    border: '1px solid #e2e8f0',
+                    color: '#64748b',
+                    borderRadius: '12px',
+                    padding: '12px 20px',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    fontSize: '0.95rem',
+                    '&:hover': {
+                      backgroundColor: '#f1f5f9',
+                      borderColor: '#cbd5e1'
+                    }
+                  }}
+                >
+                  Restaurar do Backup
+                </Button>
+              </label>
+            </Box>
+            
+            <Alert 
+              severity="warning" 
+              sx={{
+                borderRadius: '12px',
+                border: '1px solid #fed7aa',
+                backgroundColor: '#fffbeb'
+              }}
+            >
+              <Typography sx={{ fontSize: '0.875rem' }}>
+                <strong>⚠️ Atenção:</strong> Importar dados irá <strong>substituir</strong> todos os relatórios existentes no IndexedDB!
+              </Typography>
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #e2e8f0' }}>
+          <Button 
+            onClick={() => setDialogBackup(false)}
+            sx={{
+              color: '#64748b',
+              textTransform: 'none',
+              fontWeight: 500
+            }}
+          >
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Loading Global */}
+      {isCarregando && (
+        <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }}>
+          <LinearProgress 
+            sx={{
+              height: 3,
+              backgroundColor: '#e2e8f0',
+              '& .MuiLinearProgress-bar': {
+                backgroundColor: '#3b82f6'
+              }
+            }}
+          />
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
