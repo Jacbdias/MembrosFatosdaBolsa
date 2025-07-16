@@ -30,6 +30,7 @@ interface PlatformStats {
 interface RealStats {
   kiwify?: { active: boolean; sales: number; integrations: number };
   hotmart?: { active: boolean; sales: number; integrations: number };
+  eduzz?: { active: boolean; sales: number; integrations: number }; // ✅ ADICIONADO
 }
 
 export default function IntegracoesMainPage() {
@@ -78,6 +79,26 @@ export default function IntegracoesMainPage() {
         integrations: 5
       };
 
+      // 📚 TESTAR INTEGRAÇÃO EDUZZ REAL
+      try {
+        const eduzzResponse = await fetch('/api/webhooks/eduzz/EDgZhmhuBZN4CP4uD', {
+          method: 'GET'
+        });
+        
+        if (eduzzResponse.ok) {
+          const eduzzData = await eduzzResponse.json();
+          console.log('✅ Eduzz Status:', eduzzData);
+          statsData.eduzz = {
+            active: eduzzData.success,
+            sales: 0, // Ainda não teve vendas
+            integrations: 1 // 1 integração configurada
+          };
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro ao buscar stats Eduzz:', error);
+        statsData.eduzz = { active: false, sales: 0, integrations: 0 };
+      }
+
       setRealStats(statsData);
       
       // ✅ DADOS REAIS DAS PLATAFORMAS
@@ -111,11 +132,13 @@ export default function IntegracoesMainPage() {
           slug: 'eduzz',
           emoji: '📚',
           color: '#3D5AFE',
-          totalIntegrations: 0,
-          activeIntegrations: 0,
-          totalSales: 0,
-          status: 'coming-soon',
-          description: 'Marketplace de cursos e infoprodutos'
+          totalIntegrations: statsData.eduzz?.integrations || 0,
+          activeIntegrations: statsData.eduzz?.active ? (statsData.eduzz?.integrations || 0) : 0,
+          totalSales: statsData.eduzz?.sales || 0,
+          status: 'active', // ✅ MUDADO PARA ACTIVE
+          description: statsData.eduzz?.active 
+            ? 'Marketplace ativo - TOKEN: EDgZhmhuBZN4CP4uD ✅' 
+            : 'Marketplace de cursos e infoprodutos'
         }
       ];
       
@@ -154,11 +177,11 @@ export default function IntegracoesMainPage() {
           slug: 'eduzz',
           emoji: '📚',
           color: '#3D5AFE',
-          totalIntegrations: 0,
-          activeIntegrations: 0,
+          totalIntegrations: 1,
+          activeIntegrations: 1,
           totalSales: 0,
-          status: 'coming-soon',
-          description: 'Marketplace de cursos e infoprodutos'
+          status: 'active',
+          description: 'Marketplace - TOKEN: EDgZhmhuBZN4CP4uD (fallback)'
         }
       ];
       
@@ -203,9 +226,9 @@ export default function IntegracoesMainPage() {
         </Typography>
       </Box>
 
-      {/* ✅ ALERTA DE STATUS REAL */}
+      {/* ✅ ALERTAS DE STATUS REAL */}
       {realStats.kiwify?.active && (
-        <Alert severity="success" sx={{ mb: 4, borderRadius: 2 }}>
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
           <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
             🥝 Kiwify Funcionando!
           </Typography>
@@ -214,6 +237,20 @@ export default function IntegracoesMainPage() {
           </Typography>
         </Alert>
       )}
+
+      {realStats.eduzz?.active && (
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+            📚 Eduzz Funcionando!
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+            Token <strong>EDgZhmhuBZN4CP4uD</strong> está ativo. {realStats.eduzz.sales} venda(s) processada(s) com sucesso.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Espaçamento se houver alertas */}
+      {(realStats.kiwify?.active || realStats.eduzz?.active) && <Box mb={2} />}
 
       {/* Stats Gerais */}
       <Grid container spacing={3} mb={5}>
@@ -333,8 +370,9 @@ export default function IntegracoesMainPage() {
                 borderRadius: 3,
                 cursor: platform.status === 'active' ? 'pointer' : 'default',
                 transition: 'all 0.2s ease-in-out',
-                border: platform.slug === 'kiwify' && platform.activeIntegrations > 0 
-                  ? '2px solid #4ECDC4' 
+                border: (platform.slug === 'kiwify' && platform.activeIntegrations > 0) ||
+                        (platform.slug === 'eduzz' && platform.activeIntegrations > 0)
+                  ? `2px solid ${platform.color}` 
                   : '1px solid #E2E8F0',
                 '&:hover': platform.status === 'active' ? {
                   transform: 'translateY(-2px)',
@@ -361,13 +399,15 @@ export default function IntegracoesMainPage() {
                   <Box>
                     <Typography variant="h6" sx={{ fontWeight: '600', color: '#1E293B' }}>
                       {platform.name}
-                      {platform.slug === 'kiwify' && platform.activeIntegrations > 0 && (
+                      {/* Badge para plataformas funcionando */}
+                      {((platform.slug === 'kiwify' && platform.activeIntegrations > 0) ||
+                        (platform.slug === 'eduzz' && platform.activeIntegrations > 0)) && (
                         <Chip 
                           label="FUNCIONANDO" 
                           size="small" 
                           sx={{ 
                             ml: 1, 
-                            bgcolor: '#4ECDC4', 
+                            bgcolor: platform.color, 
                             color: 'white', 
                             fontWeight: '700',
                             fontSize: '10px'
