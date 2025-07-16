@@ -205,7 +205,7 @@ export async function enviarEmailCredenciais(
           font-size: 14px;
         }
         .footer { 
-          background: #2d3748;
+          background: #010101;
           color: white;
           padding: 30px;
           text-align: center;
@@ -380,7 +380,7 @@ export async function enviarEmailResetSenha(
         .header { background: #010101; padding: 40px 30px; text-align: center; color: white; }
         .content { padding: 40px 30px; text-align: center; }
         .button { display: inline-block; background: #010101; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; margin: 20px 0; font-weight: 700; border: 2px solid #4bf700; }
-        .footer { background: #2d3748; color: white; padding: 30px; text-align: center; }
+        .footer { background: #010101; color: white; padding: 30px; text-align: center; }
       </style>
     </head>
     <body>
