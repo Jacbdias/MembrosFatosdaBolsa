@@ -64,31 +64,22 @@ export default function EduzzPage() {
   const loadIntegrations = async () => {
     try {
       setLoading(true);
-      // Simular dados das integrações Eduzz
-      const mockIntegrations: EduzzIntegration[] = [
+      // ✅ DADOS REAIS DA EDUZZ (incluindo token do teste)
+      const realIntegrations: EduzzIntegration[] = [
         {
           id: 'ED001',
-          productName: 'Projeto Trump Eduzz',
-          token: 'ED123abc456def789',
+          productName: 'Produto Fatos da Bolsa Eduzz',
+          token: 'EDm2rYeqZWZHmCVmA', // ✅ TOKEN REAL DO SEU TESTE
           plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/eduzz/ED123abc456def789`,
+          webhookUrl: `${window.location.origin}/api/webhooks/eduzz/EDm2rYeqZWZHmCVmA`,
           status: 'ACTIVE',
-          createdAt: '2024-06-15',
-          totalSales: 12
-        },
-        {
-          id: 'ED002',
-          productName: 'Close Friends LITE Eduzz',
-          token: 'ED456def789ghi012',
-          plan: 'LITE',
-          webhookUrl: `${window.location.origin}/api/webhooks/eduzz/ED456def789ghi012`,
-          status: 'ACTIVE',
-          createdAt: '2024-06-20',
-          totalSales: 8
+          createdAt: '2025-07-16',
+          totalSales: 0
         }
       ];
       
-      setIntegrations(mockIntegrations);
+      setIntegrations(realIntegrations);
+      console.log('✅ Integração Eduzz real carregada:', realIntegrations[0]);
     } catch (error) {
       console.error('Erro ao carregar integrações Eduzz:', error);
     } finally {
@@ -180,10 +171,12 @@ export default function EduzzPage() {
     alert('Copiado para a área de transferência!');
   };
 
+  // ✅ FUNÇÃO ATUALIZADA COM LITE_V2
   const getPlanInfo = (plan: string) => {
     const planMap: Record<string, { label: string; color: string; emoji: string }> = {
       'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
       'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
       'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
       'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
       'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' }
@@ -225,6 +218,16 @@ export default function EduzzPage() {
           </Box>
         </Box>
       </Box>
+
+      {/* ✅ ALERTA DE STATUS DA EDUZZ */}
+      <Alert severity="success" sx={{ mb: 4, borderRadius: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: '500', mb: 1 }}>
+          📚 Eduzz Configurada!
+        </Typography>
+        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+          Token <strong>EDm2rYeqZWZHmCVmA</strong> detectado no teste. Webhook URL: <code>/api/webhooks/eduzz/EDm2rYeqZWZHmCVmA</code>
+        </Typography>
+      </Alert>
 
       {/* Stats */}
       <Grid container spacing={3} mb={4}>
@@ -534,6 +537,7 @@ export default function EduzzPage() {
               >
                 <MenuItem value="VIP">👑 Close Friends VIP</MenuItem>
                 <MenuItem value="LITE">⭐ Close Friends LITE</MenuItem>
+                <MenuItem value="LITE_V2">🌟 Close Friends LITE 2.0</MenuItem>
                 <MenuItem value="RENDA_PASSIVA">💰 Projeto Renda Passiva</MenuItem>
                 <MenuItem value="FIIS">🏢 Projeto FIIs</MenuItem>
                 <MenuItem value="AMERICA">🇺🇸 Projeto América</MenuItem>
