@@ -229,11 +229,15 @@ export async function enviarEmailCredenciais(
           align-items: center;
           justify-content: center;
           overflow: hidden;
+          border-radius: 50%;
+          background: transparent;
         }
         .logo img {
           width: 120px;
           height: 120px;
-          object-fit: contain;
+          object-fit: cover;
+          border-radius: 50%;
+          background: transparent;
         }
         @media (max-width: 600px) {
           .container { margin: 0 10px; }
@@ -249,7 +253,7 @@ export async function enviarEmailCredenciais(
         <!-- Header -->
         <div class="header">
           <div class="logo">
-            <img src="${loginUrl}/assets/avatar.png" alt="Fatos da Bolsa Logo" />
+            <img src="${loginUrl}/assets/avatar-36.png" alt="Fatos da Bolsa Logo" />
           </div>
           <h1>🎉 Bem-vindo ao Fatos da Bolsa!</h1>
           <p>Sua jornada de sucesso nos investimentos começa agora</p>
