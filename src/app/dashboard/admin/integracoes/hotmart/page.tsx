@@ -66,67 +66,17 @@ export default function HotmartPage() {
     try {
       setLoading(true);
       
-      // ✅ DADOS REAIS DAS INTEGRAÇÕES HOTMART (incluindo token do teste)
+      // ✅ DADOS REAIS DAS INTEGRAÇÕES HOTMART (TOKEN ÚNICO)
       const realIntegrations: HotmartIntegration[] = [
         {
           id: 'HM001',
-          productName: 'Produto Fatos da Bolsa Hotmart',
-          token: 'TokendYNZMSBlDXyWPST3VZPSsaqe3JfKYJ', // ✅ SEU TOKEN REAL DO TESTE
-          plan: 'VIP',
+          productName: 'Webhook Único Hotmart (Detecção Automática)',
+          token: 'TokendYNZMSBlDXyWPST3VZPSsaqe3JfKYJ', // ✅ TOKEN ÚNICO REAL
+          plan: 'AUTO', // Plano detectado automaticamente
           webhookUrl: `${window.location.origin}/api/webhooks/hotmart/TokendYNZMSBlDXyWPST3VZPSsaqe3JfKYJ`,
           status: 'ACTIVE',
           createdAt: '2025-07-16',
           totalSales: 0
-        },
-        {
-          id: '124159',
-          productName: 'Projeto Trump',
-          token: 'EtgWA9f64vpgWvg6m9oSSnpn',
-          plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/EtgWA9f64vpgWvg6m9oSSnpn`,
-          status: 'ACTIVE',
-          createdAt: '2024-01-15',
-          totalSales: 45
-        },
-        {
-          id: '99519',
-          productName: 'Troca de Plano - VIP',
-          token: 'Abc123def456ghi789jkl012',
-          plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Abc123def456ghi789jkl012`,
-          status: 'ACTIVE',
-          createdAt: '2024-02-20',
-          totalSales: 23
-        },
-        {
-          id: '99516',
-          productName: 'Projeto FIIs',
-          token: 'Xyz789uvw456rst123opq890',
-          plan: 'FIIS',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Xyz789uvw456rst123opq890`,
-          status: 'ACTIVE',
-          createdAt: '2024-03-10',
-          totalSales: 67
-        },
-        {
-          id: '85078',
-          productName: 'Close Friends LITE 2024',
-          token: 'Mno345pqr678stu901vwx234',
-          plan: 'LITE',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Mno345pqr678stu901vwx234`,
-          status: 'ACTIVE',
-          createdAt: '2024-04-05',
-          totalSales: 89
-        },
-        {
-          id: '85075',
-          productName: 'Close Friends VIP 2024',
-          token: 'Def567ghi890jkl123mno456',
-          plan: 'VIP',
-          webhookUrl: `${window.location.origin}/api/webhooks/hotmart/Def567ghi890jkl123mno456`,
-          status: 'ACTIVE',
-          createdAt: '2024-04-05',
-          totalSales: 156
         }
       ];
       
