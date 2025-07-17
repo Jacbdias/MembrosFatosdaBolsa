@@ -31,7 +31,8 @@ import {
   Select,
   MenuItem,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  CircularProgress
 } from '@mui/material';
 import {
   LineChart,
@@ -53,34 +54,54 @@ interface RenovacaoStats {
   totalUsers: number;
   activeUsers: number;
   inactiveUsers: number;
+  expiredUsers: number;
   expiringIn7Days: number;
   expiringIn15Days: number;
   expiringIn30Days: number;
-  renewalsThisMonth: number;
-  renewalsLastMonth: number;
-  churnRate: number;
+  hotmartIntegrated: number;
   retentionRate: number;
+  churnRate: number;
+  totalRevenue: number;
+  newUsersThisMonth: number;
 }
 
 interface UserExpiring {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   plan: string;
-  expirationDate: string;
+  expirationDate: string | null;
   daysUntilExpiry: number;
-  lastRenewal?: string;
-  totalPurchases: number;
+  hotmartCustomerId: string | null;
+  hotmartStatus: string | null;
   status: 'ACTIVE' | 'INACTIVE';
+  totalPurchases: number;
+  createdAt: string;
   emailSent?: boolean;
+}
+
+interface ApiUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  plan: 'VIP' | 'LITE' | 'LITE_V2' | 'RENDA_PASSIVA' | 'FIIS' | 'AMERICA' | 'ADMIN';
+  status: 'ACTIVE' | 'INACTIVE';
+  expirationDate: string | null;
+  hotmartCustomerId: string | null;
+  hotmartStatus: string | null;
+  totalPurchases: number;
+  createdAt: string;
+  lastLogin: string | null;
 }
 
 interface MonthlyData {
   month: string;
-  renovacoes: number;
   novosUsuarios: number;
-  cancelamentos: number;
+  usuariosExpirados: number;
   receita: number;
+  renovacoes: number;
 }
 
 interface TabPanelProps {
@@ -101,8 +122,10 @@ function TabPanel(props: TabPanelProps) {
 export default function RenovacoesDashboard() {
   const [stats, setStats] = useState<RenovacaoStats | null>(null);
   const [usersExpiring, setUsersExpiring] = useState<UserExpiring[]>([]);
+  const [allUsers, setAllUsers] = useState<ApiUser[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const [openEmailDialog, setOpenEmailDialog] = useState(false);
   const [emailSettings, setEmailSettings] = useState({
@@ -112,114 +135,176 @@ export default function RenovacoesDashboard() {
     template: 'reminder'
   });
 
-  useEffect(() => {
-    loadRenovacaoData();
-  }, []);
-
+  // 🚀 FUNÇÃO PARA BUSCAR DADOS REAIS DA API
   const loadRenovacaoData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Simular dados de renovação
-      const mockStats: RenovacaoStats = {
-        totalUsers: 1247,
-        activeUsers: 1156,
-        inactiveUsers: 91,
-        expiringIn7Days: 23,
-        expiringIn15Days: 45,
-        expiringIn30Days: 89,
-        renewalsThisMonth: 67,
-        renewalsLastMonth: 82,
-        churnRate: 7.3,
-        retentionRate: 92.7
-      };
-
-      const mockUsersExpiring: UserExpiring[] = [
-        {
-          id: '1',
-          name: 'João Silva',
-          email: 'joao.silva@email.com',
-          plan: 'VIP',
-          expirationDate: '2025-07-22',
-          daysUntilExpiry: 7,
-          lastRenewal: '2024-07-22',
-          totalPurchases: 2400,
-          status: 'ACTIVE',
-          emailSent: false
-        },
-        {
-          id: '2',
-          name: 'Maria Santos',
-          email: 'maria.santos@email.com',
-          plan: 'LITE',
-          expirationDate: '2025-07-20',
-          daysUntilExpiry: 5,
-          lastRenewal: '2024-07-20',
-          totalPurchases: 1200,
-          status: 'ACTIVE',
-          emailSent: true
-        },
-        {
-          id: '3',
-          name: 'Pedro Costa',
-          email: 'pedro.costa@email.com',
-          plan: 'VIP',
-          expirationDate: '2025-07-18',
-          daysUntilExpiry: 3,
-          lastRenewal: '2024-07-18',
-          totalPurchases: 2400,
-          status: 'ACTIVE',
-          emailSent: false
-        },
-        {
-          id: '4',
-          name: 'Ana Oliveira',
-          email: 'ana.oliveira@email.com',
-          plan: 'FIIS',
-          expirationDate: '2025-07-25',
-          daysUntilExpiry: 10,
-          totalPurchases: 1800,
-          status: 'ACTIVE',
-          emailSent: false
-        },
-        // ✅ ADICIONADO: Usuário com LITE_V2
-        {
-          id: '5',
-          name: 'Carlos Ferreira',
-          email: 'carlos.ferreira@email.com',
-          plan: 'LITE_V2',
-          expirationDate: '2025-07-23',
-          daysUntilExpiry: 8,
-          lastRenewal: '2024-07-23',
-          totalPurchases: 970,
-          status: 'ACTIVE',
-          emailSent: false
+      console.log('🔄 Buscando dados reais da API de usuários...');
+      
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      if (!userEmail) {
+        throw new Error('Email do usuário não encontrado. Faça login novamente.');
+      }
+      
+      const response = await fetch('/api/admin/users', {
+        method: 'GET',
+        headers: {
+          'authorization': `Bearer ${token || ''}`,
+          'x-user-email': userEmail,
+          'content-type': 'application/json',
+          'Accept': 'application/json'
         }
-      ];
-
-      const mockMonthlyData: MonthlyData[] = [
-        { month: 'Jan 2025', renovacoes: 45, novosUsuarios: 67, cancelamentos: 12, receita: 89400 },
-        { month: 'Fev 2025', renovacoes: 52, novosUsuarios: 78, cancelamentos: 8, receita: 102300 },
-        { month: 'Mar 2025', renovacoes: 61, novosUsuarios: 89, cancelamentos: 15, receita: 118900 },
-        { month: 'Abr 2025', renovacoes: 58, novosUsuarios: 72, cancelamentos: 11, receita: 109800 },
-        { month: 'Mai 2025', renovacoes: 74, novosUsuarios: 95, cancelamentos: 9, receita: 134200 },
-        { month: 'Jun 2025', renovacoes: 82, novosUsuarios: 112, cancelamentos: 7, receita: 156700 },
-        { month: 'Jul 2025', renovacoes: 67, novosUsuários: 89, cancelamentos: 13, receita: 124500 }
-      ];
-
-      setStats(mockStats);
-      setUsersExpiring(mockUsersExpiring);
-      setMonthlyData(mockMonthlyData);
-    } catch (error) {
-      console.error('Erro ao carregar dados de renovação:', error);
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Dados recebidos da API:', data);
+      
+      const users: ApiUser[] = data.users || [];
+      setAllUsers(users);
+      
+      // 📊 CALCULAR ESTATÍSTICAS REAIS
+      const hoje = new Date();
+      const currentMonth = hoje.getMonth();
+      const currentYear = hoje.getFullYear();
+      
+      // Usuários que expiram em X dias
+      const usersWithExpiration = users.filter(u => u.expirationDate);
+      const expiring7Days = usersWithExpiration.filter(u => {
+        const expDate = new Date(u.expirationDate!);
+        const diffTime = expDate.getTime() - hoje.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 && diffDays <= 7;
+      });
+      
+      const expiring15Days = usersWithExpiration.filter(u => {
+        const expDate = new Date(u.expirationDate!);
+        const diffTime = expDate.getTime() - hoje.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 && diffDays <= 15;
+      });
+      
+      const expiring30Days = usersWithExpiration.filter(u => {
+        const expDate = new Date(u.expirationDate!);
+        const diffTime = expDate.getTime() - hoje.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 && diffDays <= 30;
+      });
+      
+      // Usuários expirados
+      const expiredUsers = usersWithExpiration.filter(u => {
+        const expDate = new Date(u.expirationDate!);
+        return expDate < hoje;
+      });
+      
+      // Novos usuários este mês
+      const newUsersThisMonth = users.filter(u => {
+        const createdDate = new Date(u.createdAt);
+        return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
+      });
+      
+      // Receita total
+      const totalRevenue = users.reduce((sum, u) => sum + (u.totalPurchases || 0), 0);
+      
+      // Estatísticas calculadas
+      const calculatedStats: RenovacaoStats = {
+        totalUsers: users.length,
+        activeUsers: users.filter(u => u.status === 'ACTIVE').length,
+        inactiveUsers: users.filter(u => u.status === 'INACTIVE').length,
+        expiredUsers: expiredUsers.length,
+        expiringIn7Days: expiring7Days.length,
+        expiringIn15Days: expiring15Days.length,
+        expiringIn30Days: expiring30Days.length,
+        hotmartIntegrated: users.filter(u => u.hotmartCustomerId).length,
+        retentionRate: users.length > 0 ? ((users.filter(u => u.status === 'ACTIVE').length / users.length) * 100) : 0,
+        churnRate: users.length > 0 ? ((users.filter(u => u.status === 'INACTIVE').length / users.length) * 100) : 0,
+        totalRevenue,
+        newUsersThisMonth: newUsersThisMonth.length
+      };
+      
+      setStats(calculatedStats);
+      
+      // 📅 PREPARAR DADOS DE USUÁRIOS EXPIRANDO
+      const usersExpiringData: UserExpiring[] = expiring30Days.map(user => {
+        const expDate = new Date(user.expirationDate!);
+        const diffTime = expDate.getTime() - hoje.getTime();
+        const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          plan: user.plan,
+          expirationDate: user.expirationDate,
+          daysUntilExpiry,
+          hotmartCustomerId: user.hotmartCustomerId,
+          hotmartStatus: user.hotmartStatus,
+          status: user.status,
+          totalPurchases: user.totalPurchases,
+          createdAt: user.createdAt,
+          emailSent: false
+        };
+      }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+      
+      setUsersExpiring(usersExpiringData);
+      
+      // 📈 GERAR DADOS MENSAIS (últimos 6 meses)
+      const monthlyStats: MonthlyData[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const targetDate = new Date(currentYear, currentMonth - i, 1);
+        const nextMonth = new Date(currentYear, currentMonth - i + 1, 1);
+        
+        const usersInMonth = users.filter(u => {
+          const createdDate = new Date(u.createdAt);
+          return createdDate >= targetDate && createdDate < nextMonth;
+        });
+        
+        const expiredInMonth = users.filter(u => {
+          if (!u.expirationDate) return false;
+          const expDate = new Date(u.expirationDate);
+          return expDate >= targetDate && expDate < nextMonth;
+        });
+        
+        const revenueInMonth = usersInMonth.reduce((sum, u) => sum + (u.totalPurchases || 0), 0);
+        
+        monthlyStats.push({
+          month: targetDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
+          novosUsuarios: usersInMonth.length,
+          usuariosExpirados: expiredInMonth.length,
+          receita: revenueInMonth,
+          renovacoes: Math.max(0, usersInMonth.length - expiredInMonth.length)
+        });
+      }
+      
+      setMonthlyData(monthlyStats);
+      
+      console.log('📊 Estatísticas calculadas:', calculatedStats);
+      console.log('⏰ Usuários expirando:', usersExpiringData.length);
+      
+    } catch (error: any) {
+      console.error('❌ Erro ao carregar dados de renovação:', error);
+      setError(error.message || 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadRenovacaoData();
+  }, []);
+
   const handleSendReminderEmail = async (userId: string) => {
     try {
-      // Simular envio de email
+      // TODO: Implementar envio real de email
       setUsersExpiring(prev => 
         prev.map(user => 
           user.id === userId ? { ...user, emailSent: true } : user
@@ -235,13 +320,13 @@ export default function RenovacoesDashboard() {
   const handleBulkSendEmails = async () => {
     try {
       const usersToEmail = usersExpiring.filter(user => 
-        user.daysUntilExpiry <= 7 && !user.emailSent
+        user.daysUntilExpiry <= emailSettings.daysBeforeExpiry && !user.emailSent
       );
       
-      // Simular envio em lote
+      // TODO: Implementar envio em lote real
       setUsersExpiring(prev => 
         prev.map(user => 
-          user.daysUntilExpiry <= 7 ? { ...user, emailSent: true } : user
+          user.daysUntilExpiry <= emailSettings.daysBeforeExpiry ? { ...user, emailSent: true } : user
         )
       );
       
@@ -256,10 +341,11 @@ export default function RenovacoesDashboard() {
     const planMap: Record<string, { label: string; color: string; emoji: string }> = {
       'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
       'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
-      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' },
       'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
       'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
-      'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' }
+      'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' },
+      'ADMIN': { label: 'Administrador', color: '#4B5563', emoji: '🛡️' }
     };
     return planMap[plan] || { label: plan, color: '#6B7280', emoji: '📋' };
   };
@@ -271,6 +357,10 @@ export default function RenovacoesDashboard() {
     }).format(value);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
   const getExpiryColor = (days: number) => {
     if (days <= 3) return '#DC2626'; // Vermelho
     if (days <= 7) return '#D97706'; // Laranja
@@ -280,14 +370,35 @@ export default function RenovacoesDashboard() {
 
   const pieData = [
     { name: 'Ativos', value: stats?.activeUsers || 0, fill: '#059669' },
-    { name: 'Inativos', value: stats?.inactiveUsers || 0, fill: '#DC2626' }
+    { name: 'Inativos', value: stats?.inactiveUsers || 0, fill: '#DC2626' },
+    { name: 'Expirados', value: stats?.expiredUsers || 0, fill: '#D97706' }
   ];
 
   if (loading) {
     return (
       <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="400px">
-        <LinearProgress sx={{ width: 300, mb: 2 }} />
-        <Typography>Carregando dados de renovação...</Typography>
+        <CircularProgress sx={{ color: '#3B82F6', mb: 2 }} />
+        <Typography>Carregando dados de renovação da API...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 4, backgroundColor: '#F8FAFC', minHeight: '100vh' }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={loadRenovacaoData}>
+              Tentar Novamente
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: '500' }}>
+            ❌ Erro ao carregar dados: {error}
+          </Typography>
+        </Alert>
       </Box>
     );
   }
@@ -300,7 +411,7 @@ export default function RenovacoesDashboard() {
           📊 Dashboard de Renovações
         </Typography>
         <Typography variant="body1" sx={{ color: '#64748B' }}>
-          Acompanhe renovações, vencimentos e gerencie comunicação com assinantes
+          Dados em tempo real da API • {stats?.totalUsers} usuários • {stats?.hotmartIntegrated} integrados com Hotmart
         </Typography>
       </Box>
 
@@ -341,7 +452,7 @@ export default function RenovacoesDashboard() {
                     {stats?.activeUsers.toLocaleString()}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#059669' }}>
-                    {stats && ((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}%
+                    {stats && stats.totalUsers > 0 ? ((stats.activeUsers / stats.totalUsers) * 100).toFixed(1) : 0}%
                   </Typography>
                 </Box>
               </Box>
@@ -377,22 +488,17 @@ export default function RenovacoesDashboard() {
             <CardContent sx={{ p: 3 }}>
               <Box display="flex" alignItems="center">
                 <Avatar sx={{ bgcolor: '#FFFBEB', color: '#D97706', mr: 2, fontSize: '20px' }}>
-                  🔄
+                  💰
                 </Avatar>
                 <Box>
                   <Typography color="textSecondary" variant="body2">
-                    Renovações Este Mês
+                    Receita Total
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: '700' }}>
-                    {stats?.renewalsThisMonth}
+                  <Typography variant="h4" sx={{ fontWeight: '700', fontSize: '1.5rem' }}>
+                    {formatCurrency(stats?.totalRevenue || 0)}
                   </Typography>
-                  <Typography variant="caption" sx={{ 
-                    color: (stats?.renewalsThisMonth || 0) > (stats?.renewalsLastMonth || 0) ? '#059669' : '#DC2626' 
-                  }}>
-                    {stats && stats.renewalsThisMonth > stats.renewalsLastMonth ? '+' : ''}
-                    {stats && stats.renewalsLastMonth > 0 ? 
-                      (((stats.renewalsThisMonth - stats.renewalsLastMonth) / stats.renewalsLastMonth) * 100).toFixed(1) : 0
-                    }%
+                  <Typography variant="caption" sx={{ color: '#D97706' }}>
+                    {stats?.newUsersThisMonth} novos este mês
                   </Typography>
                 </Box>
               </Box>
@@ -419,10 +525,18 @@ export default function RenovacoesDashboard() {
           </Alert>
         )}
         
-        {stats && stats.churnRate > 10 && (
+        {stats && stats.expiredUsers > 0 && (
           <Alert severity="error" sx={{ mb: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: '500' }}>
-              🚨 Taxa de cancelamento alta: {stats.churnRate}% - considere campanhas de retenção
+              🔴 {stats.expiredUsers} usuários com assinaturas expiradas encontrados
+            </Typography>
+          </Alert>
+        )}
+
+        {stats && stats.hotmartIntegrated < stats.totalUsers * 0.5 && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: '500' }}>
+              ℹ️ Apenas {stats.hotmartIntegrated} de {stats.totalUsers} usuários têm integração com Hotmart
             </Typography>
           </Alert>
         )}
@@ -484,7 +598,7 @@ export default function RenovacoesDashboard() {
                   <Box display="flex" justifyContent="space-between" mb={2}>
                     <Typography variant="body2">Taxa de Retenção</Typography>
                     <Typography variant="body2" sx={{ fontWeight: '600', color: '#059669' }}>
-                      {stats?.retentionRate}%
+                      {stats?.retentionRate.toFixed(1)}%
                     </Typography>
                   </Box>
                   <LinearProgress 
@@ -503,7 +617,7 @@ export default function RenovacoesDashboard() {
                   <Box display="flex" justifyContent="space-between" mb={2}>
                     <Typography variant="body2">Taxa de Cancelamento</Typography>
                     <Typography variant="body2" sx={{ fontWeight: '600', color: '#DC2626' }}>
-                      {stats?.churnRate}%
+                      {stats?.churnRate.toFixed(1)}%
                     </Typography>
                   </Box>
                   <LinearProgress 
@@ -567,12 +681,13 @@ export default function RenovacoesDashboard() {
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">
-                Usuários com Vencimento Próximo
+                Usuários com Vencimento Próximo ({usersExpiring.length})
               </Typography>
               <Button
                 variant="contained"
                 sx={{ bgcolor: '#D97706' }}
                 onClick={handleBulkSendEmails}
+                disabled={usersExpiring.filter(u => !u.emailSent).length === 0}
               >
                 📧 Enviar Lembretes em Lote
               </Button>
@@ -586,8 +701,9 @@ export default function RenovacoesDashboard() {
                     <TableCell sx={{ fontWeight: '600' }}>Plano</TableCell>
                     <TableCell sx={{ fontWeight: '600' }}>Vencimento</TableCell>
                     <TableCell sx={{ fontWeight: '600' }}>Dias Restantes</TableCell>
-                    <TableCell sx={{ fontWeight: '600' }}>Última Renovação</TableCell>
-                    <TableCell sx={{ fontWeight: '600' }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: '600' }}>Receita</TableCell>
+                    <TableCell sx={{ fontWeight: '600' }}>Hotmart</TableCell>
+                    <TableCell sx={{ fontWeight: '600' }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: '600' }}>Ações</TableCell>
                   </TableRow>
                 </TableHead>
@@ -600,7 +716,7 @@ export default function RenovacoesDashboard() {
                         <TableCell>
                           <Box>
                             <Typography variant="body2" sx={{ fontWeight: '500' }}>
-                              {user.name}
+                              {user.firstName} {user.lastName}
                             </Typography>
                             <Typography variant="caption" sx={{ color: '#64748B' }}>
                               {user.email}
@@ -623,7 +739,7 @@ export default function RenovacoesDashboard() {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {new Date(user.expirationDate).toLocaleDateString('pt-BR')}
+                            {user.expirationDate ? formatDate(user.expirationDate) : 'Sem data'}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -638,18 +754,23 @@ export default function RenovacoesDashboard() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" sx={{ color: '#64748B' }}>
-                            {user.lastRenewal ? 
-                              new Date(user.lastRenewal).toLocaleDateString('pt-BR') : 
-                              'Primeira assinatura'
-                            }
+                          <Typography variant="body2" sx={{ fontWeight: '500' }}>
+                            {formatCurrency(user.totalPurchases)}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={user.emailSent ? 'Enviado' : 'Pendente'}
+                            label={user.hotmartCustomerId ? 'Integrado' : 'Manual'}
                             size="small"
-                            color={user.emailSent ? 'success' : 'warning'}
+                            color={user.hotmartCustomerId ? 'success' : 'default'}
+                            sx={{ fontWeight: '500' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={user.status}
+                            size="small"
+                            color={user.status === 'ACTIVE' ? 'success' : 'error'}
                             sx={{ fontWeight: '500' }}
                           />
                         </TableCell>
@@ -661,7 +782,7 @@ export default function RenovacoesDashboard() {
                             onClick={() => handleSendReminderEmail(user.id)}
                             sx={{ textTransform: 'none' }}
                           >
-                            📧 Enviar Lembrete
+                            {user.emailSent ? '✅ Enviado' : '📧 Enviar'}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -670,6 +791,14 @@ export default function RenovacoesDashboard() {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {usersExpiring.length === 0 && (
+              <Box p={4} textAlign="center">
+                <Typography sx={{ color: '#64748B' }}>
+                  🎉 Nenhum usuário com vencimento próximo!
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </TabPanel>
@@ -681,7 +810,7 @@ export default function RenovacoesDashboard() {
             <Card sx={{ borderRadius: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Renovações e Novos Usuários por Mês
+                  Novos Usuários vs Expirados (Últimos 6 Meses)
                 </Typography>
                 <Box height={400}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -691,9 +820,9 @@ export default function RenovacoesDashboard() {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="renovacoes" name="Renovações" fill="#059669" />
-                      <Bar dataKey="novosUsuarios" name="Novos Usuários" fill="#3B82F6" />
-                      <Bar dataKey="cancelamentos" name="Cancelamentos" fill="#DC2626" />
+                      <Bar dataKey="novosUsuarios" name="Novos Usuários" fill="#059669" />
+                      <Bar dataKey="usuariosExpirados" name="Usuários Expirados" fill="#DC2626" />
+                      <Bar dataKey="renovacoes" name="Renovações" fill="#3B82F6" />
                     </BarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -705,7 +834,7 @@ export default function RenovacoesDashboard() {
             <Card sx={{ borderRadius: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Receita Mensal
+                  Receita por Mês
                 </Typography>
                 <Box height={300}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -790,35 +919,32 @@ export default function RenovacoesDashboard() {
             <Card sx={{ borderRadius: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Estatísticas de Email
+                  Integração com API
                 </Typography>
                 
                 <Box sx={{ mt: 3 }}>
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    ✅ Conectado à API /api/admin/users
+                  </Alert>
+                  
                   <Box display="flex" justifyContent="space-between" mb={2}>
-                    <Typography variant="body2">Emails enviados hoje</Typography>
+                    <Typography variant="body2">Total de usuários</Typography>
                     <Typography variant="body2" sx={{ fontWeight: '600' }}>
-                      12
+                      {stats?.totalUsers}
                     </Typography>
                   </Box>
                   
                   <Box display="flex" justifyContent="space-between" mb={2}>
-                    <Typography variant="body2">Emails enviados esta semana</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: '600' }}>
-                      89
-                    </Typography>
-                  </Box>
-                  
-                  <Box display="flex" justifyContent="space-between" mb={2}>
-                    <Typography variant="body2">Taxa de abertura</Typography>
+                    <Typography variant="body2">Integrados com Hotmart</Typography>
                     <Typography variant="body2" sx={{ fontWeight: '600', color: '#059669' }}>
-                      73.4%
+                      {stats?.hotmartIntegrated}
                     </Typography>
                   </Box>
                   
                   <Box display="flex" justifyContent="space-between" mb={2}>
-                    <Typography variant="body2">Taxa de renovação após email</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: '600', color: '#059669' }}>
-                      42.1%
+                    <Typography variant="body2">Expirando em 7 dias</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: '600', color: '#DC2626' }}>
+                      {stats?.expiringIn7Days}
                     </Typography>
                   </Box>
                 </Box>
@@ -827,9 +953,10 @@ export default function RenovacoesDashboard() {
                   <Button
                     variant="outlined"
                     fullWidth
-                    onClick={() => setOpenEmailDialog(true)}
+                    onClick={loadRenovacaoData}
+                    disabled={loading}
                   >
-                    📧 Enviar Email Customizado
+                    🔄 Atualizar Dados
                   </Button>
                 </Box>
               </CardContent>
@@ -860,10 +987,10 @@ export default function RenovacoesDashboard() {
             <FormControl fullWidth>
               <InputLabel>Destinatários</InputLabel>
               <Select label="Destinatários">
-                <MenuItem value="expiring7">Expirando em 7 dias</MenuItem>
-                <MenuItem value="expiring15">Expirando em 15 dias</MenuItem>
-                <MenuItem value="expired">Já expirados</MenuItem>
-                <MenuItem value="all_active">Todos ativos</MenuItem>
+                <MenuItem value="expiring7">Expirando em 7 dias ({stats?.expiringIn7Days})</MenuItem>
+                <MenuItem value="expiring15">Expirando em 15 dias ({stats?.expiringIn15Days})</MenuItem>
+                <MenuItem value="expired">Já expirados ({stats?.expiredUsers})</MenuItem>
+                <MenuItem value="all_active">Todos ativos ({stats?.activeUsers})</MenuItem>
               </Select>
             </FormControl>
           </Box>
