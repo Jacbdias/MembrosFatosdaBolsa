@@ -3739,22 +3739,118 @@ const {
   ativo?.tipo === 'FII'
 );
 
-  // Calcular performance
-  const calcularPerformance = () => {
-    if (!ativo) return 0;
+// 💰 FUNÇÃO PARA CALCULAR PROVENTOS (adicionar antes da função calcularPerformance)
+const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => {
+  try {
+    if (typeof window === 'undefined') return 0;
     
-    if (ativo.posicaoEncerrada && ativo.precoSaida) {
-      return ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-    }
+    // Buscar proventos do localStorage da Central de Proventos
+    const proventosKey = `proventos_${ticker}`;
+    const proventosData = localStorage.getItem(proventosKey);
+    if (!proventosData) return 0;
     
+    const proventos = JSON.parse(proventosData);
+    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
+    
+    // Converter data de entrada para objeto Date
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    
+    // Filtrar proventos pagos após a data de entrada
+    const proventosFiltrados = proventos.filter((provento: any) => {
+      try {
+        let dataProventoObj: Date;
+        
+        // Tentar diferentes formatos de data
+        if (provento.dataPagamento) {
+          if (provento.dataPagamento.includes('/')) {
+            const [d, m, a] = provento.dataPagamento.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.dataPagamento.includes('-')) {
+            dataProventoObj = new Date(provento.dataPagamento);
+          }
+        } else if (provento.data) {
+          if (provento.data.includes('/')) {
+            const [d, m, a] = provento.data.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.data.includes('-')) {
+            dataProventoObj = new Date(provento.data);
+          }
+        } else if (provento.dataCom) {
+          if (provento.dataCom.includes('/')) {
+            const [d, m, a] = provento.dataCom.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.dataCom.includes('-')) {
+            dataProventoObj = new Date(provento.dataCom);
+          }
+        } else if (provento.dataObj) {
+          dataProventoObj = new Date(provento.dataObj);
+        } else {
+          return false;
+        }
+        
+        return dataProventoObj && dataProventoObj >= dataEntradaObj;
+      } catch (error) {
+        console.error('Erro ao processar data do provento:', error);
+        return false;
+      }
+    });
+    
+    // Somar valores dos proventos
+    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
+      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
+      return total + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    console.log(`✅ ${ticker}: ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
+    
+    return totalProventos;
+    
+  } catch (error) {
+    console.error(`❌ Erro ao calcular proventos para ${ticker}:`, error);
+    return 0;
+  }
+};
+
+// 🔄 FUNÇÃO calcularPerformance MODIFICADA (Total Return)
+const calcularPerformance = () => {
+  if (!ativo) return { total: 0, acao: 0, proventos: 0, valorProventos: 0 };
+  
+  // 📊 CALCULAR PERFORMANCE DA AÇÃO
+  let performanceAcao = 0;
+  
+  if (ativo.posicaoEncerrada && ativo.precoSaida) {
+    performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+  } else {
     const precoAtual = cotacaoCompleta?.regularMarketPrice || 
                       (cotacoes[ticker] && typeof cotacoes[ticker] === 'object' ? cotacoes[ticker].regularMarketPrice : cotacoes[ticker]);
     
     if (precoAtual && ativo.precoEntrada) {
-      return ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+      performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
     }
-    return 0;
+  }
+  
+  // 💰 CALCULAR PROVENTOS DO PERÍODO
+  const valorProventos = calcularProventosAtivo(ticker, ativo.dataEntrada);
+  const performanceProventos = ativo.precoEntrada > 0 ? (valorProventos / ativo.precoEntrada) * 100 : 0;
+  
+  // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
+  const performanceTotal = performanceAcao + performanceProventos;
+  
+  console.log(`📊 Performance ${ticker}:`, {
+    acao: `${performanceAcao.toFixed(2)}%`,
+    proventos: `${performanceProventos.toFixed(2)}%`,
+    total: `${performanceTotal.toFixed(2)}%`,
+    valorProventos: `R$ ${valorProventos.toFixed(2)}`
+  });
+  
+  return {
+    total: performanceTotal,
+    acao: performanceAcao,
+    proventos: performanceProventos,
+    valorProventos: valorProventos
   };
+};
 
   // Calcular dias investido
   const calcularDiasInvestido = () => {
@@ -3838,7 +3934,8 @@ const {
   }
 
   const carteiraConfig = CARTEIRAS_CONFIG[carteira];
-  const performance = calcularPerformance();
+  const performanceData = calcularPerformance();
+const performance = performanceData.total; // Para manter compatibilidade
   const diasInvestido = calcularDiasInvestido();
   
   // Usar cotação local primeiro, depois global
@@ -4408,11 +4505,11 @@ const {
     gap: '20px',
     marginBottom: '32px'
   }}>
-    <MetricCard 
-      title="PERFORMANCE" 
-      value={`${performance >= 0 ? '+' : ''}${performance.toFixed(2)}%`}
-      subtitle="desde entrada"
-    />
+<MetricCard 
+  title="PERFORMANCE TOTAL" 
+  value={`${performanceData.total >= 0 ? '+' : ''}${performanceData.total.toFixed(2)}%`}
+  subtitle={`Ação: ${performanceData.acao.toFixed(1)}% • Proventos: ${performanceData.proventos.toFixed(1)}%`}
+/>
     
     {/* 📊 P/L MELHORADO - MÚLTIPLAS FONTES */}
     <MetricCard 
