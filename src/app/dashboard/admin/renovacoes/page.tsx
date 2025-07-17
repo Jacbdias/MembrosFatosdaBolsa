@@ -167,6 +167,11 @@ export default function RenovacoesDashboard() {
       
       const data = await response.json();
       console.log('✅ Dados recebidos da API:', data);
+      console.log('👥 Primeiros 3 usuários:', data.users?.slice(0, 3).map(u => ({
+        email: u.email,
+        totalPurchases: u.totalPurchases,
+        type: typeof u.totalPurchases
+      })));
       
       const users: ApiUser[] = data.users || [];
       setAllUsers(users);
@@ -211,8 +216,15 @@ export default function RenovacoesDashboard() {
         return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
       });
       
-      // Receita total
-      const totalRevenue = users.reduce((sum, u) => sum + (u.totalPurchases || 0), 0);
+      // Receita total - com tratamento robusto
+      const totalRevenue = users.reduce((sum, u) => {
+        const purchases = typeof u.totalPurchases === 'number' ? u.totalPurchases : 
+                         typeof u.totalPurchases === 'string' ? parseFloat(u.totalPurchases) || 0 : 0;
+        console.log(`User ${u.email}: R$ ${purchases}`);
+        return sum + purchases;
+      }, 0);
+      
+      console.log('💰 Receita total calculada:', totalRevenue);
       
       // Estatísticas calculadas
       const calculatedStats: RenovacaoStats = {
@@ -274,7 +286,11 @@ export default function RenovacoesDashboard() {
           return expDate >= targetDate && expDate < nextMonth;
         });
         
-        const revenueInMonth = usersInMonth.reduce((sum, u) => sum + (u.totalPurchases || 0), 0);
+        const revenueInMonth = usersInMonth.reduce((sum, u) => {
+          const purchases = typeof u.totalPurchases === 'number' ? u.totalPurchases : 
+                           typeof u.totalPurchases === 'string' ? parseFloat(u.totalPurchases) || 0 : 0;
+          return sum + purchases;
+        }, 0);
         
         monthlyStats.push({
           month: targetDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
@@ -494,8 +510,8 @@ export default function RenovacoesDashboard() {
                   <Typography color="textSecondary" variant="body2">
                     Receita Total
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: '700', fontSize: '1.5rem' }}>
-                    {formatCurrency(stats?.totalRevenue || 0)}
+                  <Typography variant="h4" sx={{ fontWeight: '700', fontSize: '1.25rem' }}>
+                    {stats?.totalRevenue ? formatCurrency(stats.totalRevenue) : 'R$ 0,00'}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#D97706' }}>
                     {stats?.newUsersThisMonth} novos este mês
