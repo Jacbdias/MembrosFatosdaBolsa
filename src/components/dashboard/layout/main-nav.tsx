@@ -150,7 +150,7 @@ export function MainNav(): React.JSX.Element {
   // Navegar para o ativo selecionado
   const handleAtivoSelect = (ativo) => {
     if (ativo) {
-      router.push(`/dashboard/empresa/${ativo.ticker}`);
+      router.push(`/dashboard/ativo/${ativo.ticker}`);
       setSearchMode(false);
     }
   };
@@ -222,6 +222,15 @@ export function MainNav(): React.JSX.Element {
                         '& .MuiOutlinedInput-root': {
                           fontSize: '14px',
                           backgroundColor: 'white',
+                          '& fieldset': {
+                            borderColor: '#010101', // 🔥 Borda preta quando normal
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#010101', // 🔥 Borda preta no hover
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#010101', // 🔥 Borda preta quando focado
+                          },
                         }
                       }}
                     />
