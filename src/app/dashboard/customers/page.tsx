@@ -1254,7 +1254,7 @@ export default function MicroCapsPage() {
                     }}
                     onClick={() => {
                       // Navegar para página de detalhes do ativo
-                      window.location.href = `/dashboard/empresa/${ativo.ticker}`;
+                      window.location.href = `/dashboard/ativo/${ativo.ticker}`;
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#f8fafc';

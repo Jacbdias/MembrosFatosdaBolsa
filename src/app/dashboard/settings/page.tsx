@@ -1146,7 +1146,7 @@ export default function FiisPage() {
                     }}
                     onClick={() => {
                       // Navegar para página de detalhes do FII
-                      window.location.href = `/dashboard/empresa/${fii.ticker}`;
+                      window.location.href = `/dashboard/ativo/${fii.ticker}`;
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#f8fafc';
