@@ -143,15 +143,20 @@ model RelatorioSemanal {
   id        String   @id @default(cuid())
   date      String
   weekOf    String
-  macro     Json
-  dividendos Json
-  smallCaps Json
-  microCaps Json
-  exterior  Json
-  status    String   @default("draft") // "draft" | "published"
+  
+  // ✅ Estrutura atualizada com proventos
+  macro     Json     @default("[]")      // MacroNews[]
+  proventos Json     @default("[]")      // DividendoInfo[] - NOVO CAMPO
+  dividendos Json    @default("[]")      // StockNews[] - AGORA É STOCKNEWS
+  smallCaps Json     @default("[]")      // StockNews[]
+  microCaps Json     @default("[]")      // StockNews[]
+  exterior  Json     @default("[]")      // StockNews[]
+  
+  status    String   @default("draft")   // 'draft' | 'published'
   authorId  String
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("relatorio_semanal")
 }
