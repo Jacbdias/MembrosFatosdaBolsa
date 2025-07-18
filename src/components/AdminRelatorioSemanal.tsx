@@ -63,6 +63,8 @@ const AdminRelatorioSemanal = () => {
   const [activeTab, setActiveTab] = useState('macro');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     const loadRelatorio = async () => {
@@ -132,20 +134,45 @@ const AdminRelatorioSemanal = () => {
     }
   };
 
-  const publishRelatorio = async () => {
+  const publishRelatorio = useCallback(async () => {
     setSaving(true);
     try {
-      // ✅ Verificar se o relatório precisa ser salvo primeiro
+      let relatorioToPublish = relatorio;
+      
+      // ✅ Se não tem ID, salvar primeiro
       if (!relatorio.id) {
         console.log('📝 Relatório sem ID, salvando primeiro...');
-        await saveRelatorio();
-        // Esperar um pouco para garantir que o estado foi atualizado
-        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const token = localStorage.getItem('custom-auth-token');
+        const userEmail = localStorage.getItem('user-email');
+        
+        const saveResponse = await fetch('/api/relatorio-semanal', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': `Bearer ${token}`,
+            'x-user-email': userEmail || ''
+          },
+          body: JSON.stringify(relatorio)
+        });
+        
+        if (!saveResponse.ok) {
+          const saveError = await saveResponse.json();
+          throw new Error(saveError.error || saveError.details || 'Erro ao salvar primeiro');
+        }
+        
+        const savedRelatorio = await saveResponse.json();
+        console.log('✅ Relatório salvo com ID:', savedRelatorio.id);
+        
+        // Atualizar o estado local
+        setRelatorio(savedRelatorio);
+        relatorioToPublish = savedRelatorio;
       }
       
-      const publishedReport = { ...relatorio, status: 'published' as const };
+      // ✅ Agora publicar com o ID correto
+      const publishedReport = { ...relatorioToPublish, status: 'published' as const };
       
-      console.log('📤 Dados sendo enviados:', publishedReport);
+      console.log('📤 Publicando relatório:', publishedReport);
       
       const token = localStorage.getItem('custom-auth-token');
       const userEmail = localStorage.getItem('user-email');
@@ -170,11 +197,10 @@ const AdminRelatorioSemanal = () => {
       }
       
       setRelatorio(responseData);
-      alert('✅ Relatório publicado com sucesso!');
+      alert('✅ Relatório publicado com sucesso! Verifique a página pública.');
     } catch (error: any) {
       console.error('❌ Erro completo ao publicar:', error);
       
-      // Mostrar erro mais específico
       let errorMessage = 'Erro desconhecido ao publicar relatório';
       
       if (error.message) {
@@ -189,7 +215,7 @@ const AdminRelatorioSemanal = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [relatorio]);
 
   // Funções de manipulação de dados com useCallback
   const addMacroNews = useCallback(() => {
@@ -859,7 +885,44 @@ const AdminRelatorioSemanal = () => {
     { id: 'exterior', label: 'Exterior', icon: TrendingUp, color: '#7c3aed' }
   ];
 
-  const getTotalItems = useCallback(() => {
+  // 🔍 FUNÇÃO DE DEBUG
+  const debugRelatorioPublico = useCallback(async () => {
+    try {
+      console.log('🔍 Testando API pública...');
+      
+      const response = await fetch('/api/relatorio-semanal', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      console.log('📡 Status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('📊 Dados públicos:', data);
+      
+      setDebugInfo({
+        status: 'success',
+        data: data,
+        timestamp: new Date().toLocaleTimeString('pt-BR'),
+        message: data ? `Relatório encontrado (${data.status})` : 'Nenhum relatório publicado'
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro no debug:', error);
+      setDebugInfo({
+        status: 'error',
+        error: error.message,
+        timestamp: new Date().toLocaleTimeString('pt-BR'),
+        message: 'Erro ao buscar relatório público'
+      });
+    }
+  }, []);
     return relatorio.macro.length + 
            relatorio.proventos.length + 
            relatorio.dividendos.length + 
@@ -889,6 +952,21 @@ const AdminRelatorioSemanal = () => {
                   <span style={{ fontSize: '14px', fontWeight: '500' }}>Salvo automaticamente</span>
                 </div>
               )}
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                style={{
+                  backgroundColor: showDebug ? '#7c3aed' : '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                🔍 Debug
+              </button>
               <button
                 onClick={saveRelatorio}
                 disabled={saving}
@@ -937,6 +1015,114 @@ const AdminRelatorioSemanal = () => {
       </div>
 
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px' }}>
+        {/* 🔍 DEBUG PANEL */}
+        {showDebug && (
+          <div style={{
+            backgroundColor: '#1f2937',
+            color: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '32px',
+            fontFamily: 'monospace',
+            fontSize: '14px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>🔍 Painel de Debug</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={debugRelatorioPublico}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Testar API Pública
+                </button>
+                <button
+                  onClick={() => setShowDebug(false)}
+                  style={{
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+            
+            {/* Dados atuais do relatório */}
+            <div style={{ marginBottom: '16px' }}>
+              <strong>📊 Relatório Atual:</strong>
+              <div style={{ backgroundColor: '#374151', padding: '12px', borderRadius: '6px', marginTop: '8px', overflow: 'auto' }}>
+                <div>ID: {relatorio.id || 'SEM ID'}</div>
+                <div>Status: {relatorio.status}</div>
+                <div>Data: {relatorio.date}</div>
+                <div>Total de itens: {getTotalItems()}</div>
+                <div>Macro: {relatorio.macro.length} | Proventos: {relatorio.proventos.length} | Dividendos: {relatorio.dividendos.length}</div>
+              </div>
+            </div>
+
+            {/* Informações de debug */}
+            {debugInfo && (
+              <div>
+                <strong>🔍 Resultado do Teste ({debugInfo.timestamp}):</strong>
+                <div style={{ 
+                  backgroundColor: debugInfo.status === 'success' ? '#065f46' : '#991b1b', 
+                  padding: '12px', 
+                  borderRadius: '6px', 
+                  marginTop: '8px' 
+                }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    {debugInfo.status === 'success' ? '✅' : '❌'} {debugInfo.message}
+                  </div>
+                  
+                  {debugInfo.error && (
+                    <div style={{ color: '#fca5a5' }}>Erro: {debugInfo.error}</div>
+                  )}
+                  
+                  {debugInfo.data && (
+                    <details style={{ marginTop: '8px' }}>
+                      <summary style={{ cursor: 'pointer', color: '#a7f3d0' }}>Ver dados completos</summary>
+                      <pre style={{ 
+                        fontSize: '12px', 
+                        overflow: 'auto', 
+                        maxHeight: '200px',
+                        marginTop: '8px',
+                        backgroundColor: '#1f2937',
+                        padding: '8px',
+                        borderRadius: '4px'
+                      }}>
+                        {JSON.stringify(debugInfo.data, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Dicas */}
+            <div style={{ marginTop: '16px', fontSize: '12px', color: '#9ca3af' }}>
+              <strong>💡 Dicas:</strong>
+              <ul style={{ margin: '4px 0 0 16px', paddingLeft: '0' }}>
+                <li>Primeiro adicione conteúdo nas abas</li>
+                <li>Clique em "Salvar Rascunho" para obter um ID</li>
+                <li>Clique em "Publicar" para disponibilizar publicamente</li>
+                <li>Use "Testar API Pública" para verificar se foi publicado</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
         {/* Status Card */}
         <div style={{
           backgroundColor: 'white',
