@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Globe, DollarSign, Building, Zap, TrendingUp, Calendar, Plus, Trash2, Save, Eye, CheckCircle, FileText, BarChart3 } from 'lucide-react';
 
 interface MacroNews {
@@ -148,8 +148,8 @@ const AdminRelatorioSemanal = () => {
     }
   };
 
-  // Funções de manipulação de dados
-  const addMacroNews = () => {
+  // Funções de manipulação de dados com useCallback
+  const addMacroNews = useCallback(() => {
     const newNews: MacroNews = {
       id: Date.now().toString(),
       title: '',
@@ -162,25 +162,25 @@ const AdminRelatorioSemanal = () => {
       ...prev,
       macro: [...prev.macro, newNews]
     }));
-  };
+  }, []);
 
-  const updateMacroNews = (id: string, field: keyof MacroNews, value: any) => {
+  const updateMacroNews = useCallback((id: string, field: keyof MacroNews, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       macro: prev.macro.map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
-  };
+  }, []);
 
-  const removeMacroNews = (id: string) => {
+  const removeMacroNews = useCallback((id: string) => {
     setRelatorio(prev => ({
       ...prev,
       macro: prev.macro.filter(item => item.id !== id)
     }));
-  };
+  }, []);
 
-  const addProvento = () => {
+  const addProvento = useCallback(() => {
     const newProvento: DividendoInfo = {
       id: Date.now().toString(),
       ticker: '',
@@ -196,25 +196,25 @@ const AdminRelatorioSemanal = () => {
       ...prev,
       proventos: [...prev.proventos, newProvento]
     }));
-  };
+  }, []);
 
-  const updateProvento = (id: string, field: keyof DividendoInfo, value: any) => {
+  const updateProvento = useCallback((id: string, field: keyof DividendoInfo, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       proventos: prev.proventos.map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
-  };
+  }, []);
 
-  const removeProvento = (id: string) => {
+  const removeProvento = useCallback((id: string) => {
     setRelatorio(prev => ({
       ...prev,
       proventos: prev.proventos.filter(item => item.id !== id)
     }));
-  };
+  }, []);
 
-  const addStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
+  const addStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
     const newStock: StockNews = {
       id: Date.now().toString(),
       ticker: '',
@@ -228,26 +228,26 @@ const AdminRelatorioSemanal = () => {
       ...prev,
       [section]: [...prev[section], newStock]
     }));
-  };
+  }, []);
 
-  const updateStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
+  const updateStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       [section]: prev[section].map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
-  };
+  }, []);
 
-  const removeStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
+  const removeStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
     setRelatorio(prev => ({
       ...prev,
       [section]: prev[section].filter(item => item.id !== id)
     }));
-  };
+  }, []);
 
-  // Componentes de seção
-  const MacroSection = () => (
+  // Componentes de seção memoizados
+  const MacroSection = React.memo(() => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -442,9 +442,9 @@ const AdminRelatorioSemanal = () => {
         </div>
       ))}
     </div>
-  );
+  ));
 
-  const ProventosSection = () => (
+  const ProventosSection = React.memo(() => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -582,9 +582,9 @@ const AdminRelatorioSemanal = () => {
         </div>
       ))}
     </div>
-  );
+  ));
 
-  const StockSection = ({ section, title, color, icon: Icon }: { 
+  const StockSection = React.memo(({ section, title, color, icon: Icon }: { 
     section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', 
     title: string, 
     color: string,
@@ -805,7 +805,7 @@ const AdminRelatorioSemanal = () => {
         </div>
       ))}
     </div>
-  );
+  ));
 
   const tabs = [
     { id: 'macro', label: 'Panorama Macro', icon: Globe, color: '#2563eb' },
@@ -816,14 +816,14 @@ const AdminRelatorioSemanal = () => {
     { id: 'exterior', label: 'Exterior', icon: TrendingUp, color: '#7c3aed' }
   ];
 
-  const getTotalItems = () => {
+  const getTotalItems = useCallback(() => {
     return relatorio.macro.length + 
            relatorio.proventos.length + 
            relatorio.dividendos.length + 
            relatorio.smallCaps.length + 
            relatorio.microCaps.length + 
            relatorio.exterior.length;
-  };
+  }, [relatorio]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
