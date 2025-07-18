@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, Eye, Calendar, Building, DollarSign, Globe, Zap, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface MacroNews {
   id: string;
@@ -48,7 +48,7 @@ interface RelatorioData {
 
 const AdminRelatorioSemanal = () => {
   const [relatorio, setRelatorio] = useState<RelatorioData>({
-    date: new Date().toLocaleDateString('pt-BR'),
+    date: new Date().toISOString().split('T')[0],
     weekOf: `Semana de ${new Date().toLocaleDateString('pt-BR')}`,
     macro: [],
     dividendos: [],
@@ -69,7 +69,7 @@ const AdminRelatorioSemanal = () => {
         const response = await fetch('/api/relatorio-semanal');
         if (response.ok) {
           const data = await response.json();
-          if (data) {
+          if (data && data.id) {
             setRelatorio(data);
           }
         }
@@ -80,6 +80,74 @@ const AdminRelatorioSemanal = () => {
     
     loadRelatorio();
   }, []);
+
+  // 💾 SALVAR RELATÓRIO
+  const saveRelatorio = async () => {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      const method = relatorio.id ? 'PUT' : 'POST';
+      const response = await fetch('/api/relatorio-semanal', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'x-user-email': userEmail || ''
+        },
+        body: JSON.stringify(relatorio)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao salvar relatório');
+      }
+      
+      const savedRelatorio = await response.json();
+      setRelatorio(savedRelatorio);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('❌ Erro ao salvar relatório');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 📤 PUBLICAR RELATÓRIO
+  const publishRelatorio = async () => {
+    setSaving(true);
+    try {
+      const publishedReport = { ...relatorio, status: 'published' as const };
+      
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      const response = await fetch('/api/relatorio-semanal', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'x-user-email': userEmail || ''
+        },
+        body: JSON.stringify(publishedReport)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao publicar relatório');
+      }
+      
+      const savedRelatorio = await response.json();
+      setRelatorio(savedRelatorio);
+      alert('✅ Relatório publicado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao publicar:', error);
+      alert('❌ Erro ao publicar relatório');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // 📊 MACRO - Adicionar Nova Notícia
   const addMacroNews = () => {
@@ -181,130 +249,105 @@ const AdminRelatorioSemanal = () => {
     }));
   };
 
-  // 💾 SALVAR RELATÓRIO
-  const saveRelatorio = async () => {
-    setSaving(true);
-    try {
-      const token = localStorage.getItem('custom-auth-token');
-      const userEmail = localStorage.getItem('user-email');
-      
-      const method = relatorio.id ? 'PUT' : 'POST';
-      const response = await fetch('/api/relatorio-semanal', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': `Bearer ${token}`,
-          'x-user-email': userEmail || ''
-        },
-        body: JSON.stringify(relatorio)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao salvar relatório');
-      }
-      
-      const savedRelatorio = await response.json();
-      setRelatorio(savedRelatorio);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      alert('❌ Erro ao salvar relatório');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // 📤 PUBLICAR RELATÓRIO
-  const publishRelatorio = async () => {
-    setSaving(true);
-    try {
-      const publishedReport = { ...relatorio, status: 'published' as const };
-      
-      const token = localStorage.getItem('custom-auth-token');
-      const userEmail = localStorage.getItem('user-email');
-      
-      const response = await fetch('/api/relatorio-semanal', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': `Bearer ${token}`,
-          'x-user-email': userEmail || ''
-        },
-        body: JSON.stringify(publishedReport)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao publicar relatório');
-      }
-      
-      const savedRelatorio = await response.json();
-      setRelatorio(savedRelatorio);
-      alert('✅ Relatório publicado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao publicar:', error);
-      alert('❌ Erro ao publicar relatório');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // 📄 COMPONENTES DE FORMULÁRIO
   const MacroSection = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Panorama Macro</h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Panorama Macro</h3>
         <button
           onClick={addMacroNews}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          style={{
+            backgroundColor: '#2563eb',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus size={16} />
           Nova Notícia
         </button>
       </div>
 
       {relatorio.macro.map((news) => (
-        <div key={news.id} className="border border-gray-200 rounded-lg p-6 bg-white">
-          <div className="flex justify-between items-start mb-4">
-            <h4 className="font-medium text-gray-900">Notícia Macro</h4>
+        <div key={news.id} style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Notícia Macro</h4>
             <button
               onClick={() => removeMacroNews(news.id)}
-              className="text-red-600 hover:text-red-800"
+              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 size={16} />
             </button>
           </div>
 
-          <div className="grid gap-4">
+          <div style={{ display: 'grid', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Título
+              </label>
               <input
                 type="text"
                 value={news.title}
                 onChange={(e) => updateMacroNews(news.id, 'title', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="Ex: Copom eleva Selic para 15%"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Resumo</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Resumo
+              </label>
               <textarea
                 value={news.summary}
                 onChange={(e) => updateMacroNews(news.id, 'summary', e.target.value)}
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="Resumo da notícia e impactos..."
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Impacto</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Impacto
+                </label>
                 <select
                   value={news.impact}
                   onChange={(e) => updateMacroNews(news.id, 'impact', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
                 >
                   <option value="low">Baixo</option>
                   <option value="medium">Médio</option>
@@ -313,23 +356,41 @@ const AdminRelatorioSemanal = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Setores (separados por vírgula)</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Setores (separados por vírgula)
+                </label>
                 <input
                   type="text"
                   value={news.sectors.join(', ')}
                   onChange={(e) => updateMacroNews(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
                   placeholder="Energia, Petróleo, Bancos"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Recomendações (separadas por vírgula)</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Recomendações (separadas por vírgula)
+                </label>
                 <input
                   type="text"
                   value={news.recommendations.join(', ')}
                   onChange={(e) => updateMacroNews(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
                   placeholder="PETR4, PRIO3, RECV3"
                 />
               </div>
@@ -341,59 +402,101 @@ const AdminRelatorioSemanal = () => {
   );
 
   const DividendosSection = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Dividendos</h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Dividendos</h3>
         <button
           onClick={addDividendo}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+          style={{
+            backgroundColor: '#059669',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus size={16} />
           Novo Dividendo
         </button>
       </div>
 
       {relatorio.dividendos.map((div) => (
-        <div key={div.id} className="border border-gray-200 rounded-lg p-6 bg-white">
-          <div className="flex justify-between items-start mb-4">
-            <h4 className="font-medium text-gray-900">Dividendo/JCP</h4>
+        <div key={div.id} style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Dividendo/JCP</h4>
             <button
               onClick={() => removeDividendo(div.id)}
-              className="text-red-600 hover:text-red-800"
+              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 size={16} />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ticker</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Ticker
+              </label>
               <input
                 type="text"
                 value={div.ticker}
                 onChange={(e) => updateDividendo(div.id, 'ticker', e.target.value.toUpperCase())}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="SAPR11"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Empresa</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Empresa
+              </label>
               <input
                 type="text"
                 value={div.company}
                 onChange={(e) => updateDividendo(div.id, 'company', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="Sanepar"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Tipo
+              </label>
               <select
                 value={div.type}
                 onChange={(e) => updateDividendo(div.id, 'type', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
               >
                 <option value="JCP">JCP</option>
                 <option value="Dividendo">Dividendo</option>
@@ -401,53 +504,98 @@ const AdminRelatorioSemanal = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Valor
+              </label>
               <input
                 type="text"
                 value={div.value}
                 onChange={(e) => updateDividendo(div.id, 'value', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="R$ 1,196"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">DY</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                DY
+              </label>
               <input
                 type="text"
                 value={div.dy}
                 onChange={(e) => updateDividendo(div.id, 'dy', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="3,295%"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data-com</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Data-com
+              </label>
               <input
                 type="date"
                 value={div.exDate}
                 onChange={(e) => updateDividendo(div.id, 'exDate', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data Pagamento</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Data Pagamento
+              </label>
               <input
                 type="date"
                 value={div.payDate}
                 onChange={(e) => updateDividendo(div.id, 'payDate', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Status
+              </label>
               <select
                 value={div.status}
                 onChange={(e) => updateDividendo(div.id, 'status', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
               >
                 <option value="announced">Anunciado</option>
                 <option value="confirmed">Confirmado</option>
@@ -460,60 +608,102 @@ const AdminRelatorioSemanal = () => {
   );
 
   const StockSection = ({ section, title, color }: { section: 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string }) => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">{title}</h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{title}</h3>
         <button
           onClick={() => addStockNews(section)}
-          className={`${color} text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2`}
+          style={{
+            backgroundColor: color,
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus size={16} />
           Nova Ação
         </button>
       </div>
 
       {relatorio[section].map((stock) => (
-        <div key={stock.id} className="border border-gray-200 rounded-lg p-6 bg-white">
-          <div className="flex justify-between items-start mb-4">
-            <h4 className="font-medium text-gray-900">Ação {title}</h4>
+        <div key={stock.id} style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Ação {title}</h4>
             <button
               onClick={() => removeStockNews(section, stock.id)}
-              className="text-red-600 hover:text-red-800"
+              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 size={16} />
             </button>
           </div>
 
-          <div className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Ticker</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Ticker
+                </label>
                 <input
                   type="text"
                   value={stock.ticker}
                   onChange={(e) => updateStockNews(section, stock.id, 'ticker', e.target.value.toUpperCase())}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
                   placeholder="JALL3"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Empresa</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Empresa
+                </label>
                 <input
                   type="text"
                   value={stock.company}
                   onChange={(e) => updateStockNews(section, stock.id, 'company', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
                   placeholder="Jalles"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Impacto</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Impacto
+                </label>
                 <select
                   value={stock.impact}
                   onChange={(e) => updateStockNews(section, stock.id, 'impact', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
                 >
                   <option value="positive">Positivo</option>
                   <option value="neutral">Neutro</option>
@@ -523,34 +713,63 @@ const AdminRelatorioSemanal = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notícia</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Notícia
+              </label>
               <input
                 type="text"
                 value={stock.news}
                 onChange={(e) => updateStockNews(section, stock.id, 'news', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="4T25 com forte desempenho operacional"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Destaque Principal</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Destaque Principal
+              </label>
               <textarea
                 value={stock.highlight}
                 onChange={(e) => updateStockNews(section, stock.id, 'highlight', e.target.value)}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Recomendação</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Recomendação
+              </label>
               <textarea
                 value={stock.recommendation}
                 onChange={(e) => updateStockNews(section, stock.id, 'recommendation', e.target.value)}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
               />
             </div>
@@ -569,36 +788,62 @@ const AdminRelatorioSemanal = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
+      <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin - Relatório Semanal</h1>
-              <p className="text-gray-600">Gerencie o conteúdo do relatório de atualização</p>
+              <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
+                Admin - Relatório Semanal
+              </h1>
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                Gerencie o conteúdo do relatório de atualização
+              </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {saved && (
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm">Salvo automaticamente</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669' }}>
+                  <CheckCircle size={16} />
+                  <span style={{ fontSize: '14px' }}>Salvo automaticamente</span>
                 </div>
               )}
               <button
                 onClick={saveRelatorio}
                 disabled={saving}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                style={{
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
               >
-                <Save className="w-4 h-4" />
+                <Save size={16} />
                 {saving ? 'Salvando...' : 'Salvar Rascunho'}
               </button>
               <button
                 onClick={publishRelatorio}
                 disabled={saving}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                style={{
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
               >
-                <Eye className="w-4 h-4" />
+                <Eye size={16} />
                 Publicar
               </button>
             </div>
@@ -606,27 +851,52 @@ const AdminRelatorioSemanal = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px' }}>
         {/* Informações Gerais */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Informações Gerais</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb',
+          padding: '24px',
+          marginBottom: '32px'
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Informações Gerais</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data do Relatório</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Data do Relatório
+              </label>
               <input
                 type="date"
                 value={relatorio.date}
                 onChange={(e) => setRelatorio(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Semana de Referência</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Semana de Referência
+              </label>
               <input
                 type="text"
                 value={relatorio.weekOf}
                 onChange={(e) => setRelatorio(prev => ({ ...prev, weekOf: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
                 placeholder="Semana de 22/06/2025"
               />
             </div>
@@ -634,22 +904,38 @@ const AdminRelatorioSemanal = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden'
+        }}>
+          <div style={{ borderBottom: '1px solid #e5e7eb' }}>
+            <nav style={{ display: 'flex', padding: '0 24px' }}>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    style={{
+                      padding: '16px 8px',
+                      marginRight: '32px',
+                      borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
+                      fontWeight: '500',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: activeTab === tab.id ? '#2563eb' : '#6b7280',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon size={16} />
                     {tab.label}
                   </button>
                 );
@@ -657,31 +943,49 @@ const AdminRelatorioSemanal = () => {
             </nav>
           </div>
 
-          <div className="p-6">
+          <div style={{ padding: '24px' }}>
             {activeTab === 'macro' && <MacroSection />}
             {activeTab === 'dividendos' && <DividendosSection />}
-            {activeTab === 'smallcaps' && <StockSection section="smallCaps" title="Small Caps" color="bg-blue-600" />}
-            {activeTab === 'microcaps' && <StockSection section="microCaps" title="Micro Caps" color="bg-orange-600" />}
-            {activeTab === 'exterior' && <StockSection section="exterior" title="Exterior" color="bg-purple-600" />}
+            {activeTab === 'smallcaps' && <StockSection section="smallCaps" title="Small Caps" color="#2563eb" />}
+            {activeTab === 'microcaps' && <StockSection section="microCaps" title="Micro Caps" color="#ea580c" />}
+            {activeTab === 'exterior' && <StockSection section="exterior" title="Exterior" color="#7c3aed" />}
           </div>
         </div>
 
         {/* Preview */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Preview do Relatório</h2>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="text-sm text-gray-600 space-y-2">
-              <p><strong>Data:</strong> {relatorio.date}</p>
-              <p><strong>Semana:</strong> {relatorio.weekOf}</p>
-              <p><strong>Notícias Macro:</strong> {relatorio.macro.length}</p>
-              <p><strong>Dividendos:</strong> {relatorio.dividendos.length}</p>
-              <p><strong>Small Caps:</strong> {relatorio.smallCaps.length}</p>
-              <p><strong>Micro Caps:</strong> {relatorio.microCaps.length}</p>
-              <p><strong>Exterior:</strong> {relatorio.exterior.length}</p>
-              <p><strong>Status:</strong> 
-                <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                  relatorio.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                }`}>
+        <div style={{
+          marginTop: '32px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb',
+          padding: '24px'
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Preview do Relatório</h2>
+          <div style={{
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px',
+            padding: '16px'
+          }}>
+            <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ margin: 0 }}><strong>Data:</strong> {relatorio.date}</p>
+              <p style={{ margin: 0 }}><strong>Semana:</strong> {relatorio.weekOf}</p>
+              <p style={{ margin: 0 }}><strong>Notícias Macro:</strong> {relatorio.macro.length}</p>
+              <p style={{ margin: 0 }}><strong>Dividendos:</strong> {relatorio.dividendos.length}</p>
+              <p style={{ margin: 0 }}><strong>Small Caps:</strong> {relatorio.smallCaps.length}</p>
+              <p style={{ margin: 0 }}><strong>Micro Caps:</strong> {relatorio.microCaps.length}</p>
+              <p style={{ margin: 0 }}><strong>Exterior:</strong> {relatorio.exterior.length}</p>
+              <p style={{ margin: 0 }}>
+                <strong>Status:</strong>
+                <span style={{
+                  marginLeft: '8px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  backgroundColor: relatorio.status === 'published' ? '#dcfce7' : '#fef3c7',
+                  color: relatorio.status === 'published' ? '#166534' : '#92400e'
+                }}>
                   {relatorio.status === 'published' ? 'Publicado' : 'Rascunho'}
                 </span>
               </p>
