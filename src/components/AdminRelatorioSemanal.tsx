@@ -85,14 +85,10 @@ const AdminRelatorioSemanal = () => {
   const saveRelatorio = async () => {
     setSaving(true);
     try {
-      console.log('💾 Salvando relatório:', relatorio);
-      
       const token = localStorage.getItem('custom-auth-token');
       const userEmail = localStorage.getItem('user-email');
       
       const method = relatorio.id ? 'PUT' : 'POST';
-      console.log('📡 Método HTTP:', method);
-      
       const response = await fetch('/api/relatorio-semanal', {
         method,
         headers: {
@@ -103,30 +99,17 @@ const AdminRelatorioSemanal = () => {
         body: JSON.stringify(relatorio)
       });
       
-      console.log('📡 Response status:', response.status);
-      
-      const responseData = await response.json();
-      console.log('📡 Response data:', responseData);
-      
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.details || `HTTP ${response.status}`);
+        throw new Error('Erro ao salvar relatório');
       }
       
-      setRelatorio(responseData);
+      const savedRelatorio = await response.json();
+      setRelatorio(savedRelatorio);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (error: any) {
-      console.error('❌ Erro completo ao salvar:', error);
-      
-      let errorMessage = 'Erro desconhecido ao salvar relatório';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.details) {
-        errorMessage = error.details;
-      }
-      
-      alert(`❌ Erro ao salvar relatório: ${errorMessage}`);
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('❌ Erro ao salvar relatório');
     } finally {
       setSaving(false);
     }
@@ -135,17 +118,7 @@ const AdminRelatorioSemanal = () => {
   const publishRelatorio = async () => {
     setSaving(true);
     try {
-      // ✅ Verificar se o relatório precisa ser salvo primeiro
-      if (!relatorio.id) {
-        console.log('📝 Relatório sem ID, salvando primeiro...');
-        await saveRelatorio();
-        // Esperar um pouco para garantir que o estado foi atualizado
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
       const publishedReport = { ...relatorio, status: 'published' as const };
-      
-      console.log('📤 Dados sendo enviados:', publishedReport);
       
       const token = localStorage.getItem('custom-auth-token');
       const userEmail = localStorage.getItem('user-email');
@@ -160,32 +133,16 @@ const AdminRelatorioSemanal = () => {
         body: JSON.stringify(publishedReport)
       });
       
-      console.log('📡 Response status:', response.status);
-      
-      const responseData = await response.json();
-      console.log('📡 Response data:', responseData);
-      
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.details || `HTTP ${response.status}`);
+        throw new Error('Erro ao publicar relatório');
       }
       
-      setRelatorio(responseData);
+      const savedRelatorio = await response.json();
+      setRelatorio(savedRelatorio);
       alert('✅ Relatório publicado com sucesso!');
-    } catch (error: any) {
-      console.error('❌ Erro completo ao publicar:', error);
-      
-      // Mostrar erro mais específico
-      let errorMessage = 'Erro desconhecido ao publicar relatório';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.details) {
-        errorMessage = error.details;
-      } else if (error.toString) {
-        errorMessage = error.toString();
-      }
-      
-      alert(`❌ Erro ao publicar relatório: ${errorMessage}`);
+    } catch (error) {
+      console.error('Erro ao publicar:', error);
+      alert('❌ Erro ao publicar relatório');
     } finally {
       setSaving(false);
     }
