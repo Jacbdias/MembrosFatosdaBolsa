@@ -217,6 +217,8 @@ const AdminRelatorioSemanal = () => {
     }
   }, [relatorio]);
 
+  return (
+
   // Funções de manipulação de dados com useCallback
   const addMacroNews = useCallback(() => {
     const newNews: MacroNews = {
