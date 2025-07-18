@@ -125,7 +125,181 @@ const AdminRelatorioSemanal = () => {
     }
   }, []);
 
+  // Funções de manipulação de dados com useCallback
+  const addMacroNews = useCallback(() => {
+    const newNews: MacroNews = {
+      id: Date.now().toString(),
+      title: '',
+      summary: '',
+      impact: 'medium',
+      sectors: [],
+      recommendations: []
+    };
+    setRelatorio(prev => ({
+      ...prev,
+      macro: [...prev.macro, newNews]
+    }));
+  }, []);
+
+  const updateMacroNews = useCallback((id: string, field: keyof MacroNews, value: any) => {
+    setRelatorio(prev => ({
+      ...prev,
+      macro: prev.macro.map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    }));
+  }, []);
+
+  const removeMacroNews = useCallback((id: string) => {
+    setRelatorio(prev => ({
+      ...prev,
+      macro: prev.macro.filter(item => item.id !== id)
+    }));
+  }, []);
+
+  const addProvento = useCallback(() => {
+    const newProvento: DividendoInfo = {
+      id: Date.now().toString(),
+      ticker: '',
+      company: '',
+      type: 'JCP',
+      value: '',
+      dy: '',
+      exDate: '',
+      payDate: '',
+      status: 'announced'
+    };
+    setRelatorio(prev => ({
+      ...prev,
+      proventos: [...prev.proventos, newProvento]
+    }));
+  }, []);
+
+  const updateProvento = useCallback((id: string, field: keyof DividendoInfo, value: any) => {
+    setRelatorio(prev => ({
+      ...prev,
+      proventos: prev.proventos.map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    }));
+  }, []);
+
+  const removeProvento = useCallback((id: string) => {
+    setRelatorio(prev => ({
+      ...prev,
+      proventos: prev.proventos.filter(item => item.id !== id)
+    }));
+  }, []);
+
+  const addStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
+    const newStock: StockNews = {
+      id: Date.now().toString(),
+      ticker: '',
+      company: '',
+      news: '',
+      impact: 'positive',
+      highlight: '',
+      recommendation: ''
+    };
+    setRelatorio(prev => ({
+      ...prev,
+      [section]: [...prev[section], newStock]
+    }));
+  }, []);
+
+  const updateStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
+    setRelatorio(prev => ({
+      ...prev,
+      [section]: prev[section].map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    }));
+  }, []);
+
+  const removeStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
+    setRelatorio(prev => ({
+      ...prev,
+      [section]: prev[section].filter(item => item.id !== id)
+    }));
+  }, []);
+
+  const getTotalItems = useCallback(() => {
+    return relatorio.macro.length + 
+           relatorio.proventos.length + 
+           relatorio.dividendos.length + 
+           relatorio.smallCaps.length + 
+           relatorio.microCaps.length + 
+           relatorio.exterior.length;
+  }, [relatorio]);
+
   const saveRelatorio = async () => {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      const method = relatorio.id ? 'PUT' : 'POST';
+      const response = await fetch('/api/relatorio-semanal', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'x-user-email': userEmail || ''
+        },
+        body: JSON.stringify(relatorio)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao salvar relatório');
+      }
+      
+      const savedRelatorio = await response.json();
+      setRelatorio(savedRelatorio);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('❌ Erro ao salvar relatório');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const publishRelatorio = async () => {
+    setSaving(true);
+    try {
+      const publishedReport = { ...relatorio, status: 'published' as const };
+      
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      const response = await fetch('/api/relatorio-semanal', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'x-user-email': userEmail || ''
+        },
+        body: JSON.stringify(publishedReport)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao publicar relatório');
+      }
+      
+      const savedRelatorio = await response.json();
+      setRelatorio(savedRelatorio);
+      alert('✅ Relatório publicado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao publicar:', error);
+      alert('❌ Erro ao publicar relatório');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Componentes de seção memoizados
+  const MacroSection = React.memo(() => (
     setSaving(true);
     try {
       console.log('💾 Salvando relatório:', relatorio);
