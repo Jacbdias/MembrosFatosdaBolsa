@@ -1002,4 +1002,8 @@ const AdminRelatorioSemanal = () => {
   );
 };
 
+// Exportação named para compatibilidade
+export const RelatorioSemanal = AdminRelatorioSemanal;
+
+// Exportação default
 export default AdminRelatorioSemanal;
