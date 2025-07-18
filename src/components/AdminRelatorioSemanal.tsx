@@ -39,7 +39,8 @@ interface RelatorioData {
   date: string;
   weekOf: string;
   macro: MacroNews[];
-  dividendos: DividendoInfo[];
+  proventos: DividendoInfo[];
+  dividendos: StockNews[];
   smallCaps: StockNews[];
   microCaps: StockNews[];
   exterior: StockNews[];
@@ -51,6 +52,7 @@ const AdminRelatorioSemanal = () => {
     date: new Date().toISOString().split('T')[0],
     weekOf: `Semana de ${new Date().toLocaleDateString('pt-BR')}`,
     macro: [],
+    proventos: [],
     dividendos: [],
     smallCaps: [],
     microCaps: [],
@@ -181,9 +183,9 @@ const AdminRelatorioSemanal = () => {
     }));
   };
 
-  // 💰 DIVIDENDOS - Adicionar Novo Dividendo
-  const addDividendo = () => {
-    const newDividendo: DividendoInfo = {
+  // 💰 PROVENTOS - Adicionar Novo Provento
+  const addProvento = () => {
+    const newProvento: DividendoInfo = {
       id: Date.now().toString(),
       ticker: '',
       company: '',
@@ -196,28 +198,28 @@ const AdminRelatorioSemanal = () => {
     };
     setRelatorio(prev => ({
       ...prev,
-      dividendos: [...prev.dividendos, newDividendo]
+      proventos: [...prev.proventos, newProvento]
     }));
   };
 
-  const updateDividendo = (id: string, field: keyof DividendoInfo, value: any) => {
+  const updateProvento = (id: string, field: keyof DividendoInfo, value: any) => {
     setRelatorio(prev => ({
       ...prev,
-      dividendos: prev.dividendos.map(item => 
+      proventos: prev.proventos.map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
   };
 
-  const removeDividendo = (id: string) => {
+  const removeProvento = (id: string) => {
     setRelatorio(prev => ({
       ...prev,
-      dividendos: prev.dividendos.filter(item => item.id !== id)
+      proventos: prev.proventos.filter(item => item.id !== id)
     }));
   };
 
-  // 🏢 SMALL CAPS - Adicionar Nova Ação
-  const addStockNews = (section: 'smallCaps' | 'microCaps' | 'exterior') => {
+  // 🏢 STOCK NEWS - Adicionar Nova Ação
+  const addStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
     const newStock: StockNews = {
       id: Date.now().toString(),
       ticker: '',
@@ -233,7 +235,7 @@ const AdminRelatorioSemanal = () => {
     }));
   };
 
-  const updateStockNews = (section: 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
+  const updateStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       [section]: prev[section].map(item => 
@@ -242,7 +244,7 @@ const AdminRelatorioSemanal = () => {
     }));
   };
 
-  const removeStockNews = (section: 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
+  const removeStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
     setRelatorio(prev => ({
       ...prev,
       [section]: prev[section].filter(item => item.id !== id)
@@ -401,12 +403,12 @@ const AdminRelatorioSemanal = () => {
     </div>
   );
 
-  const DividendosSection = () => (
+  const ProventosSection = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Dividendos</h3>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Proventos</h3>
         <button
-          onClick={addDividendo}
+          onClick={addProvento}
           style={{
             backgroundColor: '#059669',
             color: 'white',
@@ -420,12 +422,12 @@ const AdminRelatorioSemanal = () => {
           }}
         >
           <Plus size={16} />
-          Novo Dividendo
+          Novo Provento
         </button>
       </div>
 
-      {relatorio.dividendos.map((div) => (
-        <div key={div.id} style={{
+      {relatorio.proventos.map((prov) => (
+        <div key={prov.id} style={{
           border: '1px solid #e5e7eb',
           borderRadius: '8px',
           padding: '24px',
@@ -434,7 +436,7 @@ const AdminRelatorioSemanal = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Dividendo/JCP</h4>
             <button
-              onClick={() => removeDividendo(div.id)}
+              onClick={() => removeProvento(prov.id)}
               style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               <Trash2 size={16} />
@@ -448,8 +450,8 @@ const AdminRelatorioSemanal = () => {
               </label>
               <input
                 type="text"
-                value={div.ticker}
-                onChange={(e) => updateDividendo(div.id, 'ticker', e.target.value.toUpperCase())}
+                value={prov.ticker}
+                onChange={(e) => updateProvento(prov.id, 'ticker', e.target.value.toUpperCase())}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -468,8 +470,8 @@ const AdminRelatorioSemanal = () => {
               </label>
               <input
                 type="text"
-                value={div.company}
-                onChange={(e) => updateDividendo(div.id, 'company', e.target.value)}
+                value={prov.company}
+                onChange={(e) => updateProvento(prov.id, 'company', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -487,8 +489,8 @@ const AdminRelatorioSemanal = () => {
                 Tipo
               </label>
               <select
-                value={div.type}
-                onChange={(e) => updateDividendo(div.id, 'type', e.target.value)}
+                value={prov.type}
+                onChange={(e) => updateProvento(prov.id, 'type', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -509,8 +511,8 @@ const AdminRelatorioSemanal = () => {
               </label>
               <input
                 type="text"
-                value={div.value}
-                onChange={(e) => updateDividendo(div.id, 'value', e.target.value)}
+                value={prov.value}
+                onChange={(e) => updateProvento(prov.id, 'value', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -529,8 +531,8 @@ const AdminRelatorioSemanal = () => {
               </label>
               <input
                 type="text"
-                value={div.dy}
-                onChange={(e) => updateDividendo(div.id, 'dy', e.target.value)}
+                value={prov.dy}
+                onChange={(e) => updateProvento(prov.id, 'dy', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -549,8 +551,8 @@ const AdminRelatorioSemanal = () => {
               </label>
               <input
                 type="date"
-                value={div.exDate}
-                onChange={(e) => updateDividendo(div.id, 'exDate', e.target.value)}
+                value={prov.exDate}
+                onChange={(e) => updateProvento(prov.id, 'exDate', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -568,8 +570,8 @@ const AdminRelatorioSemanal = () => {
               </label>
               <input
                 type="date"
-                value={div.payDate}
-                onChange={(e) => updateDividendo(div.id, 'payDate', e.target.value)}
+                value={prov.payDate}
+                onChange={(e) => updateProvento(prov.id, 'payDate', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -586,8 +588,8 @@ const AdminRelatorioSemanal = () => {
                 Status
               </label>
               <select
-                value={div.status}
-                onChange={(e) => updateDividendo(div.id, 'status', e.target.value)}
+                value={prov.status}
+                onChange={(e) => updateProvento(prov.id, 'status', e.target.value)}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -607,7 +609,7 @@ const AdminRelatorioSemanal = () => {
     </div>
   );
 
-  const StockSection = ({ section, title, color }: { section: 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string }) => (
+  const StockSection = ({ section, title, color }: { section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{title}</h3>
@@ -781,7 +783,8 @@ const AdminRelatorioSemanal = () => {
 
   const tabs = [
     { id: 'macro', label: 'Panorama Macro', icon: Globe },
-    { id: 'dividendos', label: 'Dividendos', icon: DollarSign },
+    { id: 'proventos', label: 'Proventos', icon: DollarSign },
+    { id: 'dividendos', label: 'Dividendos', icon: Calendar },
     { id: 'smallcaps', label: 'Small Caps', icon: Building },
     { id: 'microcaps', label: 'Micro Caps', icon: Zap },
     { id: 'exterior', label: 'Exterior', icon: TrendingUp }
@@ -945,7 +948,8 @@ const AdminRelatorioSemanal = () => {
 
           <div style={{ padding: '24px' }}>
             {activeTab === 'macro' && <MacroSection />}
-            {activeTab === 'dividendos' && <DividendosSection />}
+            {activeTab === 'proventos' && <ProventosSection />}
+            {activeTab === 'dividendos' && <StockSection section="dividendos" title="Dividendos" color="#22c55e" />}
             {activeTab === 'smallcaps' && <StockSection section="smallCaps" title="Small Caps" color="#2563eb" />}
             {activeTab === 'microcaps' && <StockSection section="microCaps" title="Micro Caps" color="#ea580c" />}
             {activeTab === 'exterior' && <StockSection section="exterior" title="Exterior" color="#7c3aed" />}
@@ -971,6 +975,7 @@ const AdminRelatorioSemanal = () => {
               <p style={{ margin: 0 }}><strong>Data:</strong> {relatorio.date}</p>
               <p style={{ margin: 0 }}><strong>Semana:</strong> {relatorio.weekOf}</p>
               <p style={{ margin: 0 }}><strong>Notícias Macro:</strong> {relatorio.macro.length}</p>
+              <p style={{ margin: 0 }}><strong>Proventos:</strong> {relatorio.proventos.length}</p>
               <p style={{ margin: 0 }}><strong>Dividendos:</strong> {relatorio.dividendos.length}</p>
               <p style={{ margin: 0 }}><strong>Small Caps:</strong> {relatorio.smallCaps.length}</p>
               <p style={{ margin: 0 }}><strong>Micro Caps:</strong> {relatorio.microCaps.length}</p>
