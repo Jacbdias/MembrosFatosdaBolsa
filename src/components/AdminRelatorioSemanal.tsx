@@ -48,6 +48,7 @@ interface RelatorioData {
 }
 
 const AdminRelatorioSemanal = () => {
+  // Estados
   const [relatorio, setRelatorio] = useState<RelatorioData>({
     date: new Date().toISOString().split('T')[0],
     weekOf: `Semana de ${new Date().toLocaleDateString('pt-BR')}`,
@@ -63,11 +64,10 @@ const AdminRelatorioSemanal = () => {
   const [activeTab, setActiveTab] = useState('macro');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
 
+  // Carregar relatório existente
   useEffect(() => {
     const loadRelatorio = async () => {
       try {
@@ -86,7 +86,7 @@ const AdminRelatorioSemanal = () => {
     loadRelatorio();
   }, []);
 
-  // 🔍 FUNÇÃO DE DEBUG
+  // Função de debug
   const debugRelatorioPublico = useCallback(async () => {
     try {
       console.log('🔍 Testando API pública...');
@@ -114,7 +114,7 @@ const AdminRelatorioSemanal = () => {
         message: data ? `Relatório encontrado (${data.status})` : 'Nenhum relatório publicado'
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro no debug:', error);
       setDebugInfo({
         status: 'error',
@@ -125,114 +125,8 @@ const AdminRelatorioSemanal = () => {
     }
   }, []);
 
-  // Funções de manipulação de dados com useCallback
-  const addMacroNews = useCallback(() => {
-    const newNews: MacroNews = {
-      id: Date.now().toString(),
-      title: '',
-      summary: '',
-      impact: 'medium',
-      sectors: [],
-      recommendations: []
-    };
-    setRelatorio(prev => ({
-      ...prev,
-      macro: [...prev.macro, newNews]
-    }));
-  }, []);
-
-  const updateMacroNews = useCallback((id: string, field: keyof MacroNews, value: any) => {
-    setRelatorio(prev => ({
-      ...prev,
-      macro: prev.macro.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
-
-  const removeMacroNews = useCallback((id: string) => {
-    setRelatorio(prev => ({
-      ...prev,
-      macro: prev.macro.filter(item => item.id !== id)
-    }));
-  }, []);
-
-  const addProvento = useCallback(() => {
-    const newProvento: DividendoInfo = {
-      id: Date.now().toString(),
-      ticker: '',
-      company: '',
-      type: 'JCP',
-      value: '',
-      dy: '',
-      exDate: '',
-      payDate: '',
-      status: 'announced'
-    };
-    setRelatorio(prev => ({
-      ...prev,
-      proventos: [...prev.proventos, newProvento]
-    }));
-  }, []);
-
-  const updateProvento = useCallback((id: string, field: keyof DividendoInfo, value: any) => {
-    setRelatorio(prev => ({
-      ...prev,
-      proventos: prev.proventos.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
-
-  const removeProvento = useCallback((id: string) => {
-    setRelatorio(prev => ({
-      ...prev,
-      proventos: prev.proventos.filter(item => item.id !== id)
-    }));
-  }, []);
-
-  const addStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
-    const newStock: StockNews = {
-      id: Date.now().toString(),
-      ticker: '',
-      company: '',
-      news: '',
-      impact: 'positive',
-      highlight: '',
-      recommendation: ''
-    };
-    setRelatorio(prev => ({
-      ...prev,
-      [section]: [...prev[section], newStock]
-    }));
-  }, []);
-
-  const updateStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
-    setRelatorio(prev => ({
-      ...prev,
-      [section]: prev[section].map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
-
-  const removeStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
-    setRelatorio(prev => ({
-      ...prev,
-      [section]: prev[section].filter(item => item.id !== id)
-    }));
-  }, []);
-
-  const getTotalItems = useCallback(() => {
-    return relatorio.macro.length + 
-           relatorio.proventos.length + 
-           relatorio.dividendos.length + 
-           relatorio.smallCaps.length + 
-           relatorio.microCaps.length + 
-           relatorio.exterior.length;
-  }, [relatorio]);
-
-  const saveRelatorio = async () => {
+  // Salvar relatório
+  const saveRelatorio = useCallback(async () => {
     setSaving(true);
     try {
       const token = localStorage.getItem('custom-auth-token');
@@ -263,9 +157,10 @@ const AdminRelatorioSemanal = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [relatorio]);
 
-  const publishRelatorio = async () => {
+  // Publicar relatório
+  const publishRelatorio = useCallback(async () => {
     setSaving(true);
     try {
       const publishedReport = { ...relatorio, status: 'published' as const };
@@ -296,145 +191,9 @@ const AdminRelatorioSemanal = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  // Componentes de seção memoizados
-  const MacroSection = React.memo(() => (
-    setSaving(true);
-    try {
-      console.log('💾 Salvando relatório:', relatorio);
-      
-      const token = localStorage.getItem('custom-auth-token');
-      const userEmail = localStorage.getItem('user-email');
-      
-      const method = relatorio.id ? 'PUT' : 'POST';
-      console.log('📡 Método HTTP:', method);
-      
-      const response = await fetch('/api/relatorio-semanal', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': `Bearer ${token}`,
-          'x-user-email': userEmail || ''
-        },
-        body: JSON.stringify(relatorio)
-      });
-      
-      console.log('📡 Response status:', response.status);
-      
-      const responseData = await response.json();
-      console.log('📡 Response data:', responseData);
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || responseData.details || `HTTP ${response.status}`);
-      }
-      
-      setRelatorio(responseData);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error: any) {
-      console.error('❌ Erro completo ao salvar:', error);
-      
-      let errorMessage = 'Erro desconhecido ao salvar relatório';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.details) {
-        errorMessage = error.details;
-      }
-      
-      alert(`❌ Erro ao salvar relatório: ${errorMessage}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const publishRelatorio = useCallback(async () => {
-    setSaving(true);
-    try {
-      let relatorioToPublish = relatorio;
-      
-      // ✅ Se não tem ID, salvar primeiro
-      if (!relatorio.id) {
-        console.log('📝 Relatório sem ID, salvando primeiro...');
-        
-        const token = localStorage.getItem('custom-auth-token');
-        const userEmail = localStorage.getItem('user-email');
-        
-        const saveResponse = await fetch('/api/relatorio-semanal', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'authorization': `Bearer ${token}`,
-            'x-user-email': userEmail || ''
-          },
-          body: JSON.stringify(relatorio)
-        });
-        
-        if (!saveResponse.ok) {
-          const saveError = await saveResponse.json();
-          throw new Error(saveError.error || saveError.details || 'Erro ao salvar primeiro');
-        }
-        
-        const savedRelatorio = await saveResponse.json();
-        console.log('✅ Relatório salvo com ID:', savedRelatorio.id);
-        
-        // Atualizar o estado local
-        setRelatorio(savedRelatorio);
-        relatorioToPublish = savedRelatorio;
-      }
-      
-      // ✅ Agora publicar com o ID correto
-      const publishedReport = { ...relatorioToPublish, status: 'published' as const };
-      
-      console.log('📤 Publicando relatório:', publishedReport);
-      
-      const token = localStorage.getItem('custom-auth-token');
-      const userEmail = localStorage.getItem('user-email');
-      
-      const response = await fetch('/api/relatorio-semanal', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': `Bearer ${token}`,
-          'x-user-email': userEmail || ''
-        },
-        body: JSON.stringify(publishedReport)
-      });
-      
-      console.log('📡 Response status:', response.status);
-      
-      const responseData = await response.json();
-      console.log('📡 Response data:', responseData);
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || responseData.details || `HTTP ${response.status}`);
-      }
-      
-      setRelatorio(responseData);
-      alert('✅ Relatório publicado com sucesso! Verifique a página pública.');
-    } catch (error: any) {
-      console.error('❌ Erro completo ao publicar:', error);
-      
-      let errorMessage = 'Erro desconhecido ao publicar relatório';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.details) {
-        errorMessage = error.details;
-      } else if (error.toString) {
-        errorMessage = error.toString();
-      }
-      
-      alert(`❌ Erro ao publicar relatório: ${errorMessage}`);
-    } finally {
-      setSaving(false);
-    }
   }, [relatorio]);
 
-  return (
-
-  // Funções de manipulação de dados com useCallback
+  // Funções para Macro
   const addMacroNews = useCallback(() => {
     const newNews: MacroNews = {
       id: Date.now().toString(),
@@ -466,6 +225,7 @@ const AdminRelatorioSemanal = () => {
     }));
   }, []);
 
+  // Funções para Proventos
   const addProvento = useCallback(() => {
     const newProvento: DividendoInfo = {
       id: Date.now().toString(),
@@ -500,6 +260,7 @@ const AdminRelatorioSemanal = () => {
     }));
   }, []);
 
+  // Funções para Stocks
   const addStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
     const newStock: StockNews = {
       id: Date.now().toString(),
@@ -532,567 +293,17 @@ const AdminRelatorioSemanal = () => {
     }));
   }, []);
 
-  // Componentes de seção memoizados
-  const MacroSection = React.memo(() => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 4px 0', color: '#111827' }}>Panorama Macro</h3>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Notícias e análises macroeconômicas</p>
-        </div>
-        <button
-          onClick={addMacroNews}
-          style={{
-            backgroundColor: '#2563eb',
-            color: 'white',
-            padding: '10px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          <Plus size={16} />
-          Nova Notícia
-        </button>
-      </div>
+  // Função para contar total de itens
+  const getTotalItems = useCallback(() => {
+    return relatorio.macro.length + 
+           relatorio.proventos.length + 
+           relatorio.dividendos.length + 
+           relatorio.smallCaps.length + 
+           relatorio.microCaps.length + 
+           relatorio.exterior.length;
+  }, [relatorio]);
 
-      {relatorio.macro.length === 0 && (
-        <div style={{
-          backgroundColor: '#f8fafc',
-          border: '2px dashed #cbd5e1',
-          borderRadius: '8px',
-          padding: '48px 24px',
-          textAlign: 'center'
-        }}>
-          <Globe size={48} color="#94a3b8" style={{ margin: '0 auto 16px' }} />
-          <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '500', margin: '0 0 8px 0' }}>
-            Nenhuma notícia macro adicionada
-          </p>
-          <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>
-            Clique em "Nova Notícia" para começar
-          </p>
-        </div>
-      )}
-
-      {relatorio.macro.map((news) => (
-        <div key={news.id} style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '24px',
-          backgroundColor: 'white',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                backgroundColor: '#eff6ff',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Globe size={20} color="#2563eb" />
-              </div>
-              <h4 style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '16px' }}>Notícia Macro</h4>
-            </div>
-            <button
-              onClick={() => removeMacroNews(news.id)}
-              style={{ 
-                color: '#dc2626', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '4px'
-              }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Título
-              </label>
-              <input
-                type="text"
-                value={news.title}
-                onChange={(e) => updateMacroNews(news.id, 'title', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
-                placeholder="Ex: Copom eleva Selic para 15%"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Resumo
-              </label>
-              <textarea
-                value={news.summary}
-                onChange={(e) => updateMacroNews(news.id, 'summary', e.target.value)}
-                rows={4}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit'
-                }}
-                placeholder="Resumo da notícia e impactos..."
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Impacto
-                </label>
-                <select
-                  value={news.impact}
-                  onChange={(e) => updateMacroNews(news.id, 'impact', e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="low">Baixo</option>
-                  <option value="medium">Médio</option>
-                  <option value="high">Alto</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Setores (separados por vírgula)
-                </label>
-                <input
-                  type="text"
-                  value={news.sectors.join(', ')}
-                  onChange={(e) => updateMacroNews(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Energia, Petróleo, Bancos"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Recomendações (separadas por vírgula)
-                </label>
-                <input
-                  type="text"
-                  value={news.recommendations.join(', ')}
-                  onChange={(e) => updateMacroNews(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="PETR4, PRIO3, RECV3"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  ));
-
-  const ProventosSection = React.memo(() => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 4px 0', color: '#111827' }}>Proventos</h3>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Dividendos e JCPs programados</p>
-        </div>
-        <button
-          onClick={addProvento}
-          style={{
-            backgroundColor: '#059669',
-            color: 'white',
-            padding: '10px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          <Plus size={16} />
-          Novo Provento
-        </button>
-      </div>
-
-      {relatorio.proventos.length === 0 && (
-        <div style={{
-          backgroundColor: '#f0fdf4',
-          border: '2px dashed #86efac',
-          borderRadius: '8px',
-          padding: '48px 24px',
-          textAlign: 'center'
-        }}>
-          <DollarSign size={48} color="#22c55e" style={{ margin: '0 auto 16px' }} />
-          <p style={{ color: '#166534', fontSize: '16px', fontWeight: '500', margin: '0 0 8px 0' }}>
-            Nenhum provento adicionado
-          </p>
-          <p style={{ color: '#22c55e', fontSize: '14px', margin: 0 }}>
-            Clique em "Novo Provento" para começar
-          </p>
-        </div>
-      )}
-
-      {relatorio.proventos.map((prov) => (
-        <div key={prov.id} style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '24px',
-          backgroundColor: 'white',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                backgroundColor: '#ecfdf5',
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <DollarSign size={20} color="#059669" />
-              </div>
-              <h4 style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '16px' }}>Dividendo/JCP</h4>
-            </div>
-            <button
-              onClick={() => removeProvento(prov.id)}
-              style={{ 
-                color: '#dc2626', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '4px'
-              }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-            {[
-              { key: 'ticker', label: 'Ticker', placeholder: 'SAPR11', type: 'text' },
-              { key: 'company', label: 'Empresa', placeholder: 'Sanepar', type: 'text' },
-              { key: 'type', label: 'Tipo', placeholder: '', type: 'select', options: [{ value: 'JCP', label: 'JCP' }, { value: 'Dividendo', label: 'Dividendo' }] },
-              { key: 'value', label: 'Valor', placeholder: 'R$ 1,196', type: 'text' },
-              { key: 'dy', label: 'DY', placeholder: '3,295%', type: 'text' },
-              { key: 'exDate', label: 'Data-com', placeholder: '', type: 'date' },
-              { key: 'payDate', label: 'Data Pagamento', placeholder: '', type: 'date' },
-              { key: 'status', label: 'Status', placeholder: '', type: 'select', options: [{ value: 'announced', label: 'Anunciado' }, { value: 'confirmed', label: 'Confirmado' }] }
-            ].map((field) => (
-              <div key={field.key}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  {field.label}
-                </label>
-                {field.type === 'select' ? (
-                  <select
-                    value={prov[field.key as keyof DividendoInfo]}
-                    onChange={(e) => updateProvento(prov.id, field.key as keyof DividendoInfo, e.target.value)}
-                    style={{
-                      width: '100%',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      backgroundColor: 'white'
-                    }}
-                  >
-                    {field.options?.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={field.type}
-                    value={prov[field.key as keyof DividendoInfo]}
-                    onChange={(e) => updateProvento(prov.id, field.key as keyof DividendoInfo, field.key === 'ticker' ? e.target.value.toUpperCase() : e.target.value)}
-                    style={{
-                      width: '100%',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                    placeholder={field.placeholder}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  ));
-
-  const StockSection = React.memo(({ section, title, color, icon: Icon }: { 
-    section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', 
-    title: string, 
-    color: string,
-    icon: any
-  }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 4px 0', color: '#111827' }}>{title}</h3>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Análises e recomendações de ações</p>
-        </div>
-        <button
-          onClick={() => addStockNews(section)}
-          style={{
-            backgroundColor: color,
-            color: 'white',
-            padding: '10px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          <Plus size={16} />
-          Nova Ação
-        </button>
-      </div>
-
-      {relatorio[section].length === 0 && (
-        <div style={{
-          backgroundColor: `${color}08`,
-          border: `2px dashed ${color}40`,
-          borderRadius: '8px',
-          padding: '48px 24px',
-          textAlign: 'center'
-        }}>
-          <Icon size={48} color={color} style={{ margin: '0 auto 16px' }} />
-          <p style={{ color: color, fontSize: '16px', fontWeight: '500', margin: '0 0 8px 0' }}>
-            Nenhuma ação adicionada em {title}
-          </p>
-          <p style={{ color: `${color}aa`, fontSize: '14px', margin: 0 }}>
-            Clique em "Nova Ação" para começar
-          </p>
-        </div>
-      )}
-
-      {relatorio[section].map((stock) => (
-        <div key={stock.id} style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '24px',
-          backgroundColor: 'white',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                backgroundColor: `${color}15`,
-                padding: '8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Icon size={20} color={color} />
-              </div>
-              <h4 style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '16px' }}>Ação {title}</h4>
-            </div>
-            <button
-              onClick={() => removeStockNews(section, stock.id)}
-              style={{ 
-                color: '#dc2626', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '4px'
-              }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Ticker
-                </label>
-                <input
-                  type="text"
-                  value={stock.ticker}
-                  onChange={(e) => updateStockNews(section, stock.id, 'ticker', e.target.value.toUpperCase())}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="JALL3"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Empresa
-                </label>
-                <input
-                  type="text"
-                  value={stock.company}
-                  onChange={(e) => updateStockNews(section, stock.id, 'company', e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Jalles"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  Impacto
-                </label>
-                <select
-                  value={stock.impact}
-                  onChange={(e) => updateStockNews(section, stock.id, 'impact', e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="positive">Positivo</option>
-                  <option value="neutral">Neutro</option>
-                  <option value="negative">Negativo</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Notícia
-              </label>
-              <input
-                type="text"
-                value={stock.news}
-                onChange={(e) => updateStockNews(section, stock.id, 'news', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="4T25 com forte desempenho operacional"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Destaque Principal
-              </label>
-              <textarea
-                value={stock.highlight}
-                onChange={(e) => updateStockNews(section, stock.id, 'highlight', e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit'
-                }}
-                placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Recomendação
-              </label>
-              <textarea
-                value={stock.recommendation}
-                onChange={(e) => updateStockNews(section, stock.id, 'recommendation', e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit'
-                }}
-                placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
-              />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  ));
-
+  // Configuração das tabs
   const tabs = [
     { id: 'macro', label: 'Panorama Macro', icon: Globe, color: '#2563eb' },
     { id: 'proventos', label: 'Proventos', icon: DollarSign, color: '#059669' },
@@ -1101,52 +312,6 @@ const AdminRelatorioSemanal = () => {
     { id: 'microcaps', label: 'Micro Caps', icon: Zap, color: '#ea580c' },
     { id: 'exterior', label: 'Exterior', icon: TrendingUp, color: '#7c3aed' }
   ];
-
-  // 🔍 FUNÇÃO DE DEBUG
-  const debugRelatorioPublico = useCallback(async () => {
-    try {
-      console.log('🔍 Testando API pública...');
-      
-      const response = await fetch('/api/relatorio-semanal', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      console.log('📡 Status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('📊 Dados públicos:', data);
-      
-      setDebugInfo({
-        status: 'success',
-        data: data,
-        timestamp: new Date().toLocaleTimeString('pt-BR'),
-        message: data ? `Relatório encontrado (${data.status})` : 'Nenhum relatório publicado'
-      });
-      
-    } catch (error) {
-      console.error('❌ Erro no debug:', error);
-      setDebugInfo({
-        status: 'error',
-        error: error.message,
-        timestamp: new Date().toLocaleTimeString('pt-BR'),
-        message: 'Erro ao buscar relatório público'
-      });
-    }
-  }, []);
-    return relatorio.macro.length + 
-           relatorio.proventos.length + 
-           relatorio.dividendos.length + 
-           relatorio.smallCaps.length + 
-           relatorio.microCaps.length + 
-           relatorio.exterior.length;
-  }, [relatorio]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -1232,7 +397,7 @@ const AdminRelatorioSemanal = () => {
       </div>
 
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* 🔍 DEBUG PANEL */}
+        {/* Debug Panel */}
         {showDebug && (
           <div style={{
             backgroundColor: '#1f2937',
@@ -1277,10 +442,10 @@ const AdminRelatorioSemanal = () => {
               </div>
             </div>
             
-            {/* Dados atuais do relatório */}
+            {/* Status atual */}
             <div style={{ marginBottom: '16px' }}>
               <strong>📊 Relatório Atual:</strong>
-              <div style={{ backgroundColor: '#374151', padding: '12px', borderRadius: '6px', marginTop: '8px', overflow: 'auto' }}>
+              <div style={{ backgroundColor: '#374151', padding: '12px', borderRadius: '6px', marginTop: '8px' }}>
                 <div>ID: {relatorio.id || 'SEM ID'}</div>
                 <div>Status: {relatorio.status}</div>
                 <div>Data: {relatorio.date}</div>
@@ -1289,7 +454,7 @@ const AdminRelatorioSemanal = () => {
               </div>
             </div>
 
-            {/* Informações de debug */}
+            {/* Resultado do debug */}
             {debugInfo && (
               <div>
                 <strong>🔍 Resultado do Teste ({debugInfo.timestamp}):</strong>
@@ -1326,17 +491,6 @@ const AdminRelatorioSemanal = () => {
                 </div>
               </div>
             )}
-
-            {/* Dicas */}
-            <div style={{ marginTop: '16px', fontSize: '12px', color: '#9ca3af' }}>
-              <strong>💡 Dicas:</strong>
-              <ul style={{ margin: '4px 0 0 16px', paddingLeft: '0' }}>
-                <li>Primeiro adicione conteúdo nas abas</li>
-                <li>Clique em "Salvar Rascunho" para obter um ID</li>
-                <li>Clique em "Publicar" para disponibilizar publicamente</li>
-                <li>Use "Testar API Pública" para verificar se foi publicado</li>
-              </ul>
-            </div>
           </div>
         )}
 
@@ -1493,7 +647,6 @@ const AdminRelatorioSemanal = () => {
                       color: isActive ? tab.color : '#6b7280',
                       background: 'none',
                       border: 'none',
-                      borderBottom: isActive ? `3px solid ${tab.color}` : '3px solid transparent',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
@@ -1507,12 +660,43 @@ const AdminRelatorioSemanal = () => {
           </div>
 
           <div style={{ padding: '32px' }}>
-            {activeTab === 'macro' && <MacroSection />}
-            {activeTab === 'proventos' && <ProventosSection />}
-            {activeTab === 'dividendos' && <StockSection section="dividendos" title="Dividendos" color="#22c55e" icon={Calendar} />}
-            {activeTab === 'smallcaps' && <StockSection section="smallCaps" title="Small Caps" color="#2563eb" icon={Building} />}
-            {activeTab === 'microcaps' && <StockSection section="microCaps" title="Micro Caps" color="#ea580c" icon={Zap} />}
-            {activeTab === 'exterior' && <StockSection section="exterior" title="Exterior" color="#7c3aed" icon={TrendingUp} />}
+            {/* Conteúdo das tabs - implementação básica */}
+            {activeTab === 'macro' && (
+              <div>
+                <h3>Panorama Macro</h3>
+                <p>Funcionalidade em desenvolvimento...</p>
+              </div>
+            )}
+            {activeTab === 'proventos' && (
+              <div>
+                <h3>Proventos</h3>
+                <p>Funcionalidade em desenvolvimento...</p>
+              </div>
+            )}
+            {activeTab === 'dividendos' && (
+              <div>
+                <h3>Dividendos</h3>
+                <p>Funcionalidade em desenvolvimento...</p>
+              </div>
+            )}
+            {activeTab === 'smallcaps' && (
+              <div>
+                <h3>Small Caps</h3>
+                <p>Funcionalidade em desenvolvimento...</p>
+              </div>
+            )}
+            {activeTab === 'microcaps' && (
+              <div>
+                <h3>Micro Caps</h3>
+                <p>Funcionalidade em desenvolvimento...</p>
+              </div>
+            )}
+            {activeTab === 'exterior' && (
+              <div>
+                <h3>Exterior</h3>
+                <p>Funcionalidade em desenvolvimento...</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
