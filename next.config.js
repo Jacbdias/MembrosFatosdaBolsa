@@ -7,6 +7,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
+  // ✅ Configurações experimentais para resolver problemas de build
+  experimental: {
+    forceSwcTransforms: true,
+  },
+  
   // CONFIGURAÇÕES ADICIONADAS PARA A API FINANCEIRA:
   images: {
     domains: [
@@ -23,6 +28,16 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        ],
+      },
+      // ✅ Adicionar headers para todas as API routes
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, must-revalidate',
           },
         ],
       },
