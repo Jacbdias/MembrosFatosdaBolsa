@@ -1,32 +1,7 @@
-import React from 'react';
-import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
+'use client';
 
-// Função server-side para buscar o relatório PUBLICADO
-async function getRelatorio() {
-  try {
-    console.log('📖 [DEBUG] Buscando relatório publicado...');
-    
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/relatorio-semanal`, {
-      next: { revalidate: 300 },
-      cache: 'no-store'
-    });
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
-    
-    if (data && data.status === 'published') {
-      return data;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('📖 [DEBUG] Erro ao carregar relatório:', error);
-    return null;
-  }
-}
+import React, { useState, useEffect } from 'react';
+import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
 
 // Header com design similar ao PDF
 const ReportHeader = ({ relatorio }: { relatorio: any }) => (
@@ -79,7 +54,7 @@ const ReportHeader = ({ relatorio }: { relatorio: any }) => (
         textTransform: 'uppercase',
         letterSpacing: '3px'
       }}>
-        {new Date(relatorio.date).toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()}
+        {relatorio?.date ? new Date(relatorio.date).toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase() : 'CARREGANDO...'}
       </div>
       
       <div style={{
@@ -89,7 +64,7 @@ const ReportHeader = ({ relatorio }: { relatorio: any }) => (
         display: 'inline-block',
         paddingBottom: '5px'
       }}>
-        {new Date(relatorio.date).toLocaleDateString('pt-BR')}
+        {relatorio?.date ? new Date(relatorio.date).toLocaleDateString('pt-BR') : '...'}
       </div>
       
       {/* Logo placeholder */}
@@ -473,9 +448,129 @@ const ProventoCard = ({ item }: { item: any }) => (
   </div>
 );
 
-export default async function RelatorioSemanalPage() {
-  const relatorio = await getRelatorio();
-  
+export default function RelatorioSemanalPage() {
+  const [relatorio, setRelatorio] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadRelatorio = async () => {
+      try {
+        console.log('📖 [DEBUG] Buscando relatório publicado (client-side)...');
+        
+        const response = await fetch('/api/relatorio-semanal');
+        console.log('📖 [DEBUG] Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📖 [DEBUG] Dados recebidos:', data);
+        
+        // Só mostrar se estiver publicado
+        if (data && data.status === 'published') {
+          setRelatorio(data);
+        } else {
+          console.log('📖 [DEBUG] Relatório não está publicado');
+          setRelatorio(null);
+        }
+        
+      } catch (error) {
+        console.error('📖 [DEBUG] Erro ao carregar relatório:', error);
+        setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRelatorio();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f8fafc',
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '60px', 
+            height: '60px', 
+            border: '4px solid #e5e7eb', 
+            borderTop: '4px solid #22c55e', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }}></div>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>
+            Carregando Relatório
+          </h2>
+          <p style={{ color: '#6b7280', fontSize: '16px' }}>
+            Buscando o relatório semanal mais recente...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f9fafb', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ 
+          textAlign: 'center', 
+          backgroundColor: 'white', 
+          padding: '60px', 
+          borderRadius: '16px', 
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          maxWidth: '500px'
+        }}>
+          <AlertCircle size={64} style={{ color: '#ef4444', marginBottom: '20px' }} />
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: '700', 
+            color: '#1a1a1a', 
+            marginBottom: '15px' 
+          }}>
+            Erro ao Carregar
+          </h1>
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '16px',
+            lineHeight: '1.6',
+            marginBottom: '20px'
+          }}>
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              backgroundColor: '#22c55e',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!relatorio) {
     return (
       <div style={{ 
@@ -561,6 +656,13 @@ export default async function RelatorioSemanalPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      
       <ReportHeader relatorio={relatorio} />
       
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '50px 20px' }}>
@@ -641,8 +743,3 @@ export default async function RelatorioSemanalPage() {
     </div>
   );
 }
-
-export const metadata = {
-  title: 'Relatório Semanal - Fatos da Bolsa',
-  description: 'Atualizações semanais do mercado de ações brasileiro e internacional',
-};
