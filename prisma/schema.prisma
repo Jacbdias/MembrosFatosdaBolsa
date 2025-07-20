@@ -32,6 +32,8 @@ model User {
   carteirasAnalista  CarteiraAnalise[]    @relation("CarteirasAnalista")
   carteiras          CarteiraAnalise[]    @relation("CarteirasUsuario")
   instagramCadastro  InstagramCadastro?
+  // ✅ ADICIONAR RELAÇÃO COM RELATÓRIOS
+  relatorios         RelatorioSemanal[]
 }
 
 model Purchase {
@@ -125,7 +127,6 @@ model InstagramCadastro {
   @@map("instagram_cadastros")
 }
 
-// NOVO: Model para armazenar integrações Hotmart (opcional - para persistir as configurações)
 model HotmartIntegration {
   id          String   @id @default(cuid())
   name        String   // Nome da integração (ex: "Projeto Trump")
@@ -144,16 +145,19 @@ model RelatorioSemanal {
   date      String
   weekOf    String
   
-  // ✅ Estrutura atualizada com proventos
+  // ✅ Estrutura JSON para armazenar arrays de objetos
   macro     Json     @default("[]")      // MacroNews[]
-  proventos Json     @default("[]")      // DividendoInfo[] - NOVO CAMPO
-  dividendos Json    @default("[]")      // StockNews[] - AGORA É STOCKNEWS
+  proventos Json     @default("[]")      // DividendoInfo[]
+  dividendos Json    @default("[]")      // StockNews[]
   smallCaps Json     @default("[]")      // StockNews[]
   microCaps Json     @default("[]")      // StockNews[]
   exterior  Json     @default("[]")      // StockNews[]
   
   status    String   @default("draft")   // 'draft' | 'published'
   authorId  String
+  
+  // ✅ ADICIONAR RELAÇÃO COM USER
+  author    User     @relation(fields: [authorId], references: [id])
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
