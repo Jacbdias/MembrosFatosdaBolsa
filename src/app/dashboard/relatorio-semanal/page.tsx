@@ -1,95 +1,379 @@
 import React from 'react';
-import { Calendar, DollarSign, TrendingUp, TrendingDown, Globe, Building, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
 
-// Função server-side para buscar o relatório
+// Função server-side para buscar o relatório PUBLICADO
 async function getRelatorio() {
   try {
     console.log('📖 [DEBUG] Buscando relatório publicado...');
     
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/relatorio-semanal`, {
-      next: { revalidate: 300 } // Revalidar a cada 5 minutos
+      next: { revalidate: 300 },
+      cache: 'no-store'
     });
     
-    console.log('📖 [DEBUG] Response status:', response.status);
-    
     if (!response.ok) {
-      console.log('📖 [DEBUG] Response não ok');
       return null;
     }
     
     const data = await response.json();
-    console.log('📖 [DEBUG] Dados recebidos:', data);
     
-    return data;
+    if (data && data.status === 'published') {
+      return data;
+    }
+    
+    return null;
   } catch (error) {
     console.error('📖 [DEBUG] Erro ao carregar relatório:', error);
     return null;
   }
 }
 
-// Componente para exibir item macro
-const MacroItem = ({ item }: { item: any }) => (
+// Header com design similar ao PDF
+const ReportHeader = ({ relatorio }: { relatorio: any }) => (
+  <div style={{
+    background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+    color: 'white',
+    padding: '60px 40px',
+    textAlign: 'center',
+    position: 'relative',
+    overflow: 'hidden'
+  }}>
+    {/* Background pattern */}
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+      opacity: 0.3
+    }} />
+    
+    <div style={{ position: 'relative', zIndex: 1, maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <span style={{
+          fontSize: '16px',
+          fontWeight: '600',
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+          color: '#22c55e'
+        }}>
+          AÇÕES BRASILEIRAS | EXTERIOR
+        </span>
+      </div>
+      
+      <h1 style={{
+        fontSize: '48px',
+        fontWeight: '700',
+        margin: '0 0 10px 0',
+        lineHeight: '1.1'
+      }}>
+        Relatório de<br/>
+        <span style={{ color: '#22c55e' }}>ATUALIZAÇÃO</span>
+      </h1>
+      
+      <div style={{
+        fontSize: '36px',
+        fontWeight: '700',
+        margin: '30px 0 10px 0',
+        textTransform: 'uppercase',
+        letterSpacing: '3px'
+      }}>
+        {new Date(relatorio.date).toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()}
+      </div>
+      
+      <div style={{
+        fontSize: '18px',
+        color: '#a3a3a3',
+        borderBottom: '2px solid #22c55e',
+        display: 'inline-block',
+        paddingBottom: '5px'
+      }}>
+        {new Date(relatorio.date).toLocaleDateString('pt-BR')}
+      </div>
+      
+      {/* Logo placeholder */}
+      <div style={{
+        marginTop: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '10px'
+      }}>
+        <div style={{
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          border: '3px solid #22c55e',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)'
+        }}>
+          <BarChart3 size={30} style={{ color: '#22c55e' }} />
+        </div>
+        <div style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          textAlign: 'left'
+        }}>
+          <div>FATOS</div>
+          <div>DA BOLSA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Seção com design do PDF
+const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: string, color: string, count: number }) => (
   <div style={{
     backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '20px',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e5e7eb',
-    marginBottom: '16px'
+    padding: '40px',
+    marginBottom: '30px',
+    borderRadius: '0px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+    position: 'relative',
+    overflow: 'hidden'
   }}>
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-      <Globe size={20} style={{ color: '#2563eb', marginRight: '8px' }} />
-      <span style={{
-        fontSize: '12px',
-        fontWeight: '500',
-        color: item.impact === 'high' ? '#dc2626' : item.impact === 'medium' ? '#d97706' : '#059669',
-        backgroundColor: item.impact === 'high' ? '#fef2f2' : item.impact === 'medium' ? '#fff7ed' : '#f0fdf4',
-        padding: '2px 8px',
-        borderRadius: '12px',
-        textTransform: 'uppercase'
-      }}>
-        Impacto {item.impact === 'high' ? 'Alto' : item.impact === 'medium' ? 'Médio' : 'Baixo'}
-      </span>
+    {/* Background decorativo */}
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: '200px',
+      height: '100%',
+      background: `linear-gradient(45deg, ${color}15, ${color}05)`,
+      clipPath: 'polygon(50% 0%, 100% 0%, 100% 100%, 0% 100%)'
+    }} />
+    
+    {/* Barras decorativas verdes */}
+    <div style={{
+      position: 'absolute',
+      top: '20px',
+      right: '40px',
+      display: 'flex',
+      gap: '4px',
+      alignItems: 'end'
+    }}>
+      {[20, 30, 25, 40, 35, 45].map((height, i) => (
+        <div key={i} style={{
+          width: '8px',
+          height: `${height}px`,
+          backgroundColor: '#22c55e',
+          borderRadius: '2px'
+        }} />
+      ))}
     </div>
     
-    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-      {item.title}
-    </h3>
-    
-    <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.5', marginBottom: '12px' }}>
-      {item.summary}
-    </p>
-    
-    {item.sectors && item.sectors.length > 0 && (
-      <div style={{ marginBottom: '8px' }}>
-        <span style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>Setores: </span>
-        {item.sectors.map((setor: string, index: number) => (
+    <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{
+          width: '60px',
+          height: '60px',
+          backgroundColor: color,
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Icon size={30} style={{ color: 'white' }} />
+        </div>
+        
+        <div>
+          <h2 style={{
+            fontSize: '36px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            margin: 0,
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            {title}
+          </h2>
+          {count > 0 && (
+            <p style={{
+              fontSize: '16px',
+              color: '#666',
+              margin: '5px 0 0 0',
+              fontWeight: '500'
+            }}>
+              {count} {count === 1 ? 'item' : 'itens'}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Card de ação com logo
+const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) => (
+  <div style={{
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '30px',
+    marginBottom: '25px',
+    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
+    border: `3px solid ${sectionColor}15`,
+    position: 'relative'
+  }}>
+    {/* Header com logo e ticker */}
+    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
+      <div style={{
+        width: '60px',
+        height: '60px',
+        backgroundColor: '#f3f4f6',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: '15px',
+        border: `2px solid ${sectionColor}30`
+      }}>
+        <span style={{ 
+          fontSize: '12px', 
+          fontWeight: '700', 
+          color: sectionColor,
+          textAlign: 'center'
+        }}>
+          {item.ticker?.substring(0, 4) || 'TICK'}
+        </span>
+      </div>
+      
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+          <h3 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            margin: 0
+          }}>
+            {item.ticker}
+          </h3>
+          {item.impact && (
+            <span style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              color: item.impact === 'positive' ? '#22c55e' : item.impact === 'negative' ? '#ef4444' : '#6b7280',
+              backgroundColor: item.impact === 'positive' ? '#22c55e15' : item.impact === 'negative' ? '#ef444415' : '#6b728015',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              textTransform: 'uppercase'
+            }}>
+              {item.impact === 'positive' ? 'Positivo' : item.impact === 'negative' ? 'Negativo' : 'Neutro'}
+            </span>
+          )}
+        </div>
+        <p style={{
+          fontSize: '16px',
+          color: '#6b7280',
+          margin: 0,
+          fontWeight: '500'
+        }}>
+          {item.company}
+        </p>
+      </div>
+    </div>
+
+    {/* Título da notícia */}
+    <h4 style={{
+      fontSize: '20px',
+      fontWeight: '600',
+      color: '#1a1a1a',
+      margin: '0 0 15px 0',
+      lineHeight: '1.3'
+    }}>
+      {item.news || item.title}
+    </h4>
+
+    {/* Conteúdo */}
+    {item.summary && (
+      <p style={{
+        fontSize: '16px',
+        color: '#4b5563',
+        lineHeight: '1.6',
+        margin: '0 0 15px 0'
+      }}>
+        {item.summary}
+      </p>
+    )}
+
+    {/* Destaque */}
+    {item.highlight && (
+      <div style={{
+        backgroundColor: '#f0f9ff',
+        border: `1px solid ${sectionColor}30`,
+        borderRadius: '8px',
+        padding: '15px',
+        margin: '15px 0',
+        borderLeft: `4px solid ${sectionColor}`
+      }}>
+        <p style={{
+          fontSize: '16px',
+          color: '#1e40af',
+          margin: 0,
+          fontWeight: '500',
+          fontStyle: 'italic'
+        }}>
+          💡 {item.highlight}
+        </p>
+      </div>
+    )}
+
+    {/* Recomendação */}
+    {item.recommendation && (
+      <div style={{
+        backgroundColor: '#f0fdf4',
+        border: '1px solid #22c55e30',
+        borderRadius: '8px',
+        padding: '15px',
+        marginTop: '15px'
+      }}>
+        <div style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: '#15803d',
+          marginBottom: '5px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Recomendação
+        </div>
+        <p style={{
+          fontSize: '16px',
+          color: '#166534',
+          margin: 0,
+          fontWeight: '500'
+        }}>
+          {item.recommendation}
+        </p>
+      </div>
+    )}
+
+    {/* Tags de setores/recomendações */}
+    {(item.sectors?.length > 0 || item.recommendations?.length > 0) && (
+      <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {item.sectors?.map((setor: string, index: number) => (
           <span key={index} style={{
             fontSize: '12px',
             color: '#2563eb',
             backgroundColor: '#eff6ff',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            marginRight: '4px'
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontWeight: '500'
           }}>
             {setor}
           </span>
         ))}
-      </div>
-    )}
-    
-    {item.recommendations && item.recommendations.length > 0 && (
-      <div>
-        <span style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>Recomendações: </span>
-        {item.recommendations.map((rec: string, index: number) => (
+        {item.recommendations?.map((rec: string, index: number) => (
           <span key={index} style={{
             fontSize: '12px',
-            color: '#059669',
+            color: '#22c55e',
             backgroundColor: '#f0fdf4',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            marginRight: '4px',
-            fontWeight: '500'
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontWeight: '600'
           }}>
             {rec}
           </span>
@@ -99,56 +383,89 @@ const MacroItem = ({ item }: { item: any }) => (
   </div>
 );
 
-// Componente para exibir provento
-const ProventoItem = ({ item }: { item: any }) => (
+// Card de provento
+const ProventoCard = ({ item }: { item: any }) => (
   <div style={{
     backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '16px',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e5e7eb',
-    marginBottom: '12px'
+    borderRadius: '12px',
+    padding: '25px',
+    marginBottom: '20px',
+    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
+    border: '3px solid #22c55e15'
   }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <DollarSign size={16} style={{ color: '#059669', marginRight: '6px' }} />
-        <span style={{ fontWeight: '600', color: '#111827', fontSize: '16px' }}>
-          {item.ticker}
-        </span>
-        <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>
-          {item.company}
-        </span>
-      </div>
-      <span style={{
-        fontSize: '12px',
-        fontWeight: '500',
-        color: item.type === 'JCP' ? '#7c3aed' : '#2563eb',
-        backgroundColor: item.type === 'JCP' ? '#f3e8ff' : '#eff6ff',
-        padding: '2px 8px',
-        borderRadius: '12px'
+    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
+      <div style={{
+        width: '50px',
+        height: '50px',
+        backgroundColor: '#22c55e15',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: '15px'
       }}>
-        {item.type}
-      </span>
+        <span style={{ 
+          fontSize: '11px', 
+          fontWeight: '700', 
+          color: '#22c55e'
+        }}>
+          {item.ticker?.substring(0, 4)}
+        </span>
+      </div>
+      
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            margin: 0
+          }}>
+            {item.ticker}
+          </h3>
+          <span style={{
+            fontSize: '12px',
+            fontWeight: '600',
+            color: item.type === 'JCP' ? '#7c3aed' : '#2563eb',
+            backgroundColor: item.type === 'JCP' ? '#7c3aed15' : '#2563eb15',
+            padding: '4px 8px',
+            borderRadius: '6px'
+          }}>
+            {item.type}
+          </span>
+        </div>
+        <p style={{
+          fontSize: '14px',
+          color: '#6b7280',
+          margin: 0
+        }}>
+          {item.company}
+        </p>
+      </div>
     </div>
-    
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+      gap: '20px' 
+    }}>
       <div>
-        <span style={{ fontSize: '12px', color: '#6b7280' }}>Valor</span>
-        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{item.value}</div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Valor</div>
+        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>{item.value}</div>
       </div>
       <div>
-        <span style={{ fontSize: '12px', color: '#6b7280' }}>DY</span>
-        <div style={{ fontSize: '14px', fontWeight: '600', color: '#059669' }}>{item.dy}</div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>DY</div>
+        <div style={{ fontSize: '18px', fontWeight: '700', color: '#22c55e' }}>{item.dy}</div>
       </div>
       <div>
-        <span style={{ fontSize: '12px', color: '#6b7280' }}>Data-com</span>
-        <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Data-com</div>
+        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
           {item.exDate ? new Date(item.exDate).toLocaleDateString('pt-BR') : '-'}
         </div>
       </div>
       <div>
-        <span style={{ fontSize: '12px', color: '#6b7280' }}>Pagamento</span>
-        <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Pagamento</div>
+        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
           {item.payDate ? new Date(item.payDate).toLocaleDateString('pt-BR') : '-'}
         </div>
       </div>
@@ -156,212 +473,169 @@ const ProventoItem = ({ item }: { item: any }) => (
   </div>
 );
 
-// Componente para exibir ação
-const StockItem = ({ item }: { item: any }) => (
-  <div style={{
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '16px',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e5e7eb',
-    marginBottom: '12px'
-  }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <TrendingUp size={16} style={{ color: '#2563eb', marginRight: '6px' }} />
-        <span style={{ fontWeight: '600', color: '#111827', fontSize: '16px' }}>
-          {item.ticker}
-        </span>
-        <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>
-          {item.company}
-        </span>
-      </div>
-      <span style={{
-        fontSize: '12px',
-        fontWeight: '500',
-        color: item.impact === 'positive' ? '#059669' : item.impact === 'negative' ? '#dc2626' : '#6b7280',
-        backgroundColor: item.impact === 'positive' ? '#f0fdf4' : item.impact === 'negative' ? '#fef2f2' : '#f9fafb',
-        padding: '2px 8px',
-        borderRadius: '12px'
-      }}>
-        {item.impact === 'positive' ? 'Positivo' : item.impact === 'negative' ? 'Negativo' : 'Neutro'}
-      </span>
-    </div>
-    
-    <div style={{ fontSize: '14px', color: '#111827', marginBottom: '8px', fontWeight: '500' }}>
-      {item.news}
-    </div>
-    
-    {item.highlight && (
-      <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px', fontStyle: 'italic' }}>
-        💡 {item.highlight}
-      </div>
-    )}
-    
-    {item.recommendation && (
-      <div style={{ 
-        fontSize: '14px', 
-        color: '#374151', 
-        backgroundColor: '#f9fafb', 
-        padding: '8px', 
-        borderRadius: '4px',
-        borderLeft: '3px solid #2563eb'
-      }}>
-        <strong>Recomendação:</strong> {item.recommendation}
-      </div>
-    )}
-  </div>
-);
-
 export default async function RelatorioSemanalPage() {
   const relatorio = await getRelatorio();
   
-  console.log('📖 [DEBUG] Renderizando página com relatório:', relatorio);
-  
   if (!relatorio) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', backgroundColor: 'white', padding: '40px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
-          <AlertCircle size={48} style={{ color: '#f59e0b', marginBottom: '16px' }} />
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f9fafb', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ 
+          textAlign: 'center', 
+          backgroundColor: 'white', 
+          padding: '60px', 
+          borderRadius: '16px', 
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          maxWidth: '500px'
+        }}>
+          <AlertCircle size={64} style={{ color: '#f59e0b', marginBottom: '20px' }} />
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: '700', 
+            color: '#1a1a1a', 
+            marginBottom: '15px' 
+          }}>
             Relatório Não Disponível
           </h1>
-          <p style={{ color: '#6b7280', fontSize: '16px' }}>
-            O relatório semanal ainda não foi publicado.
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '18px',
+            lineHeight: '1.6'
+          }}>
+            O relatório semanal ainda não foi publicado pelos nossos analistas.
           </p>
         </div>
       </div>
     );
   }
 
+  const sections = [
+    { 
+      key: 'macro', 
+      data: relatorio.macro, 
+      title: 'Panorama Macro', 
+      icon: Globe, 
+      color: '#2563eb' 
+    },
+    { 
+      key: 'proventos', 
+      data: relatorio.proventos, 
+      title: 'Dividendos', 
+      icon: DollarSign, 
+      color: '#22c55e' 
+    },
+    { 
+      key: 'dividendos', 
+      data: relatorio.dividendos, 
+      title: 'Dividendos', 
+      icon: Calendar, 
+      color: '#22c55e' 
+    },
+    { 
+      key: 'smallCaps', 
+      data: relatorio.smallCaps, 
+      title: 'Small Caps', 
+      icon: Building, 
+      color: '#2563eb' 
+    },
+    { 
+      key: 'microCaps', 
+      data: relatorio.microCaps, 
+      title: 'Micro Caps', 
+      icon: Zap, 
+      color: '#ea580c' 
+    },
+    { 
+      key: 'exterior', 
+      data: relatorio.exterior, 
+      title: 'Exterior', 
+      icon: TrendingUp, 
+      color: '#7c3aed' 
+    }
+  ];
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-      {/* Header */}
-      <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', borderBottom: '1px solid #e5e7eb' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
-                📊 Relatório Semanal
-              </h1>
-              <p style={{ color: '#6b7280', fontSize: '16px' }}>{relatorio.weekOf}</p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle size={20} style={{ color: '#059669' }} />
-              <span style={{ fontSize: '14px', fontWeight: '500', color: '#059669' }}>
-                Publicado em {new Date(relatorio.date).toLocaleDateString('pt-BR')}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Conteúdo */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
-        {/* Debug Info */}
-        <div style={{ 
-          backgroundColor: '#f3f4f6', 
-          padding: '12px', 
-          borderRadius: '6px', 
-          marginBottom: '24px',
-          fontSize: '12px',
-          fontFamily: 'monospace'
-        }}>
-          📖 DEBUG: ID={relatorio.id}, Status={relatorio.status}, 
-          Macro={relatorio.macro?.length || 0}, 
-          Proventos={relatorio.proventos?.length || 0}, 
-          Dividendos={relatorio.dividendos?.length || 0}
-        </div>
-
-        {/* Panorama Macro */}
-        {relatorio.macro && relatorio.macro.length > 0 && (
-          <section style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-              <Globe style={{ marginRight: '8px', color: '#2563eb' }} />
-              Panorama Macro
-            </h2>
-            {relatorio.macro.map((item: any, index: number) => (
-              <MacroItem key={index} item={item} />
-            ))}
-          </section>
-        )}
-
-        {/* Proventos */}
-        {relatorio.proventos && relatorio.proventos.length > 0 && (
-          <section style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-              <DollarSign style={{ marginRight: '8px', color: '#059669' }} />
-              Proventos
-            </h2>
-            {relatorio.proventos.map((item: any, index: number) => (
-              <ProventoItem key={index} item={item} />
-            ))}
-          </section>
-        )}
-
-        {/* Dividendos */}
-        {relatorio.dividendos && relatorio.dividendos.length > 0 && (
-          <section style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-              <Calendar style={{ marginRight: '8px', color: '#22c55e' }} />
-              Dividendos
-            </h2>
-            {relatorio.dividendos.map((item: any, index: number) => (
-              <StockItem key={index} item={item} />
-            ))}
-          </section>
-        )}
-
-        {/* Small Caps */}
-        {relatorio.smallCaps && relatorio.smallCaps.length > 0 && (
-          <section style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-              <Building style={{ marginRight: '8px', color: '#2563eb' }} />
-              Small Caps
-            </h2>
-            {relatorio.smallCaps.map((item: any, index: number) => (
-              <StockItem key={index} item={item} />
-            ))}
-          </section>
-        )}
-
-        {/* Micro Caps */}
-        {relatorio.microCaps && relatorio.microCaps.length > 0 && (
-          <section style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-              <Zap style={{ marginRight: '8px', color: '#ea580c' }} />
-              Micro Caps
-            </h2>
-            {relatorio.microCaps.map((item: any, index: number) => (
-              <StockItem key={index} item={item} />
-            ))}
-          </section>
-        )}
-
-        {/* Exterior */}
-        {relatorio.exterior && relatorio.exterior.length > 0 && (
-          <section style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
-              <TrendingUp style={{ marginRight: '8px', color: '#7c3aed' }} />
-              Exterior
-            </h2>
-            {relatorio.exterior.map((item: any, index: number) => (
-              <StockItem key={index} item={item} />
-            ))}
-          </section>
-        )}
-
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <ReportHeader relatorio={relatorio} />
+      
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '50px 20px' }}>
+        {sections.map((section) => {
+          if (!section.data || section.data.length === 0) return null;
+          
+          return (
+            <section key={section.key} style={{ marginBottom: '60px' }}>
+              <SectionHeader 
+                icon={section.icon}
+                title={section.title}
+                color={section.color}
+                count={section.data.length}
+              />
+              
+              <div>
+                {section.data.map((item: any, index: number) => (
+                  section.key === 'proventos' ? (
+                    <ProventoCard key={index} item={item} />
+                  ) : (
+                    <StockCard key={index} item={item} sectionColor={section.color} />
+                  )
+                ))}
+              </div>
+            </section>
+          );
+        })}
+        
         {/* Rodapé */}
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '24px', 
-          borderTop: '1px solid #e5e7eb', 
-          marginTop: '40px',
-          color: '#6b7280',
-          fontSize: '14px'
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          borderTop: '1px solid #e5e7eb',
+          marginTop: '60px'
         }}>
-          <p>© Fatos da Bolsa - Relatório Semanal</p>
-          <p>Última atualização: {new Date().toLocaleString('pt-BR')}</p>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            marginBottom: '15px'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              border: '2px solid #22c55e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <BarChart3 size={20} style={{ color: '#22c55e' }} />
+            </div>
+            <span style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#1a1a1a'
+            }}>
+              FATOS DA BOLSA
+            </span>
+          </div>
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '14px',
+            margin: 0
+          }}>
+            © Fatos da Bolsa - contato@fatosdabolsa.com.br
+          </p>
+          <p style={{ 
+            color: '#9ca3af', 
+            fontSize: '12px',
+            margin: '5px 0 0 0'
+          }}>
+            Última atualização: {new Date().toLocaleString('pt-BR')}
+          </p>
         </div>
       </div>
     </div>
