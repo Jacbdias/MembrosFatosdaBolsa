@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload } from 'lucide-react';
 
 // Interfaces
 interface MetricaTrimestreData {
@@ -111,6 +111,91 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (url) {
       execCommand('createLink', url);
     }
+  }, [execCommand]);
+
+  // 🖼️ INSERIR IMAGEM POR URL
+  const insertImageByUrl = useCallback(() => {
+    const url = prompt('Digite a URL da imagem:');
+    if (url) {
+      // Validar se é uma URL válida
+      try {
+        new URL(url);
+        execCommand('insertImage', url);
+        
+        // Adicionar estilos à imagem inserida
+        setTimeout(() => {
+          if (editorRef.current) {
+            const images = editorRef.current.querySelectorAll('img');
+            const lastImage = images[images.length - 1];
+            if (lastImage) {
+              lastImage.style.maxWidth = '100%';
+              lastImage.style.height = 'auto';
+              lastImage.style.borderRadius = '8px';
+              lastImage.style.margin = '8px 0';
+              lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }
+          }
+        }, 100);
+      } catch (error) {
+        alert('URL inválida. Por favor, digite uma URL válida.');
+      }
+    }
+  }, [execCommand]);
+
+  // 📤 UPLOAD DE IMAGEM
+  const uploadImage = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Verificar tamanho (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Arquivo muito grande. Máximo 5MB permitido.');
+          return;
+        }
+        
+        // Verificar tipo
+        if (!file.type.startsWith('image/')) {
+          alert('Por favor, selecione apenas arquivos de imagem.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target?.result as string;
+          if (base64) {
+            // Inserir imagem como Base64
+            execCommand('insertImage', base64);
+            
+            // Adicionar estilos à imagem inserida
+            setTimeout(() => {
+              if (editorRef.current) {
+                const images = editorRef.current.querySelectorAll('img');
+                const lastImage = images[images.length - 1];
+                if (lastImage) {
+                  lastImage.style.maxWidth = '100%';
+                  lastImage.style.height = 'auto';
+                  lastImage.style.borderRadius = '8px';
+                  lastImage.style.margin = '8px 0';
+                  lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                  lastImage.setAttribute('title', file.name);
+                  lastImage.setAttribute('alt', file.name.split('.')[0]);
+                }
+              }
+            }, 100);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
   }, [execCommand]);
 
   // Alterar cor do texto
@@ -381,6 +466,60 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Separator */}
         <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
 
+        {/* 🖼️ BOTÕES DE IMAGEM */}
+        <button
+          onClick={uploadImage}
+          title="Upload de imagem"
+          style={{
+            padding: '8px',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#e5e7eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <Upload size={16} />
+        </button>
+
+        <button
+          onClick={insertImageByUrl}
+          title="Inserir imagem por URL"
+          style={{
+            padding: '8px',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#e5e7eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <Image size={16} />
+        </button>
+
+        {/* Separator */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
+
         {/* Link */}
         <button
           onClick={insertLink}
@@ -501,6 +640,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         
         [contenteditable] li {
           margin: 4px 0;
+        }
+        
+        [contenteditable] img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          margin: 8px 0;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        
+        [contenteditable] img:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        [contenteditable] img.selected {
+          outline: 2px solid #2563eb;
+          outline-offset: 2px;
         }
       `}</style>
     </div>
