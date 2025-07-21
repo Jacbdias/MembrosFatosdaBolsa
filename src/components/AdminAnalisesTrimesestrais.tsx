@@ -115,11 +115,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // 🖼️ INSERIR IMAGEM POR URL
   const insertImageByUrl = useCallback(() => {
+    console.log('🖼️ Função insertImageByUrl chamada');
     const url = prompt('Digite a URL da imagem:');
     if (url) {
+      console.log('🔗 URL fornecida:', url);
       // Validar se é uma URL válida
       try {
         new URL(url);
+        console.log('✅ URL válida, inserindo imagem...');
         execCommand('insertImage', url);
         
         // Adicionar estilos à imagem inserida
@@ -133,41 +136,53 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               lastImage.style.borderRadius = '8px';
               lastImage.style.margin = '8px 0';
               lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              console.log('🎨 Estilos aplicados à imagem');
             }
           }
         }, 100);
       } catch (error) {
+        console.error('❌ URL inválida:', error);
         alert('URL inválida. Por favor, digite uma URL válida.');
       }
+    } else {
+      console.log('❌ Nenhuma URL fornecida');
     }
   }, [execCommand]);
 
   // 📤 UPLOAD DE IMAGEM
   const uploadImage = useCallback(() => {
+    console.log('📤 Função uploadImage chamada');
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.style.display = 'none';
     
     input.onchange = (e) => {
+      console.log('📁 Arquivo selecionado');
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
+        console.log('📊 Arquivo:', file.name, file.size, file.type);
+        
         // Verificar tamanho (máximo 5MB)
         if (file.size > 5 * 1024 * 1024) {
+          console.error('❌ Arquivo muito grande:', file.size);
           alert('Arquivo muito grande. Máximo 5MB permitido.');
           return;
         }
         
         // Verificar tipo
         if (!file.type.startsWith('image/')) {
+          console.error('❌ Tipo inválido:', file.type);
           alert('Por favor, selecione apenas arquivos de imagem.');
           return;
         }
         
+        console.log('✅ Arquivo válido, convertendo para Base64...');
         const reader = new FileReader();
         reader.onload = (event) => {
           const base64 = event.target?.result as string;
           if (base64) {
+            console.log('🔧 Base64 gerado, inserindo imagem...');
             // Inserir imagem como Base64
             execCommand('insertImage', base64);
             
@@ -184,12 +199,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                   lastImage.setAttribute('title', file.name);
                   lastImage.setAttribute('alt', file.name.split('.')[0]);
+                  console.log('🎨 Estilos aplicados à imagem uploadada');
                 }
               }
             }, 100);
           }
         };
         reader.readAsDataURL(file);
+      } else {
+        console.log('❌ Nenhum arquivo selecionado');
       }
     };
     
@@ -466,56 +484,73 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Separator */}
         <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
 
-        {/* 🖼️ BOTÕES DE IMAGEM */}
-        <button
-          onClick={uploadImage}
-          title="Upload de imagem"
-          style={{
-            padding: '8px',
-            border: 'none',
-            borderRadius: '6px',
-            backgroundColor: 'transparent',
-            color: '#6b7280',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#e5e7eb';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <Upload size={16} />
-        </button>
+        {/* 🖼️ BOTÕES DE IMAGEM - DESTACADOS */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '4px', 
+          padding: '4px', 
+          backgroundColor: '#f0f9ff', 
+          borderRadius: '8px',
+          border: '1px solid #0ea5e9'
+        }}>
+          <button
+            onClick={uploadImage}
+            title="📤 Upload de imagem (máx 5MB)"
+            style={{
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: '#0ea5e9',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0284c7';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0ea5e9';
+            }}
+          >
+            <Upload size={14} />
+            Upload
+          </button>
 
-        <button
-          onClick={insertImageByUrl}
-          title="Inserir imagem por URL"
-          style={{
-            padding: '8px',
-            border: 'none',
-            borderRadius: '6px',
-            backgroundColor: 'transparent',
-            color: '#6b7280',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#e5e7eb';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <Image size={16} />
-        </button>
+          <button
+            onClick={insertImageByUrl}
+            title="🔗 Inserir imagem por URL"
+            style={{
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: '#06b6d4',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0891b2';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#06b6d4';
+            }}
+          >
+            <Image size={14} />
+            URL
+          </button>
+        </div>
 
         {/* Separator */}
         <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
