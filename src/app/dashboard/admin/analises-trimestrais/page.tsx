@@ -1,0 +1,6 @@
+// src/app/dashboard/admin/analises-trimestrais/page.tsx
+import AdminAnalisesTrimesestrais from '../../../../components/AdminAnalisesTrimesestrais';
+
+export default function AnalisesTrimesestraisPage() {
+  return <AdminAnalisesTrimesestrais />;
+}
