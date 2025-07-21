@@ -311,170 +311,170 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
   </div>
 );
 
+// Sistema inteligente para encontrar logos de empresas
+const generateLogoSources = (ticker: string, companyName?: string) => {
+  const sources: string[] = [];
+  
+  // Limpar ticker para diferentes variações
+  const cleanTicker = ticker.replace(/[0-9]/g, '').replace(/[^A-Za-z]/g, '').toLowerCase();
+  const tickerBase = ticker.replace(/[0-9]/g, '').toLowerCase();
+  
+  // 1. DOMÍNIOS ESPECÍFICOS CONHECIDOS (prioritários)
+  const knownDomains = getKnownDomain(ticker);
+  if (knownDomains.length > 0) {
+    knownDomains.forEach(domain => {
+      sources.push(
+        `https://logo.clearbit.com/${domain}`,
+        `https://img.logo.dev/${domain}?token=pk_X-1ZO13IREOmTdwhAAEI8Q&size=200`,
+        `https://logo.clearbit.com/${domain}?size=200&format=png`
+      );
+    });
+  }
+  
+  // 2. TENTATIVAS COM TICKER (múltiplas variações)
+  sources.push(
+    // Polygon (bom para ações americanas)
+    `https://s3.polygon.io/logos/${ticker.toLowerCase()}/logo.png`,
+    
+    // Clearbit com diferentes combinações
+    `https://logo.clearbit.com/${tickerBase}.com.br`,
+    `https://logo.clearbit.com/${tickerBase}.com`,
+    `https://logo.clearbit.com/${cleanTicker}.com.br`,
+    `https://logo.clearbit.com/${cleanTicker}.com`,
+    
+    // Logo.dev
+    `https://img.logo.dev/${tickerBase}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+    `https://img.logo.dev/${tickerBase}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+    `https://img.logo.dev/${cleanTicker}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+    `https://img.logo.dev/${cleanTicker}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`
+  );
+  
+  // 3. TENTATIVAS COM NOME DA EMPRESA (se fornecido)
+  if (companyName) {
+    const cleanCompanyName = companyName
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, '') // remove caracteres especiais
+      .replace(/\s+/g, '') // remove espaços
+      .replace(/(sa|ltda|corp|inc|company|cia|s\.a\.|holding|participacoes)/g, ''); // remove sufixos
+    
+    if (cleanCompanyName.length > 2) {
+      sources.push(
+        `https://logo.clearbit.com/${cleanCompanyName}.com.br`,
+        `https://logo.clearbit.com/${cleanCompanyName}.com`,
+        `https://img.logo.dev/${cleanCompanyName}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+        `https://img.logo.dev/${cleanCompanyName}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`
+      );
+      
+      // Tentativas com palavras do nome
+      const words = companyName.toLowerCase().split(' ').filter(w => w.length > 3);
+      words.forEach(word => {
+        const cleanWord = word.replace(/[^a-z]/g, '');
+        if (cleanWord.length > 3) {
+          sources.push(
+            `https://logo.clearbit.com/${cleanWord}.com.br`,
+            `https://logo.clearbit.com/${cleanWord}.com`
+          );
+        }
+      });
+    }
+  }
+  
+  // 4. APIS ALTERNATIVAS
+  sources.push(
+    // Brandfetch alternatives
+    `https://assets.brandfolder.com/logo/${cleanTicker}`,
+    
+    // Wikipedia/Wikimedia (muitas empresas têm logos lá)
+    `https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/${cleanTicker}_logo.svg/200px-${cleanTicker}_logo.svg.png`,
+    `https://upload.wikimedia.org/wikipedia/pt/thumb/0/0a/${cleanTicker}_logo.svg/200px-${cleanTicker}_logo.svg.png`,
+    
+    // Yahoo Finance alternatives
+    `https://s3.yimg.com/uc/finance/1.3.0/images/logos/${ticker}.png`,
+    `https://logo.yahoo.com/${cleanTicker}`,
+    
+    // Google alternatives (menos confiável mas vale tentar)
+    `https://logo.googleapis.com/logo?domain=${cleanTicker}.com.br`,
+    `https://logo.googleapis.com/logo?domain=${cleanTicker}.com`
+  );
+  
+  // 5. FALLBACK INTELIGENTE - Avatar personalizado
+  const avatarBg = getAvatarColor(ticker);
+  sources.push(
+    `https://ui-avatars.com/api/?name=${ticker.substring(0,4)}&background=${avatarBg}&color=ffffff&size=60&font-size=0.7&bold=true&format=svg`,
+    `https://api.dicebear.com/7.x/initials/svg?seed=${ticker}&backgroundColor=${avatarBg}&fontSize=36`
+  );
+  
+  return sources;
+};
+
+// Mapeamento de domínios conhecidos (expandido)
+const getKnownDomain = (ticker: string) => {
+  const domainMap: { [key: string]: string[] } = {
+    // Bancos Brasileiros
+    'ABCB4': ['abcbrasil.com.br'], 'ITUB4': ['itau.com.br'], 'BBDC4': ['bradesco.com.br'],
+    'BBAS3': ['bb.com.br'], 'SANB11': ['santander.com.br'], 'BPAC11': ['btgpactual.com'],
+    
+    // Energia/Petróleo
+    'PETR4': ['petrobras.com.br'], 'VALE3': ['vale.com'], 'CPLE6': ['copel.com'],
+    'EGIE3': ['engie.com.br'], 'TAEE11': ['taesa.com.br'], 'CMIG4': ['cemig.com.br'],
+    
+    // Varejo
+    'MGLU3': ['magazineluiza.com.br'], 'VVAR3': ['viavarejo.com.br'], 'AMER3': ['americanas.com.br'],
+    'LREN3': ['lojasrenner.com.br'], 'GRND3': ['grendene.com.br'],
+    
+    // Tecnologia Brasil
+    'TOTS3': ['totvs.com'], 'LINX3': ['linx.com.br'], 'POSI3': ['positivo.com.br'],
+    
+    // Telecomunicações
+    'VIVT3': ['vivo.com.br'], 'TIMS3': ['tim.com.br'], 'OIBR3': ['oi.com.br'],
+    
+    // Saneamento
+    'SAPR11': ['sanepar.com.br'], 'SBSP3': ['sabesp.com.br'], 'CSMG3': ['copasa.com.br'],
+    
+    // Alimentício/Agro
+    'SMTO3': ['saomartinho.com.br'], 'BEEF3': ['minervafoods.com'], 'JBSS3': ['jbs.com.br'],
+    'BRF3': ['brf-global.com'], 'SLCE3': ['slcagricola.com.br'],
+    
+    // Papel/Celulose
+    'SUZB3': ['suzano.com.br'], 'KROT3': ['klabin.com.br'],
+    
+    // Siderurgia/Mineração
+    'CSNA3': ['csn.com.br'], 'USIM5': ['usiminas.com'], 'GGBR4': ['gerdau.com.br'],
+    
+    // Educação
+    'COGN3': ['cogna.com.br'], 'YDUQ3': ['yduq.com.br'],
+    
+    // Saúde
+    'RDOR3': ['rdorsaocristovao.com.br'], 'HAPV3': ['hapvida.com.br'],
+    
+    // Logística
+    'RAIL3': ['rumo.com.br'], 'CCRO3': ['ccr.com.br'],
+    
+    // Exterior - Tech Giants
+    'AAPL': ['apple.com'], 'MSFT': ['microsoft.com'], 'GOOGL': ['google.com', 'alphabet.com'],
+    'AMZN': ['amazon.com'], 'TSLA': ['tesla.com'], 'NVDA': ['nvidia.com'], 'META': ['meta.com'],
+    'NFLX': ['netflix.com'], 'CRM': ['salesforce.com'], 'ORCL': ['oracle.com'],
+    
+    // Exterior - Outros
+    'HD': ['homedepot.com'], 'HOME34': ['homedepot.com'], 'WMT': ['walmart.com'],
+    'DIS': ['disney.com'], 'NKE': ['nike.com'], 'MCD': ['mcdonalds.com'],
+    'KO': ['coca-cola.com'], 'PEP': ['pepsi.com'], 'JNJ': ['jnj.com']
+  };
+  
+  return domainMap[ticker.toUpperCase()] || [];
+};
+
+// Gerar cor do avatar baseada no ticker
+const getAvatarColor = (ticker: string) => {
+  const colors = ['4cfa00', '2563eb', 'ea580c', '7c3aed', 'dc2626', '059669', 'f59e0b'];
+  const index = ticker.charCodeAt(0) % colors.length;
+  return colors[index];
+};
+
 // Componente para logo da empresa
 const CompanyLogo = ({ ticker, fallbackColor, item }: { ticker: string, fallbackColor: string, item?: any }) => {
   const [logoSrc, setLogoSrc] = useState<string>('');
   const [logoError, setLogoError] = useState(false);
-
-  // Sistema inteligente para encontrar logos de QUALQUER empresa
-  const generateLogoSources = (ticker: string, companyName?: string) => {
-    const sources: string[] = [];
-    
-    // Limpar ticker para diferentes variações
-    const cleanTicker = ticker.replace(/[0-9]/g, '').replace(/[^A-Za-z]/g, '').toLowerCase();
-    const tickerBase = ticker.replace(/[0-9]/g, '').toLowerCase();
-    
-    // 1. DOMÍNIOS ESPECÍFICOS CONHECIDOS (prioritários)
-    const knownDomains = getKnownDomain(ticker);
-    if (knownDomains.length > 0) {
-      knownDomains.forEach(domain => {
-        sources.push(
-          `https://logo.clearbit.com/${domain}`,
-          `https://img.logo.dev/${domain}?token=pk_X-1ZO13IREOmTdwhAAEI8Q&size=200`,
-          `https://logo.clearbit.com/${domain}?size=200&format=png`
-        );
-      });
-    }
-    
-    // 2. TENTATIVAS COM TICKER (múltiplas variações)
-    sources.push(
-      // Polygon (bom para ações americanas)
-      `https://s3.polygon.io/logos/${ticker.toLowerCase()}/logo.png`,
-      
-      // Clearbit com diferentes combinações
-      `https://logo.clearbit.com/${tickerBase}.com.br`,
-      `https://logo.clearbit.com/${tickerBase}.com`,
-      `https://logo.clearbit.com/${cleanTicker}.com.br`,
-      `https://logo.clearbit.com/${cleanTicker}.com`,
-      
-      // Logo.dev
-      `https://img.logo.dev/${tickerBase}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
-      `https://img.logo.dev/${tickerBase}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
-      `https://img.logo.dev/${cleanTicker}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
-      `https://img.logo.dev/${cleanTicker}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`
-    );
-    
-    // 3. TENTATIVAS COM NOME DA EMPRESA (se fornecido)
-    if (companyName) {
-      const cleanCompanyName = companyName
-        .toLowerCase()
-        .replace(/[^a-z\s]/g, '') // remove caracteres especiais
-        .replace(/\s+/g, '') // remove espaços
-        .replace(/(sa|ltda|corp|inc|company|cia|s\.a\.|holding|participacoes)/g, ''); // remove sufixos
-      
-      if (cleanCompanyName.length > 2) {
-        sources.push(
-          `https://logo.clearbit.com/${cleanCompanyName}.com.br`,
-          `https://logo.clearbit.com/${cleanCompanyName}.com`,
-          `https://img.logo.dev/${cleanCompanyName}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
-          `https://img.logo.dev/${cleanCompanyName}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`
-        );
-        
-        // Tentativas com palavras do nome
-        const words = companyName.toLowerCase().split(' ').filter(w => w.length > 3);
-        words.forEach(word => {
-          const cleanWord = word.replace(/[^a-z]/g, '');
-          if (cleanWord.length > 3) {
-            sources.push(
-              `https://logo.clearbit.com/${cleanWord}.com.br`,
-              `https://logo.clearbit.com/${cleanWord}.com`
-            );
-          }
-        });
-      }
-    }
-    
-    // 4. APIS ALTERNATIVAS
-    sources.push(
-      // Brandfetch alternatives
-      `https://assets.brandfolder.com/logo/${cleanTicker}`,
-      
-      // Wikipedia/Wikimedia (muitas empresas têm logos lá)
-      `https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/${cleanTicker}_logo.svg/200px-${cleanTicker}_logo.svg.png`,
-      `https://upload.wikimedia.org/wikipedia/pt/thumb/0/0a/${cleanTicker}_logo.svg/200px-${cleanTicker}_logo.svg.png`,
-      
-      // Yahoo Finance alternatives
-      `https://s3.yimg.com/uc/finance/1.3.0/images/logos/${ticker}.png`,
-      `https://logo.yahoo.com/${cleanTicker}`,
-      
-      // Google alternatives (menos confiável mas vale tentar)
-      `https://logo.googleapis.com/logo?domain=${cleanTicker}.com.br`,
-      `https://logo.googleapis.com/logo?domain=${cleanTicker}.com`
-    );
-    
-    // 5. FALLBACK INTELIGENTE - Avatar personalizado
-    const avatarBg = getAvatarColor(ticker);
-    sources.push(
-      `https://ui-avatars.com/api/?name=${ticker.substring(0,4)}&background=${avatarBg}&color=ffffff&size=60&font-size=0.7&bold=true&format=svg`,
-      `https://api.dicebear.com/7.x/initials/svg?seed=${ticker}&backgroundColor=${avatarBg}&fontSize=36`
-    );
-    
-    return sources;
-  };
-
-  // Mapeamento de domínios conhecidos (expandido)
-  const getKnownDomain = (ticker: string) => {
-    const domainMap: { [key: string]: string[] } = {
-      // Bancos Brasileiros
-      'ABCB4': ['abcbrasil.com.br'], 'ITUB4': ['itau.com.br'], 'BBDC4': ['bradesco.com.br'],
-      'BBAS3': ['bb.com.br'], 'SANB11': ['santander.com.br'], 'BPAC11': ['btgpactual.com'],
-      
-      // Energia/Petróleo
-      'PETR4': ['petrobras.com.br'], 'VALE3': ['vale.com'], 'CPLE6': ['copel.com'],
-      'EGIE3': ['engie.com.br'], 'TAEE11': ['taesa.com.br'], 'CMIG4': ['cemig.com.br'],
-      
-      // Varejo
-      'MGLU3': ['magazineluiza.com.br'], 'VVAR3': ['viavarejo.com.br'], 'AMER3': ['americanas.com.br'],
-      'LREN3': ['lojasrenner.com.br'], 'GRND3': ['grendene.com.br'],
-      
-      // Tecnologia Brasil
-      'TOTS3': ['totvs.com'], 'LINX3': ['linx.com.br'], 'POSI3': ['positivo.com.br'],
-      
-      // Telecomunicações
-      'VIVT3': ['vivo.com.br'], 'TIMS3': ['tim.com.br'], 'OIBR3': ['oi.com.br'],
-      
-      // Saneamento
-      'SAPR11': ['sanepar.com.br'], 'SBSP3': ['sabesp.com.br'], 'CSMG3': ['copasa.com.br'],
-      
-      // Alimentício/Agro
-      'SMTO3': ['saomartinho.com.br'], 'BEEF3': ['minervafoods.com'], 'JBSS3': ['jbs.com.br'],
-      'BRF3': ['brf-global.com'], 'SLCE3': ['slcagricola.com.br'],
-      
-      // Papel/Celulose
-      'SUZB3': ['suzano.com.br'], 'KROT3': ['klabin.com.br'],
-      
-      // Siderurgia/Mineração
-      'CSNA3': ['csn.com.br'], 'USIM5': ['usiminas.com'], 'GGBR4': ['gerdau.com.br'],
-      
-      // Educação
-      'COGN3': ['cogna.com.br'], 'YDUQ3': ['yduq.com.br'],
-      
-      // Saúde
-      'RDOR3': ['rdorsaocristovao.com.br'], 'HAPV3': ['hapvida.com.br'],
-      
-      // Logística
-      'RAIL3': ['rumo.com.br'], 'CCRO3': ['ccr.com.br'],
-      
-      // Exterior - Tech Giants
-      'AAPL': ['apple.com'], 'MSFT': ['microsoft.com'], 'GOOGL': ['google.com', 'alphabet.com'],
-      'AMZN': ['amazon.com'], 'TSLA': ['tesla.com'], 'NVDA': ['nvidia.com'], 'META': ['meta.com'],
-      'NFLX': ['netflix.com'], 'CRM': ['salesforce.com'], 'ORCL': ['oracle.com'],
-      
-      // Exterior - Outros
-      'HD': ['homedepot.com'], 'HOME34': ['homedepot.com'], 'WMT': ['walmart.com'],
-      'DIS': ['disney.com'], 'NKE': ['nike.com'], 'MCD': ['mcdonalds.com'],
-      'KO': ['coca-cola.com'], 'PEP': ['pepsi.com'], 'JNJ': ['jnj.com']
-    };
-    
-    return domainMap[ticker.toUpperCase()] || [];
-  };
-
-  // Gerar cor do avatar baseada no ticker
-  const getAvatarColor = (ticker: string) => {
-    const colors = ['4cfa00', '2563eb', 'ea580c', '7c3aed', 'dc2626', '059669', 'f59e0b'];
-    const index = ticker.charCodeAt(0) % colors.length;
-    return colors[index];
-  };
 
   useEffect(() => {
     if (!ticker) return;
