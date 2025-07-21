@@ -665,17 +665,15 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
     {/* Destaque formatado com HTML */}
     {item.highlight && (
       <div style={{
-        backgroundColor: '#f0f9ff',
-        border: `1px solid ${sectionColor}30`,
-        borderRadius: '8px',
-        padding: '15px',
+        padding: '15px 0',
         margin: '15px 0',
-        borderLeft: `4px solid ${sectionColor}`
+        borderLeft: `4px solid ${sectionColor}`,
+        paddingLeft: '15px'
       }}>
         <div style={{
           fontSize: '14px',
           fontWeight: '600',
-          color: '#1e40af',
+          color: sectionColor,
           marginBottom: '8px',
           display: 'flex',
           alignItems: 'center',
@@ -687,7 +685,7 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
           content={item.highlight}
           style={{
             fontSize: '16px',
-            color: '#1e40af',
+            color: '#4b5563',
             margin: 0,
             fontWeight: '500'
           }}
