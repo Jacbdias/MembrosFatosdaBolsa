@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase } from 'lucide-react';
+import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette } from 'lucide-react';
 
 interface MacroNews {
   id: string;
@@ -47,7 +47,465 @@ interface RelatorioData {
   status: 'draft' | 'published';
 }
 
-// Componente MacroNewsCard isolado
+// Rich Text Editor Component
+interface RichTextEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  style?: React.CSSProperties;
+  minHeight?: string;
+}
+
+const RichTextEditor: React.FC<RichTextEditorProps> = ({
+  value,
+  onChange,
+  placeholder = "Digite seu texto...",
+  style = {},
+  minHeight = "120px"
+}) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const [currentFormat, setCurrentFormat] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false
+  });
+
+  // Atualizar o conteúdo do editor quando o value mudar
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
+
+  // Verificar formatação atual
+  const updateFormatState = useCallback(() => {
+    if (!editorRef.current) return;
+    
+    setCurrentFormat({
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      strikethrough: document.queryCommandState('strikeThrough')
+    });
+  }, []);
+
+  // Executar comando de formatação
+  const execCommand = useCallback((command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+    updateFormatState();
+    
+    // Disparar onChange
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  }, [onChange, updateFormatState]);
+
+  // Inserir link
+  const insertLink = useCallback(() => {
+    const url = prompt('Digite a URL do link:');
+    if (url) {
+      execCommand('createLink', url);
+    }
+  }, [execCommand]);
+
+  // Alterar cor do texto
+  const changeTextColor = useCallback((color: string) => {
+    execCommand('foreColor', color);
+  }, [execCommand]);
+
+  // Alterar tamanho da fonte
+  const changeFontSize = useCallback((size: string) => {
+    execCommand('fontSize', size);
+  }, [execCommand]);
+
+  // Lidar com mudanças no editor
+  const handleInput = useCallback(() => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+    updateFormatState();
+  }, [onChange, updateFormatState]);
+
+  // Lidar com foco
+  const handleFocus = useCallback(() => {
+    setIsEditorFocused(true);
+    updateFormatState();
+  }, [updateFormatState]);
+
+  const handleBlur = useCallback(() => {
+    setIsEditorFocused(false);
+  }, []);
+
+  // Prevenir comportamento padrão em alguns casos
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Atalhos de teclado
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case 'b':
+          e.preventDefault();
+          execCommand('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          execCommand('italic');
+          break;
+        case 'u':
+          e.preventDefault();
+          execCommand('underline');
+          break;
+      }
+    }
+  }, [execCommand]);
+
+  const toolbarButtons = [
+    {
+      icon: Bold,
+      command: 'bold',
+      title: 'Negrito (Ctrl+B)',
+      active: currentFormat.bold
+    },
+    {
+      icon: Italic,
+      command: 'italic',
+      title: 'Itálico (Ctrl+I)',
+      active: currentFormat.italic
+    },
+    {
+      icon: Underline,
+      command: 'underline',
+      title: 'Sublinhado (Ctrl+U)',
+      active: currentFormat.underline
+    },
+    {
+      icon: Strikethrough,
+      command: 'strikeThrough',
+      title: 'Riscado',
+      active: currentFormat.strikethrough
+    }
+  ];
+
+  const alignmentButtons = [
+    {
+      icon: AlignLeft,
+      command: 'justifyLeft',
+      title: 'Alinhar à esquerda'
+    },
+    {
+      icon: AlignCenter,
+      command: 'justifyCenter',
+      title: 'Centralizar'
+    },
+    {
+      icon: AlignRight,
+      command: 'justifyRight',
+      title: 'Alinhar à direita'
+    }
+  ];
+
+  const listButtons = [
+    {
+      icon: List,
+      command: 'insertUnorderedList',
+      title: 'Lista com marcadores'
+    },
+    {
+      icon: ListOrdered,
+      command: 'insertOrderedList',
+      title: 'Lista numerada'
+    }
+  ];
+
+  const colors = [
+    '#000000', '#444444', '#666666', '#999999', '#cccccc',
+    '#1a73e8', '#4285f4', '#34a853', '#fbbc04', '#ea4335',
+    '#9c27b0', '#ff9800', '#795548', '#607d8b', '#e91e63'
+  ];
+
+  const fontSizes = [
+    { label: 'Pequeno', value: '1' },
+    { label: 'Normal', value: '3' },
+    { label: 'Grande', value: '5' },
+    { label: 'Muito Grande', value: '7' }
+  ];
+
+  return (
+    <div style={{
+      border: `2px solid ${isEditorFocused ? '#2563eb' : '#e5e7eb'}`,
+      borderRadius: '12px',
+      backgroundColor: 'white',
+      transition: 'border-color 0.2s',
+      ...style
+    }}>
+      {/* Toolbar */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '1px solid #e5e7eb',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+        borderRadius: '12px 12px 0 0'
+      }}>
+        {/* Formatação de texto */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {toolbarButtons.map((button) => (
+            <button
+              key={button.command}
+              onClick={() => execCommand(button.command)}
+              title={button.title}
+              style={{
+                padding: '8px',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: button.active ? '#2563eb' : 'transparent',
+                color: button.active ? 'white' : '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!button.active) {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!button.active) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              <button.icon size={16} />
+            </button>
+          ))}
+        </div>
+
+        {/* Separator */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
+
+        {/* Tamanho da fonte */}
+        <select
+          onChange={(e) => changeFontSize(e.target.value)}
+          style={{
+            padding: '6px 8px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px',
+            fontSize: '14px',
+            backgroundColor: 'white'
+          }}
+          title="Tamanho da fonte"
+        >
+          <option value="">Tamanho</option>
+          {fontSizes.map((size) => (
+            <option key={size.value} value={size.value}>
+              {size.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Separator */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
+
+        {/* Alinhamento */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {alignmentButtons.map((button) => (
+            <button
+              key={button.command}
+              onClick={() => execCommand(button.command)}
+              title={button.title}
+              style={{
+                padding: '8px',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: 'transparent',
+                color: '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e5e7eb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <button.icon size={16} />
+            </button>
+          ))}
+        </div>
+
+        {/* Separator */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
+
+        {/* Listas */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {listButtons.map((button) => (
+            <button
+              key={button.command}
+              onClick={() => execCommand(button.command)}
+              title={button.title}
+              style={{
+                padding: '8px',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: 'transparent',
+                color: '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e5e7eb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <button.icon size={16} />
+            </button>
+          ))}
+        </div>
+
+        {/* Separator */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
+
+        {/* Link */}
+        <button
+          onClick={insertLink}
+          title="Inserir link"
+          style={{
+            padding: '8px',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#e5e7eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <Link size={16} />
+        </button>
+
+        {/* Cores */}
+        <div style={{ position: 'relative' }}>
+          <details style={{ position: 'relative' }}>
+            <summary style={{
+              padding: '8px',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: 'transparent',
+              color: '#6b7280',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              listStyle: 'none',
+              transition: 'all 0.2s'
+            }}>
+              <Palette size={16} />
+            </summary>
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              zIndex: 10,
+              backgroundColor: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '8px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '4px',
+              minWidth: '140px'
+            }}>
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => changeTextColor(color)}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    backgroundColor: color,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                  title={`Cor: ${color}`}
+                />
+              ))}
+            </div>
+          </details>
+        </div>
+      </div>
+
+      {/* Editor */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        style={{
+          padding: '16px',
+          minHeight: minHeight,
+          outline: 'none',
+          lineHeight: '1.6',
+          fontSize: '16px',
+          color: '#1f2937',
+          borderRadius: '0 0 12px 12px'
+        }}
+        data-placeholder={placeholder}
+      />
+
+      {/* CSS para placeholder */}
+      <style>{`
+        [contenteditable]:empty:before {
+          content: attr(data-placeholder);
+          color: #9ca3af;
+          pointer-events: none;
+        }
+        
+        [contenteditable] a {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+        
+        [contenteditable] ul, [contenteditable] ol {
+          margin: 8px 0;
+          padding-left: 24px;
+        }
+        
+        [contenteditable] li {
+          margin: 4px 0;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// Componente MacroNewsCard isolado COM RICH TEXT EDITOR
 const MacroNewsCard = memo(({ 
   news, 
   onUpdate, 
@@ -62,8 +520,8 @@ const MacroNewsCard = memo(({
     onUpdate(news.id, 'title', e.target.value);
   }, [news.id, onUpdate]);
 
-  const updateSummary = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onUpdate(news.id, 'summary', e.target.value);
+  const updateSummary = useCallback((value: string) => {
+    onUpdate(news.id, 'summary', value);
   }, [news.id, onUpdate]);
 
   const updateImpact = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -120,24 +578,16 @@ const MacroNewsCard = memo(({
           />
         </div>
 
+        {/* SUBSTITUÍDO: textarea por RichTextEditor */}
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
             Resumo
           </label>
-          <textarea
+          <RichTextEditor
             value={news.summary}
             onChange={updateSummary}
-            rows={3}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              resize: 'vertical',
-              boxSizing: 'border-box'
-            }}
             placeholder="Resumo da notícia e impactos..."
+            minHeight="150px"
           />
         </div>
 
@@ -209,7 +659,7 @@ const MacroNewsCard = memo(({
   );
 });
 
-// Componente ProventoCard isolado
+// Componente ProventoCard isolado (sem mudanças)
 const ProventoCard = memo(({ 
   provento, 
   onUpdate, 
@@ -437,7 +887,7 @@ const ProventoCard = memo(({
   );
 });
 
-// Componente StockCard isolado
+// Componente StockCard isolado COM RICH TEXT EDITOR
 const StockCard = memo(({ 
   stock, 
   section, 
@@ -467,12 +917,12 @@ const StockCard = memo(({
     onUpdate(section, stock.id, 'news', e.target.value);
   }, [section, stock.id, onUpdate]);
 
-  const updateHighlight = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onUpdate(section, stock.id, 'highlight', e.target.value);
+  const updateHighlight = useCallback((value: string) => {
+    onUpdate(section, stock.id, 'highlight', value);
   }, [section, stock.id, onUpdate]);
 
-  const updateRecommendation = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onUpdate(section, stock.id, 'recommendation', e.target.value);
+  const updateRecommendation = useCallback((value: string) => {
+    onUpdate(section, stock.id, 'recommendation', value);
   }, [section, stock.id, onUpdate]);
 
   const handleRemove = useCallback(() => {
@@ -581,45 +1031,29 @@ const StockCard = memo(({
           />
         </div>
 
+        {/* SUBSTITUÍDO: textarea por RichTextEditor */}
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
             Destaque Principal
           </label>
-          <textarea
+          <RichTextEditor
             value={stock.highlight}
             onChange={updateHighlight}
-            rows={2}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              resize: 'vertical',
-              boxSizing: 'border-box'
-            }}
             placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
+            minHeight="100px"
           />
         </div>
 
+        {/* SUBSTITUÍDO: textarea por RichTextEditor */}
         <div>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
             Recomendação
           </label>
-          <textarea
+          <RichTextEditor
             value={stock.recommendation}
             onChange={updateRecommendation}
-            rows={2}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              resize: 'vertical',
-              boxSizing: 'border-box'
-            }}
             placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
+            minHeight="100px"
           />
         </div>
       </div>

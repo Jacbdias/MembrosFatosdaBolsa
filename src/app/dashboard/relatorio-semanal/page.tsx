@@ -3,40 +3,134 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
 
-// Componente para formatar texto com quebras de linha
-const FormattedText = ({ 
-  text, 
-  className = '', 
-  style = {} 
-}: { 
-  text: string;
+// Componente para renderizar HTML formatado com segurança
+interface HTMLContentProps {
+  content: string;
   className?: string;
   style?: React.CSSProperties;
+}
+
+const HTMLContent: React.FC<HTMLContentProps> = ({
+  content,
+  className = '',
+  style = {}
 }) => {
-  if (!text) return null;
-  
-  // Quebrar o texto em linhas e renderizar com quebras de linha
-  const lines = text.split('\n').filter(line => line.trim() !== '');
-  
-  if (lines.length <= 1) {
-    return (
-      <span className={className} style={style}>
-        {text}
-      </span>
-    );
-  }
-  
+  if (!content) return null;
+
+  // Sanitizar e limpar o HTML (básico)
+  const sanitizeHTML = (html: string) => {
+    // Remove scripts e outros elementos perigosos
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '') // remove event handlers
+      .replace(/on\w+='[^']*'/gi, '') // remove event handlers
+      .replace(/javascript:/gi, ''); // remove javascript: urls
+  };
+
+  const cleanContent = sanitizeHTML(content);
+
   return (
-    <div className={className} style={style}>
-      {lines.map((line, index) => (
-        <React.Fragment key={index}>
-          {line.trim()}
-          {index < lines.length - 1 && <br />}
-        </React.Fragment>
-      ))}
-    </div>
+    <div
+      className={`html-content ${className}`}
+      style={{
+        lineHeight: '1.6',
+        fontSize: '16px',
+        color: '#4b5563',
+        ...style
+      }}
+      dangerouslySetInnerHTML={{ __html: cleanContent }}
+    />
   );
 };
+
+// CSS global para estilizar o conteúdo formatado
+const HTMLContentStyles = () => (
+  <style>{`
+    .html-content {
+      word-wrap: break-word;
+    }
+    
+    .html-content p {
+      margin: 0 0 12px 0;
+    }
+    
+    .html-content strong, .html-content b {
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .html-content em, .html-content i {
+      font-style: italic;
+    }
+    
+    .html-content u {
+      text-decoration: underline;
+    }
+    
+    .html-content strike, .html-content s {
+      text-decoration: line-through;
+    }
+    
+    .html-content a {
+      color: #2563eb;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+    
+    .html-content a:hover {
+      color: #1d4ed8;
+    }
+    
+    .html-content ul, .html-content ol {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    
+    .html-content li {
+      margin: 6px 0;
+    }
+    
+    .html-content ul li {
+      list-style-type: disc;
+    }
+    
+    .html-content ol li {
+      list-style-type: decimal;
+    }
+    
+    .html-content div[style*="text-align: center"] {
+      text-align: center;
+    }
+    
+    .html-content div[style*="text-align: right"] {
+      text-align: right;
+    }
+    
+    .html-content div[style*="text-align: left"] {
+      text-align: left;
+    }
+    
+    /* Tamanhos de fonte */
+    .html-content font[size="1"] {
+      font-size: 12px;
+    }
+    
+    .html-content font[size="3"] {
+      font-size: 16px;
+    }
+    
+    .html-content font[size="5"] {
+      font-size: 20px;
+    }
+    
+    .html-content font[size="7"] {
+      font-size: 24px;
+    }
+    
+    /* Cores personalizadas são mantidas via style inline */
+  `}</style>
+);
 
 // Header com design similar ao PDF
 const ReportHeader = ({ relatorio }: { relatorio: any }) => (
@@ -492,7 +586,7 @@ const CompanyLogo = ({ ticker, fallbackColor, item }: { ticker: string, fallback
   );
 };
 
-// Card de ação com logo e texto formatado
+// Card de ação com logo e HTML renderizado
 const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) => (
   <div style={{
     backgroundColor: 'white',
@@ -555,10 +649,10 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
       {item.news || item.title}
     </h4>
 
-    {/* Conteúdo formatado */}
+    {/* MUDANÇA: Renderizando HTML formatado em vez de FormattedText */}
     {item.summary && (
-      <FormattedText 
-        text={item.summary}
+      <HTMLContent 
+        content={item.summary}
         style={{
           fontSize: '16px',
           color: '#4b5563',
@@ -568,7 +662,7 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
       />
     )}
 
-    {/* Destaque formatado */}
+    {/* Destaque formatado com HTML */}
     {item.highlight && (
       <div style={{
         backgroundColor: '#f0f9ff',
@@ -578,20 +672,30 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
         margin: '15px 0',
         borderLeft: `4px solid ${sectionColor}`
       }}>
-        <FormattedText 
-          text={`💡 ${item.highlight}`}
+        <div style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: '#1e40af',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          💡 Destaque
+        </div>
+        <HTMLContent 
+          content={item.highlight}
           style={{
             fontSize: '16px',
             color: '#1e40af',
             margin: 0,
-            fontWeight: '500',
-            fontStyle: 'italic'
+            fontWeight: '500'
           }}
         />
       </div>
     )}
 
-    {/* Recomendação formatada */}
+    {/* Recomendação formatada com HTML */}
     {item.recommendation && (
       <div style={{
         backgroundColor: '#f0fdf4',
@@ -604,14 +708,14 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
           fontSize: '14px',
           fontWeight: '600',
           color: '#15803d',
-          marginBottom: '5px',
+          marginBottom: '8px',
           textTransform: 'uppercase',
           letterSpacing: '0.5px'
         }}>
           Recomendação
         </div>
-        <FormattedText 
-          text={item.recommendation}
+        <HTMLContent 
+          content={item.recommendation}
           style={{
             fontSize: '16px',
             color: '#166534',
@@ -654,7 +758,7 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
   </div>
 );
 
-// Card de provento com logo
+// Card de provento com logo (sem mudanças, apenas dados estruturados)
 const ProventoCard = ({ item }: { item: any }) => (
   <div style={{
     backgroundColor: 'white',
@@ -937,6 +1041,9 @@ export default function RelatorioSemanalPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      {/* Incluir os estilos do HTML Content */}
+      <HTMLContentStyles />
+      
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
