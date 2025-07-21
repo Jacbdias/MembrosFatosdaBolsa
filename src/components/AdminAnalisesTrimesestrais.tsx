@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter } from 'lucide-react';
 
 // Interfaces
 interface MetricaTrimestreData {
@@ -49,7 +49,7 @@ interface AnaliseTrimestreData {
   status: 'draft' | 'published';
 }
 
-// Rich Text Editor Component (copiado do sistema existente)
+// Rich Text Editor Component (mesmo código anterior)
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -74,14 +74,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     strikethrough: false
   });
 
-  // Atualizar o conteúdo do editor quando o value mudar
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value;
     }
   }, [value]);
 
-  // Verificar formatação atual
   const updateFormatState = useCallback(() => {
     if (!editorRef.current) return;
     
@@ -93,19 +91,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     });
   }, []);
 
-  // Executar comando de formatação
   const execCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
     updateFormatState();
     
-    // Disparar onChange
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
   }, [onChange, updateFormatState]);
 
-  // Inserir link
   const insertLink = useCallback(() => {
     const url = prompt('Digite a URL do link:');
     if (url) {
@@ -113,19 +108,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [execCommand]);
 
-  // 🖼️ INSERIR IMAGEM POR URL
   const insertImageByUrl = useCallback(() => {
-    console.log('🖼️ Função insertImageByUrl chamada');
     const url = prompt('Digite a URL da imagem:');
     if (url) {
-      console.log('🔗 URL fornecida:', url);
-      // Validar se é uma URL válida
       try {
         new URL(url);
-        console.log('✅ URL válida, inserindo imagem...');
         execCommand('insertImage', url);
         
-        // Adicionar estilos à imagem inserida
         setTimeout(() => {
           if (editorRef.current) {
             const images = editorRef.current.querySelectorAll('img');
@@ -136,57 +125,40 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               lastImage.style.borderRadius = '8px';
               lastImage.style.margin = '8px 0';
               lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-              console.log('🎨 Estilos aplicados à imagem');
             }
           }
         }, 100);
       } catch (error) {
-        console.error('❌ URL inválida:', error);
         alert('URL inválida. Por favor, digite uma URL válida.');
       }
-    } else {
-      console.log('❌ Nenhuma URL fornecida');
     }
   }, [execCommand]);
 
-  // 📤 UPLOAD DE IMAGEM
   const uploadImage = useCallback(() => {
-    console.log('📤 Função uploadImage chamada');
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.style.display = 'none';
     
     input.onchange = (e) => {
-      console.log('📁 Arquivo selecionado');
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        console.log('📊 Arquivo:', file.name, file.size, file.type);
-        
-        // Verificar tamanho (máximo 5MB)
         if (file.size > 5 * 1024 * 1024) {
-          console.error('❌ Arquivo muito grande:', file.size);
           alert('Arquivo muito grande. Máximo 5MB permitido.');
           return;
         }
         
-        // Verificar tipo
         if (!file.type.startsWith('image/')) {
-          console.error('❌ Tipo inválido:', file.type);
           alert('Por favor, selecione apenas arquivos de imagem.');
           return;
         }
         
-        console.log('✅ Arquivo válido, convertendo para Base64...');
         const reader = new FileReader();
         reader.onload = (event) => {
           const base64 = event.target?.result as string;
           if (base64) {
-            console.log('🔧 Base64 gerado, inserindo imagem...');
-            // Inserir imagem como Base64
             execCommand('insertImage', base64);
             
-            // Adicionar estilos à imagem inserida
             setTimeout(() => {
               if (editorRef.current) {
                 const images = editorRef.current.querySelectorAll('img');
@@ -199,15 +171,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                   lastImage.setAttribute('title', file.name);
                   lastImage.setAttribute('alt', file.name.split('.')[0]);
-                  console.log('🎨 Estilos aplicados à imagem uploadada');
                 }
               }
             }, 100);
           }
         };
         reader.readAsDataURL(file);
-      } else {
-        console.log('❌ Nenhum arquivo selecionado');
       }
     };
     
@@ -216,17 +185,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     document.body.removeChild(input);
   }, [execCommand]);
 
-  // Alterar cor do texto
   const changeTextColor = useCallback((color: string) => {
     execCommand('foreColor', color);
   }, [execCommand]);
 
-  // Alterar tamanho da fonte
   const changeFontSize = useCallback((size: string) => {
     execCommand('fontSize', size);
   }, [execCommand]);
 
-  // Lidar com mudanças no editor
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
@@ -234,7 +200,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     updateFormatState();
   }, [onChange, updateFormatState]);
 
-  // Lidar com foco
   const handleFocus = useCallback(() => {
     setIsEditorFocused(true);
     updateFormatState();
@@ -244,9 +209,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setIsEditorFocused(false);
   }, []);
 
-  // Prevenir comportamento padrão em alguns casos
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Atalhos de teclado
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case 'b':
@@ -484,7 +447,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Separator */}
         <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
 
-        {/* 🖼️ BOTÕES DE IMAGEM - DESTACADOS */}
+        {/* Botões de imagem */}
         <div style={{ 
           display: 'flex', 
           gap: '4px', 
@@ -701,125 +664,124 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   );
 };
 
-// Componente AnaliseCard isolado
-const AnaliseCard = memo(({ 
-  analise, 
-  onUpdate, 
-  onRemove 
-}: { 
-  analise: AnaliseTrimestreData;
-  onUpdate: (id: string, field: keyof AnaliseTrimestreData, value: any) => void;
-  onRemove: (id: string) => void;
-}) => {
-  // Handlers estáveis para cada campo específico
-  const updateTicker = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'ticker', e.target.value.toUpperCase());
-  }, [analise.id, onUpdate]);
+// 🎯 COMPONENTE DE CRIAÇÃO DE ANÁLISE
+const CriarAnaliseForm = memo(({ onSave }: { onSave: (analise: AnaliseTrimestreData) => void }) => {
+  const [analise, setAnalise] = useState<AnaliseTrimestreData>({
+    id: Date.now().toString(),
+    ticker: '',
+    empresa: '',
+    trimestre: '',
+    dataPublicacao: new Date().toISOString().split('T')[0],
+    autor: '',
+    categoria: 'resultado_trimestral',
+    titulo: '',
+    resumoExecutivo: '',
+    analiseCompleta: '',
+    metricas: {},
+    pontosFavoraveis: '',
+    pontosAtencao: '',
+    recomendacao: 'MANTER',
+    risco: 'MÉDIO',
+    status: 'draft'
+  });
 
-  const updateEmpresa = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'empresa', e.target.value);
-  }, [analise.id, onUpdate]);
+  const [salvando, setSalvando] = useState(false);
 
-  const updateTrimestre = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'trimestre', e.target.value.toUpperCase());
-  }, [analise.id, onUpdate]);
+  const updateField = useCallback((field: keyof AnaliseTrimestreData, value: any) => {
+    setAnalise(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-  const updateCategoria = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(analise.id!, 'categoria', e.target.value as AnaliseTrimestreData['categoria']);
-  }, [analise.id, onUpdate]);
-
-  const updateTitulo = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'titulo', e.target.value);
-  }, [analise.id, onUpdate]);
-
-  const updateResumoExecutivo = useCallback((value: string) => {
-    onUpdate(analise.id!, 'resumoExecutivo', value);
-  }, [analise.id, onUpdate]);
-
-  const updateAnaliseCompleta = useCallback((value: string) => {
-    onUpdate(analise.id!, 'analiseCompleta', value);
-  }, [analise.id, onUpdate]);
-
-  const updatePontosFavoraveis = useCallback((value: string) => {
-    onUpdate(analise.id!, 'pontosFavoraveis', value);
-  }, [analise.id, onUpdate]);
-
-  const updatePontosAtencao = useCallback((value: string) => {
-    onUpdate(analise.id!, 'pontosAtencao', value);
-  }, [analise.id, onUpdate]);
-
-  const updateRecomendacao = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(analise.id!, 'recomendacao', e.target.value as AnaliseTrimestreData['recomendacao']);
-  }, [analise.id, onUpdate]);
-
-  const updateRisco = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(analise.id!, 'risco', e.target.value as AnaliseTrimestreData['risco']);
-  }, [analise.id, onUpdate]);
-
-  const updatePrecoAlvo = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const valor = parseFloat(e.target.value);
-    onUpdate(analise.id!, 'precoAlvo', isNaN(valor) ? undefined : valor);
-  }, [analise.id, onUpdate]);
-
-  const updateLinkResultado = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'linkResultado', e.target.value);
-  }, [analise.id, onUpdate]);
-
-  const updateLinkConferencia = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'linkConferencia', e.target.value);
-  }, [analise.id, onUpdate]);
-
-  const updateDataPublicacao = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'dataPublicacao', e.target.value);
-  }, [analise.id, onUpdate]);
-
-  const updateAutor = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(analise.id!, 'autor', e.target.value);
-  }, [analise.id, onUpdate]);
-
-  // Handlers para métricas
   const updateMetrica = useCallback((metrica: keyof AnaliseTrimestreData['metricas'], campo: keyof MetricaTrimestreData, valor: any) => {
-    const metricasAtuais = { ...analise.metricas };
-    if (!metricasAtuais[metrica]) {
-      metricasAtuais[metrica] = { valor: 0, unidade: 'milhões' };
-    }
-    metricasAtuais[metrica]![campo] = valor;
-    onUpdate(analise.id!, 'metricas', metricasAtuais);
-  }, [analise.id, analise.metricas, onUpdate]);
+    setAnalise(prev => {
+      const metricasAtuais = { ...prev.metricas };
+      if (!metricasAtuais[metrica]) {
+        metricasAtuais[metrica] = { valor: 0, unidade: 'milhões' };
+      }
+      metricasAtuais[metrica]![campo] = valor;
+      return { ...prev, metricas: metricasAtuais };
+    });
+  }, []);
 
-  const handleRemove = useCallback(() => {
-    onRemove(analise.id!);
-  }, [analise.id, onRemove]);
+  const handleSave = useCallback(async () => {
+    setSalvando(true);
+    
+    try {
+      // Validações básicas
+      if (!analise.ticker || !analise.empresa || !analise.titulo) {
+        alert('Por favor, preencha pelo menos Ticker, Empresa e Título.');
+        return;
+      }
+      
+      await onSave(analise);
+      
+      // Limpar formulário após salvar
+      setAnalise({
+        id: Date.now().toString(),
+        ticker: '',
+        empresa: '',
+        trimestre: '',
+        dataPublicacao: new Date().toISOString().split('T')[0],
+        autor: '',
+        categoria: 'resultado_trimestral',
+        titulo: '',
+        resumoExecutivo: '',
+        analiseCompleta: '',
+        metricas: {},
+        pontosFavoraveis: '',
+        pontosAtencao: '',
+        recomendacao: 'MANTER',
+        risco: 'MÉDIO',
+        status: 'draft'
+      });
+      
+      alert('✅ Análise salva com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('❌ Erro ao salvar análise');
+    } finally {
+      setSalvando(false);
+    }
+  }, [analise, onSave]);
 
   return (
     <div style={{
-      border: '1px solid #e5e7eb',
+      backgroundColor: 'white',
       borderRadius: '16px',
       padding: '32px',
-      backgroundColor: 'white',
+      border: '1px solid #e2e8f0',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-        <h4 style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '18px' }}>
-          📊 Análise Trimestral
-        </h4>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
+          ✨ Criar Nova Análise
+        </h3>
+        
         <button
-          onClick={handleRemove}
-          style={{ 
-            color: '#dc2626', 
-            background: 'rgba(220, 38, 38, 0.1)', 
-            border: 'none', 
-            borderRadius: '8px',
-            padding: '8px',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
+          onClick={handleSave}
+          disabled={salvando}
+          style={{
+            backgroundColor: '#059669',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '12px',
+            border: 'none',
+            cursor: salvando ? 'not-allowed' : 'pointer',
+            opacity: salvando ? 0.5 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
           }}
-          title="Remover análise"
         >
-          <Trash2 size={16} />
+          <Save size={16} />
+          {salvando ? 'Salvando...' : 'Salvar Análise'}
         </button>
       </div>
 
+      {/* Mesma estrutura de formulário do AnaliseCard, mas adaptada */}
       <div style={{ display: 'grid', gap: '24px' }}>
         {/* Seção 1: Informações Básicas */}
         <div style={{
@@ -836,12 +798,12 @@ const AnaliseCard = memo(({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Ticker
+                Ticker *
               </label>
               <input
                 type="text"
                 value={analise.ticker}
-                onChange={updateTicker}
+                onChange={(e) => updateField('ticker', e.target.value.toUpperCase())}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -857,12 +819,12 @@ const AnaliseCard = memo(({
 
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Empresa
+                Empresa *
               </label>
               <input
                 type="text"
                 value={analise.empresa}
-                onChange={updateEmpresa}
+                onChange={(e) => updateField('empresa', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -882,7 +844,7 @@ const AnaliseCard = memo(({
               <input
                 type="text"
                 value={analise.trimestre}
-                onChange={updateTrimestre}
+                onChange={(e) => updateField('trimestre', e.target.value.toUpperCase())}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -901,7 +863,7 @@ const AnaliseCard = memo(({
               </label>
               <select
                 value={analise.categoria}
-                onChange={updateCategoria}
+                onChange={(e) => updateField('categoria', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -924,7 +886,7 @@ const AnaliseCard = memo(({
               <input
                 type="date"
                 value={analise.dataPublicacao}
-                onChange={updateDataPublicacao}
+                onChange={(e) => updateField('dataPublicacao', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -943,7 +905,7 @@ const AnaliseCard = memo(({
               <input
                 type="text"
                 value={analise.autor}
-                onChange={updateAutor}
+                onChange={(e) => updateField('autor', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -973,12 +935,12 @@ const AnaliseCard = memo(({
           <div style={{ display: 'grid', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Título da Análise
+                Título da Análise *
               </label>
               <input
                 type="text"
                 value={analise.titulo}
-                onChange={updateTitulo}
+                onChange={(e) => updateField('titulo', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -997,7 +959,7 @@ const AnaliseCard = memo(({
               </label>
               <RichTextEditor
                 value={analise.resumoExecutivo}
-                onChange={updateResumoExecutivo}
+                onChange={(value) => updateField('resumoExecutivo', value)}
                 placeholder="Principais pontos do trimestre (3-4 bullets)..."
                 minHeight="150px"
               />
@@ -1009,7 +971,7 @@ const AnaliseCard = memo(({
               </label>
               <RichTextEditor
                 value={analise.analiseCompleta}
-                onChange={updateAnaliseCompleta}
+                onChange={(value) => updateField('analiseCompleta', value)}
                 placeholder="Análise detalhada dos resultados, contexto setorial, perspectivas..."
                 minHeight="200px"
               />
@@ -1367,7 +1329,7 @@ const AnaliseCard = memo(({
               </label>
               <RichTextEditor
                 value={analise.pontosFavoraveis}
-                onChange={updatePontosFavoraveis}
+                onChange={(value) => updateField('pontosFavoraveis', value)}
                 placeholder="Aspectos positivos do resultado e perspectivas..."
                 minHeight="120px"
               />
@@ -1379,7 +1341,7 @@ const AnaliseCard = memo(({
               </label>
               <RichTextEditor
                 value={analise.pontosAtencao}
-                onChange={updatePontosAtencao}
+                onChange={(value) => updateField('pontosAtencao', value)}
                 placeholder="Aspectos que merecem atenção e riscos..."
                 minHeight="120px"
               />
@@ -1406,7 +1368,7 @@ const AnaliseCard = memo(({
               </label>
               <select
                 value={analise.recomendacao}
-                onChange={updateRecomendacao}
+                onChange={(e) => updateField('recomendacao', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -1431,7 +1393,7 @@ const AnaliseCard = memo(({
                 type="number"
                 step="0.01"
                 value={analise.precoAlvo || ''}
-                onChange={updatePrecoAlvo}
+                onChange={(e) => updateField('precoAlvo', parseFloat(e.target.value) || undefined)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -1450,7 +1412,7 @@ const AnaliseCard = memo(({
               </label>
               <select
                 value={analise.risco}
-                onChange={updateRisco}
+                onChange={(e) => updateField('risco', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -1488,7 +1450,7 @@ const AnaliseCard = memo(({
               <input
                 type="url"
                 value={analise.linkResultado || ''}
-                onChange={updateLinkResultado}
+                onChange={(e) => updateField('linkResultado', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -1508,7 +1470,7 @@ const AnaliseCard = memo(({
               <input
                 type="url"
                 value={analise.linkConferencia || ''}
-                onChange={updateLinkConferencia}
+                onChange={(e) => updateField('linkConferencia', e.target.value)}
                 style={{
                   width: '100%',
                   border: '2px solid #e5e7eb',
@@ -1527,19 +1489,596 @@ const AnaliseCard = memo(({
   );
 });
 
+// 📋 COMPONENTE DE LISTA DE ANÁLISES PUBLICADAS
+const AnalisesPublicadas = memo(({ 
+  analises, 
+  onEdit, 
+  onUnpublish,
+  onDelete 
+}: { 
+  analises: AnaliseTrimestreData[];
+  onEdit: (analise: AnaliseTrimestreData) => void;
+  onUnpublish: (id: string) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const [filtroTicker, setFiltroTicker] = useState('');
+  const [filtroTrimestre, setFiltroTrimestre] = useState('');
+
+  const analisesPublicadas = analises.filter(a => a.status === 'published');
+  
+  const analisesFiltradas = analisesPublicadas.filter(analise => {
+    const matchTicker = !filtroTicker || analise.ticker.toLowerCase().includes(filtroTicker.toLowerCase());
+    const matchTrimestre = !filtroTrimestre || analise.trimestre.toLowerCase().includes(filtroTrimestre.toLowerCase());
+    return matchTicker && matchTrimestre;
+  });
+
+  // Agrupar por ticker
+  const analisesPorTicker = analisesFiltradas.reduce((acc, analise) => {
+    if (!acc[analise.ticker]) {
+      acc[analise.ticker] = [];
+    }
+    acc[analise.ticker].push(analise);
+    return acc;
+  }, {} as Record<string, AnaliseTrimestreData[]>);
+
+  const getBadgeRecomendacao = (recomendacao: string) => {
+    const cores = {
+      'COMPRA': { bg: '#dcfce7', color: '#166534', emoji: '🟢' },
+      'VENDA': { bg: '#fef2f2', color: '#dc2626', emoji: '🔴' },
+      'MANTER': { bg: '#fef3c7', color: '#92400e', emoji: '🟡' }
+    };
+    
+    const config = cores[recomendacao as keyof typeof cores] || cores.MANTER;
+    
+    return (
+      <span style={{
+        backgroundColor: config.bg,
+        color: config.color,
+        padding: '4px 12px',
+        borderRadius: '8px',
+        fontSize: '12px',
+        fontWeight: '700',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        {config.emoji} {recomendacao}
+      </span>
+    );
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: '24px' }}>
+      {/* Filtros */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '20px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+      }}>
+        <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Filter size={18} />
+          Filtros
+        </h4>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Filtrar por Ticker
+            </label>
+            <input
+              type="text"
+              value={filtroTicker}
+              onChange={(e) => setFiltroTicker(e.target.value)}
+              placeholder="Digite o ticker..."
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Filtrar por Trimestre
+            </label>
+            <input
+              type="text"
+              value={filtroTrimestre}
+              onChange={(e) => setFiltroTrimestre(e.target.value)}
+              placeholder="Ex: 3T24"
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'end' }}>
+            <button
+              onClick={() => {
+                setFiltroTicker('');
+                setFiltroTrimestre('');
+              }}
+              style={{
+                backgroundColor: '#f1f5f9',
+                color: '#64748b',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Limpar Filtros
+            </button>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '16px', fontSize: '14px', color: '#64748b' }}>
+          Mostrando {analisesFiltradas.length} de {analisesPublicadas.length} análises publicadas
+        </div>
+      </div>
+
+      {/* Lista de Análises Publicadas */}
+      {analisesFiltradas.length === 0 ? (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '64px',
+          textAlign: 'center',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📭</div>
+          <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
+            {analisesPublicadas.length === 0 ? 'Nenhuma Análise Publicada' : 'Nenhuma análise corresponde aos filtros'}
+          </h3>
+          <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '32px' }}>
+            {analisesPublicadas.length === 0 
+              ? 'Publique suas primeiras análises para vê-las aqui.'
+              : 'Tente ajustar os filtros para encontrar as análises desejadas.'
+            }
+          </p>
+        </div>
+      ) : (
+        Object.entries(analisesPorTicker).map(([ticker, analisesDoTicker]) => (
+          <div key={ticker} style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+          }}>
+            {/* Header do ticker */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '20px',
+              paddingBottom: '16px',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                  {ticker}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+                  {analisesDoTicker[0]?.empresa} • {analisesDoTicker.length} análise{analisesDoTicker.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              
+              <div style={{
+                backgroundColor: '#f0f9ff',
+                color: '#0c4a6e',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                border: '1px solid #7dd3fc'
+              }}>
+                📊 {analisesDoTicker.length} análise{analisesDoTicker.length > 1 ? 's' : ''}
+              </div>
+            </div>
+
+            {/* Grid de análises */}
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {analisesDoTicker
+                .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())
+                .map((analise, index) => (
+                <div key={analise.id} style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  backgroundColor: index === 0 ? '#f8fafc' : 'white',
+                  position: 'relative'
+                }}>
+                  {index === 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '16px',
+                      backgroundColor: '#22c55e',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      🆕 MAIS RECENTE
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                          {analise.titulo}
+                        </h4>
+                        <span style={{
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {analise.trimestre}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
+                        <span>📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
+                        <span>✍️ {analise.autor}</span>
+                        <span style={{
+                          backgroundColor: '#e2e8f0',
+                          color: '#64748b',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          {analise.categoria.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Resumo */}
+                      {analise.resumoExecutivo && (
+                        <p style={{
+                          color: '#64748b',
+                          fontSize: '14px',
+                          lineHeight: '1.5',
+                          margin: '0 0 12px 0',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {analise.resumoExecutivo.replace(/<[^>]*>/g, '')}
+                        </p>
+                      )}
+
+                      {/* Métricas resumidas */}
+                      {Object.keys(analise.metricas).length > 0 && (
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '12px', 
+                          flexWrap: 'wrap',
+                          marginTop: '12px'
+                        }}>
+                          {analise.metricas.receita && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#f0fdf4',
+                              color: '#166534',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Receita: R$ {analise.metricas.receita.valor.toFixed(1)} {analise.metricas.receita.unidade === 'bilhões' ? 'bi' : 'mi'}
+                            </span>
+                          )}
+                          
+                          {analise.metricas.ebitda && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#f0f9ff',
+                              color: '#0369a1',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              EBITDA: R$ {analise.metricas.ebitda.valor.toFixed(1)} {analise.metricas.ebitda.unidade === 'bilhões' ? 'bi' : 'mi'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ 
+                      textAlign: 'right',
+                      minWidth: '150px',
+                      marginLeft: '20px'
+                    }}>
+                      {/* Recomendação */}
+                      <div style={{ marginBottom: '12px' }}>
+                        {getBadgeRecomendacao(analise.recomendacao)}
+                      </div>
+                      
+                      {analise.precoAlvo && (
+                        <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
+                          Alvo: R$ {analise.precoAlvo.toFixed(2)}
+                        </div>
+                      )}
+                      
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '16px' }}>
+                        Risco: {analise.risco}
+                      </div>
+                      
+                      {/* Botões de ação */}
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => onEdit(analise)}
+                          style={{
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: '600'
+                          }}
+                          title="Editar análise"
+                        >
+                          <Edit size={14} />
+                          Editar
+                        </button>
+                        
+                        <button
+                          onClick={() => onUnpublish(analise.id!)}
+                          style={{
+                            backgroundColor: '#f59e0b',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: '600'
+                          }}
+                          title="Despublicar (volta para rascunho)"
+                        >
+                          <Archive size={14} />
+                          Despublicar
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (confirm('Tem certeza que deseja excluir esta análise? Esta ação não pode ser desfeita.')) {
+                              onDelete(analise.id!);
+                            }
+                          }}
+                          style={{
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: '600'
+                          }}
+                          title="Excluir análise"
+                        >
+                          <Trash2 size={14} />
+                          Excluir
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+});
+
+// 📝 COMPONENTE DE RASCUNHOS
+const RascunhosAnalises = memo(({ 
+  analises, 
+  onEdit, 
+  onPublish,
+  onDelete 
+}: { 
+  analises: AnaliseTrimestreData[];
+  onEdit: (analise: AnaliseTrimestreData) => void;
+  onPublish: (id: string) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const rascunhos = analises.filter(a => a.status === 'draft');
+
+  return (
+    <div style={{ display: 'grid', gap: '24px' }}>
+      {rascunhos.length === 0 ? (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '64px',
+          textAlign: 'center',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📝</div>
+          <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
+            Nenhum Rascunho
+          </h3>
+          <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '32px' }}>
+            Todos os seus rascunhos foram publicados ou você ainda não criou nenhum.
+          </p>
+        </div>
+      ) : (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+        }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', marginBottom: '20px' }}>
+            📝 Rascunhos ({rascunhos.length})
+          </h3>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {rascunhos.map((analise) => (
+              <div key={analise.id} style={{
+                border: '1px solid #fde68a',
+                borderRadius: '12px',
+                padding: '20px',
+                backgroundColor: '#fefce8'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                        {analise.titulo || 'Título não definido'}
+                      </h4>
+                      {analise.ticker && (
+                        <span style={{
+                          backgroundColor: '#f59e0b',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {analise.ticker}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '8px' }}>
+                      {analise.empresa || 'Empresa não definida'} 
+                      {analise.trimestre && ` • ${analise.trimestre}`}
+                    </div>
+                    
+                    <div style={{ fontSize: '12px', color: '#a16207' }}>
+                      Criado em: {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => onEdit(analise)}
+                      style={{
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <Edit size={14} />
+                      Editar
+                    </button>
+                    
+                    <button
+                      onClick={() => onPublish(analise.id!)}
+                      style={{
+                        backgroundColor: '#22c55e',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <Eye size={14} />
+                      Publicar
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja excluir este rascunho?')) {
+                          onDelete(analise.id!);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: '#dc2626',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// 🏠 COMPONENTE PRINCIPAL COM ABAS
 const AdminAnalisesTrimesestrais = () => {
   const [analises, setAnalises] = useState<AnaliseTrimestreData[]>([]);
+  const [activeTab, setActiveTab] = useState<'criar' | 'publicadas' | 'rascunhos'>('criar');
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analiseEditando, setAnaliseEditando] = useState<AnaliseTrimestreData | null>(null);
 
-  // 📚 CARREGAR ANÁLISES EXISTENTES DO INDEXEDDB
+  // 📚 CARREGAR ANÁLISES DO INDEXEDDB
   useEffect(() => {
     const loadAnalises = async () => {
       try {
         console.log('🔄 Carregando análises do IndexedDB...');
         
-        // Abrir conexão com IndexedDB
         const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
         
         request.onupgradeneeded = (event) => {
@@ -1563,70 +2102,39 @@ const AdminAnalisesTrimesestrais = () => {
             const analisesSalvas = getAllRequest.result || [];
             console.log(`✅ ${analisesSalvas.length} análises carregadas do IndexedDB`);
             setAnalises(analisesSalvas);
+            setLoading(false);
           };
           
           getAllRequest.onerror = () => {
             console.error('❌ Erro ao carregar análises do IndexedDB');
             setError('Erro ao carregar análises');
+            setLoading(false);
           };
         };
         
         request.onerror = () => {
           console.error('❌ Erro ao abrir IndexedDB');
           setError('Erro ao conectar com o banco de dados');
+          setLoading(false);
         };
         
       } catch (error) {
         console.error('❌ Erro geral ao carregar análises:', error);
         setError('Erro ao carregar análises');
+        setLoading(false);
       }
     };
     
     loadAnalises();
   }, []);
 
-  // Handler principal para atualizar análise
-  const updateAnalise = useCallback((id: string, field: keyof AnaliseTrimestreData, value: any) => {
-    setAnalises(prev => prev.map(analise => 
-      analise.id === id ? { ...analise, [field]: value } : analise
-    ));
-  }, []);
-
-  // Remover análise
-  const removeAnalise = useCallback((id: string) => {
-    setAnalises(prev => prev.filter(analise => analise.id !== id));
-  }, []);
-
-  // Adicionar nova análise
-  const addAnalise = useCallback(() => {
-    const newAnalise: AnaliseTrimestreData = {
-      id: Date.now().toString(),
-      ticker: '',
-      empresa: '',
-      trimestre: '',
-      dataPublicacao: new Date().toISOString().split('T')[0],
-      autor: '',
-      categoria: 'resultado_trimestral',
-      titulo: '',
-      resumoExecutivo: '',
-      analiseCompleta: '',
-      metricas: {},
-      pontosFavoraveis: '',
-      pontosAtencao: '',
-      recomendacao: 'MANTER',
-      risco: 'MÉDIO',
-      status: 'draft'
-    };
-    setAnalises(prev => [...prev, newAnalise]);
-  }, []);
-
-  // 💾 SALVAR ANÁLISES NO INDEXEDDB
-  const saveAnalises = async () => {
+  // 💾 SALVAR ANÁLISE
+  const saveAnalise = useCallback(async (analise: AnaliseTrimestreData) => {
     setSaving(true);
     setError(null);
     
     try {
-      console.log('💾 Salvando análises no IndexedDB...', analises);
+      console.log('💾 Salvando análise no IndexedDB...', analise);
       
       const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
       
@@ -1635,22 +2143,27 @@ const AdminAnalisesTrimesestrais = () => {
         const transaction = db.transaction(['analises'], 'readwrite');
         const store = transaction.objectStore('analises');
         
-        // Limpar store existente
-        const clearRequest = store.clear();
+        // Se é uma nova análise ou edição
+        const putRequest = store.put(analise);
         
-        clearRequest.onsuccess = () => {
-          // Adicionar todas as análises
-          analises.forEach(analise => {
-            store.add(analise);
+        putRequest.onsuccess = () => {
+          console.log('✅ Análise salva no IndexedDB');
+          
+          // Atualizar estado local
+          setAnalises(prev => {
+            const existing = prev.find(a => a.id === analise.id);
+            if (existing) {
+              return prev.map(a => a.id === analise.id ? analise : a);
+            } else {
+              return [...prev, analise];
+            }
           });
           
-          console.log('✅ Análises salvas no IndexedDB');
-          setSaved(true);
-          setTimeout(() => setSaved(false), 3000);
+          setAnaliseEditando(null);
         };
         
-        clearRequest.onerror = () => {
-          throw new Error('Erro ao limpar dados existentes');
+        putRequest.onerror = () => {
+          throw new Error('Erro ao salvar no IndexedDB');
         };
       };
       
@@ -1665,22 +2178,31 @@ const AdminAnalisesTrimesestrais = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
 
-  // 📤 PUBLICAR ANÁLISES
-  const publishAnalises = async () => {
+  // 📤 PUBLICAR ANÁLISE
+  const publishAnalise = useCallback(async (id: string) => {
+    const analise = analises.find(a => a.id === id);
+    if (!analise) return;
+    
+    const analisePublicada = { ...analise, status: 'published' as const };
+    await saveAnalise(analisePublicada);
+  }, [analises, saveAnalise]);
+
+  // 📥 DESPUBLICAR ANÁLISE
+  const unpublishAnalise = useCallback(async (id: string) => {
+    const analise = analises.find(a => a.id === id);
+    if (!analise) return;
+    
+    const analiseRascunho = { ...analise, status: 'draft' as const };
+    await saveAnalise(analiseRascunho);
+  }, [analises, saveAnalise]);
+
+  // 🗑️ DELETAR ANÁLISE
+  const deleteAnalise = useCallback(async (id: string) => {
     setSaving(true);
-    setError(null);
     
     try {
-      console.log('📤 Publicando análises...');
-      
-      const analisePublicadas = analises.map(analise => ({
-        ...analise,
-        status: 'published' as const
-      }));
-      
-      // Salvar com status publicado
       const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
       
       request.onsuccess = (event) => {
@@ -1688,33 +2210,43 @@ const AdminAnalisesTrimesestrais = () => {
         const transaction = db.transaction(['analises'], 'readwrite');
         const store = transaction.objectStore('analises');
         
-        // Limpar store existente
-        const clearRequest = store.clear();
+        const deleteRequest = store.delete(id);
         
-        clearRequest.onsuccess = () => {
-          // Adicionar todas as análises publicadas
-          analisePublicadas.forEach(analise => {
-            store.add(analise);
-          });
-          
-          setAnalises(analisePublicadas);
-          console.log('✅ Análises publicadas com sucesso');
-          alert('✅ Análises publicadas com sucesso!');
+        deleteRequest.onsuccess = () => {
+          setAnalises(prev => prev.filter(a => a.id !== id));
+          console.log('✅ Análise excluída');
         };
       };
       
     } catch (error) {
-      console.error('❌ Erro ao publicar:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setError(`Erro ao publicar: ${errorMessage}`);
+      console.error('❌ Erro ao excluir:', error);
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
+
+  // ✏️ EDITAR ANÁLISE
+  const editAnalise = useCallback((analise: AnaliseTrimestreData) => {
+    setAnaliseEditando(analise);
+    setActiveTab('criar');
+  }, []);
 
   const totalAnalises = analises.length;
   const analisesDraft = analises.filter(a => a.status === 'draft').length;
   const analisesPublicadas = analises.filter(a => a.status === 'published').length;
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>
+            Carregando análises...
+          </h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -1743,7 +2275,7 @@ const AdminAnalisesTrimesestrais = () => {
                   Análises Trimestrais
                 </h1>
                 <p style={{ color: '#94a3b8', margin: 0, fontSize: '16px' }}>
-                  Painel de Análises de Resultados - Fatos da Bolsa
+                  Central de Análises de Resultados - Fatos da Bolsa
                 </p>
               </div>
             </div>
@@ -1794,356 +2326,225 @@ const AdminAnalisesTrimesestrais = () => {
       </div>
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* Action Bar */}
+        {/* Sistema de Abas */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '24px',
           marginBottom: '32px',
-          border: '1px solid #e2e8f0'
+          border: '1px solid #e2e8f0',
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-              Gerenciar Análises Trimestrais
-            </h2>
+          {/* Tab Headers */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid #e2e8f0',
+            backgroundColor: '#f8fafc'
+          }}>
+            <button
+              onClick={() => setActiveTab('criar')}
+              style={{
+                flex: 1,
+                padding: '20px 24px',
+                border: 'none',
+                backgroundColor: activeTab === 'criar' ? 'white' : 'transparent',
+                color: activeTab === 'criar' ? '#1e293b' : '#64748b',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'criar' ? '3px solid #3b82f6' : '3px solid transparent',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus size={20} />
+              {analiseEditando ? 'Editar Análise' : 'Criar Análises'}
+              {analiseEditando && (
+                <span style={{
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}>
+                  EDITANDO
+                </span>
+              )}
+            </button>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {saved && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  color: '#22c55e',
-                  backgroundColor: '#f0fdf4',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}>
-                  <CheckCircle size={16} />
-                  Salvo com sucesso
+            <button
+              onClick={() => setActiveTab('publicadas')}
+              style={{
+                flex: 1,
+                padding: '20px 24px',
+                border: 'none',
+                backgroundColor: activeTab === 'publicadas' ? 'white' : 'transparent',
+                color: activeTab === 'publicadas' ? '#1e293b' : '#64748b',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'publicadas' ? '3px solid #3b82f6' : '3px solid transparent',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Eye size={20} />
+              Publicadas ({analisesPublicadas})
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('rascunhos')}
+              style={{
+                flex: 1,
+                padding: '20px 24px',
+                border: 'none',
+                backgroundColor: activeTab === 'rascunhos' ? 'white' : 'transparent',
+                color: activeTab === 'rascunhos' ? '#1e293b' : '#64748b',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'rascunhos' ? '3px solid #3b82f6' : '3px solid transparent',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <FileText size={20} />
+              Rascunhos ({analisesDraft})
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div style={{ padding: '32px' }}>
+            {activeTab === 'criar' && (
+              analiseEditando ? (
+                <div>
+                  <div style={{
+                    backgroundColor: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '24px'
+                  }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#92400e', fontSize: '16px', fontWeight: '600' }}>
+                      ✏️ Editando Análise
+                    </h4>
+                    <p style={{ margin: 0, color: '#92400e', fontSize: '14px' }}>
+                      Você está editando: <strong>{analiseEditando.titulo || analiseEditando.ticker}</strong>
+                    </p>
+                    <button
+                      onClick={() => setAnaliseEditando(null)}
+                      style={{
+                        marginTop: '12px',
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancelar Edição
+                    </button>
+                  </div>
+                  <CriarAnaliseForm onSave={saveAnalise} />
                 </div>
-              )}
-              
-              {error && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  color: '#dc2626',
-                  backgroundColor: '#fef2f2',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}>
-                  <AlertCircle size={16} />
-                  {error}
-                </div>
-              )}
-              
-              <button
-                onClick={addAnalise}
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-                }}
-              >
-                <Plus size={16} />
-                Nova Análise
-              </button>
-              
-              <button
-                onClick={saveAnalises}
-                disabled={saving}
-                style={{
-                  backgroundColor: '#059669',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
-                }}
-              >
-                <Save size={16} />
-                {saving ? 'Salvando...' : 'Salvar Tudo'}
-              </button>
-              
-              <button
-                onClick={publishAnalises}
-                disabled={saving}
-                style={{
-                  backgroundColor: '#dc2626',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
-                }}
-              >
-                <Eye size={16} />
-                Publicar Todas
-              </button>
-            </div>
+              ) : (
+                <CriarAnaliseForm onSave={saveAnalise} />
+              )
+            )}
+            
+            {activeTab === 'publicadas' && (
+              <AnalisesPublicadas 
+                analises={analises}
+                onEdit={editAnalise}
+                onUnpublish={unpublishAnalise}
+                onDelete={deleteAnalise}
+              />
+            )}
+            
+            {activeTab === 'rascunhos' && (
+              <RascunhosAnalises 
+                analises={analises}
+                onEdit={editAnalise}
+                onPublish={publishAnalise}
+                onDelete={deleteAnalise}
+              />
+            )}
           </div>
         </div>
 
-        {/* Lista de Análises */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          {analises.length === 0 ? (
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              padding: '64px',
-              textAlign: 'center',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-            }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>📊</div>
-              <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
-                Nenhuma Análise Criada
-              </h3>
-              <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '32px' }}>
-                Comece criando sua primeira análise trimestral clicando no botão "Nova Análise" acima.
-              </p>
-              <button
-                onClick={addAnalise}
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '16px 32px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-                }}
-              >
-                <Plus size={20} />
-                Criar Primeira Análise
-              </button>
-            </div>
-          ) : (
-            analises.map((analise) => (
-              <AnaliseCard 
-                key={analise.id} 
-                analise={analise} 
-                onUpdate={updateAnalise} 
-                onRemove={removeAnalise} 
-              />
-            ))
-          )}
-        </div>
-
-        {/* Estatísticas */}
-        {analises.length > 0 && (
+        {/* Error Display */}
+        {error && (
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-            padding: '32px',
-            marginTop: '32px',
-            border: '1px solid #e2e8f0'
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px'
           }}>
-            <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', marginBottom: '24px' }}>
-              📈 Estatísticas das Análises
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
-                <div style={{ fontSize: '32px', fontWeight: '700', color: '#3b82f6', marginBottom: '8px' }}>
-                  {totalAnalises}
-                </div>
-                <div style={{ fontSize: '14px', color: '#64748b' }}>Total de Análises</div>
-              </div>
-              
-              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#fefce8', borderRadius: '12px' }}>
-                <div style={{ fontSize: '32px', fontWeight: '700', color: '#f59e0b', marginBottom: '8px' }}>
-                  {analisesDraft}
-                </div>
-                <div style={{ fontSize: '14px', color: '#64748b' }}>Em Rascunho</div>
-              </div>
-              
-              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '12px' }}>
-                <div style={{ fontSize: '32px', fontWeight: '700', color: '#22c55e', marginBottom: '8px' }}>
-                  {analisesPublicadas}
-                </div>
-                <div style={{ fontSize: '14px', color: '#64748b' }}>Publicadas</div>
-              </div>
-              
-              <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f0f9ff', borderRadius: '12px' }}>
-                <div style={{ fontSize: '32px', fontWeight: '700', color: '#0ea5e9', marginBottom: '8px' }}>
-                  {new Set(analises.map(a => a.ticker)).size}
-                </div>
-                <div style={{ fontSize: '14px', color: '#64748b' }}>Ativos Únicos</div>
-              </div>
-            </div>
-            
-            {/* Últimas análises por ticker */}
-            <div style={{ marginTop: '32px' }}>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '16px' }}>
-                📊 Análises por Ativo
-              </h4>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-                {Object.entries(
-                  analises.reduce((acc, analise) => {
-                    if (!analise.ticker) return acc;
-                    if (!acc[analise.ticker]) {
-                      acc[analise.ticker] = [];
-                    }
-                    acc[analise.ticker].push(analise);
-                    return acc;
-                  }, {} as Record<string, AnaliseTrimestreData[]>)
-                ).map(([ticker, analisesDoTicker]) => (
-                  <div key={ticker} style={{
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    backgroundColor: '#fafafa'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-                        {ticker}
-                      </h5>
-                      <span style={{
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '600'
-                      }}>
-                        {analisesDoTicker.length} análise{analisesDoTicker.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    
-                    <div style={{ fontSize: '14px', color: '#64748b' }}>
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Empresa:</strong> {analisesDoTicker[0]?.empresa || 'N/A'}
-                      </div>
-                      <div style={{ marginBottom: '4px' }}>
-                        <strong>Último trimestre:</strong> {analisesDoTicker
-                          .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())[0]
-                          ?.trimestre || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Última recomendação:</strong> 
-                        <span style={{
-                          marginLeft: '8px',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          backgroundColor: (() => {
-                            const ultimaRec = analisesDoTicker
-                              .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())[0]
-                              ?.recomendacao;
-                            switch (ultimaRec) {
-                              case 'COMPRA': return '#dcfce7';
-                              case 'VENDA': return '#fef2f2';
-                              default: return '#fef3c7';
-                            }
-                          })(),
-                          color: (() => {
-                            const ultimaRec = analisesDoTicker
-                              .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())[0]
-                              ?.recomendacao;
-                            switch (ultimaRec) {
-                              case 'COMPRA': return '#166534';
-                              case 'VENDA': return '#dc2626';
-                              default: return '#92400e';
-                            }
-                          })()
-                        }}>
-                          {analisesDoTicker
-                            .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())[0]
-                            ?.recomendacao || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626' }}>
+              <AlertCircle size={16} />
+              {error}
             </div>
           </div>
         )}
 
-        {/* Instruções de Uso */}
+        {/* Instrução Final */}
         <div style={{
           backgroundColor: '#f0f9ff',
           borderRadius: '16px',
           padding: '32px',
-          marginTop: '32px',
           border: '1px solid #7dd3fc'
         }}>
           <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#0c4a6e', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={24} />
-            Como Usar o Sistema de Análises
+            Sistema de Análises Trimestrais
           </h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
             <div>
               <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '12px' }}>
-                📝 1. Criar Análise
+                ✨ Criar
               </h4>
               <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Clique em "Nova Análise" para adicionar uma análise</li>
-                <li>Preencha ticker, empresa e trimestre</li>
-                <li>Use o Rich Text Editor para formatação avançada</li>
-                <li>Adicione métricas financeiras do período</li>
+                <li>Formulário limpo para novas análises</li>
+                <li>Rich Text Editor com imagens</li>
+                <li>Métricas financeiras detalhadas</li>
+                <li>Salva automaticamente como rascunho</li>
               </ul>
             </div>
             
             <div>
               <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '12px' }}>
-                💾 2. Salvar e Gerenciar
+                📋 Publicadas
               </h4>
               <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Salve como rascunho para continuar editando</li>
-                <li>Todas as análises ficam no IndexedDB</li>
-                <li>Edite métricas, textos e recomendações</li>
-                <li>Remova análises que não precisar mais</li>
+                <li>Todas as análises já publicadas</li>
+                <li>Opção de editar análises publicadas</li>
+                <li>Despublicar (volta para rascunho)</li>
+                <li>Filtros por ticker e trimestre</li>
               </ul>
             </div>
             
             <div>
               <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '12px' }}>
-                🚀 3. Publicar
+                📝 Rascunhos
               </h4>
               <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Publique todas as análises de uma vez</li>
-                <li>Análises publicadas aparecem na página do ativo</li>
-                <li>Sistema filtra automaticamente por ticker</li>
-                <li>Histórico completo de todas as análises</li>
+                <li>Análises ainda não publicadas</li>
+                <li>Continuar editando antes de publicar</li>
+                <li>Publicar quando estiver pronto</li>
+                <li>Excluir rascunhos desnecessários</li>
               </ul>
             </div>
           </div>
@@ -2156,9 +2557,8 @@ const AdminAnalisesTrimesestrais = () => {
             border: '1px solid #93c5fd'
           }}>
             <p style={{ margin: 0, color: '#1e40af', fontSize: '14px', fontWeight: '500' }}>
-              💡 <strong>Dica:</strong> As análises serão exibidas automaticamente na página de cada ativo, 
-              organizadas por trimestre e data de publicação. Use o Rich Text Editor para criar análises 
-              visualmente atrativas com formatação profissional.
+              💡 <strong>Novo Fluxo:</strong> Crie → Edite nos Rascunhos → Publique → Gerencie nas Publicadas. 
+              Análises publicadas aparecem automaticamente nas páginas dos ativos correspondentes!
             </p>
           </div>
         </div>
