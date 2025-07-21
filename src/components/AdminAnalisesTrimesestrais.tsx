@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload } from 'lucide-react';
 
 // Interfaces
 interface MetricaTrimestreData {
@@ -111,6 +111,109 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (url) {
       execCommand('createLink', url);
     }
+  }, [execCommand]);
+
+  // 🖼️ INSERIR IMAGEM POR URL
+  const insertImageByUrl = useCallback(() => {
+    console.log('🖼️ Função insertImageByUrl chamada');
+    const url = prompt('Digite a URL da imagem:');
+    if (url) {
+      console.log('🔗 URL fornecida:', url);
+      // Validar se é uma URL válida
+      try {
+        new URL(url);
+        console.log('✅ URL válida, inserindo imagem...');
+        execCommand('insertImage', url);
+        
+        // Adicionar estilos à imagem inserida
+        setTimeout(() => {
+          if (editorRef.current) {
+            const images = editorRef.current.querySelectorAll('img');
+            const lastImage = images[images.length - 1];
+            if (lastImage) {
+              lastImage.style.maxWidth = '100%';
+              lastImage.style.height = 'auto';
+              lastImage.style.borderRadius = '8px';
+              lastImage.style.margin = '8px 0';
+              lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              console.log('🎨 Estilos aplicados à imagem');
+            }
+          }
+        }, 100);
+      } catch (error) {
+        console.error('❌ URL inválida:', error);
+        alert('URL inválida. Por favor, digite uma URL válida.');
+      }
+    } else {
+      console.log('❌ Nenhuma URL fornecida');
+    }
+  }, [execCommand]);
+
+  // 📤 UPLOAD DE IMAGEM
+  const uploadImage = useCallback(() => {
+    console.log('📤 Função uploadImage chamada');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    
+    input.onchange = (e) => {
+      console.log('📁 Arquivo selecionado');
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        console.log('📊 Arquivo:', file.name, file.size, file.type);
+        
+        // Verificar tamanho (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          console.error('❌ Arquivo muito grande:', file.size);
+          alert('Arquivo muito grande. Máximo 5MB permitido.');
+          return;
+        }
+        
+        // Verificar tipo
+        if (!file.type.startsWith('image/')) {
+          console.error('❌ Tipo inválido:', file.type);
+          alert('Por favor, selecione apenas arquivos de imagem.');
+          return;
+        }
+        
+        console.log('✅ Arquivo válido, convertendo para Base64...');
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target?.result as string;
+          if (base64) {
+            console.log('🔧 Base64 gerado, inserindo imagem...');
+            // Inserir imagem como Base64
+            execCommand('insertImage', base64);
+            
+            // Adicionar estilos à imagem inserida
+            setTimeout(() => {
+              if (editorRef.current) {
+                const images = editorRef.current.querySelectorAll('img');
+                const lastImage = images[images.length - 1];
+                if (lastImage) {
+                  lastImage.style.maxWidth = '100%';
+                  lastImage.style.height = 'auto';
+                  lastImage.style.borderRadius = '8px';
+                  lastImage.style.margin = '8px 0';
+                  lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                  lastImage.setAttribute('title', file.name);
+                  lastImage.setAttribute('alt', file.name.split('.')[0]);
+                  console.log('🎨 Estilos aplicados à imagem uploadada');
+                }
+              }
+            }, 100);
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        console.log('❌ Nenhum arquivo selecionado');
+      }
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
   }, [execCommand]);
 
   // Alterar cor do texto
@@ -381,6 +484,77 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Separator */}
         <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
 
+        {/* 🖼️ BOTÕES DE IMAGEM - DESTACADOS */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '4px', 
+          padding: '4px', 
+          backgroundColor: '#f0f9ff', 
+          borderRadius: '8px',
+          border: '1px solid #0ea5e9'
+        }}>
+          <button
+            onClick={uploadImage}
+            title="📤 Upload de imagem (máx 5MB)"
+            style={{
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: '#0ea5e9',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0284c7';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0ea5e9';
+            }}
+          >
+            <Upload size={14} />
+            Upload
+          </button>
+
+          <button
+            onClick={insertImageByUrl}
+            title="🔗 Inserir imagem por URL"
+            style={{
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: '#06b6d4',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0891b2';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#06b6d4';
+            }}
+          >
+            <Image size={14} />
+            URL
+          </button>
+        </div>
+
+        {/* Separator */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
+
         {/* Link */}
         <button
           onClick={insertLink}
@@ -501,6 +675,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         
         [contenteditable] li {
           margin: 4px 0;
+        }
+        
+        [contenteditable] img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          margin: 8px 0;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
+        
+        [contenteditable] img:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        [contenteditable] img.selected {
+          outline: 2px solid #2563eb;
+          outline-offset: 2px;
         }
       `}</style>
     </div>
@@ -826,129 +1020,329 @@ const AnaliseCard = memo(({
         {/* Seção 3: Métricas do Trimestre */}
         <div style={{
           background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-          padding: '20px',
+          padding: '24px',
           borderRadius: '12px',
           border: '1px solid #7dd3fc'
         }}>
-          <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={18} />
+          <h5 style={{ fontSize: '18px', fontWeight: '600', color: '#0c4a6e', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BarChart3 size={20} />
             Métricas do Trimestre
           </h5>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {/* Receita */}
-            <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                💰 Receita
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '20px', 
+              borderRadius: '12px', 
+              border: '2px solid #e5e7eb',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}>
+              <h6 style={{ 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#059669', 
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                💰 Receita Líquida
               </h6>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="Valor"
-                  value={analise.metricas.receita?.valor || ''}
-                  onChange={(e) => updateMetrica('receita', 'valor', parseFloat(e.target.value) || 0)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                />
-                <select
-                  value={analise.metricas.receita?.unidade || 'milhões'}
-                  onChange={(e) => updateMetrica('receita', 'unidade', e.target.value)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                >
-                  <option value="milhões">R$ Milhões</option>
-                  <option value="bilhões">R$ Bilhões</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Variação %"
-                  value={analise.metricas.receita?.variacao || ''}
-                  onChange={(e) => updateMetrica('receita', 'variacao', parseFloat(e.target.value))}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', gridColumn: 'span 2' }}
-                />
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Valor
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="1200"
+                      value={analise.metricas.receita?.valor || ''}
+                      onChange={(e) => updateMetrica('receita', 'valor', parseFloat(e.target.value) || 0)}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Unidade
+                    </label>
+                    <select
+                      value={analise.metricas.receita?.unidade || 'milhões'}
+                      onChange={(e) => updateMetrica('receita', 'unidade', e.target.value)}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="milhões">R$ Mi</option>
+                      <option value="bilhões">R$ Bi</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                    Variação vs mesmo período ano anterior (%)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="-8.5"
+                    value={analise.metricas.receita?.variacao || ''}
+                    onChange={(e) => updateMetrica('receita', 'variacao', parseFloat(e.target.value))}
+                    style={{ 
+                      width: '100%',
+                      padding: '10px 12px', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '8px', 
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
             {/* EBITDA */}
-            <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                📊 EBITDA
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '20px', 
+              borderRadius: '12px', 
+              border: '2px solid #e5e7eb',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}>
+              <h6 style={{ 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#0ea5e9', 
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                📊 EBITDA Ajustado
               </h6>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="Valor"
-                  value={analise.metricas.ebitda?.valor || ''}
-                  onChange={(e) => updateMetrica('ebitda', 'valor', parseFloat(e.target.value) || 0)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                />
-                <select
-                  value={analise.metricas.ebitda?.unidade || 'milhões'}
-                  onChange={(e) => updateMetrica('ebitda', 'unidade', e.target.value)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                >
-                  <option value="milhões">R$ Milhões</option>
-                  <option value="bilhões">R$ Bilhões</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Margem %"
-                  value={analise.metricas.ebitda?.margem || ''}
-                  onChange={(e) => updateMetrica('ebitda', 'margem', parseFloat(e.target.value))}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                />
-                <input
-                  type="number"
-                  placeholder="Variação %"
-                  value={analise.metricas.ebitda?.variacao || ''}
-                  onChange={(e) => updateMetrica('ebitda', 'variacao', parseFloat(e.target.value))}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                />
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Valor
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="180"
+                      value={analise.metricas.ebitda?.valor || ''}
+                      onChange={(e) => updateMetrica('ebitda', 'valor', parseFloat(e.target.value) || 0)}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Unidade
+                    </label>
+                    <select
+                      value={analise.metricas.ebitda?.unidade || 'milhões'}
+                      onChange={(e) => updateMetrica('ebitda', 'unidade', e.target.value)}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="milhões">R$ Mi</option>
+                      <option value="bilhões">R$ Bi</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Margem EBITDA (%)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="15.0"
+                      value={analise.metricas.ebitda?.margem || ''}
+                      onChange={(e) => updateMetrica('ebitda', 'margem', parseFloat(e.target.value))}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Variação (%)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="131.6"
+                      value={analise.metricas.ebitda?.variacao || ''}
+                      onChange={(e) => updateMetrica('ebitda', 'variacao', parseFloat(e.target.value))}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Lucro Líquido */}
-            <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '20px', 
+              borderRadius: '12px', 
+              border: '2px solid #e5e7eb',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}>
+              <h6 style={{ 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#7c3aed', 
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
                 💎 Lucro Líquido
               </h6>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="Valor"
-                  value={analise.metricas.lucroLiquido?.valor || ''}
-                  onChange={(e) => updateMetrica('lucroLiquido', 'valor', parseFloat(e.target.value) || 0)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                />
-                <select
-                  value={analise.metricas.lucroLiquido?.unidade || 'milhões'}
-                  onChange={(e) => updateMetrica('lucroLiquido', 'unidade', e.target.value)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                >
-                  <option value="milhões">R$ Milhões</option>
-                  <option value="bilhões">R$ Bilhões</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Variação %"
-                  value={analise.metricas.lucroLiquido?.variacao || ''}
-                  onChange={(e) => updateMetrica('lucroLiquido', 'variacao', parseFloat(e.target.value))}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', gridColumn: 'span 2' }}
-                />
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Valor
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="45"
+                      value={analise.metricas.lucroLiquido?.valor || ''}
+                      onChange={(e) => updateMetrica('lucroLiquido', 'valor', parseFloat(e.target.value) || 0)}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                      Unidade
+                    </label>
+                    <select
+                      value={analise.metricas.lucroLiquido?.unidade || 'milhões'}
+                      onChange={(e) => updateMetrica('lucroLiquido', 'unidade', e.target.value)}
+                      style={{ 
+                        width: '100%',
+                        padding: '10px 12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px', 
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="milhões">R$ Mi</option>
+                      <option value="bilhões">R$ Bi</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                    Variação vs mesmo período ano anterior (%)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="-25.0"
+                    value={analise.metricas.lucroLiquido?.variacao || ''}
+                    onChange={(e) => updateMetrica('lucroLiquido', 'variacao', parseFloat(e.target.value))}
+                    style={{ 
+                      width: '100%',
+                      padding: '10px 12px', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '8px', 
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
             {/* ROE */}
-            <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                🎯 ROE
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '20px', 
+              borderRadius: '12px', 
+              border: '2px solid #e5e7eb',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}>
+              <h6 style={{ 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#dc2626', 
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                🎯 ROE (Return on Equity)
               </h6>
-              <div style={{ display: 'grid', gap: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="ROE %"
-                  value={analise.metricas.roe?.valor || ''}
-                  onChange={(e) => updateMetrica('roe', 'valor', parseFloat(e.target.value) || 0)}
-                  style={{ padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-                />
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                    ROE do período (%)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="12.5"
+                    value={analise.metricas.roe?.valor || ''}
+                    onChange={(e) => updateMetrica('roe', 'valor', parseFloat(e.target.value) || 0)}
+                    style={{ 
+                      width: '100%',
+                      padding: '10px 12px', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '8px', 
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
