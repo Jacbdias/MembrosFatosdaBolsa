@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
 import { relatoriosDB } from '../../../../utils/relatoriosDB';
-import AnalisesTrimesestrais from '../../../components/AnalisesTrimesestrais';
+import AnalisesTrimesestrais from '../../../../components/AnalisesTrimesestrais';
 
 // ✅ IMPORT ÚNICO CORRIGIDO - todos os hooks e utilitários em um só lugar
 import { 
