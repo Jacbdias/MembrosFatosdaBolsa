@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase } from 'lucide-react';
 
 interface MacroNews {
@@ -187,8 +187,8 @@ const AdminRelatorioSemanal = () => {
     }
   };
 
-  // 📊 MACRO - Adicionar Nova Notícia
-  const addMacroNews = () => {
+  // 📊 MACRO - Adicionar Nova Notícia (otimizado)
+  const addMacroNews = useCallback(() => {
     const newNews: MacroNews = {
       id: Date.now().toString(),
       title: '',
@@ -201,26 +201,26 @@ const AdminRelatorioSemanal = () => {
       ...prev,
       macro: [...prev.macro, newNews]
     }));
-  };
+  }, []);
 
-  const updateMacroNews = (id: string, field: keyof MacroNews, value: any) => {
+  const updateMacroNews = useCallback((id: string, field: keyof MacroNews, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       macro: prev.macro.map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
-  };
+  }, []);
 
-  const removeMacroNews = (id: string) => {
+  const removeMacroNews = useCallback((id: string) => {
     setRelatorio(prev => ({
       ...prev,
       macro: prev.macro.filter(item => item.id !== id)
     }));
-  };
+  }, []);
 
-  // 💰 PROVENTOS - Adicionar Novo Provento
-  const addProvento = () => {
+  // 💰 PROVENTOS - Adicionar Novo Provento (otimizado)
+  const addProvento = useCallback(() => {
     const newProvento: DividendoInfo = {
       id: Date.now().toString(),
       ticker: '',
@@ -236,26 +236,26 @@ const AdminRelatorioSemanal = () => {
       ...prev,
       proventos: [...prev.proventos, newProvento]
     }));
-  };
+  }, []);
 
-  const updateProvento = (id: string, field: keyof DividendoInfo, value: any) => {
+  const updateProvento = useCallback((id: string, field: keyof DividendoInfo, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       proventos: prev.proventos.map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
-  };
+  }, []);
 
-  const removeProvento = (id: string) => {
+  const removeProvento = useCallback((id: string) => {
     setRelatorio(prev => ({
       ...prev,
       proventos: prev.proventos.filter(item => item.id !== id)
     }));
-  };
+  }, []);
 
-  // 🏢 STOCK NEWS - Adicionar Nova Ação
-  const addStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
+  // 🏢 STOCK NEWS - Adicionar Nova Ação (otimizado)
+  const addStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
     const newStock: StockNews = {
       id: Date.now().toString(),
       ticker: '',
@@ -269,26 +269,26 @@ const AdminRelatorioSemanal = () => {
       ...prev,
       [section]: [...prev[section], newStock]
     }));
-  };
+  }, []);
 
-  const updateStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
+  const updateStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
     setRelatorio(prev => ({
       ...prev,
       [section]: prev[section].map(item => 
         item.id === id ? { ...item, [field]: value } : item
       )
     }));
-  };
+  }, []);
 
-  const removeStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
+  const removeStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
     setRelatorio(prev => ({
       ...prev,
       [section]: prev[section].filter(item => item.id !== id)
     }));
-  };
+  }, []);
 
-  // 📄 COMPONENTES DE FORMULÁRIO
-  const MacroSection = () => (
+  // 📄 COMPONENTES DE FORMULÁRIO (otimizados)
+  const MacroSection = memo(() => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Panorama Macro</h3>
@@ -312,134 +312,17 @@ const AdminRelatorioSemanal = () => {
       </div>
 
       {relatorio.macro.map((news) => (
-        <div key={news.id} style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          padding: '24px',
-          backgroundColor: 'white'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Notícia Macro</h4>
-            <button
-              onClick={() => removeMacroNews(news.id)}
-              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Título
-              </label>
-              <input
-                type="text"
-                value={news.title}
-                onChange={(e) => updateMacroNews(news.id, 'title', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Ex: Copom eleva Selic para 15%"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Resumo
-              </label>
-              <textarea
-                value={news.summary}
-                onChange={(e) => updateMacroNews(news.id, 'summary', e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Resumo da notícia e impactos..."
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Impacto
-                </label>
-                <select
-                  value={news.impact}
-                  onChange={(e) => updateMacroNews(news.id, 'impact', e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="low">Baixo</option>
-                  <option value="medium">Médio</option>
-                  <option value="high">Alto</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Setores (separados por vírgula)
-                </label>
-                <input
-                  type="text"
-                  value={news.sectors.join(', ')}
-                  onChange={(e) => updateMacroNews(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Energia, Petróleo, Bancos"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Recomendações (separadas por vírgula)
-                </label>
-                <input
-                  type="text"
-                  value={news.recommendations.join(', ')}
-                  onChange={(e) => updateMacroNews(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="PETR4, PRIO3, RECV3"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <MacroNewsCard 
+          key={news.id} 
+          news={news} 
+          onUpdate={updateMacroNews} 
+          onRemove={removeMacroNews} 
+        />
       ))}
     </div>
-  );
+  ));
 
-  const ProventosSection = () => (
+  const ProventosSection = memo(() => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Proventos</h3>
@@ -463,189 +346,17 @@ const AdminRelatorioSemanal = () => {
       </div>
 
       {relatorio.proventos.map((prov) => (
-        <div key={prov.id} style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          padding: '24px',
-          backgroundColor: 'white'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Dividendo/JCP</h4>
-            <button
-              onClick={() => removeProvento(prov.id)}
-              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Ticker
-              </label>
-              <input
-                type="text"
-                value={prov.ticker}
-                onChange={(e) => updateProvento(prov.id, 'ticker', e.target.value.toUpperCase())}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="SAPR11"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Empresa
-              </label>
-              <input
-                type="text"
-                value={prov.company}
-                onChange={(e) => updateProvento(prov.id, 'company', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Sanepar"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Tipo
-              </label>
-              <select
-                value={prov.type}
-                onChange={(e) => updateProvento(prov.id, 'type', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="JCP">JCP</option>
-                <option value="Dividendo">Dividendo</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Valor
-              </label>
-              <input
-                type="text"
-                value={prov.value}
-                onChange={(e) => updateProvento(prov.id, 'value', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="R$ 1,196"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                DY
-              </label>
-              <input
-                type="text"
-                value={prov.dy}
-                onChange={(e) => updateProvento(prov.id, 'dy', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="3,295%"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Data-com
-              </label>
-              <input
-                type="date"
-                value={prov.exDate}
-                onChange={(e) => updateProvento(prov.id, 'exDate', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Data Pagamento
-              </label>
-              <input
-                type="date"
-                value={prov.payDate}
-                onChange={(e) => updateProvento(prov.id, 'payDate', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Status
-              </label>
-              <select
-                value={prov.status}
-                onChange={(e) => updateProvento(prov.id, 'status', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="announced">Anunciado</option>
-                <option value="confirmed">Confirmado</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <ProventoCard 
+          key={prov.id} 
+          provento={prov} 
+          onUpdate={updateProvento} 
+          onRemove={removeProvento} 
+        />
       ))}
     </div>
-  );
+  ));
 
-  const StockSection = ({ section, title, color }: { section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string }) => (
+  const StockSection = memo(({ section, title, color }: { section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{title}</h3>
@@ -669,95 +380,134 @@ const AdminRelatorioSemanal = () => {
       </div>
 
       {relatorio[section].map((stock) => (
-        <div key={stock.id} style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          padding: '24px',
-          backgroundColor: 'white'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Ação {title}</h4>
-            <button
-              onClick={() => removeStockNews(section, stock.id)}
-              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <Trash2 size={16} />
-            </button>
+        <StockCard 
+          key={stock.id} 
+          stock={stock} 
+          section={section}
+          title={title}
+          onUpdate={updateStockNews} 
+          onRemove={removeStockNews} 
+        />
+      ))}
+    </div>
+  ));
+
+  // Componentes individuais otimizados para evitar re-renderização
+  const MacroNewsCard = memo(({ news, onUpdate, onRemove }: { news: MacroNews, onUpdate: any, onRemove: any }) => {
+    const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(news.id, 'title', e.target.value);
+    }, [news.id, onUpdate]);
+
+    const handleSummaryChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onUpdate(news.id, 'summary', e.target.value);
+    }, [news.id, onUpdate]);
+
+    const handleImpactChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+      onUpdate(news.id, 'impact', e.target.value);
+    }, [news.id, onUpdate]);
+
+    const handleSectorsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s));
+    }, [news.id, onUpdate]);
+
+    const handleRecommendationsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s));
+    }, [news.id, onUpdate]);
+
+    const handleRemove = useCallback(() => {
+      onRemove(news.id);
+    }, [news.id, onRemove]);
+
+    return (
+      <div style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '24px',
+        backgroundColor: 'white'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Notícia Macro</h4>
+          <button
+            onClick={handleRemove}
+            style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Título
+            </label>
+            <input
+              type="text"
+              value={news.title}
+              onChange={handleTitleChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Ex: Copom eleva Selic para 15%"
+            />
           </div>
 
-          <div style={{ display: 'grid', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Ticker
-                </label>
-                <input
-                  type="text"
-                  value={stock.ticker}
-                  onChange={(e) => updateStockNews(section, stock.id, 'ticker', e.target.value.toUpperCase())}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="JALL3"
-                />
-              </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Resumo
+            </label>
+            <textarea
+              value={news.summary}
+              onChange={handleSummaryChange}
+              rows={3}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                resize: 'vertical',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Resumo da notícia e impactos..."
+            />
+          </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Empresa
-                </label>
-                <input
-                  type="text"
-                  value={stock.company}
-                  onChange={(e) => updateStockNews(section, stock.id, 'company', e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Jalles"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Impacto
-                </label>
-                <select
-                  value={stock.impact}
-                  onChange={(e) => updateStockNews(section, stock.id, 'impact', e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="positive">Positivo</option>
-                  <option value="neutral">Neutro</option>
-                  <option value="negative">Negativo</option>
-                </select>
-              </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Impacto
+              </label>
+              <select
+                value={news.impact}
+                onChange={handleImpactChange}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="low">Baixo</option>
+                <option value="medium">Médio</option>
+                <option value="high">Alto</option>
+              </select>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Notícia
+                Setores (separados por vírgula)
               </label>
               <input
                 type="text"
-                value={stock.news}
-                onChange={(e) => updateStockNews(section, stock.id, 'news', e.target.value)}
+                value={news.sectors.join(', ')}
+                onChange={handleSectorsChange}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
@@ -766,58 +516,430 @@ const AdminRelatorioSemanal = () => {
                   fontSize: '14px',
                   boxSizing: 'border-box'
                 }}
-                placeholder="4T25 com forte desempenho operacional"
+                placeholder="Energia, Petróleo, Bancos"
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Destaque Principal
+                Recomendações (separadas por vírgula)
               </label>
-              <textarea
-                value={stock.highlight}
-                onChange={(e) => updateStockNews(section, stock.id, 'highlight', e.target.value)}
-                rows={2}
+              <input
+                type="text"
+                value={news.recommendations.join(', ')}
+                onChange={handleRecommendationsChange}
                 style={{
                   width: '100%',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   padding: '8px 12px',
                   fontSize: '14px',
-                  resize: 'vertical',
                   boxSizing: 'border-box'
                 }}
-                placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Recomendação
-              </label>
-              <textarea
-                value={stock.recommendation}
-                onChange={(e) => updateStockNews(section, stock.id, 'recommendation', e.target.value)}
-                rows={2}
-                style={{
-                  width: '100%',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
+                placeholder="PETR4, PRIO3, RECV3"
               />
             </div>
           </div>
         </div>
-      ))}
-    </div>
-  );
+      </div>
+    );
+  });
 
-  // Calcular estatísticas
+  const ProventoCard = memo(({ provento, onUpdate, onRemove }: { provento: DividendoInfo, onUpdate: any, onRemove: any }) => {
+    const handleTickerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(provento.id, 'ticker', e.target.value.toUpperCase());
+    }, [provento.id, onUpdate]);
+
+    const handleCompanyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(provento.id, 'company', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handleTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+      onUpdate(provento.id, 'type', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handleValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(provento.id, 'value', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handleDyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(provento.id, 'dy', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handleExDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(provento.id, 'exDate', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handlePayDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(provento.id, 'payDate', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+      onUpdate(provento.id, 'status', e.target.value);
+    }, [provento.id, onUpdate]);
+
+    const handleRemove = useCallback(() => {
+      onRemove(provento.id);
+    }, [provento.id, onRemove]);
+
+    return (
+      <div style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '24px',
+        backgroundColor: 'white'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Dividendo/JCP</h4>
+          <button
+            onClick={handleRemove}
+            style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Ticker
+            </label>
+            <input
+              type="text"
+              value={provento.ticker}
+              onChange={handleTickerChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="SAPR11"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Empresa
+            </label>
+            <input
+              type="text"
+              value={provento.company}
+              onChange={handleCompanyChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Sanepar"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Tipo
+            </label>
+            <select
+              value={provento.type}
+              onChange={handleTypeChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="JCP">JCP</option>
+              <option value="Dividendo">Dividendo</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Valor
+            </label>
+            <input
+              type="text"
+              value={provento.value}
+              onChange={handleValueChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="R$ 1,196"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              DY
+            </label>
+            <input
+              type="text"
+              value={provento.dy}
+              onChange={handleDyChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="3,295%"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Data-com
+            </label>
+            <input
+              type="date"
+              value={provento.exDate}
+              onChange={handleExDateChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Data Pagamento
+            </label>
+            <input
+              type="date"
+              value={provento.payDate}
+              onChange={handlePayDateChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Status
+            </label>
+            <select
+              value={provento.status}
+              onChange={handleStatusChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="announced">Anunciado</option>
+              <option value="confirmed">Confirmado</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  const StockCard = memo(({ stock, section, title, onUpdate, onRemove }: { stock: StockNews, section: string, title: string, onUpdate: any, onRemove: any }) => {
+    const handleTickerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(section, stock.id, 'ticker', e.target.value.toUpperCase());
+    }, [section, stock.id, onUpdate]);
+
+    const handleCompanyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(section, stock.id, 'company', e.target.value);
+    }, [section, stock.id, onUpdate]);
+
+    const handleImpactChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+      onUpdate(section, stock.id, 'impact', e.target.value);
+    }, [section, stock.id, onUpdate]);
+
+    const handleNewsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      onUpdate(section, stock.id, 'news', e.target.value);
+    }, [section, stock.id, onUpdate]);
+
+    const handleHighlightChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onUpdate(section, stock.id, 'highlight', e.target.value);
+    }, [section, stock.id, onUpdate]);
+
+    const handleRecommendationChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onUpdate(section, stock.id, 'recommendation', e.target.value);
+    }, [section, stock.id, onUpdate]);
+
+    const handleRemove = useCallback(() => {
+      onRemove(section, stock.id);
+    }, [section, stock.id, onRemove]);
+
+    return (
+      <div style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '24px',
+        backgroundColor: 'white'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Ação {title}</h4>
+          <button
+            onClick={handleRemove}
+            style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Ticker
+              </label>
+              <input
+                type="text"
+                value={stock.ticker}
+                onChange={handleTickerChange}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="JALL3"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Empresa
+              </label>
+              <input
+                type="text"
+                value={stock.company}
+                onChange={handleCompanyChange}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Jalles"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Impacto
+              </label>
+              <select
+                value={stock.impact}
+                onChange={handleImpactChange}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="positive">Positivo</option>
+                <option value="neutral">Neutro</option>
+                <option value="negative">Negativo</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Notícia
+            </label>
+            <input
+              type="text"
+              value={stock.news}
+              onChange={handleNewsChange}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="4T25 com forte desempenho operacional"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Destaque Principal
+            </label>
+            <textarea
+              value={stock.highlight}
+              onChange={handleHighlightChange}
+              rows={2}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                resize: 'vertical',
+                boxSizing: 'border-box'
+              }}
+              placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Recomendação
+            </label>
+            <textarea
+              value={stock.recommendation}
+              onChange={handleRecommendationChange}
+              rows={2}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '14px',
+                resize: 'vertical',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  });
   const totalItems = relatorio.macro.length + relatorio.proventos.length + 
                     relatorio.dividendos.length + relatorio.smallCaps.length + 
                     relatorio.microCaps.length + relatorio.exterior.length;
