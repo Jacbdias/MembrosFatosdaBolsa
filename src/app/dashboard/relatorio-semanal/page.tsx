@@ -31,7 +31,7 @@ const ReportHeader = ({ relatorio }: { relatorio: any }) => (
           fontWeight: '600',
           letterSpacing: '2px',
           textTransform: 'uppercase',
-          color: '#22c55e'
+          color: '#4cfa00'
         }}>
           AÇÕES BRASILEIRAS | EXTERIOR
         </span>
@@ -44,7 +44,7 @@ const ReportHeader = ({ relatorio }: { relatorio: any }) => (
         lineHeight: '1.1'
       }}>
         Relatório de<br/>
-        <span style={{ color: '#22c55e' }}>ATUALIZAÇÃO</span>
+        <span style={{ color: '#4cfa00' }}>ATUALIZAÇÃO</span>
       </h1>
       
       <div style={{
@@ -60,7 +60,7 @@ const ReportHeader = ({ relatorio }: { relatorio: any }) => (
       <div style={{
         fontSize: '18px',
         color: '#a3a3a3',
-        borderBottom: '2px solid #22c55e',
+        borderBottom: '2px solid #4cfa00',
         display: 'inline-block',
         paddingBottom: '5px'
       }}>
@@ -79,13 +79,13 @@ const ReportHeader = ({ relatorio }: { relatorio: any }) => (
           width: '60px',
           height: '60px',
           borderRadius: '50%',
-          border: '3px solid #22c55e',
+          border: '3px solid #4cfa00',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)'
+          backgroundColor: 'rgba(76, 250, 0, 0.1)'
         }}>
-          <BarChart3 size={30} style={{ color: '#22c55e' }} />
+          <BarChart3 size={30} style={{ color: '#4cfa00' }} />
         </div>
         <div style={{
           fontSize: '14px',
@@ -135,7 +135,7 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
         <div key={i} style={{
           width: '8px',
           height: `${height}px`,
-          backgroundColor: '#22c55e',
+          backgroundColor: '#4cfa00',
           borderRadius: '2px'
         }} />
       ))}
@@ -230,8 +230,8 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
             <span style={{
               fontSize: '12px',
               fontWeight: '600',
-              color: item.impact === 'positive' ? '#22c55e' : item.impact === 'negative' ? '#ef4444' : '#6b7280',
-              backgroundColor: item.impact === 'positive' ? '#22c55e15' : item.impact === 'negative' ? '#ef444415' : '#6b728015',
+              color: item.impact === 'positive' ? '#4cfa00' : item.impact === 'negative' ? '#ef4444' : '#6b7280',
+              backgroundColor: item.impact === 'positive' ? '#4cfa0015' : item.impact === 'negative' ? '#ef444415' : '#6b728015',
               padding: '4px 8px',
               borderRadius: '6px',
               textTransform: 'uppercase'
@@ -300,7 +300,7 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
     {item.recommendation && (
       <div style={{
         backgroundColor: '#f0fdf4',
-        border: '1px solid #22c55e30',
+        border: '1px solid #4cfa0030',
         borderRadius: '8px',
         padding: '15px',
         marginTop: '15px'
@@ -344,7 +344,7 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
         {item.recommendations?.map((rec: string, index: number) => (
           <span key={index} style={{
             fontSize: '12px',
-            color: '#22c55e',
+            color: '#4cfa00',
             backgroundColor: '#f0fdf4',
             padding: '4px 8px',
             borderRadius: '6px',
@@ -366,13 +366,13 @@ const ProventoCard = ({ item }: { item: any }) => (
     padding: '25px',
     marginBottom: '20px',
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
-    border: '3px solid #22c55e15'
+    border: '3px solid #4cfa0015'
   }}>
     <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
       <div style={{
         width: '50px',
         height: '50px',
-        backgroundColor: '#22c55e15',
+        backgroundColor: '#4cfa0015',
         borderRadius: '8px',
         display: 'flex',
         alignItems: 'center',
@@ -382,7 +382,7 @@ const ProventoCard = ({ item }: { item: any }) => (
         <span style={{ 
           fontSize: '11px', 
           fontWeight: '700', 
-          color: '#22c55e'
+          color: '#4cfa00'
         }}>
           {item.ticker?.substring(0, 4)}
         </span>
@@ -430,7 +430,7 @@ const ProventoCard = ({ item }: { item: any }) => (
       </div>
       <div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>DY</div>
-        <div style={{ fontSize: '18px', fontWeight: '700', color: '#22c55e' }}>{item.dy}</div>
+        <div style={{ fontSize: '18px', fontWeight: '700', color: '#4cfa00' }}>{item.dy}</div>
       </div>
       <div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Data-com</div>
