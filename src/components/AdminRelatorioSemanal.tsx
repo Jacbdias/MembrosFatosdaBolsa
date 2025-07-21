@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase } from 'lucide-react';
 
@@ -71,11 +73,20 @@ const AdminRelatorioSemanal = () => {
         console.log('🔄 Carregando relatório...');
         const response = await fetch('/api/relatorio-semanal');
         
+        console.log('📡 Response status:', response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('📄 Dados recebidos:', data);
+          
           if (data && data.id) {
             setRelatorio(data);
+            console.log('✅ Relatório carregado com sucesso');
+          } else {
+            console.log('ℹ️ Nenhum relatório encontrado');
           }
+        } else {
+          console.warn('⚠️ Erro ao carregar relatório:', response.status);
         }
       } catch (error) {
         console.error('❌ Erro ao carregar relatório:', error);
@@ -92,9 +103,14 @@ const AdminRelatorioSemanal = () => {
     setError(null);
     
     try {
+      console.log('💾 Salvando relatório...', relatorio);
+      
+      // Simular token e email do admin para teste
       const token = 'fake-admin-token';
       const userEmail = 'admin@fatosdobolsa.com';
+      
       const method = relatorio.id ? 'PUT' : 'POST';
+      console.log(`📤 Enviando ${method} para /api/relatorio-semanal`);
       
       const response = await fetch('/api/relatorio-semanal', {
         method,
@@ -106,17 +122,23 @@ const AdminRelatorioSemanal = () => {
         body: JSON.stringify(relatorio)
       });
       
+      console.log('📡 Response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Erro na resposta:', errorData);
         throw new Error(errorData.error || `Erro ${response.status}`);
       }
       
       const savedRelatorio = await response.json();
+      console.log('✅ Relatório salvo:', savedRelatorio);
+      
       setRelatorio(savedRelatorio);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
       
     } catch (error) {
+      console.error('❌ Erro ao salvar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       setError(`Erro ao salvar: ${errorMessage}`);
     } finally {
@@ -130,7 +152,10 @@ const AdminRelatorioSemanal = () => {
     setError(null);
     
     try {
+      console.log('📤 Publicando relatório...');
+      
       const publishedReport = { ...relatorio, status: 'published' as const };
+      
       const token = 'fake-admin-token';
       const userEmail = 'admin@fatosdobolsa.com';
       
@@ -154,6 +179,7 @@ const AdminRelatorioSemanal = () => {
       alert('✅ Relatório publicado com sucesso!');
       
     } catch (error) {
+      console.error('❌ Erro ao publicar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       setError(`Erro ao publicar: ${errorMessage}`);
     } finally {
@@ -161,7 +187,7 @@ const AdminRelatorioSemanal = () => {
     }
   };
 
-  // Funções de manipulação (simplificadas para o exemplo)
+  // 📊 MACRO - Adicionar Nova Notícia
   const addMacroNews = () => {
     const newNews: MacroNews = {
       id: Date.now().toString(),
@@ -171,7 +197,10 @@ const AdminRelatorioSemanal = () => {
       sectors: [],
       recommendations: []
     };
-    setRelatorio(prev => ({ ...prev, macro: [...prev.macro, newNews] }));
+    setRelatorio(prev => ({
+      ...prev,
+      macro: [...prev.macro, newNews]
+    }));
   };
 
   const updateMacroNews = (id: string, field: keyof MacroNews, value: any) => {
@@ -190,6 +219,7 @@ const AdminRelatorioSemanal = () => {
     }));
   };
 
+  // 💰 PROVENTOS - Adicionar Novo Provento
   const addProvento = () => {
     const newProvento: DividendoInfo = {
       id: Date.now().toString(),
@@ -202,7 +232,10 @@ const AdminRelatorioSemanal = () => {
       payDate: '',
       status: 'announced'
     };
-    setRelatorio(prev => ({ ...prev, proventos: [...prev.proventos, newProvento] }));
+    setRelatorio(prev => ({
+      ...prev,
+      proventos: [...prev.proventos, newProvento]
+    }));
   };
 
   const updateProvento = (id: string, field: keyof DividendoInfo, value: any) => {
@@ -221,6 +254,7 @@ const AdminRelatorioSemanal = () => {
     }));
   };
 
+  // 🏢 STOCK NEWS - Adicionar Nova Ação
   const addStockNews = (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
     const newStock: StockNews = {
       id: Date.now().toString(),
@@ -252,6 +286,536 @@ const AdminRelatorioSemanal = () => {
       [section]: prev[section].filter(item => item.id !== id)
     }));
   };
+
+  // 📄 COMPONENTES DE FORMULÁRIO
+  const MacroSection = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Panorama Macro</h3>
+        <button
+          onClick={addMacroNews}
+          style={{
+            backgroundColor: '#2563eb',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Plus size={16} />
+          Nova Notícia
+        </button>
+      </div>
+
+      {relatorio.macro.map((news) => (
+        <div key={news.id} style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Notícia Macro</h4>
+            <button
+              onClick={() => removeMacroNews(news.id)}
+              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Título
+              </label>
+              <input
+                type="text"
+                value={news.title}
+                onChange={(e) => updateMacroNews(news.id, 'title', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Ex: Copom eleva Selic para 15%"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Resumo
+              </label>
+              <textarea
+                value={news.summary}
+                onChange={(e) => updateMacroNews(news.id, 'summary', e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Resumo da notícia e impactos..."
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Impacto
+                </label>
+                <select
+                  value={news.impact}
+                  onChange={(e) => updateMacroNews(news.id, 'impact', e.target.value)}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="low">Baixo</option>
+                  <option value="medium">Médio</option>
+                  <option value="high">Alto</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Setores (separados por vírgula)
+                </label>
+                <input
+                  type="text"
+                  value={news.sectors.join(', ')}
+                  onChange={(e) => updateMacroNews(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="Energia, Petróleo, Bancos"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Recomendações (separadas por vírgula)
+                </label>
+                <input
+                  type="text"
+                  value={news.recommendations.join(', ')}
+                  onChange={(e) => updateMacroNews(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="PETR4, PRIO3, RECV3"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const ProventosSection = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Proventos</h3>
+        <button
+          onClick={addProvento}
+          style={{
+            backgroundColor: '#059669',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Plus size={16} />
+          Novo Provento
+        </button>
+      </div>
+
+      {relatorio.proventos.map((prov) => (
+        <div key={prov.id} style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Dividendo/JCP</h4>
+            <button
+              onClick={() => removeProvento(prov.id)}
+              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Ticker
+              </label>
+              <input
+                type="text"
+                value={prov.ticker}
+                onChange={(e) => updateProvento(prov.id, 'ticker', e.target.value.toUpperCase())}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="SAPR11"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Empresa
+              </label>
+              <input
+                type="text"
+                value={prov.company}
+                onChange={(e) => updateProvento(prov.id, 'company', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Sanepar"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Tipo
+              </label>
+              <select
+                value={prov.type}
+                onChange={(e) => updateProvento(prov.id, 'type', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="JCP">JCP</option>
+                <option value="Dividendo">Dividendo</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Valor
+              </label>
+              <input
+                type="text"
+                value={prov.value}
+                onChange={(e) => updateProvento(prov.id, 'value', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="R$ 1,196"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                DY
+              </label>
+              <input
+                type="text"
+                value={prov.dy}
+                onChange={(e) => updateProvento(prov.id, 'dy', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="3,295%"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Data-com
+              </label>
+              <input
+                type="date"
+                value={prov.exDate}
+                onChange={(e) => updateProvento(prov.id, 'exDate', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Data Pagamento
+              </label>
+              <input
+                type="date"
+                value={prov.payDate}
+                onChange={(e) => updateProvento(prov.id, 'payDate', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Status
+              </label>
+              <select
+                value={prov.status}
+                onChange={(e) => updateProvento(prov.id, 'status', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="announced">Anunciado</option>
+                <option value="confirmed">Confirmado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const StockSection = ({ section, title, color }: { section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{title}</h3>
+        <button
+          onClick={() => addStockNews(section)}
+          style={{
+            backgroundColor: color,
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Plus size={16} />
+          Nova Ação
+        </button>
+      </div>
+
+      {relatorio[section].map((stock) => (
+        <div key={stock.id} style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Ação {title}</h4>
+            <button
+              onClick={() => removeStockNews(section, stock.id)}
+              style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Ticker
+                </label>
+                <input
+                  type="text"
+                  value={stock.ticker}
+                  onChange={(e) => updateStockNews(section, stock.id, 'ticker', e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="JALL3"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Empresa
+                </label>
+                <input
+                  type="text"
+                  value={stock.company}
+                  onChange={(e) => updateStockNews(section, stock.id, 'company', e.target.value)}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="Jalles"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Impacto
+                </label>
+                <select
+                  value={stock.impact}
+                  onChange={(e) => updateStockNews(section, stock.id, 'impact', e.target.value)}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="positive">Positivo</option>
+                  <option value="neutral">Neutro</option>
+                  <option value="negative">Negativo</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Notícia
+              </label>
+              <input
+                type="text"
+                value={stock.news}
+                onChange={(e) => updateStockNews(section, stock.id, 'news', e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="4T25 com forte desempenho operacional"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Destaque Principal
+              </label>
+              <textarea
+                value={stock.highlight}
+                onChange={(e) => updateStockNews(section, stock.id, 'highlight', e.target.value)}
+                rows={2}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Recomendação
+              </label>
+              <textarea
+                value={stock.recommendation}
+                onChange={(e) => updateStockNews(section, stock.id, 'recommendation', e.target.value)}
+                rows={2}
+                style={{
+                  width: '100%',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   // Calcular estatísticas
   const totalItems = relatorio.macro.length + relatorio.proventos.length + 
@@ -309,7 +873,9 @@ const AdminRelatorioSemanal = () => {
     }
   ];
 
-  const getCurrentTab = () => tabs.find(tab => tab.id === activeTab);
+  const getCurrentTab = () => {
+    return tabs.find(tab => tab.id === activeTab);
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -498,9 +1064,7 @@ const AdminRelatorioSemanal = () => {
                   borderRadius: '12px',
                   padding: '12px 16px',
                   fontSize: '14px',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.2s',
-                  ':focus': { borderColor: '#4cfa00' }
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -591,339 +1155,54 @@ const AdminRelatorioSemanal = () => {
 
           {/* Tab Content */}
           <div style={{ padding: '32px' }}>
-            {/* Header da seção ativa */}
-            {getCurrentTab() && (
-              <div style={{ marginBottom: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      backgroundColor: `${getCurrentTab()!.color}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <getCurrentTab()!.icon size={24} style={{ color: getCurrentTab()!.color }} />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-                        {getCurrentTab()!.label}
-                      </h3>
-                      <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '14px' }}>
-                        {getCurrentTab()!.description}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={() => {
-                      if (activeTab === 'macro') addMacroNews();
-                      else if (activeTab === 'proventos') addProvento();
-                      else addStockNews(activeTab as any);
-                    }}
-                    style={{
-                      backgroundColor: getCurrentTab()!.color,
-                      color: 'white',
-                      padding: '12px 20px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      boxShadow: `0 4px 12px ${getCurrentTab()!.color}40`
-                    }}
-                  >
-                    <Plus size={16} />
-                    Adicionar Item
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Conteúdo simplificado para demonstração */}
-            {activeTab === 'macro' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {relatorio.macro.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '60px 20px',
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '16px',
-                    border: '2px dashed #cbd5e1'
-                  }}>
-                    <Globe size={48} style={{ color: '#94a3b8', marginBottom: '16px' }} />
-                    <h4 style={{ color: '#475569', marginBottom: '8px' }}>Nenhuma notícia macro ainda</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Clique em "Adicionar Item" para começar</p>
-                  </div>
-                ) : (
-                  relatorio.macro.map((news) => (
-                    <div key={news.id} style={{
-                      border: '2px solid #e2e8f0',
-                      borderRadius: '16px',
-                      padding: '24px',
-                      backgroundColor: '#fefefe'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h4 style={{ fontWeight: '600', color: '#1e293b', margin: 0, fontSize: '16px' }}>
-                          📰 Notícia Macroeconômica
-                        </h4>
-                        <button
-                          onClick={() => removeMacroNews(news.id)}
-                          style={{ 
-                            color: '#dc2626', 
-                            background: 'none', 
-                            border: 'none', 
-                            cursor: 'pointer',
-                            padding: '8px',
-                            borderRadius: '8px'
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '20px' }}>
-                        {/* Campos do formulário com melhor design */}
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '14px', 
-                            fontWeight: '600', 
-                            color: '#374151', 
-                            marginBottom: '8px' 
-                          }}>
-                            💭 Título da Notícia
-                          </label>
-                          <input
-                            type="text"
-                            value={news.title}
-                            onChange={(e) => updateMacroNews(news.id, 'title', e.target.value)}
-                            style={{
-                              width: '100%',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '12px',
-                              padding: '12px 16px',
-                              fontSize: '14px',
-                              boxSizing: 'border-box'
-                            }}
-                            placeholder="Ex: Copom eleva Selic para 11,75%"
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '14px', 
-                            fontWeight: '600', 
-                            color: '#374151', 
-                            marginBottom: '8px' 
-                          }}>
-                            📝 Resumo e Análise
-                          </label>
-                          <textarea
-                            value={news.summary}
-                            onChange={(e) => updateMacroNews(news.id, 'summary', e.target.value)}
-                            rows={4}
-                            style={{
-                              width: '100%',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '12px',
-                              padding: '12px 16px',
-                              fontSize: '14px',
-                              resize: 'vertical',
-                              boxSizing: 'border-box'
-                            }}
-                            placeholder="Descreva o contexto, impactos esperados e análise da notícia..."
-                          />
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                          <div>
-                            <label style={{ 
-                              display: 'block', 
-                              fontSize: '14px', 
-                              fontWeight: '600', 
-                              color: '#374151', 
-                              marginBottom: '8px' 
-                            }}>
-                              ⚡ Nível de Impacto
-                            </label>
-                            <select
-                              value={news.impact}
-                              onChange={(e) => updateMacroNews(news.id, 'impact', e.target.value)}
-                              style={{
-                                width: '100%',
-                                border: '2px solid #e5e7eb',
-                                borderRadius: '12px',
-                                padding: '12px 16px',
-                                fontSize: '14px',
-                                boxSizing: 'border-box'
-                              }}
-                            >
-                              <option value="low">🟢 Baixo Impacto</option>
-                              <option value="medium">🟡 Médio Impacto</option>
-                              <option value="high">🔴 Alto Impacto</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label style={{ 
-                              display: 'block', 
-                              fontSize: '14px', 
-                              fontWeight: '600', 
-                              color: '#374151', 
-                              marginBottom: '8px' 
-                            }}>
-                              🏭 Setores Afetados
-                            </label>
-                            <input
-                              type="text"
-                              value={news.sectors.join(', ')}
-                              onChange={(e) => updateMacroNews(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                              style={{
-                                width: '100%',
-                                border: '2px solid #e5e7eb',
-                                borderRadius: '12px',
-                                padding: '12px 16px',
-                                fontSize: '14px',
-                                boxSizing: 'border-box'
-                              }}
-                              placeholder="Bancos, Energia, Varejo"
-                            />
-                          </div>
-
-                          <div>
-                            <label style={{ 
-                              display: 'block', 
-                              fontSize: '14px', 
-                              fontWeight: '600', 
-                              color: '#374151', 
-                              marginBottom: '8px' 
-                            }}>
-                              🎯 Ações Recomendadas
-                            </label>
-                            <input
-                              type="text"
-                              value={news.recommendations.join(', ')}
-                              onChange={(e) => updateMacroNews(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s))}
-                              style={{
-                                width: '100%',
-                                border: '2px solid #e5e7eb',
-                                borderRadius: '12px',
-                                padding: '12px 16px',
-                                fontSize: '14px',
-                                boxSizing: 'border-box'
-                              }}
-                              placeholder="PETR4, ITUB4, VALE3"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Placeholder para outras abas */}
-            {activeTab !== 'macro' && (
-              <div style={{
-                textAlign: 'center',
-                padding: '60px 20px',
-                backgroundColor: '#f8fafc',
-                borderRadius: '16px',
-                border: '2px dashed #cbd5e1'
-              }}>
-                <getCurrentTab()!.icon size={48} style={{ color: getCurrentTab()!.color, marginBottom: '16px' }} />
-                <h4 style={{ color: '#475569', marginBottom: '8px' }}>
-                  Seção {getCurrentTab()!.label}
-                </h4>
-                <p style={{ color: '#94a3b8', fontSize: '14px' }}>
-                  Interface completa disponível na implementação final
-                </p>
-              </div>
-            )}
+            {activeTab === 'macro' && <MacroSection />}
+            {activeTab === 'proventos' && <ProventosSection />}
+            {activeTab === 'dividendos' && <StockSection section="dividendos" title="Dividendos" color="#22c55e" />}
+            {activeTab === 'smallcaps' && <StockSection section="smallCaps" title="Small Caps" color="#2563eb" />}
+            {activeTab === 'microcaps' && <StockSection section="microCaps" title="Micro Caps" color="#ea580c" />}
+            {activeTab === 'exterior' && <StockSection section="exterior" title="Exterior" color="#7c3aed" />}
           </div>
         </div>
 
-        {/* Resumo do Relatório */}
+        {/* Preview */}
         <div style={{
           marginTop: '32px',
           backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          border: '1px solid #e2e8f0',
-          padding: '32px'
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb',
+          padding: '24px'
         }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px', color: '#1e293b' }}>
-            📊 Resumo do Relatório
-          </h2>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            {tabs.map((tab) => (
-              <div key={tab.id} style={{
-                padding: '20px',
-                borderRadius: '12px',
-                backgroundColor: `${tab.color}08`,
-                border: `2px solid ${tab.color}20`
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <tab.icon size={20} style={{ color: tab.color }} />
-                  <span style={{ fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
-                    {tab.label}
-                  </span>
-                </div>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: tab.color }}>
-                  {tab.count}
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                  {tab.count === 1 ? 'item' : 'itens'}
-                </div>
-              </div>
-            ))}
-          </div>
-
+          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Preview do Relatório</h2>
           <div style={{
-            marginTop: '24px',
-            padding: '20px',
-            backgroundColor: '#f8fafc',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0'
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px',
+            padding: '16px'
           }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', fontSize: '14px' }}>
-              <div>
-                <span style={{ color: '#64748b' }}>📅 Data:</span>
-                <span style={{ marginLeft: '8px', fontWeight: '600', color: '#1e293b' }}>
-                  {new Date(relatorio.date).toLocaleDateString('pt-BR')}
-                </span>
-              </div>
-              <div>
-                <span style={{ color: '#64748b' }}>📆 Semana:</span>
-                <span style={{ marginLeft: '8px', fontWeight: '600', color: '#1e293b' }}>
-                  {relatorio.weekOf}
-                </span>
-              </div>
-              <div>
-                <span style={{ color: '#64748b' }}>📊 Total de Itens:</span>
-                <span style={{ marginLeft: '8px', fontWeight: '700', color: '#4cfa00' }}>
-                  {totalItems}
-                </span>
-              </div>
-              <div>
-                <span style={{ color: '#64748b' }}>🚀 Status:</span>
-                <span style={{ 
-                  marginLeft: '8px', 
-                  fontWeight: '600',
-                  color: relatorio.status === 'published' ? '#22c55e' : '#f59e0b'
+            <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ margin: 0 }}><strong>ID:</strong> {relatorio.id || 'Novo relatório'}</p>
+              <p style={{ margin: 0 }}><strong>Data:</strong> {relatorio.date}</p>
+              <p style={{ margin: 0 }}><strong>Semana:</strong> {relatorio.weekOf}</p>
+              <p style={{ margin: 0 }}><strong>Notícias Macro:</strong> {relatorio.macro.length}</p>
+              <p style={{ margin: 0 }}><strong>Proventos:</strong> {relatorio.proventos.length}</p>
+              <p style={{ margin: 0 }}><strong>Dividendos:</strong> {relatorio.dividendos.length}</p>
+              <p style={{ margin: 0 }}><strong>Small Caps:</strong> {relatorio.smallCaps.length}</p>
+              <p style={{ margin: 0 }}><strong>Micro Caps:</strong> {relatorio.microCaps.length}</p>
+              <p style={{ margin: 0 }}><strong>Exterior:</strong> {relatorio.exterior.length}</p>
+              <p style={{ margin: 0 }}>
+                <strong>Status:</strong>
+                <span style={{
+                  marginLeft: '8px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  backgroundColor: relatorio.status === 'published' ? '#dcfce7' : '#fef3c7',
+                  color: relatorio.status === 'published' ? '#166534' : '#92400e'
                 }}>
                   {relatorio.status === 'published' ? 'Publicado' : 'Rascunho'}
                 </span>
-              </div>
+              </p>
             </div>
           </div>
         </div>
