@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
 import { relatoriosDB } from '../../../../utils/relatoriosDB';
+import AnalisesTrimesestrais from '../../../components/AnalisesTrimesestrais';
 
 // ✅ IMPORT ÚNICO CORRIGIDO - todos os hooks e utilitários em um só lugar
 import { 
@@ -1573,6 +1574,8 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
     </div>
   );
 });
+
+<AnalisesTrimesestrais ticker={ticker} />
 
 // GerenciadorRelatorios com funcionalidades de visualização e download
 const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
