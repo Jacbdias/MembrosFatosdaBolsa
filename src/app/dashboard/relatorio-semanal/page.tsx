@@ -3,6 +3,41 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
 
+// Componente para formatar texto com quebras de linha
+const FormattedText = ({ 
+  text, 
+  className = '', 
+  style = {} 
+}: { 
+  text: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) => {
+  if (!text) return null;
+  
+  // Quebrar o texto em linhas e renderizar com quebras de linha
+  const lines = text.split('\n').filter(line => line.trim() !== '');
+  
+  if (lines.length <= 1) {
+    return (
+      <span className={className} style={style}>
+        {text}
+      </span>
+    );
+  }
+  
+  return (
+    <div className={className} style={style}>
+      {lines.map((line, index) => (
+        <React.Fragment key={index}>
+          {line.trim()}
+          {index < lines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
+
 // Header com design similar ao PDF
 const ReportHeader = ({ relatorio }: { relatorio: any }) => (
   <div style={{
@@ -457,7 +492,7 @@ const CompanyLogo = ({ ticker, fallbackColor, item }: { ticker: string, fallback
   );
 };
 
-// Card de ação com logo
+// Card de ação com logo e texto formatado
 const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) => (
   <div style={{
     backgroundColor: 'white',
@@ -520,19 +555,20 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
       {item.news || item.title}
     </h4>
 
-    {/* Conteúdo */}
+    {/* Conteúdo formatado */}
     {item.summary && (
-      <p style={{
-        fontSize: '16px',
-        color: '#4b5563',
-        lineHeight: '1.6',
-        margin: '0 0 15px 0'
-      }}>
-        {item.summary}
-      </p>
+      <FormattedText 
+        text={item.summary}
+        style={{
+          fontSize: '16px',
+          color: '#4b5563',
+          lineHeight: '1.6',
+          margin: '0 0 15px 0'
+        }}
+      />
     )}
 
-    {/* Destaque */}
+    {/* Destaque formatado */}
     {item.highlight && (
       <div style={{
         backgroundColor: '#f0f9ff',
@@ -542,19 +578,20 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
         margin: '15px 0',
         borderLeft: `4px solid ${sectionColor}`
       }}>
-        <p style={{
-          fontSize: '16px',
-          color: '#1e40af',
-          margin: 0,
-          fontWeight: '500',
-          fontStyle: 'italic'
-        }}>
-          💡 {item.highlight}
-        </p>
+        <FormattedText 
+          text={`💡 ${item.highlight}`}
+          style={{
+            fontSize: '16px',
+            color: '#1e40af',
+            margin: 0,
+            fontWeight: '500',
+            fontStyle: 'italic'
+          }}
+        />
       </div>
     )}
 
-    {/* Recomendação */}
+    {/* Recomendação formatada */}
     {item.recommendation && (
       <div style={{
         backgroundColor: '#f0fdf4',
@@ -573,14 +610,15 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
         }}>
           Recomendação
         </div>
-        <p style={{
-          fontSize: '16px',
-          color: '#166534',
-          margin: 0,
-          fontWeight: '500'
-        }}>
-          {item.recommendation}
-        </p>
+        <FormattedText 
+          text={item.recommendation}
+          style={{
+            fontSize: '16px',
+            color: '#166534',
+            margin: 0,
+            fontWeight: '500'
+          }}
+        />
       </div>
     )}
 
@@ -863,10 +901,9 @@ export default function RelatorioSemanalPage() {
     { 
       key: 'proventos', 
       data: relatorio.proventos, 
-      title: 'Dividendos', 
+      title: 'Proventos', 
       icon: DollarSign, 
-      color: '#4cfa00', 
-      color: '#22c55e' 
+      color: '#4cfa00'
     },
     { 
       key: 'dividendos', 
