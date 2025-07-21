@@ -467,30 +467,45 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           
           const transaction = db.transaction(['analises'], 'readonly');
           const store = transaction.objectStore('analises');
-const index = store.index('ticker');
-
           
-getRequest.onsuccess = () => {
-  const todasAnalises = getRequest.result || [];
-  console.log(`✅ Total de análises carregadas: ${todasAnalises.length}`);
-  
-  // Filtrar manualmente por ticker
-  const analisesEncontradas = todasAnalises.filter((analise: AnaliseTrimestreData) => 
-    analise.ticker && analise.ticker.toUpperCase() === ticker.toUpperCase()
-  );
-  
-  console.log(`✅ ${analisesEncontradas.length} análises encontradas para ${ticker}`);
-  
-  // Filtrar apenas análises publicadas e ordenar por data
-  const analisesPublicadas = analisesEncontradas
-    .filter((analise: AnaliseTrimestreData) => analise.status === 'published')
-    .sort((a: AnaliseTrimestreData, b: AnaliseTrimestreData) => 
-      new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime()
-    );
-  
-  setAnalises(analisesPublicadas);
-  setLoading(false);
-};
+          // Usar getAll() em vez de index
+          const getRequest = store.getAll();
+          
+          getRequest.onsuccess = () => {
+            const todasAnalises = getRequest.result || [];
+            console.log(`✅ Total de análises carregadas: ${todasAnalises.length}`);
+            
+            // Filtrar manualmente por ticker
+            const analisesEncontradas = todasAnalises.filter((analise: AnaliseTrimestreData) => 
+              analise.ticker && analise.ticker.toUpperCase() === ticker.toUpperCase()
+            );
+            
+            console.log(`✅ ${analisesEncontradas.length} análises encontradas para ${ticker}`);
+            
+            // Filtrar apenas análises publicadas e ordenar por data
+            const analisesPublicadas = analisesEncontradas
+              .filter((analise: AnaliseTrimestreData) => analise.status === 'published')
+              .sort((a: AnaliseTrimestreData, b: AnaliseTrimestreData) => 
+                new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime()
+              );
+            
+            setAnalises(analisesPublicadas);
+            setLoading(false);
+          };
+          
+          getRequest.onerror = () => {
+            console.error('❌ Erro ao buscar análises no IndexedDB');
+            setError('Erro ao carregar análises');
+            setLoading(false);
+          };
+        };
+        
+      } catch (error) {
+        console.error('❌ Erro geral ao carregar análises:', error);
+        setError('Erro ao carregar análises');
+        setLoading(false);
+      }
+    };
     
     loadAnalises();
   }, [ticker]);
