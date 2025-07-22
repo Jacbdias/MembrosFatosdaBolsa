@@ -511,17 +511,7 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
         alignItems: 'center',
         gap: '8px'
       }}>
-        Composição do ETF
-        <span style={{
-          backgroundColor: '#3b82f6',
-          color: 'white',
-          borderRadius: '4px',
-          padding: '2px 8px',
-          fontSize: '12px',
-          fontWeight: '600'
-        }}>
-          ETF
-        </span>
+       Composição do ETF
         {/* Botão de atualização */}
         <button
           onClick={refetch}
@@ -683,9 +673,6 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
                       <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
                         SETOR
                       </th>
-                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
-                        AÇÃO
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -731,29 +718,6 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
                           }}>
                             {holding.sector}
                           </span>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <button
-                            onClick={() => {
-                              // Verificar se a página individual existe
-                              const url = `/dashboard/ativo/${holding.symbol}`;
-                              // Tentar navegar (ou mostrar que não existe)
-                              window.open(url, '_blank');
-                            }}
-                            style={{
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              padding: '4px 8px',
-                              fontSize: '10px',
-                              fontWeight: '600',
-                              cursor: 'pointer'
-                            }}
-                            title={`Ver página de ${holding.symbol}`}
-                          >
-                            👁️ Ver
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -837,21 +801,6 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
             </div>
           )}
 
-          {/* Informações sobre fonte dos dados */}
-          <div style={{
-            marginTop: '20px',
-            padding: '16px',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '8px',
-            border: '1px solid #7dd3fc'
-          }}>
-            <p style={{ fontSize: '12px', margin: 0, color: '#0c4a6e' }}>
-              💡 <strong>Sobre ETFs:</strong> Exchange Traded Funds são fundos que replicam índices ou estratégias específicas.
-              <br/>📊 <strong>Holdings:</strong> Empresas/ativos que compõem o portfólio do ETF.
-              <br/>🔄 <strong>Dados:</strong> Buscados via API em tempo real. Podem variar conforme rebalanceamentos.
-              <br/>🚀 <strong>Fonte:</strong> {apiError ? 'Dados mock (API indisponível)' : 'API Financial Data'}
-            </p>
-          </div>
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
