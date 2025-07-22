@@ -676,6 +676,36 @@ function useSmallCapsIntegradas() {
       setLoading(true);
       setError(null);
 
+    // 🚨 ALERT PARA TESTE - ADICIONE AQUI:
+    alert(`DEVICE TEST: ${navigator.userAgent.includes('Mobile') ? 'MOBILE' : 'DESKTOP'} - Screen: ${window.innerWidth}x${window.innerHeight}`);
+
+    console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
+    // ... resto do código
+
+    for (const ticker of tickers) {
+      try {
+        console.log(`🔍 Buscando: ${ticker}`);
+        
+        const apiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'SmallCaps-Portfolio-App'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.results && data.results.length > 0) {
+            const quote = data.results[0];
+            if (quote.regularMarketPrice) {
+              // 🚨 ALERT PARA CADA AÇÃO - ADICIONE AQUI:
+              alert(`${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
+              
+              cotacoesMap.set(ticker, {
+
     // 🔍 ADICIONE ESTES LOGS AQUI:
     console.log('🔍 DEVICE DEBUG:', {
       userAgent: navigator.userAgent,
