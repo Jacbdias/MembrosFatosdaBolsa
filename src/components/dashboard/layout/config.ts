@@ -231,7 +231,7 @@ export const navItems = [
       },
       // 🆕 NOVO ITEM: Análises Trimestrais
       {
-        key: 'admin-analises-trimestrais',
+        key: 'admin-analises-trimesestrais',
         title: 'Análises Trimestrais',
         href: paths.dashboard.admin + '/analises-trimesestrais',
         icon: 'chart-line', // ou 'calendar', 'article'
