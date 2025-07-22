@@ -1,5 +1,7 @@
 // src/app/api/admin/carteiras/route.ts
 
+export const dynamic = 'force-dynamic'; // 👈 ADICIONAR ESTA LINHA AQUI
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
