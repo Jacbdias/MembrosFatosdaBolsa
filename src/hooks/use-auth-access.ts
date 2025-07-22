@@ -94,7 +94,7 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 🆕 NOVO: admin-analises-trimestrais
+            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 🆕 NOVO: admin-analises-trimesestrais
           ]
         };
 
@@ -190,7 +190,7 @@ export function useAuthAccess() {
     }
 
     // 📊 NOVA: Verificação específica para Análises Trimestrais Admin
-    if (page === 'admin-analises-trimestrais') {
+    if (page === 'admin-analises-trimesestrais') {
       const isAnalisesTrimesestraisAdmin = user.plan === 'ADMIN';
       console.log(`📊 Verificando acesso Análises Trimestrais Admin para ${user.email}:`, isAnalisesTrimesestraisAdmin);
       return isAnalisesTrimesestraisAdmin;
