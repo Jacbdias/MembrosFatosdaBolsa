@@ -29,6 +29,11 @@ import { Link } from '@phosphor-icons/react/dist/ssr/Link';
 import { List } from '@phosphor-icons/react/dist/ssr/List';
 // 📱 ÍCONE PARA INSTAGRAM CLOSE FRIENDS
 import { InstagramLogo } from '@phosphor-icons/react/dist/ssr/InstagramLogo';
+// 📋 ÍCONES PARA DOCUMENTOS E RELATÓRIOS
+import { FileText } from '@phosphor-icons/react/dist/ssr/FileText';
+import { ClipboardText } from '@phosphor-icons/react/dist/ssr/ClipboardText';
+import { Newspaper } from '@phosphor-icons/react/dist/ssr/Newspaper';
+import { Article } from '@phosphor-icons/react/dist/ssr/Article';
 
 export const navIcons = {
   'chart-pie': ChartPie,
@@ -63,4 +68,12 @@ export const navIcons = {
   
   // 📱 INSTAGRAM CLOSE FRIENDS
   'instagram': InstagramLogo,     // Para Instagram Close Friends Admin
+  
+  // 📋 ÍCONES PARA DOCUMENTOS E RELATÓRIOS
+  'document-text': FileText,      // Para Relatório Semanal Admin
+  'file-text': FileText,          // Alternativa
+  'clipboard-document': ClipboardText, // Para documentos de clipboard
+  'clipboard-text': ClipboardText, // Alternativa
+  'newspaper': Newspaper,         // Para notícias/relatórios
+  'article': Article,             // Para artigos
 } as Record<string, Icon>;
