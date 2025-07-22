@@ -4601,6 +4601,13 @@ const performance = performanceData.total; // Para manter compatibilidade
   </div>
 )}
 
+{/* ETF Holdings - APÓS os cards de métricas */}
+<ETFHoldings 
+  ticker={ticker}
+  dadosYahoo={dadosYahoo}
+  loading={loadingYahoo}
+/>
+
       {/* Histórico de Dividendos */}
       <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={isFII} />
 
