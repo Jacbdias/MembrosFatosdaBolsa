@@ -15,7 +15,6 @@ export const paths = {
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
     rentabilidades: '/dashboard/rentabilidades',
-atualizacoesSemanais: '/dashboard/relatorio-semanal',
 
     
     // 🛡️ ROTAS ADMINISTRATIVAS
