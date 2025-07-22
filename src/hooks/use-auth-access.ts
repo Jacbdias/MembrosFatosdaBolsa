@@ -25,7 +25,7 @@ export function useAuthAccess() {
             // Fallback
             setPlanInfo({
               displayName: 'Close Friends VIP',
-              pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+              pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos', 'relatorio-semanal', 'atualizacoes-semanais'] // ✅ ADICIONADO
             });
           }
           setLoading(false);
@@ -56,30 +56,36 @@ export function useAuthAccess() {
             'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
-            'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO
           ],
           'LITE': [
             'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO
           ],
           // ✅ ADICIONADO: Close Friends LITE 2.0
           'LITE_V2': [
             'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO
             // Nota: Não inclui 'internacional' (diferença do LITE original)
           ],
           'RENDA_PASSIVA': [
             'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO (renda passiva tem dividendos no relatório)
           ],
           'FIIS': [
             'fundos-imobiliarios', 'rentabilidades',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO (FIIs tem proventos no relatório)
           ],
           'AMERICA': [
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO (América tem exterior no relatório)
           ],
           'ADMIN': [
             'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
@@ -87,7 +93,8 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs'
+            'admin-relatorios', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs',
+            'relatorio-semanal', 'atualizacoes-semanais' // ✅ ADICIONADO
           ]
         };
 
@@ -126,7 +133,7 @@ export function useAuthAccess() {
         // Fallback original
         setPlanInfo({
           displayName: 'Close Friends VIP',
-          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos', 'relatorio-semanal', 'atualizacoes-semanais'] // ✅ ADICIONADO NO FALLBACK
         });
       } finally {
         setLoading(false);
