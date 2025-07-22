@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
 import { relatoriosDB } from '../../../../utils/relatoriosDB';
 import AnalisesTrimesestrais from '@/components/AnalisesTrimesestrais'; // ← ADICIONAR ESTA LINHA
+import ETFHoldings from '@/components/ETFHoldings'; // ← ADICIONAR
+
 
 // ✅ IMPORT ÚNICO CORRIGIDO - todos os hooks e utilitários em um só lugar
 import { 
