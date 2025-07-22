@@ -676,6 +676,16 @@ function useSmallCapsIntegradas() {
       setLoading(true);
       setError(null);
 
+    // 🔍 ADICIONE ESTES LOGS AQUI:
+    console.log('🔍 DEVICE DEBUG:', {
+      userAgent: navigator.userAgent,
+      isMobile: /Mobi|Android/i.test(navigator.userAgent),
+      screen: `${screen.width}x${screen.height}`,
+      window: `${window.innerWidth}x${window.innerHeight}`,
+      platform: navigator.platform,
+      cookieEnabled: navigator.cookieEnabled
+    });
+
       console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
       console.log('📋 Ativos do DataStore:', smallCapsData);
 
@@ -842,6 +852,25 @@ function useSmallCapsIntegradas() {
 }
 
 export default function SmallCapsPage() {
+
+  // 🌐 ADICIONE ESTE CÓDIGO NO INÍCIO DO COMPONENTE:
+  React.useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+      console.log('🌐 FETCH INTERCEPTED:', args[0]);
+      return originalFetch.apply(this, args)
+        .then(response => {
+          console.log('📥 RESPONSE:', response.url, response.status);
+          return response;
+        });
+    };
+
+    // Cleanup
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   const { dados } = useDataStore();
   const { ativosAtualizados, cotacoesAtualizadas, setCotacoesAtualizadas, loading } = useSmallCapsIntegradas();
   const { smllData } = useSmllRealTime();
