@@ -3,53 +3,48 @@
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter } from 'lucide-react';
 
-// Interfaces
-interface MetricaTrimestreData {
-  valor: number;
-  unidade: string;
-  variacao?: number;
-  margem?: number;
-}
-
-interface AnaliseTrimestreData {
-  id?: string;
+// Interfaces para Relatório Semanal
+interface ItemRelatorioSemanal {
   ticker: string;
   empresa: string;
-  trimestre: string;
+  titulo: string;
+  resumo: string;
+  analise: string;
+  recomendacao?: 'COMPRA' | 'VENDA' | 'MANTER';
+  impacto?: 'positivo' | 'negativo' | 'neutro';
+  precoAlvo?: number;
+  destaque?: string;
+}
+
+interface ProventoItem {
+  ticker: string;
+  empresa: string;
+  tipo: 'Dividendo' | 'JCP' | 'Bonificação';
+  valor: string;
+  dy: string;
+  datacom: string;
+  pagamento: string;
+}
+
+interface RelatorioSemanalData {
+  id?: string;
+  semana: string; // Ex: "2025-W03" (3ª semana de 2025)
   dataPublicacao: string;
   autor: string;
-  categoria: 'resultado_trimestral' | 'analise_setorial' | 'tese_investimento';
-  
-  // Conteúdo principal
   titulo: string;
-  resumoExecutivo: string;
-  analiseCompleta: string;
   
-  // Métricas do trimestre
-  metricas: {
-    receita?: MetricaTrimestreData;
-    ebitda?: MetricaTrimestreData;
-    lucroLiquido?: MetricaTrimestreData;
-    roe?: MetricaTrimestreData;
-  };
-  
-  // Análise
-  pontosFavoraveis: string;
-  pontosAtencao: string;
-  
-  // Recomendação
-  recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
-  precoAlvo?: number;
-  risco: 'BAIXO' | 'MÉDIO' | 'ALTO';
-  
-  // Links externos
-  linkResultado?: string;
-  linkConferencia?: string;
+  // Seções do relatório
+  macro: ItemRelatorioSemanal[];
+  proventos: ProventoItem[];
+  dividendos: ItemRelatorioSemanal[];
+  smallCaps: ItemRelatorioSemanal[];
+  microCaps: ItemRelatorioSemanal[];
+  exterior: ItemRelatorioSemanal[];
   
   status: 'draft' | 'published';
 }
 
-// Rich Text Editor Component (mesmo código anterior)
+// Rich Text Editor Component (mesmo da página anterior)
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -185,14 +180,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     document.body.removeChild(input);
   }, [execCommand]);
 
-  const changeTextColor = useCallback((color: string) => {
-    execCommand('foreColor', color);
-  }, [execCommand]);
-
-  const changeFontSize = useCallback((size: string) => {
-    execCommand('fontSize', size);
-  }, [execCommand]);
-
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
@@ -228,77 +215,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [execCommand]);
 
-  const toolbarButtons = [
-    {
-      icon: Bold,
-      command: 'bold',
-      title: 'Negrito (Ctrl+B)',
-      active: currentFormat.bold
-    },
-    {
-      icon: Italic,
-      command: 'italic',
-      title: 'Itálico (Ctrl+I)',
-      active: currentFormat.italic
-    },
-    {
-      icon: Underline,
-      command: 'underline',
-      title: 'Sublinhado (Ctrl+U)',
-      active: currentFormat.underline
-    },
-    {
-      icon: Strikethrough,
-      command: 'strikeThrough',
-      title: 'Riscado',
-      active: currentFormat.strikethrough
-    }
-  ];
-
-  const alignmentButtons = [
-    {
-      icon: AlignLeft,
-      command: 'justifyLeft',
-      title: 'Alinhar à esquerda'
-    },
-    {
-      icon: AlignCenter,
-      command: 'justifyCenter',
-      title: 'Centralizar'
-    },
-    {
-      icon: AlignRight,
-      command: 'justifyRight',
-      title: 'Alinhar à direita'
-    }
-  ];
-
-  const listButtons = [
-    {
-      icon: List,
-      command: 'insertUnorderedList',
-      title: 'Lista com marcadores'
-    },
-    {
-      icon: ListOrdered,
-      command: 'insertOrderedList',
-      title: 'Lista numerada'
-    }
-  ];
-
-  const colors = [
-    '#000000', '#444444', '#666666', '#999999', '#cccccc',
-    '#1a73e8', '#4285f4', '#34a853', '#fbbc04', '#ea4335',
-    '#9c27b0', '#ff9800', '#795548', '#607d8b', '#e91e63'
-  ];
-
-  const fontSizes = [
-    { label: 'Pequeno', value: '1' },
-    { label: 'Normal', value: '3' },
-    { label: 'Grande', value: '5' },
-    { label: 'Muito Grande', value: '7' }
-  ];
-
   return (
     <div style={{
       border: `2px solid ${isEditorFocused ? '#2563eb' : '#e5e7eb'}`,
@@ -307,297 +223,70 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       transition: 'border-color 0.2s',
       ...style
     }}>
-      {/* Toolbar */}
+      {/* Toolbar simplificada */}
       <div style={{
-        padding: '12px 16px',
+        padding: '8px 12px',
         borderBottom: '1px solid #e5e7eb',
         display: 'flex',
-        flexWrap: 'wrap',
         gap: '8px',
         alignItems: 'center',
         backgroundColor: '#f8fafc',
         borderRadius: '12px 12px 0 0'
       }}>
-        {/* Formatação de texto */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {toolbarButtons.map((button) => (
-            <button
-              key={button.command}
-              onClick={() => execCommand(button.command)}
-              title={button.title}
-              style={{
-                padding: '8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: button.active ? '#2563eb' : 'transparent',
-                color: button.active ? 'white' : '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (!button.active) {
-                  e.currentTarget.style.backgroundColor = '#e5e7eb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!button.active) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <button.icon size={16} />
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Tamanho da fonte */}
-        <select
-          onChange={(e) => changeFontSize(e.target.value)}
-          style={{
-            padding: '6px 8px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            fontSize: '14px',
-            backgroundColor: 'white'
-          }}
-          title="Tamanho da fonte"
-        >
-          <option value="">Tamanho</option>
-          {fontSizes.map((size) => (
-            <option key={size.value} value={size.value}>
-              {size.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Alinhamento */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {alignmentButtons.map((button) => (
-            <button
-              key={button.command}
-              onClick={() => execCommand(button.command)}
-              title={button.title}
-              style={{
-                padding: '8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <button.icon size={16} />
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Listas */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {listButtons.map((button) => (
-            <button
-              key={button.command}
-              onClick={() => execCommand(button.command)}
-              title={button.title}
-              style={{
-                padding: '8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <button.icon size={16} />
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Botões de imagem */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '4px', 
-          padding: '4px', 
-          backgroundColor: '#f0f9ff', 
-          borderRadius: '8px',
-          border: '1px solid #0ea5e9'
-        }}>
-          <button
-            onClick={uploadImage}
-            title="📤 Upload de imagem (máx 5MB)"
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              borderRadius: '6px',
-              backgroundColor: '#0ea5e9',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px',
-              fontSize: '12px',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#0284c7';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#0ea5e9';
-            }}
-          >
-            <Upload size={14} />
-            Upload
-          </button>
-
-          <button
-            onClick={insertImageByUrl}
-            title="🔗 Inserir imagem por URL"
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              borderRadius: '6px',
-              backgroundColor: '#06b6d4',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px',
-              fontSize: '12px',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#0891b2';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#06b6d4';
-            }}
-          >
-            <Image size={14} />
-            URL
-          </button>
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Link */}
         <button
-          onClick={insertLink}
-          title="Inserir link"
+          onClick={() => execCommand('bold')}
           style={{
-            padding: '8px',
+            padding: '6px',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '4px',
+            backgroundColor: currentFormat.bold ? '#2563eb' : 'transparent',
+            color: currentFormat.bold ? 'white' : '#6b7280',
+            cursor: 'pointer'
+          }}
+        >
+          <Bold size={14} />
+        </button>
+        <button
+          onClick={() => execCommand('italic')}
+          style={{
+            padding: '6px',
+            border: 'none',
+            borderRadius: '4px',
+            backgroundColor: currentFormat.italic ? '#2563eb' : 'transparent',
+            color: currentFormat.italic ? 'white' : '#6b7280',
+            cursor: 'pointer'
+          }}
+        >
+          <Italic size={14} />
+        </button>
+        <button
+          onClick={() => execCommand('insertUnorderedList')}
+          style={{
+            padding: '6px',
+            border: 'none',
+            borderRadius: '4px',
             backgroundColor: 'transparent',
             color: '#6b7280',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#e5e7eb';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
+            cursor: 'pointer'
           }}
         >
-          <Link size={16} />
+          <List size={14} />
         </button>
-
-        {/* Cores */}
-        <div style={{ position: 'relative' }}>
-          <details style={{ position: 'relative' }}>
-            <summary style={{
-              padding: '8px',
-              border: 'none',
-              borderRadius: '6px',
-              backgroundColor: 'transparent',
-              color: '#6b7280',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              listStyle: 'none',
-              transition: 'all 0.2s'
-            }}>
-              <Palette size={16} />
-            </summary>
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              zIndex: 10,
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '8px',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: '4px',
-              minWidth: '140px'
-            }}>
-              {colors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => changeTextColor(color)}
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    backgroundColor: color,
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                  title={`Cor: ${color}`}
-                />
-              ))}
-            </div>
-          </details>
-        </div>
+        <button
+          onClick={insertLink}
+          style={{
+            padding: '6px',
+            border: 'none',
+            borderRadius: '4px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            cursor: 'pointer'
+          }}
+        >
+          <Link size={14} />
+        </button>
       </div>
 
-      {/* Editor */}
       <div
         ref={editorRef}
         contentEditable
@@ -607,99 +296,518 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         style={{
-          padding: '16px',
+          padding: '12px',
           minHeight: minHeight,
           outline: 'none',
-          lineHeight: '1.6',
-          fontSize: '16px',
+          lineHeight: '1.5',
+          fontSize: '14px',
           color: '#1f2937',
           borderRadius: '0 0 12px 12px'
         }}
         data-placeholder={placeholder}
       />
 
-      {/* CSS para placeholder */}
       <style>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
           color: #9ca3af;
           pointer-events: none;
         }
-        
-        [contenteditable] a {
-          color: #2563eb;
-          text-decoration: underline;
-        }
-        
-        [contenteditable] ul, [contenteditable] ol {
-          margin: 8px 0;
-          padding-left: 24px;
-        }
-        
-        [contenteditable] li {
-          margin: 4px 0;
-        }
-        
-        [contenteditable] img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 8px;
-          margin: 8px 0;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
-        
-        [contenteditable] img:hover {
-          transform: scale(1.02);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        }
-        
-        [contenteditable] img.selected {
-          outline: 2px solid #2563eb;
-          outline-offset: 2px;
-        }
       `}</style>
     </div>
   );
 };
 
-// 🎯 COMPONENTE DE CRIAÇÃO DE ANÁLISE
-const CriarAnaliseForm = memo(({ onSave }: { onSave: (analise: AnaliseTrimestreData) => void }) => {
-  const [analise, setAnalise] = useState<AnaliseTrimestreData>({
-    id: Date.now().toString(),
-    ticker: '',
-    empresa: '',
-    trimestre: '',
-    dataPublicacao: new Date().toISOString().split('T')[0],
-    autor: '',
-    categoria: 'resultado_trimestral',
-    titulo: '',
-    resumoExecutivo: '',
-    analiseCompleta: '',
-    metricas: {},
-    pontosFavoraveis: '',
-    pontosAtencao: '',
-    recomendacao: 'MANTER',
-    risco: 'MÉDIO',
-    status: 'draft'
+// Utilitário para gerar número da semana
+const getWeekNumber = (date: Date): string => {
+  const year = date.getFullYear();
+  const start = new Date(year, 0, 1);
+  const diff = date.getTime() - start.getTime();
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  const weekNumber = Math.ceil(diff / oneWeek);
+  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+};
+
+// Componente para criar item de seção
+const ItemEditor = memo(({ 
+  item, 
+  onUpdate, 
+  onRemove,
+  secaoNome 
+}: { 
+  item: ItemRelatorioSemanal | ProventoItem;
+  onUpdate: (item: any) => void;
+  onRemove: () => void;
+  secaoNome: string;
+}) => {
+  const isProvento = 'tipo' in item;
+
+  if (isProvento) {
+    const provento = item as ProventoItem;
+    return (
+      <div style={{
+        border: '2px solid #e5e7eb',
+        borderRadius: '12px',
+        padding: '16px',
+        backgroundColor: '#fefce8',
+        position: 'relative'
+      }}>
+        <button
+          onClick={onRemove}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            backgroundColor: '#dc2626',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Trash2 size={12} />
+        </button>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+          <input
+            placeholder="Ticker"
+            value={provento.ticker}
+            onChange={(e) => onUpdate({ ...provento, ticker: e.target.value.toUpperCase() })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            placeholder="Empresa"
+            value={provento.empresa}
+            onChange={(e) => onUpdate({ ...provento, empresa: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <select
+            value={provento.tipo}
+            onChange={(e) => onUpdate({ ...provento, tipo: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          >
+            <option value="Dividendo">Dividendo</option>
+            <option value="JCP">JCP</option>
+            <option value="Bonificação">Bonificação</option>
+          </select>
+          <input
+            placeholder="Valor (R$ 0,50)"
+            value={provento.valor}
+            onChange={(e) => onUpdate({ ...provento, valor: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            placeholder="DY (5,2%)"
+            value={provento.dy}
+            onChange={(e) => onUpdate({ ...provento, dy: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            type="date"
+            placeholder="Data-com"
+            value={provento.datacom}
+            onChange={(e) => onUpdate({ ...provento, datacom: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            type="date"
+            placeholder="Pagamento"
+            value={provento.pagamento}
+            onChange={(e) => onUpdate({ ...provento, pagamento: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const itemNormal = item as ItemRelatorioSemanal;
+  
+  return (
+    <div style={{
+      border: '2px solid #e5e7eb',
+      borderRadius: '12px',
+      padding: '16px',
+      backgroundColor: 'white',
+      position: 'relative'
+    }}>
+      <button
+        onClick={onRemove}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          backgroundColor: '#dc2626',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Trash2 size={12} />
+      </button>
+
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <input
+            placeholder="Ticker"
+            value={itemNormal.ticker}
+            onChange={(e) => onUpdate({ ...itemNormal, ticker: e.target.value.toUpperCase() })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          />
+          <input
+            placeholder="Empresa"
+            value={itemNormal.empresa}
+            onChange={(e) => onUpdate({ ...itemNormal, empresa: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <input
+          placeholder="Título da notícia/análise"
+          value={itemNormal.titulo}
+          onChange={(e) => onUpdate({ ...itemNormal, titulo: e.target.value })}
+          style={{
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            padding: '8px',
+            fontSize: '14px'
+          }}
+        />
+
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+            Resumo/Destaque
+          </label>
+          <RichTextEditor
+            value={itemNormal.resumo}
+            onChange={(value) => onUpdate({ ...itemNormal, resumo: value })}
+            placeholder="Resumo dos principais pontos..."
+            minHeight="80px"
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+            Análise Completa
+          </label>
+          <RichTextEditor
+            value={itemNormal.analise}
+            onChange={(value) => onUpdate({ ...itemNormal, analise: value })}
+            placeholder="Análise detalhada..."
+            minHeight="100px"
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Recomendação
+            </label>
+            <select
+              value={itemNormal.recomendacao || ''}
+              onChange={(e) => onUpdate({ ...itemNormal, recomendacao: e.target.value || undefined })}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">Selecione</option>
+              <option value="COMPRA">🟢 COMPRA</option>
+              <option value="MANTER">🟡 MANTER</option>
+              <option value="VENDA">🔴 VENDA</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Impacto
+            </label>
+            <select
+              value={itemNormal.impacto || ''}
+              onChange={(e) => onUpdate({ ...itemNormal, impacto: e.target.value || undefined })}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">Selecione</option>
+              <option value="positivo">📈 Positivo</option>
+              <option value="neutro">➖ Neutro</option>
+              <option value="negativo">📉 Negativo</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Preço Alvo (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="25.50"
+              value={itemNormal.precoAlvo || ''}
+              onChange={(e) => onUpdate({ ...itemNormal, precoAlvo: parseFloat(e.target.value) || undefined })}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+        </div>
+
+        {itemNormal.destaque && (
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Destaque Especial
+            </label>
+            <RichTextEditor
+              value={itemNormal.destaque}
+              onChange={(value) => onUpdate({ ...itemNormal, destaque: value })}
+              placeholder="Destaque especial ou observação importante..."
+              minHeight="60px"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// Componente para seção do relatório
+const SecaoEditor = memo(({ 
+  titulo, 
+  items, 
+  onAddItem, 
+  onUpdateItem, 
+  onRemoveItem,
+  cor,
+  icone: Icone,
+  isProvento = false
+}: {
+  titulo: string;
+  items: any[];
+  onAddItem: () => void;
+  onUpdateItem: (index: number, item: any) => void;
+  onRemoveItem: (index: number) => void;
+  cor: string;
+  icone: any;
+  isProvento?: boolean;
+}) => {
+  return (
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      padding: '20px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '16px'
+      }}>
+        <h4 style={{
+          fontSize: '18px',
+          fontWeight: '600',
+          color: cor,
+          margin: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <Icone size={20} />
+          {titulo} ({items.length})
+        </h4>
+        
+        <button
+          onClick={onAddItem}
+          style={{
+            backgroundColor: cor,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontWeight: '600'
+          }}
+        >
+          <Plus size={14} />
+          Adicionar
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gap: '16px' }}>
+        {items.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px',
+            color: '#64748b',
+            backgroundColor: '#f8fafc',
+            borderRadius: '8px',
+            border: '2px dashed #cbd5e1'
+          }}>
+            <Icone size={32} style={{ color: '#cbd5e1', marginBottom: '8px' }} />
+            <p style={{ margin: 0, fontSize: '14px' }}>
+              Nenhum item adicionado ainda.
+              <br />
+              Clique em "Adicionar" para começar.
+            </p>
+          </div>
+        ) : (
+          items.map((item, index) => (
+            <ItemEditor
+              key={index}
+              item={item}
+              onUpdate={(updatedItem) => onUpdateItem(index, updatedItem)}
+              onRemove={() => onRemoveItem(index)}
+              secaoNome={titulo}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+});
+
+// 🎯 COMPONENTE DE CRIAÇÃO DE RELATÓRIO
+const CriarRelatorioForm = memo(({ 
+  onSave,
+  relatorioEditando 
+}: { 
+  onSave: (relatorio: RelatorioSemanalData) => void;
+  relatorioEditando?: RelatorioSemanalData | null;
+}) => {
+  const [relatorio, setRelatorio] = useState<RelatorioSemanalData>(() => {
+    if (relatorioEditando) {
+      return relatorioEditando;
+    }
+    
+    const hoje = new Date();
+    return {
+      id: Date.now().toString(),
+      semana: getWeekNumber(hoje),
+      dataPublicacao: hoje.toISOString().split('T')[0],
+      autor: '',
+      titulo: '',
+      macro: [],
+      proventos: [],
+      dividendos: [],
+      smallCaps: [],
+      microCaps: [],
+      exterior: [],
+      status: 'draft'
+    };
   });
 
   const [salvando, setSalvando] = useState(false);
 
-  const updateField = useCallback((field: keyof AnaliseTrimestreData, value: any) => {
-    setAnalise(prev => ({ ...prev, [field]: value }));
+  // Atualizar quando relatorioEditando mudar
+  useEffect(() => {
+    if (relatorioEditando) {
+      setRelatorio(relatorioEditando);
+    }
+  }, [relatorioEditando]);
+
+  const updateField = useCallback((field: keyof RelatorioSemanalData, value: any) => {
+    setRelatorio(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const updateMetrica = useCallback((metrica: keyof AnaliseTrimestreData['metricas'], campo: keyof MetricaTrimestreData, valor: any) => {
-    setAnalise(prev => {
-      const metricasAtuais = { ...prev.metricas };
-      if (!metricasAtuais[metrica]) {
-        metricasAtuais[metrica] = { valor: 0, unidade: 'milhões' };
-      }
-      metricasAtuais[metrica]![campo] = valor;
-      return { ...prev, metricas: metricasAtuais };
+  const addItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>) => {
+    setRelatorio(prev => {
+      const newItem = secao === 'proventos' 
+        ? { ticker: '', empresa: '', tipo: 'Dividendo', valor: '', dy: '', datacom: '', pagamento: '' }
+        : { ticker: '', empresa: '', titulo: '', resumo: '', analise: '' };
+      
+      return {
+        ...prev,
+        [secao]: [...(prev[secao] as any[]), newItem]
+      };
     });
+  }, []);
+
+  const updateItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>, index: number, item: any) => {
+    setRelatorio(prev => ({
+      ...prev,
+      [secao]: (prev[secao] as any[]).map((existing, i) => i === index ? item : existing)
+    }));
+  }, []);
+
+  const removeItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>, index: number) => {
+    setRelatorio(prev => ({
+      ...prev,
+      [secao]: (prev[secao] as any[]).filter((_, i) => i !== index)
+    }));
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -707,55 +815,72 @@ const CriarAnaliseForm = memo(({ onSave }: { onSave: (analise: AnaliseTrimestreD
     
     try {
       // Validações básicas
-      if (!analise.ticker || !analise.empresa || !analise.titulo) {
-        alert('Por favor, preencha pelo menos Ticker, Empresa e Título.');
+      if (!relatorio.semana || !relatorio.titulo) {
+        alert('Por favor, preencha pelo menos a Semana e o Título.');
         return;
       }
       
-      await onSave(analise);
+      await onSave(relatorio);
       
-      // Limpar formulário após salvar
-      setAnalise({
-        id: Date.now().toString(),
-        ticker: '',
-        empresa: '',
-        trimestre: '',
-        dataPublicacao: new Date().toISOString().split('T')[0],
-        autor: '',
-        categoria: 'resultado_trimestral',
-        titulo: '',
-        resumoExecutivo: '',
-        analiseCompleta: '',
-        metricas: {},
-        pontosFavoraveis: '',
-        pontosAtencao: '',
-        recomendacao: 'MANTER',
-        risco: 'MÉDIO',
-        status: 'draft'
-      });
+      // Limpar formulário apenas se não estiver editando
+      if (!relatorioEditando) {
+        const hoje = new Date();
+        setRelatorio({
+          id: Date.now().toString(),
+          semana: getWeekNumber(hoje),
+          dataPublicacao: hoje.toISOString().split('T')[0],
+          autor: '',
+          titulo: '',
+          macro: [],
+          proventos: [],
+          dividendos: [],
+          smallCaps: [],
+          microCaps: [],
+          exterior: [],
+          status: 'draft'
+        });
+      }
       
-      alert('✅ Análise salva com sucesso!');
+      alert('✅ Relatório salvo com sucesso!');
       
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      alert('❌ Erro ao salvar análise');
+      alert('❌ Erro ao salvar relatório');
     } finally {
       setSalvando(false);
     }
-  }, [analise, onSave]);
+  }, [relatorio, onSave, relatorioEditando]);
+
+  const secoes = [
+    { key: 'macro' as const, titulo: 'Panorama Macro', cor: '#2563eb', icone: Globe },
+    { key: 'proventos' as const, titulo: 'Proventos', cor: '#4cfa00', icone: DollarSign, isProvento: true },
+    { key: 'dividendos' as const, titulo: 'Dividendos', cor: '#22c55e', icone: Calendar },
+    { key: 'smallCaps' as const, titulo: 'Small Caps', cor: '#2563eb', icone: Building },
+    { key: 'microCaps' as const, titulo: 'Micro Caps', cor: '#ea580c', icone: Zap },
+    { key: 'exterior' as const, titulo: 'Exterior', cor: '#7c3aed', icone: TrendingUp }
+  ];
 
   return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      padding: '32px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-          ✨ Criar Nova Análise
-        </h3>
+    <div style={{ display: 'grid', gap: '24px' }}>
+      {/* Header com botão salvar */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0' }}>
+            {relatorioEditando ? '✏️ Editando Relatório' : '✨ Criar Novo Relatório'}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+            Relatório semanal organizado por seções
+          </p>
+        </div>
         
         <button
           onClick={handleSave}
@@ -777,775 +902,154 @@ const CriarAnaliseForm = memo(({ onSave }: { onSave: (analise: AnaliseTrimestreD
           }}
         >
           <Save size={16} />
-          {salvando ? 'Salvando...' : 'Salvar Análise'}
+          {salvando ? 'Salvando...' : 'Salvar Relatório'}
         </button>
       </div>
 
-      {/* Mesma estrutura de formulário do AnaliseCard, mas adaptada */}
-      <div style={{ display: 'grid', gap: '24px' }}>
-        {/* Seção 1: Informações Básicas */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Building size={18} />
-            Informações Básicas
-          </h5>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Ticker *
-              </label>
-              <input
-                type="text"
-                value={analise.ticker}
-                onChange={(e) => updateField('ticker', e.target.value.toUpperCase())}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  fontWeight: '600'
-                }}
-                placeholder="TUPY3"
-              />
-            </div>
+      {/* Informações básicas */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '20px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+      }}>
+        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FileText size={20} />
+          Informações Básicas
+        </h4>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Semana *
+            </label>
+            <input
+              type="text"
+              value={relatorio.semana}
+              onChange={(e) => updateField('semana', e.target.value)}
+              placeholder="2025-W03"
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+                fontWeight: '600'
+              }}
+            />
+          </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Empresa *
-              </label>
-              <input
-                type="text"
-                value={analise.empresa}
-                onChange={(e) => updateField('empresa', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Tupy S.A."
-              />
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Data de Publicação
+            </label>
+            <input
+              type="date"
+              value={relatorio.dataPublicacao}
+              onChange={(e) => updateField('dataPublicacao', e.target.value)}
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Trimestre
-              </label>
-              <input
-                type="text"
-                value={analise.trimestre}
-                onChange={(e) => updateField('trimestre', e.target.value.toUpperCase())}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="3T24"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Categoria
-              </label>
-              <select
-                value={analise.categoria}
-                onChange={(e) => updateField('categoria', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="resultado_trimestral">Resultado Trimestral</option>
-                <option value="analise_setorial">Análise Setorial</option>
-                <option value="tese_investimento">Tese de Investimento</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Data de Publicação
-              </label>
-              <input
-                type="date"
-                value={analise.dataPublicacao}
-                onChange={(e) => updateField('dataPublicacao', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Autor
-              </label>
-              <input
-                type="text"
-                value={analise.autor}
-                onChange={(e) => updateField('autor', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Seu Nome"
-              />
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Autor
+            </label>
+            <input
+              type="text"
+              value={relatorio.autor}
+              onChange={(e) => updateField('autor', e.target.value)}
+              placeholder="Seu Nome"
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
           </div>
         </div>
 
-        {/* Seção 2: Conteúdo */}
-        <div style={{
-          background: 'linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #fde68a'
-        }}>
-          <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#92400e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={18} />
-            Conteúdo da Análise
-          </h5>
-
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Título da Análise *
-              </label>
-              <input
-                type="text"
-                value={analise.titulo}
-                onChange={(e) => updateField('titulo', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="TUPY3 - 3T24: Avanços ofuscados por volumes fracos"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Resumo Executivo
-              </label>
-              <RichTextEditor
-                value={analise.resumoExecutivo}
-                onChange={(value) => updateField('resumoExecutivo', value)}
-                placeholder="Principais pontos do trimestre (3-4 bullets)..."
-                minHeight="150px"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Análise Completa
-              </label>
-              <RichTextEditor
-                value={analise.analiseCompleta}
-                onChange={(value) => updateField('analiseCompleta', value)}
-                placeholder="Análise detalhada dos resultados, contexto setorial, perspectivas..."
-                minHeight="200px"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Seção 3: Métricas do Trimestre */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-          padding: '24px',
-          borderRadius: '12px',
-          border: '1px solid #7dd3fc'
-        }}>
-          <h5 style={{ fontSize: '18px', fontWeight: '600', color: '#0c4a6e', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={20} />
-            Métricas do Trimestre
-          </h5>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            {/* Receita */}
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: '20px', 
-              borderRadius: '12px', 
+        <div style={{ marginTop: '16px' }}>
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+            Título do Relatório *
+          </label>
+          <input
+            type="text"
+            value={relatorio.titulo}
+            onChange={(e) => updateField('titulo', e.target.value)}
+            placeholder="Relatório Semanal - 3ª Semana de Janeiro de 2025"
+            style={{
+              width: '100%',
               border: '2px solid #e5e7eb',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <h6 style={{ 
-                fontSize: '16px', 
-                fontWeight: '600', 
-                color: '#059669', 
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                💰 Receita Líquida
-              </h6>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Valor
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="1200"
-                      value={analise.metricas.receita?.valor || ''}
-                      onChange={(e) => updateMetrica('receita', 'valor', parseFloat(e.target.value) || 0)}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Unidade
-                    </label>
-                    <select
-                      value={analise.metricas.receita?.unidade || 'milhões'}
-                      onChange={(e) => updateMetrica('receita', 'unidade', e.target.value)}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="milhões">R$ Mi</option>
-                      <option value="bilhões">R$ Bi</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                    Variação vs mesmo período ano anterior (%)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="-8.5"
-                    value={analise.metricas.receita?.variacao || ''}
-                    onChange={(e) => updateMetrica('receita', 'variacao', parseFloat(e.target.value))}
-                    style={{ 
-                      width: '100%',
-                      padding: '10px 12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px', 
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* EBITDA */}
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: '20px', 
-              borderRadius: '12px', 
-              border: '2px solid #e5e7eb',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <h6 style={{ 
-                fontSize: '16px', 
-                fontWeight: '600', 
-                color: '#0ea5e9', 
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                📊 EBITDA Ajustado
-              </h6>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Valor
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="180"
-                      value={analise.metricas.ebitda?.valor || ''}
-                      onChange={(e) => updateMetrica('ebitda', 'valor', parseFloat(e.target.value) || 0)}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Unidade
-                    </label>
-                    <select
-                      value={analise.metricas.ebitda?.unidade || 'milhões'}
-                      onChange={(e) => updateMetrica('ebitda', 'unidade', e.target.value)}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="milhões">R$ Mi</option>
-                      <option value="bilhões">R$ Bi</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Margem EBITDA (%)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="15.0"
-                      value={analise.metricas.ebitda?.margem || ''}
-                      onChange={(e) => updateMetrica('ebitda', 'margem', parseFloat(e.target.value))}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Variação (%)
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="131.6"
-                      value={analise.metricas.ebitda?.variacao || ''}
-                      onChange={(e) => updateMetrica('ebitda', 'variacao', parseFloat(e.target.value))}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Lucro Líquido */}
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: '20px', 
-              borderRadius: '12px', 
-              border: '2px solid #e5e7eb',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <h6 style={{ 
-                fontSize: '16px', 
-                fontWeight: '600', 
-                color: '#7c3aed', 
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                💎 Lucro Líquido
-              </h6>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Valor
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="45"
-                      value={analise.metricas.lucroLiquido?.valor || ''}
-                      onChange={(e) => updateMetrica('lucroLiquido', 'valor', parseFloat(e.target.value) || 0)}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                      Unidade
-                    </label>
-                    <select
-                      value={analise.metricas.lucroLiquido?.unidade || 'milhões'}
-                      onChange={(e) => updateMetrica('lucroLiquido', 'unidade', e.target.value)}
-                      style={{ 
-                        width: '100%',
-                        padding: '10px 12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px', 
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="milhões">R$ Mi</option>
-                      <option value="bilhões">R$ Bi</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                    Variação vs mesmo período ano anterior (%)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="-25.0"
-                    value={analise.metricas.lucroLiquido?.variacao || ''}
-                    onChange={(e) => updateMetrica('lucroLiquido', 'variacao', parseFloat(e.target.value))}
-                    style={{ 
-                      width: '100%',
-                      padding: '10px 12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px', 
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ROE */}
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: '20px', 
-              borderRadius: '12px', 
-              border: '2px solid #e5e7eb',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <h6 style={{ 
-                fontSize: '16px', 
-                fontWeight: '600', 
-                color: '#dc2626', 
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                🎯 ROE (Return on Equity)
-              </h6>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
-                    ROE do período (%)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="12.5"
-                    value={analise.metricas.roe?.valor || ''}
-                    onChange={(e) => updateMetrica('roe', 'valor', parseFloat(e.target.value) || 0)}
-                    style={{ 
-                      width: '100%',
-                      padding: '10px 12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px', 
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Seção 4: Análise Qualitativa */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #86efac'
-        }}>
-          <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} />
-            Análise Qualitativa
-          </h5>
-
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                ✅ Pontos Favoráveis
-              </label>
-              <RichTextEditor
-                value={analise.pontosFavoraveis}
-                onChange={(value) => updateField('pontosFavoraveis', value)}
-                placeholder="Aspectos positivos do resultado e perspectivas..."
-                minHeight="120px"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                ⚠️ Pontos de Atenção
-              </label>
-              <RichTextEditor
-                value={analise.pontosAtencao}
-                onChange={(value) => updateField('pontosAtencao', value)}
-                placeholder="Aspectos que merecem atenção e riscos..."
-                minHeight="120px"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Seção 5: Recomendação */}
-        <div style={{
-          background: 'linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #d8b4fe'
-        }}>
-          <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#7c2d12', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Target size={18} />
-            Recomendação de Investimento
-          </h5>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Recomendação
-              </label>
-              <select
-                value={analise.recomendacao}
-                onChange={(e) => updateField('recomendacao', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  fontWeight: '600'
-                }}
-              >
-                <option value="COMPRA">🟢 COMPRA</option>
-                <option value="MANTER">🟡 MANTER</option>
-                <option value="VENDA">🔴 VENDA</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Preço Alvo (R$)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={analise.precoAlvo || ''}
-                onChange={(e) => updateField('precoAlvo', parseFloat(e.target.value) || undefined)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="25.50"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Nível de Risco
-              </label>
-              <select
-                value={analise.risco}
-                onChange={(e) => updateField('risco', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="BAIXO">🟢 BAIXO</option>
-                <option value="MÉDIO">🟡 MÉDIO</option>
-                <option value="ALTO">🔴 ALTO</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Seção 6: Links Externos */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #cbd5e1'
-        }}>
-          <h5 style={{ fontSize: '16px', fontWeight: '600', color: '#475569', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ExternalLink size={18} />
-            Links e Materiais
-          </h5>
-
-          <div style={{ display: 'grid', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Link do Release de Resultados
-              </label>
-              <input
-                type="url"
-                value={analise.linkResultado || ''}
-                onChange={(e) => updateField('linkResultado', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="https://ri.tupy.com.br/resultados-trimestrais"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Link da Conference Call
-              </label>
-              <input
-                type="url"
-                value={analise.linkConferencia || ''}
-                onChange={(e) => updateField('linkConferencia', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-            </div>
-          </div>
+              borderRadius: '8px',
+              padding: '12px',
+              fontSize: '14px',
+              boxSizing: 'border-box'
+            }}
+          />
         </div>
       </div>
+
+      {/* Seções do relatório */}
+      {secoes.map((secao) => (
+        <SecaoEditor
+          key={secao.key}
+          titulo={secao.titulo}
+          items={relatorio[secao.key]}
+          onAddItem={() => addItem(secao.key)}
+          onUpdateItem={(index, item) => updateItem(secao.key, index, item)}
+          onRemoveItem={(index) => removeItem(secao.key, index)}
+          cor={secao.cor}
+          icone={secao.icone}
+          isProvento={secao.isProvento}
+        />
+      ))}
     </div>
   );
 });
 
-// 📋 COMPONENTE DE LISTA DE ANÁLISES PUBLICADAS
-const AnalisesPublicadas = memo(({ 
-  analises, 
+// 📋 COMPONENTE DE RELATÓRIOS PUBLICADOS
+const RelatoriosPublicados = memo(({ 
+  relatorios, 
   onEdit, 
   onUnpublish,
   onDelete 
 }: { 
-  analises: AnaliseTrimestreData[];
-  onEdit: (analise: AnaliseTrimestreData) => void;
+  relatorios: RelatorioSemanalData[];
+  onEdit: (relatorio: RelatorioSemanalData) => void;
   onUnpublish: (id: string) => void;
   onDelete: (id: string) => void;
 }) => {
-  const [filtroTicker, setFiltroTicker] = useState('');
-  const [filtroTrimestre, setFiltroTrimestre] = useState('');
+  const [filtroSemana, setFiltroSemana] = useState('');
 
-  const analisesPublicadas = analises.filter(a => a.status === 'published');
+  const relatoriosPublicados = relatorios.filter(r => r.status === 'published');
   
-  const analisesFiltradas = analisesPublicadas.filter(analise => {
-    const matchTicker = !filtroTicker || analise.ticker.toLowerCase().includes(filtroTicker.toLowerCase());
-    const matchTrimestre = !filtroTrimestre || analise.trimestre.toLowerCase().includes(filtroTrimestre.toLowerCase());
-    return matchTicker && matchTrimestre;
+  const relatoriosFiltrados = relatoriosPublicados.filter(relatorio => {
+    return !filtroSemana || relatorio.semana.toLowerCase().includes(filtroSemana.toLowerCase());
   });
 
-  // Agrupar por ticker
-  const analisesPorTicker = analisesFiltradas.reduce((acc, analise) => {
-    if (!acc[analise.ticker]) {
-      acc[analise.ticker] = [];
-    }
-    acc[analise.ticker].push(analise);
-    return acc;
-  }, {} as Record<string, AnaliseTrimestreData[]>);
-
-  const getBadgeRecomendacao = (recomendacao: string) => {
-    const cores = {
-      'COMPRA': { bg: '#dcfce7', color: '#166534', emoji: '🟢' },
-      'VENDA': { bg: '#fef2f2', color: '#dc2626', emoji: '🔴' },
-      'MANTER': { bg: '#fef3c7', color: '#92400e', emoji: '🟡' }
-    };
-    
-    const config = cores[recomendacao as keyof typeof cores] || cores.MANTER;
-    
-    return (
-      <span style={{
-        backgroundColor: config.bg,
-        color: config.color,
-        padding: '4px 12px',
-        borderRadius: '8px',
-        fontSize: '12px',
-        fontWeight: '700',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px'
-      }}>
-        {config.emoji} {recomendacao}
-      </span>
-    );
-  };
+  // Agrupar por semana e ordenar
+  const relatoriosPorSemana = relatoriosFiltrados
+    .sort((a, b) => b.semana.localeCompare(a.semana))
+    .reduce((acc, relatorio) => {
+      if (!acc[relatorio.semana]) {
+        acc[relatorio.semana] = [];
+      }
+      acc[relatorio.semana].push(relatorio);
+      return acc;
+    }, {} as Record<string, RelatorioSemanalData[]>);
 
   return (
     <div style={{ display: 'grid', gap: '24px' }}>
@@ -1565,33 +1069,13 @@ const AnalisesPublicadas = memo(({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Filtrar por Ticker
+              Filtrar por Semana
             </label>
             <input
               type="text"
-              value={filtroTicker}
-              onChange={(e) => setFiltroTicker(e.target.value)}
-              placeholder="Digite o ticker..."
-              style={{
-                width: '100%',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '12px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-          
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Filtrar por Trimestre
-            </label>
-            <input
-              type="text"
-              value={filtroTrimestre}
-              onChange={(e) => setFiltroTrimestre(e.target.value)}
-              placeholder="Ex: 3T24"
+              value={filtroSemana}
+              onChange={(e) => setFiltroSemana(e.target.value)}
+              placeholder="Ex: 2025-W03"
               style={{
                 width: '100%',
                 border: '2px solid #e5e7eb',
@@ -1605,10 +1089,7 @@ const AnalisesPublicadas = memo(({
           
           <div style={{ display: 'flex', alignItems: 'end' }}>
             <button
-              onClick={() => {
-                setFiltroTicker('');
-                setFiltroTrimestre('');
-              }}
+              onClick={() => setFiltroSemana('')}
               style={{
                 backgroundColor: '#f1f5f9',
                 color: '#64748b',
@@ -1626,12 +1107,12 @@ const AnalisesPublicadas = memo(({
         </div>
         
         <div style={{ marginTop: '16px', fontSize: '14px', color: '#64748b' }}>
-          Mostrando {analisesFiltradas.length} de {analisesPublicadas.length} análises publicadas
+          Mostrando {relatoriosFiltrados.length} de {relatoriosPublicados.length} relatórios publicados
         </div>
       </div>
 
-      {/* Lista de Análises Publicadas */}
-      {analisesFiltradas.length === 0 ? (
+      {/* Lista de Relatórios */}
+      {relatoriosFiltrados.length === 0 ? (
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
@@ -1642,25 +1123,25 @@ const AnalisesPublicadas = memo(({
         }}>
           <div style={{ fontSize: '64px', marginBottom: '16px' }}>📭</div>
           <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
-            {analisesPublicadas.length === 0 ? 'Nenhuma Análise Publicada' : 'Nenhuma análise corresponde aos filtros'}
+            {relatoriosPublicados.length === 0 ? 'Nenhum Relatório Publicado' : 'Nenhum relatório corresponde aos filtros'}
           </h3>
           <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '32px' }}>
-            {analisesPublicadas.length === 0 
-              ? 'Publique suas primeiras análises para vê-las aqui.'
-              : 'Tente ajustar os filtros para encontrar as análises desejadas.'
+            {relatoriosPublicados.length === 0 
+              ? 'Publique seus primeiros relatórios para vê-los aqui.'
+              : 'Tente ajustar os filtros para encontrar os relatórios desejados.'
             }
           </p>
         </div>
       ) : (
-        Object.entries(analisesPorTicker).map(([ticker, analisesDoTicker]) => (
-          <div key={ticker} style={{
+        Object.entries(relatoriosPorSemana).map(([semana, relatoriosDaSemana]) => (
+          <div key={semana} style={{
             backgroundColor: 'white',
             borderRadius: '16px',
             padding: '24px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
           }}>
-            {/* Header do ticker */}
+            {/* Header da semana */}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -1671,10 +1152,10 @@ const AnalisesPublicadas = memo(({
             }}>
               <div>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
-                  {ticker}
+                  Semana {semana}
                 </h3>
                 <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
-                  {analisesDoTicker[0]?.empresa} • {analisesDoTicker.length} análise{analisesDoTicker.length > 1 ? 's' : ''}
+                  {relatoriosDaSemana.length} relatório{relatoriosDaSemana.length > 1 ? 's' : ''}
                 </p>
               </div>
               
@@ -1687,96 +1168,57 @@ const AnalisesPublicadas = memo(({
                 fontWeight: '600',
                 border: '1px solid #7dd3fc'
               }}>
-                📊 {analisesDoTicker.length} análise{analisesDoTicker.length > 1 ? 's' : ''}
+                📅 {semana}
               </div>
             </div>
 
-            {/* Grid de análises */}
+            {/* Grid de relatórios */}
             <div style={{ display: 'grid', gap: '16px' }}>
-              {analisesDoTicker
-                .sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime())
-                .map((analise, index) => (
-                <div key={analise.id} style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  backgroundColor: index === 0 ? '#f8fafc' : 'white',
-                  position: 'relative'
-                }}>
-                  {index === 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '-8px',
-                      right: '16px',
-                      backgroundColor: '#22c55e',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}>
-                      🆕 MAIS RECENTE
-                    </div>
-                  )}
+              {relatoriosDaSemana.map((relatorio) => {
+                const totalItens = relatorio.macro.length + relatorio.proventos.length + 
+                  relatorio.dividendos.length + relatorio.smallCaps.length + 
+                  relatorio.microCaps.length + relatorio.exterior.length;
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-                          {analise.titulo}
+                return (
+                  <div key={relatorio.id} style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    backgroundColor: '#f8fafc'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: '0 0 8px 0' }}>
+                          {relatorio.titulo}
                         </h4>
-                        <span style={{
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: '600'
-                        }}>
-                          {analise.trimestre}
-                        </span>
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
-                        <span>📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
-                        <span>✍️ {analise.autor}</span>
-                        <span style={{
-                          backgroundColor: '#e2e8f0',
-                          color: '#64748b',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          {analise.categoria.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
+                          <span>📅 {new Date(relatorio.dataPublicacao).toLocaleDateString('pt-BR')}</span>
+                          <span>✍️ {relatorio.autor}</span>
+                          <span>📊 {totalItens} itens</span>
+                        </div>
 
-                      {/* Resumo */}
-                      {analise.resumoExecutivo && (
-                        <p style={{
-                          color: '#64748b',
-                          fontSize: '14px',
-                          lineHeight: '1.5',
-                          margin: '0 0 12px 0',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
-                        }}>
-                          {analise.resumoExecutivo.replace(/<[^>]*>/g, '')}
-                        </p>
-                      )}
-
-                      {/* Métricas resumidas */}
-                      {Object.keys(analise.metricas).length > 0 && (
+                        {/* Resumo das seções */}
                         <div style={{ 
                           display: 'flex', 
-                          gap: '12px', 
+                          gap: '8px', 
                           flexWrap: 'wrap',
                           marginTop: '12px'
                         }}>
-                          {analise.metricas.receita && (
+                          {relatorio.macro.length > 0 && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#dbeafe',
+                              color: '#1e40af',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Macro: {relatorio.macro.length}
+                            </span>
+                          )}
+                          
+                          {relatorio.proventos.length > 0 && (
                             <span style={{ 
                               fontSize: '12px',
                               backgroundColor: '#f0fdf4',
@@ -1785,119 +1227,117 @@ const AnalisesPublicadas = memo(({
                               borderRadius: '6px',
                               fontWeight: '600'
                             }}>
-                              Receita: R$ {analise.metricas.receita.valor.toFixed(1)} {analise.metricas.receita.unidade === 'bilhões' ? 'bi' : 'mi'}
+                              Proventos: {relatorio.proventos.length}
                             </span>
                           )}
-                          
-                          {analise.metricas.ebitda && (
+
+                          {relatorio.smallCaps.length > 0 && (
                             <span style={{ 
                               fontSize: '12px',
-                              backgroundColor: '#f0f9ff',
-                              color: '#0369a1',
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e',
                               padding: '4px 8px',
                               borderRadius: '6px',
                               fontWeight: '600'
                             }}>
-                              EBITDA: R$ {analise.metricas.ebitda.valor.toFixed(1)} {analise.metricas.ebitda.unidade === 'bilhões' ? 'bi' : 'mi'}
+                              Small Caps: {relatorio.smallCaps.length}
+                            </span>
+                          )}
+
+                          {relatorio.exterior.length > 0 && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#faf5ff',
+                              color: '#7c2d12',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Exterior: {relatorio.exterior.length}
                             </span>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </div>
 
-                    <div style={{ 
-                      textAlign: 'right',
-                      minWidth: '150px',
-                      marginLeft: '20px'
-                    }}>
-                      {/* Recomendação */}
-                      <div style={{ marginBottom: '12px' }}>
-                        {getBadgeRecomendacao(analise.recomendacao)}
-                      </div>
-                      
-                      {analise.precoAlvo && (
-                        <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                          Alvo: R$ {analise.precoAlvo.toFixed(2)}
+                      <div style={{ 
+                        textAlign: 'right',
+                        minWidth: '150px',
+                        marginLeft: '20px'
+                      }}>
+                        {/* Botões de ação */}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => onEdit(relatorio)}
+                            style={{
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                            title="Editar relatório"
+                          >
+                            <Edit size={14} />
+                            Editar
+                          </button>
+                          
+                          <button
+                            onClick={() => onUnpublish(relatorio.id!)}
+                            style={{
+                              backgroundColor: '#f59e0b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                            title="Despublicar (volta para rascunho)"
+                          >
+                            <Archive size={14} />
+                            Despublicar
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.')) {
+                                onDelete(relatorio.id!);
+                              }
+                            }}
+                            style={{
+                              backgroundColor: '#dc2626',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                            title="Excluir relatório"
+                          >
+                            <Trash2 size={14} />
+                            Excluir
+                          </button>
                         </div>
-                      )}
-                      
-                      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '16px' }}>
-                        Risco: {analise.risco}
-                      </div>
-                      
-                      {/* Botões de ação */}
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button
-                          onClick={() => onEdit(analise)}
-                          style={{
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontWeight: '600'
-                          }}
-                          title="Editar análise"
-                        >
-                          <Edit size={14} />
-                          Editar
-                        </button>
-                        
-                        <button
-                          onClick={() => onUnpublish(analise.id!)}
-                          style={{
-                            backgroundColor: '#f59e0b',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontWeight: '600'
-                          }}
-                          title="Despublicar (volta para rascunho)"
-                        >
-                          <Archive size={14} />
-                          Despublicar
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir esta análise? Esta ação não pode ser desfeita.')) {
-                              onDelete(analise.id!);
-                            }
-                          }}
-                          style={{
-                            backgroundColor: '#dc2626',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontWeight: '600'
-                          }}
-                          title="Excluir análise"
-                        >
-                          <Trash2 size={14} />
-                          Excluir
-                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))
@@ -1907,18 +1347,18 @@ const AnalisesPublicadas = memo(({
 });
 
 // 📝 COMPONENTE DE RASCUNHOS
-const RascunhosAnalises = memo(({ 
-  analises, 
+const RascunhosRelatorios = memo(({ 
+  relatorios, 
   onEdit, 
   onPublish,
   onDelete 
 }: { 
-  analises: AnaliseTrimestreData[];
-  onEdit: (analise: AnaliseTrimestreData) => void;
+  relatorios: RelatorioSemanalData[];
+  onEdit: (relatorio: RelatorioSemanalData) => void;
   onPublish: (id: string) => void;
   onDelete: (id: string) => void;
 }) => {
-  const rascunhos = analises.filter(a => a.status === 'draft');
+  const rascunhos = relatorios.filter(r => r.status === 'draft');
 
   return (
     <div style={{ display: 'grid', gap: '24px' }}>
@@ -1952,20 +1392,24 @@ const RascunhosAnalises = memo(({
           </h3>
 
           <div style={{ display: 'grid', gap: '16px' }}>
-            {rascunhos.map((analise) => (
-              <div key={analise.id} style={{
-                border: '1px solid #fde68a',
-                borderRadius: '12px',
-                padding: '20px',
-                backgroundColor: '#fefce8'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                      <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#92400e', margin: 0 }}>
-                        {analise.titulo || 'Título não definido'}
-                      </h4>
-                      {analise.ticker && (
+            {rascunhos.map((relatorio) => {
+              const totalItens = relatorio.macro.length + relatorio.proventos.length + 
+                relatorio.dividendos.length + relatorio.smallCaps.length + 
+                relatorio.microCaps.length + relatorio.exterior.length;
+
+              return (
+                <div key={relatorio.id} style={{
+                  border: '1px solid #fde68a',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  backgroundColor: '#fefce8'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                          {relatorio.titulo || 'Título não definido'}
+                        </h4>
                         <span style={{
                           backgroundColor: '#f59e0b',
                           color: 'white',
@@ -1974,89 +1418,88 @@ const RascunhosAnalises = memo(({
                           fontSize: '12px',
                           fontWeight: '600'
                         }}>
-                          {analise.ticker}
+                          {relatorio.semana}
                         </span>
-                      )}
+                      </div>
+                      
+                      <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '8px' }}>
+                        {relatorio.autor || 'Autor não definido'} • {totalItens} itens
+                      </div>
+                      
+                      <div style={{ fontSize: '12px', color: '#a16207' }}>
+                        Criado em: {new Date(relatorio.dataPublicacao).toLocaleDateString('pt-BR')}
+                      </div>
                     </div>
-                    
-                    <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '8px' }}>
-                      {analise.empresa || 'Empresa não definida'} 
-                      {analise.trimestre && ` • ${analise.trimestre}`}
-                    </div>
-                    
-                    <div style={{ fontSize: '12px', color: '#a16207' }}>
-                      Criado em: {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => onEdit(analise)}
-                      style={{
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      <Edit size={14} />
-                      Editar
-                    </button>
-                    
-                    <button
-                      onClick={() => onPublish(analise.id!)}
-                      style={{
-                        backgroundColor: '#22c55e',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      <Eye size={14} />
-                      Publicar
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (confirm('Tem certeza que deseja excluir este rascunho?')) {
-                          onDelete(analise.id!);
-                        }
-                      }}
-                      style={{
-                        backgroundColor: '#dc2626',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      Excluir
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => onEdit(relatorio)}
+                        style={{
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Edit size={14} />
+                        Editar
+                      </button>
+                      
+                      <button
+                        onClick={() => onPublish(relatorio.id!)}
+                        style={{
+                          backgroundColor: '#22c55e',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Eye size={14} />
+                        Publicar
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir este rascunho?')) {
+                            onDelete(relatorio.id!);
+                          }
+                        }}
+                        style={{
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        Excluir
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -2064,50 +1507,50 @@ const RascunhosAnalises = memo(({
   );
 });
 
-// 🏠 COMPONENTE PRINCIPAL COM ABAS
-const AdminAnalisesTrimesestrais = () => {
-  const [analises, setAnalises] = useState<AnaliseTrimestreData[]>([]);
-  const [activeTab, setActiveTab] = useState<'criar' | 'publicadas' | 'rascunhos'>('criar');
+// 🏠 COMPONENTE PRINCIPAL
+const AdminRelatorioSemanal = () => {
+  const [relatorios, setRelatorios] = useState<RelatorioSemanalData[]>([]);
+  const [activeTab, setActiveTab] = useState<'criar' | 'publicados' | 'rascunhos'>('criar');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [analiseEditando, setAnaliseEditando] = useState<AnaliseTrimestreData | null>(null);
+  const [relatorioEditando, setRelatorioEditando] = useState<RelatorioSemanalData | null>(null);
 
-  // 📚 CARREGAR ANÁLISES DO INDEXEDDB
+  // 📚 CARREGAR RELATÓRIOS DO INDEXEDDB
   useEffect(() => {
-    const loadAnalises = async () => {
+    const loadRelatorios = async () => {
       try {
-        console.log('🔄 Carregando análises do IndexedDB...');
+        console.log('🔄 Carregando relatórios semanais do IndexedDB...');
         
-        const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
+        const request = indexedDB.open('RelatoriosSemanaisDB', 1);
         
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
-          if (!db.objectStoreNames.contains('analises')) {
-            const store = db.createObjectStore('analises', { keyPath: 'id' });
-            store.createIndex('ticker', 'ticker', { unique: false });
-            store.createIndex('trimestre', 'trimestre', { unique: false });
+          if (!db.objectStoreNames.contains('relatorios')) {
+            const store = db.createObjectStore('relatorios', { keyPath: 'id' });
+            store.createIndex('semana', 'semana', { unique: false });
             store.createIndex('dataPublicacao', 'dataPublicacao', { unique: false });
-            console.log('✅ Object store "analises" criado');
+            store.createIndex('status', 'status', { unique: false });
+            console.log('✅ Object store "relatorios" criado');
           }
         };
         
         request.onsuccess = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
-          const transaction = db.transaction(['analises'], 'readonly');
-          const store = transaction.objectStore('analises');
+          const transaction = db.transaction(['relatorios'], 'readonly');
+          const store = transaction.objectStore('relatorios');
           const getAllRequest = store.getAll();
           
           getAllRequest.onsuccess = () => {
-            const analisesSalvas = getAllRequest.result || [];
-            console.log(`✅ ${analisesSalvas.length} análises carregadas do IndexedDB`);
-            setAnalises(analisesSalvas);
+            const relatoriosSalvos = getAllRequest.result || [];
+            console.log(`✅ ${relatoriosSalvos.length} relatórios carregados do IndexedDB`);
+            setRelatorios(relatoriosSalvos);
             setLoading(false);
           };
           
           getAllRequest.onerror = () => {
-            console.error('❌ Erro ao carregar análises do IndexedDB');
-            setError('Erro ao carregar análises');
+            console.error('❌ Erro ao carregar relatórios do IndexedDB');
+            setError('Erro ao carregar relatórios');
             setLoading(false);
           };
         };
@@ -2119,47 +1562,46 @@ const AdminAnalisesTrimesestrais = () => {
         };
         
       } catch (error) {
-        console.error('❌ Erro geral ao carregar análises:', error);
-        setError('Erro ao carregar análises');
+        console.error('❌ Erro geral ao carregar relatórios:', error);
+        setError('Erro ao carregar relatórios');
         setLoading(false);
       }
     };
     
-    loadAnalises();
+    loadRelatorios();
   }, []);
 
-  // 💾 SALVAR ANÁLISE
-  const saveAnalise = useCallback(async (analise: AnaliseTrimestreData) => {
+  // 💾 SALVAR RELATÓRIO
+  const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
     setSaving(true);
     setError(null);
     
     try {
-      console.log('💾 Salvando análise no IndexedDB...', analise);
+      console.log('💾 Salvando relatório no IndexedDB...', relatorio);
       
-      const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
+      const request = indexedDB.open('RelatoriosSemanaisDB', 1);
       
       request.onsuccess = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        const transaction = db.transaction(['analises'], 'readwrite');
-        const store = transaction.objectStore('analises');
+        const transaction = db.transaction(['relatorios'], 'readwrite');
+        const store = transaction.objectStore('relatorios');
         
-        // Se é uma nova análise ou edição
-        const putRequest = store.put(analise);
+        const putRequest = store.put(relatorio);
         
         putRequest.onsuccess = () => {
-          console.log('✅ Análise salva no IndexedDB');
+          console.log('✅ Relatório salvo no IndexedDB');
           
           // Atualizar estado local
-          setAnalises(prev => {
-            const existing = prev.find(a => a.id === analise.id);
+          setRelatorios(prev => {
+            const existing = prev.find(r => r.id === relatorio.id);
             if (existing) {
-              return prev.map(a => a.id === analise.id ? analise : a);
+              return prev.map(r => r.id === relatorio.id ? relatorio : r);
             } else {
-              return [...prev, analise];
+              return [...prev, relatorio];
             }
           });
           
-          setAnaliseEditando(null);
+          setRelatorioEditando(null);
         };
         
         putRequest.onerror = () => {
@@ -2180,41 +1622,41 @@ const AdminAnalisesTrimesestrais = () => {
     }
   }, []);
 
-  // 📤 PUBLICAR ANÁLISE
-  const publishAnalise = useCallback(async (id: string) => {
-    const analise = analises.find(a => a.id === id);
-    if (!analise) return;
+  // 📤 PUBLICAR RELATÓRIO
+  const publishRelatorio = useCallback(async (id: string) => {
+    const relatorio = relatorios.find(r => r.id === id);
+    if (!relatorio) return;
     
-    const analisePublicada = { ...analise, status: 'published' as const };
-    await saveAnalise(analisePublicada);
-  }, [analises, saveAnalise]);
+    const relatorioPublicado = { ...relatorio, status: 'published' as const };
+    await saveRelatorio(relatorioPublicado);
+  }, [relatorios, saveRelatorio]);
 
-  // 📥 DESPUBLICAR ANÁLISE
-  const unpublishAnalise = useCallback(async (id: string) => {
-    const analise = analises.find(a => a.id === id);
-    if (!analise) return;
+  // 📥 DESPUBLICAR RELATÓRIO
+  const unpublishRelatorio = useCallback(async (id: string) => {
+    const relatorio = relatorios.find(r => r.id === id);
+    if (!relatorio) return;
     
-    const analiseRascunho = { ...analise, status: 'draft' as const };
-    await saveAnalise(analiseRascunho);
-  }, [analises, saveAnalise]);
+    const relatorioRascunho = { ...relatorio, status: 'draft' as const };
+    await saveRelatorio(relatorioRascunho);
+  }, [relatorios, saveRelatorio]);
 
-  // 🗑️ DELETAR ANÁLISE
-  const deleteAnalise = useCallback(async (id: string) => {
+  // 🗑️ DELETAR RELATÓRIO
+  const deleteRelatorio = useCallback(async (id: string) => {
     setSaving(true);
     
     try {
-      const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
+      const request = indexedDB.open('RelatoriosSemanaisDB', 1);
       
       request.onsuccess = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        const transaction = db.transaction(['analises'], 'readwrite');
-        const store = transaction.objectStore('analises');
+        const transaction = db.transaction(['relatorios'], 'readwrite');
+        const store = transaction.objectStore('relatorios');
         
         const deleteRequest = store.delete(id);
         
         deleteRequest.onsuccess = () => {
-          setAnalises(prev => prev.filter(a => a.id !== id));
-          console.log('✅ Análise excluída');
+          setRelatorios(prev => prev.filter(r => r.id !== id));
+          console.log('✅ Relatório excluído');
         };
       };
       
@@ -2225,15 +1667,15 @@ const AdminAnalisesTrimesestrais = () => {
     }
   }, []);
 
-  // ✏️ EDITAR ANÁLISE
-  const editAnalise = useCallback((analise: AnaliseTrimestreData) => {
-    setAnaliseEditando(analise);
+  // ✏️ EDITAR RELATÓRIO
+  const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
+    setRelatorioEditando(relatorio);
     setActiveTab('criar');
   }, []);
 
-  const totalAnalises = analises.length;
-  const analisesDraft = analises.filter(a => a.status === 'draft').length;
-  const analisesPublicadas = analises.filter(a => a.status === 'published').length;
+  const totalRelatorios = relatorios.length;
+  const relatoriosDraft = relatorios.filter(r => r.status === 'draft').length;
+  const relatoriosPublicados = relatorios.filter(r => r.status === 'published').length;
 
   if (loading) {
     return (
@@ -2241,7 +1683,7 @@ const AdminAnalisesTrimesestrais = () => {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
           <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>
-            Carregando análises...
+            Carregando relatórios...
           </h2>
         </div>
       </div>
@@ -2254,7 +1696,7 @@ const AdminAnalisesTrimesestrais = () => {
       <div style={{ 
         background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
         color: 'white',
-        borderBottom: '4px solid #3b82f6'
+        borderBottom: '4px solid #22c55e'
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2263,19 +1705,19 @@ const AdminAnalisesTrimesestrais = () => {
                 width: '60px',
                 height: '60px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <PieChart size={28} style={{ color: 'white' }} />
+                <Calendar size={28} style={{ color: 'white' }} />
               </div>
               <div>
                 <h1 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 4px 0' }}>
-                  Análises Trimestrais
+                  Relatórios Semanais
                 </h1>
                 <p style={{ color: '#94a3b8', margin: 0, fontSize: '16px' }}>
-                  Central de Análises de Resultados - Fatos da Bolsa
+                  Central de Relatórios Semanais - Fatos da Bolsa
                 </p>
               </div>
             </div>
@@ -2289,8 +1731,8 @@ const AdminAnalisesTrimesestrais = () => {
                 textAlign: 'center',
                 minWidth: '100px'
               }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>
-                  {totalAnalises}
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#22c55e' }}>
+                  {totalRelatorios}
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8' }}>Total</div>
               </div>
@@ -2303,7 +1745,7 @@ const AdminAnalisesTrimesestrais = () => {
                 minWidth: '100px'
               }}>
                 <div style={{ fontSize: '24px', fontWeight: '700', color: '#fbbf24' }}>
-                  {analisesDraft}
+                  {relatoriosDraft}
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8' }}>Rascunhos</div>
               </div>
@@ -2315,10 +1757,10 @@ const AdminAnalisesTrimesestrais = () => {
                 textAlign: 'center',
                 minWidth: '100px'
               }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#22c55e' }}>
-                  {analisesPublicadas}
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
+                  {relatoriosPublicados}
                 </div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Publicadas</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Publicados</div>
               </div>
             </div>
           </div>
@@ -2352,7 +1794,7 @@ const AdminAnalisesTrimesestrais = () => {
                 fontSize: '16px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                borderBottom: activeTab === 'criar' ? '3px solid #3b82f6' : '3px solid transparent',
+                borderBottom: activeTab === 'criar' ? '3px solid #22c55e' : '3px solid transparent',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -2361,8 +1803,8 @@ const AdminAnalisesTrimesestrais = () => {
               }}
             >
               <Plus size={20} />
-              {analiseEditando ? 'Editar Análise' : 'Criar Análises'}
-              {analiseEditando && (
+              {relatorioEditando ? 'Editar Relatório' : 'Criar Relatórios'}
+              {relatorioEditando && (
                 <span style={{
                   backgroundColor: '#f59e0b',
                   color: 'white',
@@ -2376,17 +1818,17 @@ const AdminAnalisesTrimesestrais = () => {
             </button>
             
             <button
-              onClick={() => setActiveTab('publicadas')}
+              onClick={() => setActiveTab('publicados')}
               style={{
                 flex: 1,
                 padding: '20px 24px',
                 border: 'none',
-                backgroundColor: activeTab === 'publicadas' ? 'white' : 'transparent',
-                color: activeTab === 'publicadas' ? '#1e293b' : '#64748b',
+                backgroundColor: activeTab === 'publicados' ? 'white' : 'transparent',
+                color: activeTab === 'publicados' ? '#1e293b' : '#64748b',
                 fontSize: '16px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                borderBottom: activeTab === 'publicadas' ? '3px solid #3b82f6' : '3px solid transparent',
+                borderBottom: activeTab === 'publicados' ? '3px solid #22c55e' : '3px solid transparent',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -2395,7 +1837,7 @@ const AdminAnalisesTrimesestrais = () => {
               }}
             >
               <Eye size={20} />
-              Publicadas ({analisesPublicadas})
+              Publicados ({relatoriosPublicados})
             </button>
             
             <button
@@ -2409,7 +1851,7 @@ const AdminAnalisesTrimesestrais = () => {
                 fontSize: '16px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                borderBottom: activeTab === 'rascunhos' ? '3px solid #3b82f6' : '3px solid transparent',
+                borderBottom: activeTab === 'rascunhos' ? '3px solid #22c55e' : '3px solid transparent',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -2418,14 +1860,14 @@ const AdminAnalisesTrimesestrais = () => {
               }}
             >
               <FileText size={20} />
-              Rascunhos ({analisesDraft})
+              Rascunhos ({relatoriosDraft})
             </button>
           </div>
 
           {/* Tab Content */}
           <div style={{ padding: '32px' }}>
             {activeTab === 'criar' && (
-              analiseEditando ? (
+              relatorioEditando ? (
                 <div>
                   <div style={{
                     backgroundColor: '#fef3c7',
@@ -2435,13 +1877,13 @@ const AdminAnalisesTrimesestrais = () => {
                     marginBottom: '24px'
                   }}>
                     <h4 style={{ margin: '0 0 8px 0', color: '#92400e', fontSize: '16px', fontWeight: '600' }}>
-                      ✏️ Editando Análise
+                      ✏️ Editando Relatório
                     </h4>
                     <p style={{ margin: 0, color: '#92400e', fontSize: '14px' }}>
-                      Você está editando: <strong>{analiseEditando.titulo || analiseEditando.ticker}</strong>
+                      Você está editando: <strong>{relatorioEditando.titulo || relatorioEditando.semana}</strong>
                     </p>
                     <button
-                      onClick={() => setAnaliseEditando(null)}
+                      onClick={() => setRelatorioEditando(null)}
                       style={{
                         marginTop: '12px',
                         backgroundColor: '#6b7280',
@@ -2456,28 +1898,28 @@ const AdminAnalisesTrimesestrais = () => {
                       Cancelar Edição
                     </button>
                   </div>
-                  <CriarAnaliseForm onSave={saveAnalise} />
+                  <CriarRelatorioForm onSave={saveRelatorio} relatorioEditando={relatorioEditando} />
                 </div>
               ) : (
-                <CriarAnaliseForm onSave={saveAnalise} />
+                <CriarRelatorioForm onSave={saveRelatorio} />
               )
             )}
             
-            {activeTab === 'publicadas' && (
-              <AnalisesPublicadas 
-                analises={analises}
-                onEdit={editAnalise}
-                onUnpublish={unpublishAnalise}
-                onDelete={deleteAnalise}
+            {activeTab === 'publicados' && (
+              <RelatoriosPublicados 
+                relatorios={relatorios}
+                onEdit={editRelatorio}
+                onUnpublish={unpublishRelatorio}
+                onDelete={deleteRelatorio}
               />
             )}
             
             {activeTab === 'rascunhos' && (
-              <RascunhosAnalises 
-                analises={analises}
-                onEdit={editAnalise}
-                onPublish={publishAnalise}
-                onDelete={deleteAnalise}
+              <RascunhosRelatorios 
+                relatorios={relatorios}
+                onEdit={editRelatorio}
+                onPublish={publishRelatorio}
+                onDelete={deleteRelatorio}
               />
             )}
           </div>
@@ -2501,50 +1943,50 @@ const AdminAnalisesTrimesestrais = () => {
 
         {/* Instrução Final */}
         <div style={{
-          backgroundColor: '#f0f9ff',
+          backgroundColor: '#f0fdf4',
           borderRadius: '16px',
           padding: '32px',
-          border: '1px solid #7dd3fc'
+          border: '1px solid #86efac'
         }}>
-          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#0c4a6e', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#15803d', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={24} />
-            Sistema de Análises Trimestrais
+            Sistema de Relatórios Semanais
           </h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
             <div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
                 ✨ Criar
               </h4>
               <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Formulário limpo para novas análises</li>
-                <li>Rich Text Editor com imagens</li>
-                <li>Métricas financeiras detalhadas</li>
-                <li>Salva automaticamente como rascunho</li>
+                <li>Formulário organizado por seções</li>
+                <li>Macro, Proventos, Small Caps, Exterior</li>
+                <li>Rich Text Editor para análises</li>
+                <li>Organização automática por semana</li>
               </ul>
             </div>
             
             <div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '12px' }}>
-                📋 Publicadas
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
+                📋 Publicados
               </h4>
               <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Todas as análises já publicadas</li>
-                <li>Opção de editar análises publicadas</li>
-                <li>Despublicar (volta para rascunho)</li>
-                <li>Filtros por ticker e trimestre</li>
+                <li>Relatórios organizados por semana</li>
+                <li>Visualização de todas as seções</li>
+                <li>Editar relatórios publicados</li>
+                <li>Filtros por período</li>
               </ul>
             </div>
             
             <div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#0c4a6e', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
                 📝 Rascunhos
               </h4>
               <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Análises ainda não publicadas</li>
-                <li>Continuar editando antes de publicar</li>
-                <li>Publicar quando estiver pronto</li>
-                <li>Excluir rascunhos desnecessários</li>
+                <li>Relatórios ainda não publicados</li>
+                <li>Continuar editando seções</li>
+                <li>Publicar quando estiver completo</li>
+                <li>Gerenciar trabalho em progresso</li>
               </ul>
             </div>
           </div>
@@ -2552,13 +1994,26 @@ const AdminAnalisesTrimesestrais = () => {
           <div style={{
             marginTop: '24px',
             padding: '16px',
-            backgroundColor: '#dbeafe',
+            backgroundColor: '#dcfce7',
             borderRadius: '8px',
-            border: '1px solid #93c5fd'
+            border: '1px solid #86efac'
           }}>
-            <p style={{ margin: 0, color: '#1e40af', fontSize: '14px', fontWeight: '500' }}>
-              💡 <strong>Novo Fluxo:</strong> Crie → Edite nos Rascunhos → Publique → Gerencie nas Publicadas. 
-              Análises publicadas aparecem automaticamente nas páginas dos ativos correspondentes!
+            <p style={{ margin: 0, color: '#166534', fontSize: '14px', fontWeight: '500' }}>
+              💡 <strong>Fluxo Semanal:</strong> Crie um novo relatório da semana → Adicione itens em cada seção → 
+              Publique quando estiver pronto → Os relatórios ficam organizados automaticamente por semana no banco de dados local!
+            </p>
+          </div>
+          
+          <div style={{
+            marginTop: '16px',
+            padding: '16px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '8px',
+            border: '1px solid #fde68a'
+          }}>
+            <p style={{ margin: 0, color: '#92400e', fontSize: '14px', fontWeight: '500' }}>
+              🗂️ <strong>Organização:</strong> Cada relatório é identificado pela semana (ex: 2025-W03) e contém 
+              seções específicas para Macro, Proventos, Small Caps, Micro Caps e Exterior. Você tem controle total sobre o conteúdo!
             </p>
           </div>
         </div>
@@ -2567,4 +2022,4 @@ const AdminAnalisesTrimesestrais = () => {
   );
 };
 
-export default AdminAnalisesTrimesestrais;
+export default AdminRelatorioSemanal;
