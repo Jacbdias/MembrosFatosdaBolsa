@@ -50,7 +50,7 @@ export function SideNav(): React.JSX.Element {
             ...info,
             userEmail,
             pages: info.isAdmin 
-              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal'] // 🆕 NOVO: admin-relatorio-semanal
+              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimestrais'] // 🆕 NOVO: admin-analises-trimestrais
               : (info.pages || [])
           };
           
@@ -123,11 +123,18 @@ export function SideNav(): React.JSX.Element {
       return isRenovacoesAdmin;
     }
 
-    // 📋 NOVA: VERIFICAÇÃO PARA RELATÓRIO SEMANAL ADMIN
+    // 📋 VERIFICAÇÃO PARA RELATÓRIO SEMANAL ADMIN
     if (page === 'admin-relatorio-semanal') {
       const isRelatorioAdmin = planInfo.isAdmin;
       console.log(`📋 Verificando acesso Relatório Semanal Admin para ${planInfo.userEmail}: ${isRelatorioAdmin}`);
       return isRelatorioAdmin;
+    }
+
+    // 📊 NOVA: VERIFICAÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
+    if (page === 'admin-analises-trimestrais') {
+      const isAnalisesTrimesestraisAdmin = planInfo.isAdmin;
+      console.log(`📊 Verificando acesso Análises Trimestrais Admin para ${planInfo.userEmail}: ${isAnalisesTrimesestraisAdmin}`);
+      return isAnalisesTrimesestraisAdmin;
     }
     
     // 🛡️ VERIFICAÇÃO ESPECIAL PARA PÁGINAS ADMINISTRATIVAS

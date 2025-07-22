@@ -94,7 +94,7 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-relatorio-semanal', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 🆕 NOVO: admin-relatorio-semanal
+            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 🆕 NOVO: admin-analises-trimestrais
           ]
         };
 
@@ -162,7 +162,7 @@ export function useAuthAccess() {
       return false;
     }
 
-    // Admin sempre tem acesso (incluindo Instagram, Renovações e Relatório Semanal Admin)
+    // Admin sempre tem acesso (incluindo Instagram, Renovações, Relatório Semanal e Análises Trimestrais Admin)
     if (user.plan === 'ADMIN') {
       console.log('✅ Admin - acesso liberado para:', page);
       return true;
@@ -182,11 +182,18 @@ export function useAuthAccess() {
       return isRenovacoesAdmin;
     }
 
-    // 📋 NOVA: Verificação específica para Relatório Semanal Admin
+    // 📋 Verificação específica para Relatório Semanal Admin
     if (page === 'admin-relatorio-semanal') {
       const isRelatorioAdmin = user.plan === 'ADMIN';
       console.log(`📋 Verificando acesso Relatório Semanal Admin para ${user.email}:`, isRelatorioAdmin);
       return isRelatorioAdmin;
+    }
+
+    // 📊 NOVA: Verificação específica para Análises Trimestrais Admin
+    if (page === 'admin-analises-trimestrais') {
+      const isAnalisesTrimesestraisAdmin = user.plan === 'ADMIN';
+      console.log(`📊 Verificando acesso Análises Trimestrais Admin para ${user.email}:`, isAnalisesTrimesestraisAdmin);
+      return isAnalisesTrimesestraisAdmin;
     }
 
     // 📋 GARANTIR acesso ao relatório semanal para todos os usuários logados
@@ -250,7 +257,7 @@ export function useAuthAccess() {
     return isRenovacoesAdmin;
   };
 
-  // 📋 NOVA: Função para verificar acesso ao Relatório Semanal Admin
+  // 📋 Função para verificar acesso ao Relatório Semanal Admin
   const hasRelatorioSemanalAdminAccess = (): boolean => {
     if (!user) {
       console.log('❌ Usuário não logado - sem acesso Relatório Semanal Admin');
@@ -263,6 +270,19 @@ export function useAuthAccess() {
     return isRelatorioAdmin;
   };
 
+  // 📊 NOVA: Função para verificar acesso às Análises Trimestrais Admin
+  const hasAnalisesTrimesestraisAdminAccess = (): boolean => {
+    if (!user) {
+      console.log('❌ Usuário não logado - sem acesso Análises Trimestrais Admin');
+      return false;
+    }
+
+    const isAnalisesTrimesestraisAdmin = user.plan === 'ADMIN';
+    console.log(`📊 Verificando acesso Análises Trimestrais Admin para ${user.email}:`, isAnalisesTrimesestraisAdmin);
+    
+    return isAnalisesTrimesestraisAdmin;
+  };
+
   return {
     planInfo,
     loading,
@@ -270,7 +290,8 @@ export function useAuthAccess() {
     hasContentAccess, // Nova função para conteúdos específicos
     hasInstagramAdminAccess, // 📱 FUNÇÃO PARA INSTAGRAM
     hasRenovacoesAdminAccess, // 📊 FUNÇÃO PARA RENOVAÇÕES
-    hasRelatorioSemanalAdminAccess, // 📋 NOVA FUNÇÃO PARA RELATÓRIO SEMANAL ADMIN
+    hasRelatorioSemanalAdminAccess, // 📋 FUNÇÃO PARA RELATÓRIO SEMANAL ADMIN
+    hasAnalisesTrimesestraisAdminAccess, // 📊 NOVA FUNÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
     user,
     debugInfo: {
       userPlan: user?.plan,
@@ -279,7 +300,8 @@ export function useAuthAccess() {
       isAdmin: user?.plan === 'ADMIN',
       hasInstagramAccess: user?.plan === 'ADMIN' || user?.email === 'jacbdias@gmail.com', // 📱 DEBUG INFO
       hasRenovacoesAccess: user?.plan === 'ADMIN', // 📊 DEBUG INFO RENOVAÇÕES
-      hasRelatorioSemanalAdminAccess: user?.plan === 'ADMIN' // 📋 DEBUG INFO RELATÓRIO SEMANAL ADMIN
+      hasRelatorioSemanalAdminAccess: user?.plan === 'ADMIN', // 📋 DEBUG INFO RELATÓRIO SEMANAL ADMIN
+      hasAnalisesTrimesestraisAdminAccess: user?.plan === 'ADMIN' // 📊 DEBUG INFO ANÁLISES TRIMESTRAIS ADMIN
     }
   };
 }
