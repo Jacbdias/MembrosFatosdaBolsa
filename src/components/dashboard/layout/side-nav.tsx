@@ -50,7 +50,7 @@ export function SideNav(): React.JSX.Element {
             ...info,
             userEmail,
             pages: info.isAdmin 
-              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimestrais'] // 🆕 NOVO: admin-analises-trimestrais
+              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais'] // 🆕 NOVO: admin-analises-trimesestrais
               : (info.pages || [])
           };
           
@@ -131,7 +131,7 @@ export function SideNav(): React.JSX.Element {
     }
 
     // 📊 NOVA: VERIFICAÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
-    if (page === 'admin-analises-trimestrais') {
+    if (page === 'admin-analises-trimesestrais') {
       const isAnalisesTrimesestraisAdmin = planInfo.isAdmin;
       console.log(`📊 Verificando acesso Análises Trimestrais Admin para ${planInfo.userEmail}: ${isAnalisesTrimesestraisAdmin}`);
       return isAnalisesTrimesestraisAdmin;
