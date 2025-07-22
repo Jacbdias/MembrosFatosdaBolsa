@@ -676,9 +676,6 @@ function useSmallCapsIntegradas() {
       setLoading(true);
       setError(null);
 
-   // 🚨 ALERT PARA TESTE - ADICIONE AQUI:
-    alert(`DEVICE TEST: ${navigator.userAgent.includes('Mobile') ? 'MOBILE' : 'DESKTOP'} - Screen: ${window.innerWidth}x${window.innerHeight}`);
-
       console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
       console.log('📋 Ativos do DataStore:', smallCapsData);
 
@@ -719,10 +716,6 @@ function useSmallCapsIntegradas() {
             if (data.results && data.results.length > 0) {
               const quote = data.results[0];
               if (quote.regularMarketPrice) {
-
-              // 🚨 ALERT PARA CADA AÇÃO - ADICIONE AQUI:
-              alert(`${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
-              
                 cotacoesMap.set(ticker, {
                   precoAtual: quote.regularMarketPrice,
                   variacao: quote.regularMarketChange || 0,
@@ -754,10 +747,6 @@ function useSmallCapsIntegradas() {
         
         if (cotacao && cotacao.precoAtual > 0) {
           const precoAtualNum = cotacao.precoAtual;
-
-  // 🚨 ALERT PARA DEBUG - ADICIONE AQUI:
-  alert(`${ativo.ticker} - API: ${cotacao.precoAtual} | Final: ${precoAtualNum}`);
-
           const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
           
           // 💰 CALCULAR PROVENTOS DO PERÍODO
@@ -853,25 +842,6 @@ function useSmallCapsIntegradas() {
 }
 
 export default function SmallCapsPage() {
-
-  // 🌐 ADICIONE ESTE CÓDIGO NO INÍCIO DO COMPONENTE:
-  React.useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      console.log('🌐 FETCH INTERCEPTED:', args[0]);
-      return originalFetch.apply(this, args)
-        .then(response => {
-          console.log('📥 RESPONSE:', response.url, response.status);
-          return response;
-        });
-    };
-
-    // Cleanup
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, []);
-
   const { dados } = useDataStore();
   const { ativosAtualizados, cotacoesAtualizadas, setCotacoesAtualizadas, loading } = useSmallCapsIntegradas();
   const { smllData } = useSmllRealTime();

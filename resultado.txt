@@ -1,0 +1,32 @@
+src\app\dashboard\ativo\[ticker]\page.tsx:            flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+src\app\dashboard\ativo\[ticker]\page.tsx:            alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start'
+src\app\dashboard\ativo\[ticker]\page.tsx:              size={window.innerWidth <= 768 ? 100 : 120}
+src\app\dashboard\ativo\[ticker]\page.tsx:              textAlign: window.innerWidth <= 768 ? 'center' : 'left',
+src\app\dashboard\ativo\[ticker]\page.tsx:                flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+src\app\dashboard\ativo\[ticker]\page.tsx:                alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start',
+src\app\dashboard\ativo\[ticker]\page.tsx:                  fontSize: window.innerWidth <= 768 ? '2rem' : '2.5rem', 
+src\app\dashboard\ativo\[ticker]\page.tsx:                fontSize: window.innerWidth <= 768 ? '1.1rem' : '1.25rem', 
+src\app\dashboard\ativo\[ticker]\page.tsx:              textAlign: window.innerWidth <= 768 ? 'center' : 'right',
+src\app\dashboard\ativo\[ticker]\page.tsx:              minWidth: window.innerWidth <= 768 ? 'auto' : '200px'
+src\app\dashboard\ativo\[ticker]\page.tsx:                    fontSize: window.innerWidth <= 768 ? '2.5rem' : '3rem', 
+src\app\dashboard\ativo\[ticker]\page.tsx:                    fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
+src\app\dashboard\ativo\[ticker]\page.tsx:                    justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
+src\app\dashboard\empresa\[ticker]\page.tsx:         window.innerWidth <= 768;
+src\app\dashboard\empresa\[ticker]\page.tsx:            • Viewport: {window.innerWidth}x{window.innerHeight}<br/>
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:              flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:              alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start'
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                width: window.innerWidth <= 768 ? '100px' : '120px',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                height: window.innerWidth <= 768 ? '100px' : '120px',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                  fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem'
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                textAlign: window.innerWidth <= 768 ? 'center' : 'left',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                  flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                  alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                    fontSize: window.innerWidth <= 768 ? '2rem' : '2.5rem', 
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                  fontSize: window.innerWidth <= 768 ? '1.1rem' : '1.25rem', 
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                textAlign: window.innerWidth <= 768 ? 'center' : 'right',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                minWidth: window.innerWidth <= 768 ? 'auto' : '200px'
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                      fontSize: window.innerWidth <= 768 ? '2.5rem' : '3rem', 
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                        fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                        justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
+src\app\dashboard\empresa-exterior\[ticker]\page.tsx:              gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(4, 1fr)', 
+src\app\dashboard\overview\page.tsx:    alert(`DEVICE TEST: ${navigator.userAgent.includes('Mobile') ? 'MOBILE' : 'DESKTOP'} - Screen: ${window.innerWidth}x${window.innerHeight}`);
