@@ -1774,7 +1774,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           color: '#1e293b',
           margin: '0 0 20px 0'
         }}>
-          📋 Relatórios da Empresa
+         Relatórios da Empresa
         </h3>
 
         {relatorios.length === 0 ? (

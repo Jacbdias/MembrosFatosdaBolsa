@@ -537,7 +537,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           alignItems: 'center',
           gap: '8px'
         }}>
-          📊 Análises Trimestrais
+         Análises Trimestrais
         </h3>
         
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
