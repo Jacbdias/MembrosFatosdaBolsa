@@ -133,71 +133,71 @@ const HTMLContentStyles = () => (
   `}</style>
 );
 
-// Header com design elegante
+// Header otimizado - reduzido em altura mas mantendo elegância
 const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: string }) => (
   <div style={{
     background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2d2d2d 75%, #1a1a1a 100%)',
     color: 'white',
-    padding: '80px 40px 100px',
+    padding: '40px 30px 50px',
     textAlign: 'center',
     position: 'relative',
     overflow: 'hidden',
-    minHeight: '600px',
+    minHeight: '400px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
   }}>
-    {/* Pattern de fundo mais sofisticado */}
+    {/* Pattern de fundo mais sutil */}
     <div style={{
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundImage: `radial-gradient(circle at 25% 25%, rgba(76, 250, 0, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 75% 75%, rgba(76, 250, 0, 0.05) 0%, transparent 50%),
-                        linear-gradient(45deg, transparent 40%, rgba(76, 250, 0, 0.02) 50%, transparent 60%)`,
-      opacity: 0.8
+      backgroundImage: `radial-gradient(circle at 25% 25%, rgba(76, 250, 0, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 75% 75%, rgba(76, 250, 0, 0.04) 0%, transparent 50%),
+                        linear-gradient(45deg, transparent 40%, rgba(76, 250, 0, 0.015) 50%, transparent 60%)`,
+      opacity: 0.7
     }} />
     
-    {/* Elementos decorativos */}
+    {/* Elementos decorativos reduzidos */}
     <div style={{
       position: 'absolute',
-      top: '20px',
-      right: '20px',
-      width: '200px',
-      height: '200px',
-      border: '1px solid rgba(76, 250, 0, 0.1)',
+      top: '15px',
+      right: '15px',
+      width: '120px',
+      height: '120px',
+      border: '1px solid rgba(76, 250, 0, 0.08)',
       borderRadius: '50%',
       transform: 'rotate(45deg)'
     }} />
     
     <div style={{
       position: 'absolute',
-      bottom: '20px',
-      left: '20px',
-      width: '150px',
-      height: '150px',
-      border: '1px solid rgba(255, 255, 255, 0.05)',
+      bottom: '15px',
+      left: '15px',
+      width: '100px',
+      height: '100px',
+      border: '1px solid rgba(255, 255, 255, 0.04)',
       borderRadius: '50%'
     }} />
     
-    <div style={{ position: 'relative', zIndex: 10, maxWidth: '900px', margin: '0 auto' }}>
-      {/* Badge do plano mais elegante */}
+    <div style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto' }}>
+      {/* Badge do plano mais compacto */}
       {planName && (
         <div style={{
           background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
           color: '#000000',
-          padding: '12px 24px',
-          borderRadius: '30px',
+          padding: '8px 20px',
+          borderRadius: '25px',
           display: 'inline-block',
-          fontSize: '13px',
+          fontSize: '12px',
           fontWeight: '800',
-          marginBottom: '30px',
+          marginBottom: '20px',
           textTransform: 'uppercase',
-          letterSpacing: '1.5px',
-          boxShadow: '0 8px 25px rgba(76, 250, 0, 0.3)',
-          border: '1px solid rgba(76, 250, 0, 0.5)',
+          letterSpacing: '1.2px',
+          boxShadow: '0 6px 20px rgba(76, 250, 0, 0.25)',
+          border: '1px solid rgba(76, 250, 0, 0.4)',
           position: 'relative'
         }}>
           <div style={{
@@ -206,54 +206,54 @@ const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: stri
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
-            borderRadius: '30px'
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)',
+            borderRadius: '25px'
           }} />
           <span style={{ position: 'relative', zIndex: 1 }}>{planName}</span>
         </div>
       )}
       
-      {/* Subtítulo mais refinado */}
+      {/* Subtítulo mais compacto */}
       <div style={{ 
-        marginBottom: '25px',
+        marginBottom: '20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '20px'
+        gap: '15px'
       }}>
         <div style={{
           height: '1px',
-          width: '60px',
+          width: '50px',
           background: 'linear-gradient(90deg, transparent, #4cfa00, transparent)'
         }} />
         <span style={{
-          fontSize: '14px',
+          fontSize: '13px',
           fontWeight: '600',
-          letterSpacing: '3px',
+          letterSpacing: '2.5px',
           textTransform: 'uppercase',
           color: '#4cfa00',
-          textShadow: '0 0 20px rgba(76, 250, 0, 0.5)'
+          textShadow: '0 0 15px rgba(76, 250, 0, 0.4)'
         }}>
           AÇÕES BRASILEIRAS • EXTERIOR
         </span>
         <div style={{
           height: '1px',
-          width: '60px',
+          width: '50px',
           background: 'linear-gradient(90deg, transparent, #4cfa00, transparent)'
         }} />
       </div>
       
-      {/* Título principal mais impactante */}
+      {/* Título principal mais compacto */}
       <h1 style={{
-        fontSize: 'clamp(36px, 6vw, 64px)',
+        fontSize: 'clamp(28px, 5vw, 48px)',
         fontWeight: '900',
-        margin: '0 0 20px 0',
+        margin: '0 0 15px 0',
         lineHeight: '1.1',
         background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
-        textShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+        textShadow: '0 3px 15px rgba(0, 0, 0, 0.25)'
       }}>
         Relatório de<br/>
         <span style={{
@@ -261,25 +261,25 @@ const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: stri
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
-          textShadow: '0 0 30px rgba(76, 250, 0, 0.5)'
+          textShadow: '0 0 25px rgba(76, 250, 0, 0.4)'
         }}>
           ATUALIZAÇÃO
         </span>
       </h1>
       
-      {/* Data com design mais sofisticado */}
+      {/* Data mais compacta */}
       <div style={{
-        margin: '40px 0',
+        margin: '25px 0',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '15px'
+        gap: '10px'
       }}>
         <div style={{
-          fontSize: 'clamp(28px, 4vw, 42px)',
+          fontSize: 'clamp(22px, 3.5vw, 32px)',
           fontWeight: '800',
           textTransform: 'uppercase',
-          letterSpacing: '4px',
+          letterSpacing: '3px',
           background: 'linear-gradient(135deg, #ffffff 0%, #cccccc 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -289,57 +289,57 @@ const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: stri
         </div>
         
         <div style={{
-          fontSize: '18px',
+          fontSize: '16px',
           color: '#a3a3a3',
           fontWeight: '500',
-          padding: '8px 20px',
-          borderRadius: '25px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          padding: '6px 16px',
+          borderRadius: '20px',
+          background: 'rgba(255, 255, 255, 0.04)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           {relatorio?.date ? new Date(relatorio.date).toLocaleDateString('pt-BR') : '...'}
         </div>
       </div>
       
-      {/* Logo mais elegante */}
+      {/* Logo mais compacto */}
       <div style={{
-        marginTop: '50px',
+        marginTop: '30px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '15px'
+        gap: '12px'
       }}>
         <div style={{
-          width: '70px',
-          height: '70px',
+          width: '55px',
+          height: '55px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(76, 250, 0, 0.2) 0%, rgba(76, 250, 0, 0.05) 100%)',
+          background: 'linear-gradient(135deg, rgba(76, 250, 0, 0.15) 0%, rgba(76, 250, 0, 0.04) 100%)',
           border: '2px solid #4cfa00',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 0 30px rgba(76, 250, 0, 0.3), inset 0 0 20px rgba(76, 250, 0, 0.1)',
+          boxShadow: '0 0 20px rgba(76, 250, 0, 0.25), inset 0 0 15px rgba(76, 250, 0, 0.08)',
           position: 'relative'
         }}>
           {/* Efeito de brilho interno */}
           <div style={{
             position: 'absolute',
-            top: '8px',
-            left: '8px',
-            right: '8px',
-            bottom: '8px',
+            top: '6px',
+            left: '6px',
+            right: '6px',
+            bottom: '6px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)'
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)'
           }} />
-          <BarChart3 size={32} style={{ color: '#4cfa00', position: 'relative', zIndex: 1 }} />
+          <BarChart3 size={26} style={{ color: '#4cfa00', position: 'relative', zIndex: 1 }} />
         </div>
         
         <div style={{
-          fontSize: '16px',
+          fontSize: '15px',
           fontWeight: '800',
           textAlign: 'left',
-          letterSpacing: '1px'
+          letterSpacing: '0.8px'
         }}>
           <div style={{
             background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
@@ -360,24 +360,24 @@ const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: stri
         </div>
       </div>
       
-      {/* Indicador de scroll sutil */}
+      {/* Indicador de scroll mais sutil */}
       <div style={{
         position: 'absolute',
-        bottom: '30px',
+        bottom: '20px',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: '12px',
+        gap: '6px',
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: '11px',
         fontWeight: '500'
       }}>
         <span>Role para ver o relatório</span>
         <div style={{
           width: '2px',
-          height: '20px',
+          height: '16px',
           background: 'linear-gradient(180deg, #4cfa00, transparent)',
           borderRadius: '1px',
           animation: 'pulse 2s infinite'
