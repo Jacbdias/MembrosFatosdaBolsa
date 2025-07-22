@@ -22,13 +22,14 @@ export const paths = {
     // 🛡️ ROTAS ADMINISTRATIVAS
     admin: '/dashboard/admin',
     adminUsuarios: '/dashboard/admin/usuarios',
-    adminRenovacoes: '/dashboard/admin/renovacoes', // 📊 ADICIONAR ESTA LINHA!
-    adminIntegracoesPlatformas: '/dashboard/admin/integracoes', // 🔗 INTEGRAÇÕES COMPLETAS
+    adminRenovacoes: '/dashboard/admin/renovacoes',
+    adminIntegracoesPlatformas: '/dashboard/admin/integracoes',
     adminEmpresas: '/dashboard/gerenciamento',
     adminProventos: '/dashboard/central-proventos',
     adminRelatorios: '/dashboard/central-relatorios',
-    // 🆕 NOVO: Admin do Relatório Semanal
     adminRelatorioSemanal: '/dashboard/admin/relatorio-semanal',
+    // 🆕 NOVO: Análises Trimestrais
+    adminAnalisesTrimesestrais: '/dashboard/admin/analises-trimestrais',
     adminIntegracoes: '/dashboard/central-agenda',
     adminSettings: '/dashboard/admin/settings',
     adminLogs: '/dashboard/admin/logs',

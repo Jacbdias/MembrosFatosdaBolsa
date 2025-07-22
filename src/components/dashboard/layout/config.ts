@@ -7,7 +7,7 @@ export const navItems = [
   { 
     key: 'relatorio-semanal', 
     title: 'Relatório Semanal', 
-    href: paths.dashboard.relatorioSemanal, // Você precisa adicionar este path
+    href: paths.dashboard.relatorioSemanal,
     icon: 'document-text',
     page: 'relatorio-semanal'
   },
@@ -226,8 +226,16 @@ export const navItems = [
         key: 'admin-relatorio-semanal',
         title: 'Relatório Semanal',
         href: paths.dashboard.admin + '/relatorio-semanal',
-        icon: 'document-text', // ou 'clipboard-document', 'newspaper'
+        icon: 'document-text',
         page: 'admin-relatorio-semanal'
+      },
+      // 🆕 NOVO ITEM: Análises Trimestrais
+      {
+        key: 'admin-analises-trimestrais',
+        title: 'Análises Trimestrais',
+        href: paths.dashboard.admin + '/analises-trimestrais',
+        icon: 'chart-line', // ou 'calendar', 'article'
+        page: 'admin-analises-trimestrais'
       },
       {
         key: 'admin-integracoes-agenda',
