@@ -1,46 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3, Lock, ChevronLeft, ChevronRight, ChevronDown, Clock, Archive } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3, Lock } from 'lucide-react';
 import { useAuthAccess } from '@/hooks/use-auth-access';
-
-// 🎯 INTERFACES COMPATÍVEIS COM ARQUIVO 2
-interface ItemRelatorioSemanal {
-  ticker: string;
-  empresa: string;
-  titulo: string;
-  resumo: string;
-  analise: string;
-  recomendacao?: 'COMPRA' | 'VENDA' | 'MANTER';
-  impacto?: 'positivo' | 'negativo' | 'neutro';
-  precoAlvo?: number;
-  destaque?: string;
-}
-
-interface ProventoItem {
-  ticker: string;
-  empresa: string;
-  tipo: 'Dividendo' | 'JCP' | 'Bonificação';
-  valor: string;
-  dy: string;
-  datacom: string;
-  pagamento: string;
-}
-
-interface RelatorioSemanalData {
-  id?: string;
-  semana: string;
-  dataPublicacao: string;
-  autor: string;
-  titulo: string;
-  macro: ItemRelatorioSemanal[];
-  proventos: ProventoItem[];
-  dividendos: ItemRelatorioSemanal[];
-  smallCaps: ItemRelatorioSemanal[];
-  microCaps: ItemRelatorioSemanal[];
-  exterior: ItemRelatorioSemanal[];
-  status: 'draft' | 'published';
-}
 
 // Componente para renderizar HTML formatado com segurança
 interface HTMLContentProps {
@@ -56,13 +18,15 @@ const HTMLContent: React.FC<HTMLContentProps> = ({
 }) => {
   if (!content) return null;
 
+  // Sanitizar e limpar o HTML (básico)
   const sanitizeHTML = (html: string) => {
+    // Remove scripts e outros elementos perigosos
     return html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-      .replace(/on\w+="[^"]*"/gi, '')
-      .replace(/on\w+='[^']*'/gi, '')
-      .replace(/javascript:/gi, '');
+      .replace(/on\w+="[^"]*"/gi, '') // remove event handlers
+      .replace(/on\w+='[^']*'/gi, '') // remove event handlers
+      .replace(/javascript:/gi, ''); // remove javascript: urls
   };
 
   const cleanContent = sanitizeHTML(content);
@@ -87,604 +51,343 @@ const HTMLContentStyles = () => (
     .html-content {
       word-wrap: break-word;
     }
+    
     .html-content p {
       margin: 0 0 12px 0;
     }
+    
     .html-content strong, .html-content b {
       font-weight: 700;
       color: #1f2937;
     }
+    
     .html-content em, .html-content i {
       font-style: italic;
     }
+    
     .html-content u {
       text-decoration: underline;
     }
+    
     .html-content strike, .html-content s {
       text-decoration: line-through;
     }
+    
     .html-content a {
       color: #2563eb;
       text-decoration: underline;
       transition: color 0.2s;
     }
+    
     .html-content a:hover {
       color: #1d4ed8;
     }
+    
     .html-content ul, .html-content ol {
       margin: 12px 0;
       padding-left: 24px;
     }
+    
     .html-content li {
       margin: 6px 0;
     }
+    
     .html-content ul li {
       list-style-type: disc;
     }
+    
     .html-content ol li {
       list-style-type: decimal;
     }
+    
+    .html-content div[style*="text-align: center"] {
+      text-align: center;
+    }
+    
+    .html-content div[style*="text-align: right"] {
+      text-align: right;
+    }
+    
+    .html-content div[style*="text-align: left"] {
+      text-align: left;
+    }
+    
+    /* Tamanhos de fonte */
+    .html-content font[size="1"] {
+      font-size: 12px;
+    }
+    
+    .html-content font[size="3"] {
+      font-size: 16px;
+    }
+    
+    .html-content font[size="5"] {
+      font-size: 20px;
+    }
+    
+    .html-content font[size="7"] {
+      font-size: 24px;
+    }
+    
+    /* Cores personalizadas são mantidas via style inline */
   `}</style>
 );
 
-// 🎯 COMPONENTE DE NAVEGAÇÃO POR SEMANAS
-const WeekNavigation = ({ 
-  semanaAtual, 
-  semanasDisponiveis, 
-  onSemanaChange,
-  loading 
-}: {
-  semanaAtual: string;
-  semanasDisponiveis: string[];
-  onSemanaChange: (semana: string) => void;
-  loading: boolean;
-}) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  
-  const indiceSemanaAtual = semanasDisponiveis.indexOf(semanaAtual);
-  const podeVoltar = indiceSemanaAtual < semanasDisponiveis.length - 1;
-  const podeAvancar = indiceSemanaAtual > 0;
-
-  const navegarAnterior = () => {
-    if (podeVoltar) {
-      onSemanaChange(semanasDisponiveis[indiceSemanaAtual + 1]);
-    }
-  };
-
-  const navegarProxima = () => {
-    if (podeAvancar) {
-      onSemanaChange(semanasDisponiveis[indiceSemanaAtual - 1]);
-    }
-  };
-
-  const formatarSemanaCompleta = (semana: string) => {
-    if (!semana) return { titulo: 'Carregando...', periodo: '' };
-    const [ano, week] = semana.split('-W');
-    const semanaNum = parseInt(week);
-    const dataInicio = new Date(parseInt(ano), 0, 1 + (semanaNum - 1) * 7);
-    const dataFim = new Date(dataInicio.getTime() + 6 * 24 * 60 * 60 * 1000);
+// Header otimizado - reduzido em altura mas mantendo elegância
+const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: string }) => (
+  <div style={{
+    background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2d2d2d 75%, #1a1a1a 100%)',
+    color: 'white',
+    padding: '40px 30px 50px',
+    textAlign: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: '400px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}>
+    {/* Pattern de fundo mais sutil */}
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundImage: `radial-gradient(circle at 25% 25%, rgba(76, 250, 0, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 75% 75%, rgba(76, 250, 0, 0.04) 0%, transparent 50%),
+                        linear-gradient(45deg, transparent 40%, rgba(76, 250, 0, 0.015) 50%, transparent 60%)`,
+      opacity: 0.7
+    }} />
     
-    return {
-      titulo: `${week}ª Semana de ${ano}`,
-      periodo: `${dataInicio.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} a ${dataFim.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
-    };
-  };
-
-  if (loading) {
-    return (
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '24px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        marginBottom: '32px',
-        textAlign: 'center'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '3px solid #e5e7eb',
-          borderTop: '3px solid #4cfa00',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto 16px'
-        }} />
-        <p style={{ color: '#6b7280', fontSize: '16px', margin: 0 }}>
-          Carregando semanas disponíveis...
-        </p>
-      </div>
-    );
-  }
-
-  if (semanasDisponiveis.length === 0) {
-    return (
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '32px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        marginBottom: '32px',
-        textAlign: 'center',
-        border: '2px dashed #e5e7eb'
-      }}>
-        <Archive size={48} style={{ color: '#9ca3af', margin: '0 auto 16px' }} />
-        <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
-          Nenhum Relatório Disponível
-        </h3>
-        <p style={{ color: '#6b7280', fontSize: '16px', margin: 0 }}>
-          Ainda não há relatórios semanais publicados.
-        </p>
-      </div>
-    );
-  }
-
-  const semanaInfo = formatarSemanaCompleta(semanaAtual);
-
-  return (
+    {/* Elementos decorativos reduzidos */}
     <div style={{
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      padding: '24px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-      marginBottom: '32px',
-      border: '1px solid #e5e7eb'
-    }}>
-      {/* Header da Navegação */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Calendar size={24} style={{ color: 'white' }} />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', margin: '0 0 4px 0' }}>
-              Navegação de Relatórios
-            </h2>
-            <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-              {semanasDisponiveis.length} semana{semanasDisponiveis.length > 1 ? 's' : ''} disponível{semanasDisponiveis.length > 1 ? 'is' : ''}
-            </p>
-          </div>
-        </div>
-
-        <div style={{
-          backgroundColor: '#f0fdf4',
-          color: '#166534',
-          padding: '8px 16px',
-          borderRadius: '12px',
-          fontSize: '14px',
-          fontWeight: '600',
-          border: '1px solid #86efac'
-        }}>
-          {indiceSemanaAtual + 1} de {semanasDisponiveis.length}
-        </div>
-      </div>
-
-      {/* Navegação Principal */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'auto 1fr auto',
-        gap: '16px',
-        alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        borderRadius: '12px',
-        padding: '16px'
-      }}>
-        {/* Botão Anterior */}
-        <button
-          onClick={navegarAnterior}
-          disabled={!podeVoltar}
-          style={{
-            backgroundColor: podeVoltar ? '#3b82f6' : '#e5e7eb',
-            color: podeVoltar ? 'white' : '#9ca3af',
-            border: 'none',
-            borderRadius: '10px',
-            padding: '12px',
-            cursor: podeVoltar ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            boxShadow: podeVoltar ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
-          }}
-          title="Semana anterior"
-        >
-          <ChevronLeft size={20} />
-        </button>
-
-        {/* Seletor de Semana */}
-        <div style={{ position: 'relative', textAlign: 'center' }}>
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            style={{
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              borderRadius: '12px',
-              padding: '16px 20px',
-              width: '100%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              transition: 'all 0.2s',
-              boxShadow: dropdownOpen ? '0 4px 12px rgba(0, 0, 0, 0.1)' : '0 2px 4px rgba(0, 0, 0, 0.05)'
-            }}
-          >
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', marginBottom: '2px' }}>
-                {semanaInfo.titulo}
-              </div>
-              <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                {semanaInfo.periodo}
-              </div>
-            </div>
-            <ChevronDown 
-              size={18} 
-              style={{ 
-                color: '#6b7280',
-                transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s'
-              }} 
-            />
-          </button>
-
-          {/* Dropdown de Semanas */}
-          {dropdownOpen && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: '8px',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-              border: '1px solid #e5e7eb',
-              zIndex: 1000,
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}>
-              <div style={{ padding: '8px' }}>
-                <div style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  padding: '8px 12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Selecionar Semana
-                </div>
-                {semanasDisponiveis.map((semana) => {
-                  const info = formatarSemanaCompleta(semana);
-                  const isAtual = semana === semanaAtual;
-                  
-                  return (
-                    <button
-                      key={semana}
-                      onClick={() => {
-                        onSemanaChange(semana);
-                        setDropdownOpen(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '12px',
-                        backgroundColor: isAtual ? '#f0fdf4' : 'transparent',
-                        border: isAtual ? '1px solid #86efac' : '1px solid transparent',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '4px',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div>
-                        <div style={{ 
-                          fontSize: '14px', 
-                          fontWeight: isAtual ? '600' : '500', 
-                          color: isAtual ? '#166534' : '#1f2937',
-                          marginBottom: '2px'
-                        }}>
-                          {info.titulo}
-                        </div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: isAtual ? '#16a34a' : '#6b7280'
-                        }}>
-                          {info.periodo}
-                        </div>
-                      </div>
-                      {isAtual && (
-                        <div style={{
-                          backgroundColor: '#22c55e',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          textTransform: 'uppercase'
-                        }}>
-                          Atual
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Botão Próxima */}
-        <button
-          onClick={navegarProxima}
-          disabled={!podeAvancar}
-          style={{
-            backgroundColor: podeAvancar ? '#3b82f6' : '#e5e7eb',
-            color: podeAvancar ? 'white' : '#9ca3af',
-            border: 'none',
-            borderRadius: '10px',
-            padding: '12px',
-            cursor: podeAvancar ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            boxShadow: podeAvancar ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
-          }}
-          title="Próxima semana"
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
-      {/* Informações Adicionais */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '16px',
-        padding: '12px 16px',
-        backgroundColor: '#f1f5f9',
-        borderRadius: '8px',
-        fontSize: '13px',
-        color: '#64748b'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Clock size={14} />
-          Histórico disponível
-        </div>
-        <div>
-          Use as setas ou clique na semana para navegar
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Header com informações da semana
-const ReportHeader = ({ relatorio, planName }: { relatorio: RelatorioSemanalData | null; planName?: string }) => {
-  if (!relatorio) {
-    return (
-      <div style={{
-        background: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
-        color: 'white',
-        padding: '60px 30px',
-        textAlign: 'center',
-        minHeight: '300px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div>
-          <AlertCircle size={64} style={{ color: '#f59e0b', marginBottom: '20px' }} />
-          <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px' }}>
-            Selecione uma Semana
-          </h1>
-          <p style={{ fontSize: '16px', color: '#d1d5db' }}>
-            Use a navegação acima para escolher um relatório semanal
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const formatarSemana = (semana: string) => {
-    const [ano, week] = semana.split('-W');
-    return {
-      semana: `${week}ª Semana`,
-      ano: ano,
-      mes: new Date(parseInt(ano), 0, 1 + (parseInt(week) - 1) * 7).toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()
-    };
-  };
-
-  const semanaInfo = formatarSemana(relatorio.semana);
-
-  return (
+      position: 'absolute',
+      top: '15px',
+      right: '15px',
+      width: '120px',
+      height: '120px',
+      border: '1px solid rgba(76, 250, 0, 0.08)',
+      borderRadius: '50%',
+      transform: 'rotate(45deg)'
+    }} />
+    
     <div style={{
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2d2d2d 75%, #1a1a1a 100%)',
-      color: 'white',
-      padding: '40px 30px 50px',
-      textAlign: 'center',
-      position: 'relative',
-      overflow: 'hidden',
-      minHeight: '400px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      {/* Pattern de fundo */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: `radial-gradient(circle at 25% 25%, rgba(76, 250, 0, 0.08) 0%, transparent 50%),
-                          radial-gradient(circle at 75% 75%, rgba(76, 250, 0, 0.04) 0%, transparent 50%)`,
-        opacity: 0.7
-      }} />
-      
-      <div style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto' }}>
-        {/* Badge do plano */}
-        {planName && (
-          <div style={{
-            background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
-            color: '#000000',
-            padding: '8px 20px',
-            borderRadius: '25px',
-            display: 'inline-block',
-            fontSize: '12px',
-            fontWeight: '800',
-            marginBottom: '20px',
-            textTransform: 'uppercase',
-            letterSpacing: '1.2px',
-            boxShadow: '0 6px 20px rgba(76, 250, 0, 0.25)'
-          }}>
-            {planName}
-          </div>
-        )}
-        
-        {/* Subtítulo */}
-        <div style={{ 
+      position: 'absolute',
+      bottom: '15px',
+      left: '15px',
+      width: '100px',
+      height: '100px',
+      border: '1px solid rgba(255, 255, 255, 0.04)',
+      borderRadius: '50%'
+    }} />
+    
+    <div style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto' }}>
+      {/* Badge do plano mais compacto */}
+      {planName && (
+        <div style={{
+          background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
+          color: '#000000',
+          padding: '8px 20px',
+          borderRadius: '25px',
+          display: 'inline-block',
+          fontSize: '12px',
+          fontWeight: '800',
           marginBottom: '20px',
+          textTransform: 'uppercase',
+          letterSpacing: '1.2px',
+          boxShadow: '0 6px 20px rgba(76, 250, 0, 0.25)',
+          border: '1px solid rgba(76, 250, 0, 0.4)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)',
+            borderRadius: '25px'
+          }} />
+          <span style={{ position: 'relative', zIndex: 1 }}>{planName}</span>
+        </div>
+      )}
+      
+      {/* Subtítulo mais compacto */}
+      <div style={{ 
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '15px'
+      }}>
+        <div style={{
+          height: '1px',
+          width: '50px',
+          background: 'linear-gradient(90deg, transparent, #4cfa00, transparent)'
+        }} />
+        <span style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          letterSpacing: '2.5px',
+          textTransform: 'uppercase',
+          color: '#4cfa00',
+          textShadow: '0 0 15px rgba(76, 250, 0, 0.4)'
+        }}>
+          AÇÕES BRASILEIRAS • EXTERIOR
+        </span>
+        <div style={{
+          height: '1px',
+          width: '50px',
+          background: 'linear-gradient(90deg, transparent, #4cfa00, transparent)'
+        }} />
+      </div>
+      
+      {/* Título principal mais compacto */}
+      <h1 style={{
+        fontSize: 'clamp(28px, 5vw, 48px)',
+        fontWeight: '900',
+        margin: '0 0 15px 0',
+        lineHeight: '1.1',
+        background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        textShadow: '0 3px 15px rgba(0, 0, 0, 0.25)'
+      }}>
+        Relatório de<br/>
+        <span style={{
+          background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          textShadow: '0 0 25px rgba(76, 250, 0, 0.4)'
+        }}>
+          ATUALIZAÇÃO
+        </span>
+      </h1>
+      
+      {/* Data mais compacta */}
+      <div style={{
+        margin: '25px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <div style={{
+          fontSize: 'clamp(22px, 3.5vw, 32px)',
+          fontWeight: '800',
+          textTransform: 'uppercase',
+          letterSpacing: '3px',
+          background: 'linear-gradient(135deg, #ffffff 0%, #cccccc 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>
+          {relatorio?.date ? new Date(relatorio.date).toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase() : 'CARREGANDO...'}
+        </div>
+        
+        <div style={{
+          fontSize: '16px',
+          color: '#a3a3a3',
+          fontWeight: '500',
+          padding: '6px 16px',
+          borderRadius: '20px',
+          background: 'rgba(255, 255, 255, 0.04)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          {relatorio?.date ? new Date(relatorio.date).toLocaleDateString('pt-BR') : '...'}
+        </div>
+      </div>
+      
+      {/* Logo mais compacto */}
+      <div style={{
+        marginTop: '30px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px'
+      }}>
+        <div style={{
+          width: '55px',
+          height: '55px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(76, 250, 0, 0.15) 0%, rgba(76, 250, 0, 0.04) 100%)',
+          border: '2px solid #4cfa00',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '15px'
+          boxShadow: '0 0 20px rgba(76, 250, 0, 0.25), inset 0 0 15px rgba(76, 250, 0, 0.08)',
+          position: 'relative'
         }}>
+          {/* Efeito de brilho interno */}
           <div style={{
-            height: '1px',
-            width: '50px',
-            background: 'linear-gradient(90deg, transparent, #4cfa00, transparent)'
+            position: 'absolute',
+            top: '6px',
+            left: '6px',
+            right: '6px',
+            bottom: '6px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)'
           }} />
-          <span style={{
-            fontSize: '13px',
-            fontWeight: '600',
-            letterSpacing: '2.5px',
-            textTransform: 'uppercase',
-            color: '#4cfa00'
-          }}>
-            {relatorio.semana} • AÇÕES BRASILEIRAS • EXTERIOR
-          </span>
-          <div style={{
-            height: '1px',
-            width: '50px',
-            background: 'linear-gradient(90deg, transparent, #4cfa00, transparent)'
-          }} />
+          <BarChart3 size={26} style={{ color: '#4cfa00', position: 'relative', zIndex: 1 }} />
         </div>
         
-        {/* Título principal */}
-        <h1 style={{
-          fontSize: 'clamp(28px, 5vw, 48px)',
-          fontWeight: '900',
-          margin: '0 0 15px 0',
-          lineHeight: '1.1',
-          background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>
-          {relatorio.titulo || `Relatório Semanal`}
-        </h1>
-        
-        {/* Data */}
         <div style={{
-          margin: '25px 0',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '10px'
+          fontSize: '15px',
+          fontWeight: '800',
+          textAlign: 'left',
+          letterSpacing: '0.8px'
         }}>
           <div style={{
-            fontSize: 'clamp(22px, 3.5vw, 32px)',
-            fontWeight: '800',
-            textTransform: 'uppercase',
-            letterSpacing: '3px',
+            background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            FATOS
+          </div>
+          <div style={{
             background: 'linear-gradient(135deg, #ffffff 0%, #cccccc 100%)',
             WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
           }}>
-            {semanaInfo.semana}
-          </div>
-          
-          <div style={{
-            fontSize: '16px',
-            color: '#a3a3a3',
-            fontWeight: '500',
-            padding: '6px 16px',
-            borderRadius: '20px',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
-          }}>
-            {semanaInfo.mes} de {semanaInfo.ano}
-          </div>
-        </div>
-        
-        {/* Logo */}
-        <div style={{
-          marginTop: '30px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px'
-        }}>
-          <div style={{
-            width: '55px',
-            height: '55px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(76, 250, 0, 0.15) 0%, rgba(76, 250, 0, 0.04) 100%)',
-            border: '2px solid #4cfa00',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(76, 250, 0, 0.25)'
-          }}>
-            <BarChart3 size={26} style={{ color: '#4cfa00' }} />
-          </div>
-          
-          <div style={{
-            fontSize: '15px',
-            fontWeight: '800',
-            textAlign: 'left',
-            letterSpacing: '0.8px'
-          }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #4cfa00 0%, #45e000 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              FATOS
-            </div>
-            <div style={{
-              background: 'linear-gradient(135deg, #ffffff 0%, #cccccc 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              DA BOLSA
-            </div>
+            DA BOLSA
           </div>
         </div>
       </div>
+      
+      {/* Indicador de scroll mais sutil */}
+      <div style={{
+        position: 'absolute',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '6px',
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: '11px',
+        fontWeight: '500'
+      }}>
+        <span>Role para ver o relatório</span>
+        <div style={{
+          width: '2px',
+          height: '16px',
+          background: 'linear-gradient(180deg, #4cfa00, transparent)',
+          borderRadius: '1px',
+          animation: 'pulse 2s infinite'
+        }} />
+      </div>
     </div>
-  );
-};
+  </div>
+);
 
-// Seção bloqueada
+// Seção bloqueada para mostrar quando usuário não tem acesso
 const BlockedSection = ({ icon: Icon, title, color }: { icon: any, title: string, color: string }) => (
   <div style={{
     backgroundColor: '#f9f9f9',
@@ -696,6 +399,18 @@ const BlockedSection = ({ icon: Icon, title, color }: { icon: any, title: string
     overflow: 'hidden',
     opacity: 0.6
   }}>
+    {/* Background decorativo desbotado */}
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: '200px',
+      height: '100%',
+      background: `linear-gradient(45deg, ${color}08, ${color}03)`,
+      clipPath: 'polygon(50% 0%, 100% 0%, 100% 100%, 0% 100%)'
+    }} />
+    
+    {/* Ícone de bloqueio */}
     <div style={{
       position: 'absolute',
       top: '20px',
@@ -711,44 +426,46 @@ const BlockedSection = ({ icon: Icon, title, color }: { icon: any, title: string
       <Lock size={20} style={{ color: 'white' }} />
     </div>
     
-    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-      <div style={{
-        width: '60px',
-        height: '60px',
-        backgroundColor: '#e5e7eb',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <Icon size={30} style={{ color: '#9ca3af' }} />
-      </div>
-      
-      <div>
-        <h2 style={{
-          fontSize: '36px',
-          fontWeight: '700',
-          color: '#9ca3af',
-          margin: 0,
-          textTransform: 'uppercase',
-          letterSpacing: '1px'
+    <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{
+          width: '60px',
+          height: '60px',
+          backgroundColor: '#e5e7eb',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          {title}
-        </h2>
-        <p style={{
-          fontSize: '16px',
-          color: '#ef4444',
-          margin: '5px 0 0 0',
-          fontWeight: '600'
-        }}>
-          🔒 Conteúdo exclusivo - Upgrade necessário
-        </p>
+          <Icon size={30} style={{ color: '#9ca3af' }} />
+        </div>
+        
+        <div>
+          <h2 style={{
+            fontSize: '36px',
+            fontWeight: '700',
+            color: '#9ca3af',
+            margin: 0,
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            {title}
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            color: '#ef4444',
+            margin: '5px 0 0 0',
+            fontWeight: '600'
+          }}>
+            🔒 Conteúdo exclusivo - Upgrade necessário
+          </p>
+        </div>
       </div>
     </div>
   </div>
 );
 
-// Seção header
+// Seção com design do PDF
 const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: string, color: string, count: number }) => (
   <div style={{
     backgroundColor: 'white',
@@ -759,6 +476,7 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
     position: 'relative',
     overflow: 'hidden'
   }}>
+    {/* Background decorativo */}
     <div style={{
       position: 'absolute',
       top: 0,
@@ -769,6 +487,7 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
       clipPath: 'polygon(50% 0%, 100% 0%, 100% 100%, 0% 100%)'
     }} />
     
+    {/* Barras decorativas verdes */}
     <div style={{
       position: 'absolute',
       top: '20px',
@@ -828,39 +547,296 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
   </div>
 );
 
-// Componente de logo simplificado
-const CompanyLogo = ({ ticker, fallbackColor }: { ticker: string, fallbackColor: string }) => (
-  <div style={{
-    width: '60px',
-    height: '60px',
-    background: `linear-gradient(135deg, ${fallbackColor}20, ${fallbackColor}10)`,
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: `2px solid ${fallbackColor}40`,
-    fontSize: '14px',
-    fontWeight: '700',
-    color: fallbackColor,
-    textAlign: 'center'
-  }}>
-    {ticker?.substring(0, 4) || 'TICK'}
-  </div>
-);
+// Sistema inteligente para encontrar logos de empresas (mantido igual)
+const generateLogoSources = (ticker: string, companyName?: string) => {
+  const sources: string[] = [];
+  
+  // Limpar ticker para diferentes variações
+  const cleanTicker = ticker.replace(/[0-9]/g, '').replace(/[^A-Za-z]/g, '').toLowerCase();
+  const tickerBase = ticker.replace(/[0-9]/g, '').toLowerCase();
+  
+  // 1. DOMÍNIOS ESPECÍFICOS CONHECIDOS (prioritários)
+  const knownDomains = getKnownDomain(ticker);
+  if (knownDomains.length > 0) {
+    knownDomains.forEach(domain => {
+      sources.push(
+        `https://logo.clearbit.com/${domain}`,
+        `https://img.logo.dev/${domain}?token=pk_X-1ZO13IREOmTdwhAAEI8Q&size=200`,
+        `https://logo.clearbit.com/${domain}?size=200&format=png`
+      );
+    });
+  }
+  
+  // 2. TENTATIVAS COM TICKER (múltiplas variações)
+  sources.push(
+    // Polygon (bom para ações americanas)
+    `https://s3.polygon.io/logos/${ticker.toLowerCase()}/logo.png`,
+    
+    // Clearbit com diferentes combinações
+    `https://logo.clearbit.com/${tickerBase}.com.br`,
+    `https://logo.clearbit.com/${tickerBase}.com`,
+    `https://logo.clearbit.com/${cleanTicker}.com.br`,
+    `https://logo.clearbit.com/${cleanTicker}.com`,
+    
+    // Logo.dev
+    `https://img.logo.dev/${tickerBase}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+    `https://img.logo.dev/${tickerBase}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+    `https://img.logo.dev/${cleanTicker}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+    `https://img.logo.dev/${cleanTicker}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`
+  );
+  
+  // 3. TENTATIVAS COM NOME DA EMPRESA (se fornecido)
+  if (companyName) {
+    const cleanCompanyName = companyName
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, '') // remove caracteres especiais
+      .replace(/\s+/g, '') // remove espaços
+      .replace(/(sa|ltda|corp|inc|company|cia|s\.a\.|holding|participacoes)/g, ''); // remove sufixos
+    
+    if (cleanCompanyName.length > 2) {
+      sources.push(
+        `https://logo.clearbit.com/${cleanCompanyName}.com.br`,
+        `https://logo.clearbit.com/${cleanCompanyName}.com`,
+        `https://img.logo.dev/${cleanCompanyName}.com.br?token=pk_X-1ZO13IREOmTdwhAAEI8Q`,
+        `https://img.logo.dev/${cleanCompanyName}.com?token=pk_X-1ZO13IREOmTdwhAAEI8Q`
+      );
+      
+      // Tentativas com palavras do nome
+      const words = companyName.toLowerCase().split(' ').filter(w => w.length > 3);
+      words.forEach(word => {
+        const cleanWord = word.replace(/[^a-z]/g, '');
+        if (cleanWord.length > 3) {
+          sources.push(
+            `https://logo.clearbit.com/${cleanWord}.com.br`,
+            `https://logo.clearbit.com/${cleanWord}.com`
+          );
+        }
+      });
+    }
+  }
+  
+  // 4. APIS ALTERNATIVAS
+  sources.push(
+    // Brandfetch alternatives
+    `https://assets.brandfolder.com/logo/${cleanTicker}`,
+    
+    // Wikipedia/Wikimedia (muitas empresas têm logos lá)
+    `https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/${cleanTicker}_logo.svg/200px-${cleanTicker}_logo.svg.png`,
+    `https://upload.wikimedia.org/wikipedia/pt/thumb/0/0a/${cleanTicker}_logo.svg/200px-${cleanTicker}_logo.svg.png`,
+    
+    // Yahoo Finance alternatives
+    `https://s3.yimg.com/uc/finance/1.3.0/images/logos/${ticker}.png`,
+    `https://logo.yahoo.com/${cleanTicker}`,
+    
+    // Google alternatives (menos confiável mas vale tentar)
+    `https://logo.googleapis.com/logo?domain=${cleanTicker}.com.br`,
+    `https://logo.googleapis.com/logo?domain=${cleanTicker}.com`
+  );
+  
+  // 5. FALLBACK INTELIGENTE - Avatar personalizado
+  const avatarBg = getAvatarColor(ticker);
+  sources.push(
+    `https://ui-avatars.com/api/?name=${ticker.substring(0,4)}&background=${avatarBg}&color=ffffff&size=60&font-size=0.7&bold=true&format=svg`,
+    `https://api.dicebear.com/7.x/initials/svg?seed=${ticker}&backgroundColor=${avatarBg}&fontSize=36`
+  );
+  
+  return sources;
+};
 
-// Card de ação
-const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, sectionColor: string }) => (
+// Mapeamento de domínios conhecidos (expandido)
+const getKnownDomain = (ticker: string) => {
+  const domainMap: { [key: string]: string[] } = {
+    // Bancos Brasileiros
+    'ABCB4': ['abcbrasil.com.br'], 'ITUB4': ['itau.com.br'], 'BBDC4': ['bradesco.com.br'],
+    'BBAS3': ['bb.com.br'], 'SANB11': ['santander.com.br'], 'BPAC11': ['btgpactual.com'],
+    
+    // Energia/Petróleo
+    'PETR4': ['petrobras.com.br'], 'VALE3': ['vale.com'], 'CPLE6': ['copel.com'],
+    'EGIE3': ['engie.com.br'], 'TAEE11': ['taesa.com.br'], 'CMIG4': ['cemig.com.br'],
+    
+    // Varejo
+    'MGLU3': ['magazineluiza.com.br'], 'VVAR3': ['viavarejo.com.br'], 'AMER3': ['americanas.com.br'],
+    'LREN3': ['lojasrenner.com.br'], 'GRND3': ['grendene.com.br'],
+    
+    // Tecnologia Brasil
+    'TOTS3': ['totvs.com'], 'LINX3': ['linx.com.br'], 'POSI3': ['positivo.com.br'],
+    
+    // Telecomunicações
+    'VIVT3': ['vivo.com.br'], 'TIMS3': ['tim.com.br'], 'OIBR3': ['oi.com.br'],
+    
+    // Saneamento
+    'SAPR11': ['sanepar.com.br'], 'SBSP3': ['sabesp.com.br'], 'CSMG3': ['copasa.com.br'],
+    
+    // Alimentício/Agro
+    'SMTO3': ['saomartinho.com.br'], 'BEEF3': ['minervafoods.com'], 'JBSS3': ['jbs.com.br'],
+    'BRF3': ['brf-global.com'], 'SLCE3': ['slcagricola.com.br'],
+    
+    // Papel/Celulose
+    'SUZB3': ['suzano.com.br'], 'KROT3': ['klabin.com.br'],
+    
+    // Siderurgia/Mineração
+    'CSNA3': ['csn.com.br'], 'USIM5': ['usiminas.com'], 'GGBR4': ['gerdau.com.br'],
+    
+    // Educação
+    'COGN3': ['cogna.com.br'], 'YDUQ3': ['yduq.com.br'],
+    
+    // Saúde
+    'RDOR3': ['rdorsaocristovao.com.br'], 'HAPV3': ['hapvida.com.br'],
+    
+    // Logística
+    'RAIL3': ['rumo.com.br'], 'CCRO3': ['ccr.com.br'],
+    
+    // Exterior - Tech Giants
+    'AAPL': ['apple.com'], 'MSFT': ['microsoft.com'], 'GOOGL': ['google.com', 'alphabet.com'],
+    'AMZN': ['amazon.com'], 'TSLA': ['tesla.com'], 'NVDA': ['nvidia.com'], 'META': ['meta.com'],
+    'NFLX': ['netflix.com'], 'CRM': ['salesforce.com'], 'ORCL': ['oracle.com'],
+    
+    // Exterior - Outros
+    'HD': ['homedepot.com'], 'HOME34': ['homedepot.com'], 'WMT': ['walmart.com'],
+    'DIS': ['disney.com'], 'NKE': ['nike.com'], 'MCD': ['mcdonalds.com'],
+    'KO': ['coca-cola.com'], 'PEP': ['pepsi.com'], 'JNJ': ['jnj.com']
+  };
+  
+  return domainMap[ticker.toUpperCase()] || [];
+};
+
+// Gerar cor do avatar baseada no ticker
+const getAvatarColor = (ticker: string) => {
+  const colors = ['4cfa00', '2563eb', 'ea580c', '7c3aed', 'dc2626', '059669', 'f59e0b'];
+  const index = ticker.charCodeAt(0) % colors.length;
+  return colors[index];
+};
+
+// Componente para logo da empresa (mantido igual)
+const CompanyLogo = ({ ticker, fallbackColor, item }: { ticker: string, fallbackColor: string, item?: any }) => {
+  const [logoSrc, setLogoSrc] = useState<string>('');
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    if (!ticker) return;
+    
+    console.log(`🔍 [LOGO] Buscando logo para: ${ticker}${item?.company ? ` (${item.company})` : ''}`);
+    
+    // Gerar todas as fontes possíveis
+    const logoSources = generateLogoSources(ticker, item?.company);
+    
+    console.log(`🔍 [LOGO] Tentando ${logoSources.length} fontes diferentes`);
+    
+    // Tentar carregar o primeiro logo disponível
+    function tryLoadLogo(sources: string[], index = 0) {
+      if (index >= sources.length) {
+        console.log(`❌ [LOGO] Nenhum logo encontrado para ${ticker}`);
+        setLogoError(true);
+        return;
+      }
+
+      const currentSource = sources[index];
+      console.log(`🔄 [LOGO] Tentativa ${index + 1}/${sources.length}: ${currentSource}`);
+
+      const img = new Image();
+      img.onload = () => {
+        // Verificar se a imagem não é muito pequena (evitar placeholders)
+        if (img.width > 16 && img.height > 16) {
+          console.log(`✅ [LOGO] Logo encontrado para ${ticker}: ${currentSource}`);
+          setLogoSrc(currentSource);
+        } else {
+          console.log(`⚠️ [LOGO] Logo muito pequeno (${img.width}x${img.height}), tentando próximo`);
+          tryLoadLogo(sources, index + 1);
+        }
+      };
+      
+      img.onerror = () => {
+        console.log(`❌ [LOGO] Falha ao carregar: ${currentSource}`);
+        tryLoadLogo(sources, index + 1);
+      };
+      
+      // Timeout para evitar travamento em logos que demoram muito
+      const timeout = setTimeout(() => {
+        console.log(`⏰ [LOGO] Timeout para: ${currentSource}`);
+        tryLoadLogo(sources, index + 1);
+      }, 5000);
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        if (img.width > 16 && img.height > 16) {
+          console.log(`✅ [LOGO] Logo encontrado para ${ticker}: ${currentSource}`);
+          setLogoSrc(currentSource);
+        } else {
+          tryLoadLogo(sources, index + 1);
+        }
+      };
+      
+      img.src = currentSource;
+    }
+    
+    tryLoadLogo(logoSources);
+  }, [ticker, item?.company]);
+
+  if (logoError || !logoSrc) {
+    return (
+      <div style={{
+        width: '60px',
+        height: '60px',
+        background: `linear-gradient(135deg, ${fallbackColor}20, ${fallbackColor}10)`,
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: `2px solid ${fallbackColor}40`,
+        fontSize: '14px',
+        fontWeight: '700',
+        color: fallbackColor,
+        textAlign: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        {ticker?.substring(0, 4) || 'TICK'}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      width: '60px',
+      height: '60px',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: `2px solid ${fallbackColor}30`,
+      overflow: 'hidden',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
+      <img 
+        src={logoSrc}
+        alt={`Logo ${ticker}`}
+        style={{
+          width: '50px',
+          height: '50px',
+          objectFit: 'contain',
+          borderRadius: '4px'
+        }}
+        onError={() => setLogoError(true)}
+      />
+    </div>
+  );
+};
+
+// Card de ação com logo e HTML renderizado (mantido igual)
+const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) => (
   <div style={{
     backgroundColor: 'white',
     borderRadius: '12px',
     padding: '30px',
     marginBottom: '25px',
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
-    border: `3px solid ${sectionColor}15`
+    border: `3px solid ${sectionColor}15`,
+    position: 'relative'
   }}>
+    {/* Header com logo e ticker */}
     <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
       <div style={{ marginRight: '15px' }}>
-        <CompanyLogo ticker={item.ticker} fallbackColor={sectionColor} />
+        <CompanyLogo ticker={item.ticker} fallbackColor={sectionColor} item={item} />
       </div>
       
       <div style={{ flex: 1 }}>
@@ -873,17 +849,17 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
           }}>
             {item.ticker}
           </h3>
-          {item.impacto && (
+          {item.impact && (
             <span style={{
               fontSize: '12px',
               fontWeight: '600',
-              color: item.impacto === 'positivo' ? '#4cfa00' : item.impacto === 'negativo' ? '#ef4444' : '#6b7280',
-              backgroundColor: item.impacto === 'positivo' ? '#4cfa0015' : item.impacto === 'negativo' ? '#ef444415' : '#6b728015',
+              color: item.impact === 'positive' ? '#4cfa00' : item.impact === 'negative' ? '#ef4444' : '#6b7280',
+              backgroundColor: item.impact === 'positive' ? '#4cfa0015' : item.impact === 'negative' ? '#ef444415' : '#6b728015',
               padding: '4px 8px',
               borderRadius: '6px',
               textTransform: 'uppercase'
             }}>
-              {item.impacto}
+              {item.impact === 'positive' ? 'Positivo' : item.impact === 'negative' ? 'Negativo' : 'Neutro'}
             </span>
           )}
         </div>
@@ -893,11 +869,12 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
           margin: 0,
           fontWeight: '500'
         }}>
-          {item.empresa}
+          {item.company}
         </p>
       </div>
     </div>
 
+    {/* Título da notícia */}
     <h4 style={{
       fontSize: '20px',
       fontWeight: '600',
@@ -905,12 +882,13 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
       margin: '0 0 15px 0',
       lineHeight: '1.3'
     }}>
-      {item.titulo}
+      {item.news || item.title}
     </h4>
 
-    {item.resumo && (
+    {/* MUDANÇA: Renderizando HTML formatado em vez de FormattedText */}
+    {item.summary && (
       <HTMLContent 
-        content={item.resumo}
+        content={item.summary}
         style={{
           fontSize: '16px',
           color: '#4b5563',
@@ -920,7 +898,8 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
       />
     )}
 
-    {item.analise && (
+    {/* Destaque formatado com HTML */}
+    {item.highlight && (
       <div style={{
         padding: '15px 0',
         margin: '15px 0',
@@ -931,22 +910,27 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
           fontSize: '14px',
           fontWeight: '600',
           color: sectionColor,
-          marginBottom: '8px'
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          📊 Análise Completa
+          💡 Destaque
         </div>
         <HTMLContent 
-          content={item.analise}
+          content={item.highlight}
           style={{
             fontSize: '16px',
             color: '#4b5563',
-            margin: 0
+            margin: 0,
+            fontWeight: '500'
           }}
         />
       </div>
     )}
 
-    {item.destaque && (
+    {/* Recomendação formatada com HTML */}
+    {item.recommendation && (
       <div style={{
         backgroundColor: '#f0fdf4',
         border: '1px solid #4cfa0030',
@@ -958,12 +942,14 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
           fontSize: '14px',
           fontWeight: '600',
           color: '#15803d',
-          marginBottom: '8px'
+          marginBottom: '8px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
         }}>
-          💡 Destaque Especial
+          Recomendação
         </div>
         <HTMLContent 
-          content={item.destaque}
+          content={item.recommendation}
           style={{
             fontSize: '16px',
             color: '#166534',
@@ -974,34 +960,40 @@ const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, section
       </div>
     )}
 
-    {item.recomendacao && (
-      <div style={{
-        backgroundColor: item.recomendacao === 'COMPRA' ? '#f0fdf4' : item.recomendacao === 'VENDA' ? '#fef2f2' : '#fef3c7',
-        border: `1px solid ${item.recomendacao === 'COMPRA' ? '#4cfa0030' : item.recomendacao === 'VENDA' ? '#ef444430' : '#fde68a'}`,
-        borderRadius: '8px',
-        padding: '15px',
-        marginTop: '15px'
-      }}>
-        <div style={{
-          fontSize: '14px',
-          fontWeight: '600',
-          color: item.recomendacao === 'COMPRA' ? '#15803d' : item.recomendacao === 'VENDA' ? '#dc2626' : '#92400e',
-          marginBottom: '8px'
-        }}>
-          🎯 Recomendação: {item.recomendacao}
-        </div>
-        {item.precoAlvo && (
-          <div style={{ fontSize: '16px', fontWeight: '600' }}>
-            Preço Alvo: R$ {item.precoAlvo.toFixed(2)}
-          </div>
-        )}
+    {/* Tags de setores/recomendações */}
+    {(item.sectors?.length > 0 || item.recommendations?.length > 0) && (
+      <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {item.sectors?.map((setor: string, index: number) => (
+          <span key={index} style={{
+            fontSize: '12px',
+            color: '#2563eb',
+            backgroundColor: '#eff6ff',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontWeight: '500'
+          }}>
+            {setor}
+          </span>
+        ))}
+        {item.recommendations?.map((rec: string, index: number) => (
+          <span key={index} style={{
+            fontSize: '12px',
+            color: '#4cfa00',
+            backgroundColor: '#f0fdf4',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            fontWeight: '600'
+          }}>
+            {rec}
+          </span>
+        ))}
       </div>
     )}
   </div>
 );
 
-// Card de provento
-const ProventoCard = ({ item }: { item: ProventoItem }) => (
+// Card de provento com logo (mantido igual)
+const ProventoCard = ({ item }: { item: any }) => (
   <div style={{
     backgroundColor: 'white',
     borderRadius: '12px',
@@ -1012,7 +1004,7 @@ const ProventoCard = ({ item }: { item: ProventoItem }) => (
   }}>
     <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
       <div style={{ marginRight: '15px' }}>
-        <CompanyLogo ticker={item.ticker} fallbackColor="#4cfa00" />
+        <CompanyLogo ticker={item.ticker} fallbackColor="#4cfa00" item={item} />
       </div>
       
       <div style={{ flex: 1 }}>
@@ -1028,12 +1020,12 @@ const ProventoCard = ({ item }: { item: ProventoItem }) => (
           <span style={{
             fontSize: '12px',
             fontWeight: '600',
-            color: item.tipo === 'JCP' ? '#7c3aed' : '#2563eb',
-            backgroundColor: item.tipo === 'JCP' ? '#7c3aed15' : '#2563eb15',
+            color: item.type === 'JCP' ? '#7c3aed' : '#2563eb',
+            backgroundColor: item.type === 'JCP' ? '#7c3aed15' : '#2563eb15',
             padding: '4px 8px',
             borderRadius: '6px'
           }}>
-            {item.tipo}
+            {item.type}
           </span>
         </div>
         <p style={{
@@ -1041,7 +1033,7 @@ const ProventoCard = ({ item }: { item: ProventoItem }) => (
           color: '#6b7280',
           margin: 0
         }}>
-          {item.empresa}
+          {item.company}
         </p>
       </div>
     </div>
@@ -1053,7 +1045,7 @@ const ProventoCard = ({ item }: { item: ProventoItem }) => (
     }}>
       <div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Valor</div>
-        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>{item.valor}</div>
+        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>{item.value}</div>
       </div>
       <div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>DY</div>
@@ -1062,13 +1054,13 @@ const ProventoCard = ({ item }: { item: ProventoItem }) => (
       <div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Data-com</div>
         <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
-          {item.datacom ? new Date(item.datacom).toLocaleDateString('pt-BR') : '-'}
+          {item.exDate ? new Date(item.exDate).toLocaleDateString('pt-BR') : '-'}
         </div>
       </div>
       <div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Pagamento</div>
         <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
-          {item.pagamento ? new Date(item.pagamento).toLocaleDateString('pt-BR') : '-'}
+          {item.payDate ? new Date(item.payDate).toLocaleDateString('pt-BR') : '-'}
         </div>
       </div>
     </div>
@@ -1076,172 +1068,103 @@ const ProventoCard = ({ item }: { item: ProventoItem }) => (
 );
 
 export default function RelatorioSemanalPage() {
-  const [semanasDisponiveis, setSemanasDisponiveis] = useState<string[]>([]);
-  const [semanaAtual, setSemanaAtual] = useState<string>('');
-  const [relatorioAtual, setRelatorioAtual] = useState<RelatorioSemanalData | null>(null);
+  const [relatorio, setRelatorio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingRelatorio, setLoadingRelatorio] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Hook de permissões
+  // 🔥 NOVA IMPLEMENTAÇÃO: Hook de permissões
   const { planInfo, loading: authLoading, hasAccessSync, user, debugInfo } = useAuthAccess();
 
-  // 🎯 CARREGAR SEMANAS DISPONÍVEIS
   useEffect(() => {
-    const loadSemanasDisponiveis = async () => {
+    const loadRelatorio = async () => {
       try {
-        console.log('📅 Carregando semanas disponíveis...');
+        console.log('📖 [DEBUG] Buscando relatório publicado (client-side)...');
         
-        const request = indexedDB.open('RelatoriosSemanaisDB', 1);
+        const response = await fetch('/api/relatorio-semanal');
+        console.log('📖 [DEBUG] Response status:', response.status);
         
-        request.onupgradeneeded = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          if (!db.objectStoreNames.contains('relatorios')) {
-            const store = db.createObjectStore('relatorios', { keyPath: 'id' });
-            store.createIndex('semana', 'semana', { unique: false });
-            store.createIndex('status', 'status', { unique: false });
-          }
-        };
+        if (!response.ok) {
+          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
         
-        request.onsuccess = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          const transaction = db.transaction(['relatorios'], 'readonly');
-          const store = transaction.objectStore('relatorios');
-          const getAllRequest = store.getAll();
-          
-          getAllRequest.onsuccess = () => {
-            const todosRelatorios = getAllRequest.result || [];
-            
-            // Filtrar apenas relatórios publicados e extrair semanas
-            const relatoriosPublicados = todosRelatorios.filter(r => r.status === 'published');
-            const semanas = relatoriosPublicados
-              .map(r => r.semana)
-              .filter((semana, index, array) => array.indexOf(semana) === index)
-              .sort((a, b) => b.localeCompare(a)); // Ordem decrescente (mais recente primeiro)
-            
-            console.log(`📅 ${semanas.length} semanas encontradas:`, semanas);
-            setSemanasDisponiveis(semanas);
-            
-            // Definir semana atual como a mais recente
-            if (semanas.length > 0) {
-              setSemanaAtual(semanas[0]);
-            }
-            
-            setLoading(false);
-          };
-          
-          getAllRequest.onerror = () => {
-            console.error('❌ Erro ao carregar semanas');
-            setError('Erro ao carregar semanas disponíveis');
-            setLoading(false);
-          };
-        };
+        const data = await response.json();
+        console.log('📖 [DEBUG] Dados recebidos:', data);
         
-        request.onerror = () => {
-          console.error('❌ Erro ao conectar com IndexedDB');
-          setError('Erro ao conectar com o banco de dados');
-          setLoading(false);
-        };
+        // Só mostrar se estiver publicado
+        if (data && data.status === 'published') {
+          setRelatorio(data);
+        } else {
+          console.log('📖 [DEBUG] Relatório não está publicado');
+          setRelatorio(null);
+        }
         
       } catch (error) {
-        console.error('❌ Erro geral ao carregar semanas:', error);
-        setError('Erro ao carregar semanas');
+        console.error('📖 [DEBUG] Erro ao carregar relatório:', error);
+        setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      } finally {
         setLoading(false);
       }
     };
-    
-    loadSemanasDisponiveis();
+
+    loadRelatorio();
   }, []);
 
-  // 🎯 CARREGAR RELATÓRIO DA SEMANA ATUAL
-  useEffect(() => {
-    if (!semanaAtual) return;
-    
-    const loadRelatorioSemana = async () => {
-      setLoadingRelatorio(true);
-      setError(null);
-      
-      try {
-        console.log(`📖 Carregando relatório da semana: ${semanaAtual}`);
-        
-        const request = indexedDB.open('RelatoriosSemanaisDB', 1);
-        
-        request.onsuccess = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          const transaction = db.transaction(['relatorios'], 'readonly');
-          const store = transaction.objectStore('relatorios');
-          const getAllRequest = store.getAll();
-          
-          getAllRequest.onsuccess = () => {
-            const todosRelatorios = getAllRequest.result || [];
-            
-            // Encontrar relatório da semana atual que esteja publicado
-            const relatorio = todosRelatorios.find(r => 
-              r.semana === semanaAtual && r.status === 'published'
-            );
-            
-            if (relatorio) {
-              console.log(`✅ Relatório encontrado para ${semanaAtual}:`, relatorio);
-              setRelatorioAtual(relatorio);
-            } else {
-              console.log(`❌ Nenhum relatório publicado encontrado para ${semanaAtual}`);
-              setRelatorioAtual(null);
-              setError(`Relatório da semana ${semanaAtual} não encontrado`);
-            }
-            
-            setLoadingRelatorio(false);
-          };
-          
-          getAllRequest.onerror = () => {
-            console.error('❌ Erro ao carregar relatório');
-            setError('Erro ao carregar relatório');
-            setLoadingRelatorio(false);
-          };
-        };
-        
-        request.onerror = () => {
-          console.error('❌ Erro ao conectar com IndexedDB');
-          setError('Erro ao conectar com o banco de dados');
-          setLoadingRelatorio(false);
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao carregar relatório:', error);
-        setError('Erro ao carregar relatório');
-        setLoadingRelatorio(false);
-      }
-    };
-    
-    loadRelatorioSemana();
-  }, [semanaAtual]);
-
-  // Função para mudar de semana
-  const handleSemanaChange = (novaSemana: string) => {
-    setSemanaAtual(novaSemana);
-  };
-
-  // Sistema de permissões
+  // 🔥 MAPEAMENTO DAS SEÇÕES PARA PERMISSÕES
   const getSectionPermissions = () => {
     return {
-      'macro': [],
-      'proventos': ['dividendos', 'fundos-imobiliarios'],
+      'macro': [], // Panorama macro disponível para todos
+      'proventos': ['dividendos', 'fundos-imobiliarios'], // Proventos = dividendos OU FIIs
       'dividendos': ['dividendos'],
       'smallCaps': ['small-caps'],
       'microCaps': ['micro-caps'],
-      'exterior': ['internacional', 'internacional-etfs', 'internacional-stocks']
+      'exterior': ['internacional', 'internacional-etfs', 'internacional-stocks'] // Qualquer permissão internacional
     };
   };
 
+  // 🔥 FUNÇÃO PARA VERIFICAR SE USUÁRIO TEM ACESSO À SEÇÃO
   const hasAccessToSection = (sectionKey: string): boolean => {
     const sectionPermissions = getSectionPermissions();
     const requiredPermissions = sectionPermissions[sectionKey] || [];
     
-    if (requiredPermissions.length === 0) return true;
-    if (!user) return false;
-    if (user.plan === 'ADMIN') return true;
+    // Se não requer permissão específica (como macro), libera para todos
+    if (requiredPermissions.length === 0) {
+      return true;
+    }
     
+    // Se o usuário não está autenticado
+    if (!user) {
+      return false;
+    }
+    
+    // Admin sempre tem acesso
+    if (user.plan === 'ADMIN') {
+      return true;
+    }
+    
+    // Verifica se tem pelo menos uma das permissões necessárias
     return requiredPermissions.some(permission => hasAccessSync(permission));
   };
+
+  // 🔥 LOG DE DEBUG DAS PERMISSÕES
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log('🎯 [PERMISSIONS DEBUG]', {
+        user: user.email,
+        plan: user.plan,
+        planName: planInfo?.displayName,
+        permissions: planInfo?.pages,
+        customPermissions: user.customPermissions,
+        sectionsAccess: {
+          macro: hasAccessToSection('macro'),
+          proventos: hasAccessToSection('proventos'),
+          dividendos: hasAccessToSection('dividendos'),
+          smallCaps: hasAccessToSection('smallCaps'),
+          microCaps: hasAccessToSection('microCaps'),
+          exterior: hasAccessToSection('exterior')
+        }
+      });
+    }
+  }, [user, planInfo, authLoading]);
 
   if (loading || authLoading) {
     return (
@@ -1263,27 +1186,157 @@ export default function RelatorioSemanalPage() {
             margin: '0 auto 20px'
           }}></div>
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>
-            Carregando Relatórios
+            Carregando Relatório
           </h2>
           <p style={{ color: '#6b7280', fontSize: '16px' }}>
-            {loading ? 'Buscando semanas disponíveis...' : 'Verificando permissões...'}
+            {loading ? 'Buscando o relatório semanal...' : 'Verificando permissões...'}
           </p>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f9fafb', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ 
+          textAlign: 'center', 
+          backgroundColor: 'white', 
+          padding: '60px', 
+          borderRadius: '16px', 
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          maxWidth: '500px'
+        }}>
+          <AlertCircle size={64} style={{ color: '#ef4444', marginBottom: '20px' }} />
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: '700', 
+            color: '#1a1a1a', 
+            marginBottom: '15px' 
+          }}>
+            Erro ao Carregar
+          </h1>
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '16px',
+            lineHeight: '1.6',
+            marginBottom: '20px'
+          }}>
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              backgroundColor: '#4cfa00',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!relatorio) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f9fafb', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ 
+          textAlign: 'center', 
+          backgroundColor: 'white', 
+          padding: '60px', 
+          borderRadius: '16px', 
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          maxWidth: '500px'
+        }}>
+          <AlertCircle size={64} style={{ color: '#f59e0b', marginBottom: '20px' }} />
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: '700', 
+            color: '#1a1a1a', 
+            marginBottom: '15px' 
+          }}>
+            Relatório Não Disponível
+          </h1>
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '18px',
+            lineHeight: '1.6'
+          }}>
+            O relatório semanal ainda não foi publicado pelos nossos analistas.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 DEFINIÇÃO DAS SEÇÕES COM VERIFICAÇÃO DE ACESSO
   const sections = [
-    { key: 'macro', data: relatorioAtual?.macro || [], title: 'Panorama Macro', icon: Globe, color: '#2563eb' },
-    { key: 'proventos', data: relatorioAtual?.proventos || [], title: 'Proventos', icon: DollarSign, color: '#4cfa00' },
-    { key: 'dividendos', data: relatorioAtual?.dividendos || [], title: 'Dividendos', icon: Calendar, color: '#22c55e' },
-    { key: 'smallCaps', data: relatorioAtual?.smallCaps || [], title: 'Small Caps', icon: Building, color: '#2563eb' },
-    { key: 'microCaps', data: relatorioAtual?.microCaps || [], title: 'Micro Caps', icon: Zap, color: '#ea580c' },
-    { key: 'exterior', data: relatorioAtual?.exterior || [], title: 'Exterior', icon: TrendingUp, color: '#7c3aed' }
+    { 
+      key: 'macro', 
+      data: relatorio.macro, 
+      title: 'Panorama Macro', 
+      icon: Globe, 
+      color: '#2563eb' 
+    },
+    { 
+      key: 'proventos', 
+      data: relatorio.proventos, 
+      title: 'Proventos', 
+      icon: DollarSign, 
+      color: '#4cfa00'
+    },
+    { 
+      key: 'dividendos', 
+      data: relatorio.dividendos, 
+      title: 'Dividendos', 
+      icon: Calendar, 
+      color: '#22c55e' 
+    },
+    { 
+      key: 'smallCaps', 
+      data: relatorio.smallCaps, 
+      title: 'Small Caps', 
+      icon: Building, 
+      color: '#2563eb' 
+    },
+    { 
+      key: 'microCaps', 
+      data: relatorio.microCaps, 
+      title: 'Micro Caps', 
+      icon: Zap, 
+      color: '#ea580c' 
+    },
+    { 
+      key: 'exterior', 
+      data: relatorio.exterior, 
+      title: 'Exterior', 
+      icon: TrendingUp, 
+      color: '#7c3aed' 
+    }
   ];
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      {/* Incluir os estilos do HTML Content */}
       <HTMLContentStyles />
       
       <style>{`
@@ -1291,83 +1344,59 @@ export default function RelatorioSemanalPage() {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.6; transform: translateY(0); }
+          50% { opacity: 1; transform: translateY(5px); }
+        }
       `}</style>
       
-      <ReportHeader relatorio={relatorioAtual} planName={planInfo?.displayName} />
+      <ReportHeader relatorio={relatorio} planName={planInfo?.displayName} />
       
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '50px 20px' }}>
-        {/* Navegação por Semanas */}
-        <WeekNavigation 
-          semanaAtual={semanaAtual}
-          semanasDisponiveis={semanasDisponiveis}
-          onSemanaChange={handleSemanaChange}
-          loading={loadingRelatorio}
-        />
-
-        {/* Conteúdo do Relatório */}
-        {relatorioAtual ? (
-          sections.map((section) => {
-            const hasAccess = hasAccessToSection(section.key);
-            const hasData = section.data && section.data.length > 0;
-            
-            if (!hasData) return null;
-            
-            if (!hasAccess) {
-              return (
-                <section key={section.key} style={{ marginBottom: '60px' }}>
-                  <BlockedSection 
-                    icon={section.icon}
-                    title={section.title}
-                    color={section.color}
-                  />
-                </section>
-              );
-            }
-            
+        {sections.map((section) => {
+          const hasAccess = hasAccessToSection(section.key);
+          const hasData = section.data && section.data.length > 0;
+          
+          // Se não tem dados para esta seção, não mostra nada
+          if (!hasData) return null;
+          
+          // 🔥 SE NÃO TEM ACESSO, MOSTRA SEÇÃO BLOQUEADA
+          if (!hasAccess) {
             return (
               <section key={section.key} style={{ marginBottom: '60px' }}>
-                <SectionHeader 
+                <BlockedSection 
                   icon={section.icon}
                   title={section.title}
                   color={section.color}
-                  count={section.data.length}
                 />
-                
-                <div>
-                  {section.data.map((item: any, index: number) => (
-                    section.key === 'proventos' ? (
-                      <ProventoCard key={index} item={item} />
-                    ) : (
-                      <StockCard key={index} item={item} sectionColor={section.color} />
-                    )
-                  ))}
-                </div>
               </section>
             );
-          })
-        ) : (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '64px',
-            textAlign: 'center',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-            border: '2px dashed #e5e7eb'
-          }}>
-            <AlertCircle size={64} style={{ color: '#f59e0b', marginBottom: '20px' }} />
-            <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1a1a1a', marginBottom: '12px' }}>
-              Relatório Não Encontrado
-            </h3>
-            <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '20px' }}>
-              {error || `O relatório da semana ${semanaAtual} não está disponível.`}
-            </p>
-            <p style={{ color: '#9ca3af', fontSize: '14px' }}>
-              Selecione uma semana diferente ou aguarde a publicação.
-            </p>
-          </div>
-        )}
-
-        {/* Debug para admins */}
+          }
+          
+          // 🔥 SE TEM ACESSO, MOSTRA NORMALMENTE
+          return (
+            <section key={section.key} style={{ marginBottom: '60px' }}>
+              <SectionHeader 
+                icon={section.icon}
+                title={section.title}
+                color={section.color}
+                count={section.data.length}
+              />
+              
+              <div>
+                {section.data.map((item: any, index: number) => (
+                  section.key === 'proventos' ? (
+                    <ProventoCard key={index} item={item} />
+                  ) : (
+                    <StockCard key={index} item={item} sectionColor={section.color} />
+                  )
+                ))}
+              </div>
+            </section>
+          );
+        })}
+        
+        {/* 🔥 SEÇÃO DE DEBUG (apenas para admins) */}
         {debugInfo?.isAdmin && (
           <div style={{
             backgroundColor: '#f3f4f6',
@@ -1379,7 +1408,7 @@ export default function RelatorioSemanalPage() {
           }}>
             <h3 style={{ marginBottom: '10px', color: '#374151' }}>🐛 Debug Info (Admin Only)</h3>
             <pre style={{ margin: 0, color: '#6b7280' }}>
-              {JSON.stringify({ semanaAtual, semanasDisponiveis, hasRelatorio: !!relatorioAtual }, null, 2)}
+              {JSON.stringify(debugInfo, null, 2)}
             </pre>
           </div>
         )}
@@ -1417,8 +1446,19 @@ export default function RelatorioSemanalPage() {
               FATOS DA BOLSA
             </span>
           </div>
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '14px',
+            margin: 0
+          }}>
             © Fatos da Bolsa - contato@fatosdabolsa.com.br
+          </p>
+          <p style={{ 
+            color: '#9ca3af', 
+            fontSize: '12px',
+            margin: '5px 0 0 0'
+          }}>
+            Última atualização: {new Date().toLocaleString('pt-BR')}
           </p>
         </div>
       </div>
