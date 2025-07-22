@@ -26,7 +26,7 @@ interface ExtendedPlanInfo {
   pages: string[];
   isAdmin?: boolean;
   adminPermissions?: any;
-userEmail?: string;
+  userEmail?: string;
 }
 
 export function SideNav(): React.JSX.Element {
@@ -41,20 +41,25 @@ export function SideNav(): React.JSX.Element {
     const loadPlanInfo = async () => {
       try {
         console.log('🔄 Carregando planInfo...');
-const userEmail = localStorage.getItem('user-email') || '';
+        const userEmail = localStorage.getItem('user-email') || '';
         const info = await authClient.getPlanInfo();
         console.log('📋 PlanInfo recebido:', info);
         
         if (info) {
-   const enhancedInfo = {
-    ...info,
-    userEmail,
-    pages: info.isAdmin 
-      ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes']
-      : (info.pages || [])
-  };
-  
-  setPlanInfo(enhancedInfo);
+          const enhancedInfo = {
+            ...info,
+            userEmail,
+            pages: info.isAdmin 
+              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes']
+              : (info.pages || [])
+          };
+          
+          // 🔥 GARANTIR que 'relatorio-semanal' esteja sempre presente
+          if (!enhancedInfo.pages.includes('relatorio-semanal')) {
+            enhancedInfo.pages.unshift('relatorio-semanal'); // Adicionar no início
+          }
+          
+          setPlanInfo(enhancedInfo);
           
           // 🛡️ Log especial para admins
           if (info.isAdmin) {
@@ -65,7 +70,7 @@ const userEmail = localStorage.getItem('user-email') || '';
           console.log('⚠️ PlanInfo é null, usando fallback VIP');
           setPlanInfo({
             displayName: 'Close Friends VIP',
-            pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'],
+            pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'], // 📋 Garantir relatório no fallback
             isAdmin: false
           });
         }
@@ -74,7 +79,7 @@ const userEmail = localStorage.getItem('user-email') || '';
         console.log('🔄 Usando fallback VIP devido ao erro');
         setPlanInfo({
           displayName: 'Close Friends VIP',
-          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'],
+          pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'], // 📋 Garantir relatório no fallback
           isAdmin: false
         });
       } finally {
@@ -98,19 +103,25 @@ const userEmail = localStorage.getItem('user-email') || '';
       return true; // Se não carregou ainda, mostra tudo
     }
 
-// VERIFICAÇÕES ESPECÍFICAS PARA PÁGINAS ADMIN
-if (page === 'admin-instagram') {
-  const isInstagramAdmin = planInfo.isAdmin || planInfo.userEmail === 'jacbdias@gmail.com';
-  console.log(`📱 Verificando acesso Instagram Admin para ${planInfo.userEmail}: ${isInstagramAdmin}`);
-  return isInstagramAdmin;
-}
+    // 📋 GARANTIR acesso ao relatório semanal para TODOS
+    if (page === 'relatorio-semanal') {
+      console.log('📋 Relatório semanal - acesso garantido');
+      return true;
+    }
 
-// 📊 NOVA VERIFICAÇÃO PARA RENOVAÇÕES
-if (page === 'admin-renovacoes') {
-  const isRenovacoesAdmin = planInfo.isAdmin;
-  console.log(`📊 Verificando acesso Renovações Admin para ${planInfo.userEmail}: ${isRenovacoesAdmin}`);
-  return isRenovacoesAdmin;
-}
+    // VERIFICAÇÕES ESPECÍFICAS PARA PÁGINAS ADMIN
+    if (page === 'admin-instagram') {
+      const isInstagramAdmin = planInfo.isAdmin || planInfo.userEmail === 'jacbdias@gmail.com';
+      console.log(`📱 Verificando acesso Instagram Admin para ${planInfo.userEmail}: ${isInstagramAdmin}`);
+      return isInstagramAdmin;
+    }
+
+    // 📊 NOVA VERIFICAÇÃO PARA RENOVAÇÕES
+    if (page === 'admin-renovacoes') {
+      const isRenovacoesAdmin = planInfo.isAdmin;
+      console.log(`📊 Verificando acesso Renovações Admin para ${planInfo.userEmail}: ${isRenovacoesAdmin}`);
+      return isRenovacoesAdmin;
+    }
     
     // 🛡️ VERIFICAÇÃO ESPECIAL PARA PÁGINAS ADMINISTRATIVAS
     if (page.startsWith('admin')) {
@@ -394,8 +405,6 @@ function NavItem({
   const hasChildren = items && items.length > 0;
   const isExpanded = expandedItems[itemKey] || false;
 
-  // ❌ REMOVIDO: const isAdminItem = itemKey.includes('admin') || title.toLowerCase().includes('admin');
-
   if (href && hasChildren) {
     return (
       <li>
@@ -418,7 +427,6 @@ function NavItem({
               position: 'relative',
               textDecoration: 'none',
               whiteSpace: 'nowrap',
-              // ❌ REMOVIDO: Estilos especiais para admin
               ...(disabled && {
                 bgcolor: 'var(--NavItem-disabled-background)',
                 color: 'var(--NavItem-disabled-color)',
@@ -460,7 +468,6 @@ function NavItem({
                 }}
               >
                 {title}
-                {/* ❌ REMOVIDO: Ícone de escudo para itens admin */}
               </Typography>
             </Box>
           </Box>
@@ -531,7 +538,6 @@ function NavItem({
           position: 'relative',
           textDecoration: 'none',
           whiteSpace: 'nowrap',
-          // ❌ REMOVIDO: Estilos especiais para admin
           ...(disabled && {
             bgcolor: 'var(--NavItem-disabled-background)',
             color: 'var(--NavItem-disabled-color)',
@@ -570,7 +576,6 @@ function NavItem({
             }}
           >
             {title}
-            {/* ❌ REMOVIDO: Ícone de escudo para itens admin */}
           </Typography>
         </Box>
       </Box>
