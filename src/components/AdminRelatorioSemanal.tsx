@@ -1,53 +1,50 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter } from 'lucide-react';
 
-interface MacroNews {
-  id: string;
-  title: string;
-  summary: string;
-  impact: 'high' | 'medium' | 'low';
-  sectors: string[];
-  recommendations: string[];
+// Interfaces para Relatório Semanal
+interface ItemRelatorioSemanal {
+  ticker: string;
+  empresa: string;
+  titulo: string;
+  resumo: string;
+  analise: string;
+  recomendacao?: 'COMPRA' | 'VENDA' | 'MANTER';
+  impacto?: 'positivo' | 'negativo' | 'neutro';
+  precoAlvo?: number;
+  destaque?: string;
 }
 
-interface DividendoInfo {
-  id: string;
+interface ProventoItem {
   ticker: string;
-  company: string;
-  type: 'JCP' | 'Dividendo';
-  value: string;
+  empresa: string;
+  tipo: 'Dividendo' | 'JCP' | 'Bonificação';
+  valor: string;
   dy: string;
-  exDate: string;
-  payDate: string;
-  status: 'confirmed' | 'announced';
+  datacom: string;
+  pagamento: string;
 }
 
-interface StockNews {
-  id: string;
-  ticker: string;
-  company: string;
-  news: string;
-  impact: 'positive' | 'negative' | 'neutral';
-  highlight: string;
-  recommendation: string;
-}
-
-interface RelatorioData {
+interface RelatorioSemanalData {
   id?: string;
-  date: string;
-  weekOf: string;
-  macro: MacroNews[];
-  proventos: DividendoInfo[];
-  dividendos: StockNews[];
-  smallCaps: StockNews[];
-  microCaps: StockNews[];
-  exterior: StockNews[];
+  semana: string; // Ex: "2025-W03" (3ª semana de 2025)
+  dataPublicacao: string;
+  autor: string;
+  titulo: string;
+  
+  // Seções do relatório
+  macro: ItemRelatorioSemanal[];
+  proventos: ProventoItem[];
+  dividendos: ItemRelatorioSemanal[];
+  smallCaps: ItemRelatorioSemanal[];
+  microCaps: ItemRelatorioSemanal[];
+  exterior: ItemRelatorioSemanal[];
+  
   status: 'draft' | 'published';
 }
 
-// Rich Text Editor Component
+// Rich Text Editor Component (mesmo da página anterior)
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -72,14 +69,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     strikethrough: false
   });
 
-  // Atualizar o conteúdo do editor quando o value mudar
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value;
     }
   }, [value]);
 
-  // Verificar formatação atual
   const updateFormatState = useCallback(() => {
     if (!editorRef.current) return;
     
@@ -91,19 +86,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     });
   }, []);
 
-  // Executar comando de formatação
   const execCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
     updateFormatState();
     
-    // Disparar onChange
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
   }, [onChange, updateFormatState]);
 
-  // Inserir link
   const insertLink = useCallback(() => {
     const url = prompt('Digite a URL do link:');
     if (url) {
@@ -111,17 +103,83 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [execCommand]);
 
-  // Alterar cor do texto
-  const changeTextColor = useCallback((color: string) => {
-    execCommand('foreColor', color);
+  const insertImageByUrl = useCallback(() => {
+    const url = prompt('Digite a URL da imagem:');
+    if (url) {
+      try {
+        new URL(url);
+        execCommand('insertImage', url);
+        
+        setTimeout(() => {
+          if (editorRef.current) {
+            const images = editorRef.current.querySelectorAll('img');
+            const lastImage = images[images.length - 1];
+            if (lastImage) {
+              lastImage.style.maxWidth = '100%';
+              lastImage.style.height = 'auto';
+              lastImage.style.borderRadius = '8px';
+              lastImage.style.margin = '8px 0';
+              lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            }
+          }
+        }, 100);
+      } catch (error) {
+        alert('URL inválida. Por favor, digite uma URL válida.');
+      }
+    }
   }, [execCommand]);
 
-  // Alterar tamanho da fonte
-  const changeFontSize = useCallback((size: string) => {
-    execCommand('fontSize', size);
+  const uploadImage = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Arquivo muito grande. Máximo 5MB permitido.');
+          return;
+        }
+        
+        if (!file.type.startsWith('image/')) {
+          alert('Por favor, selecione apenas arquivos de imagem.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target?.result as string;
+          if (base64) {
+            execCommand('insertImage', base64);
+            
+            setTimeout(() => {
+              if (editorRef.current) {
+                const images = editorRef.current.querySelectorAll('img');
+                const lastImage = images[images.length - 1];
+                if (lastImage) {
+                  lastImage.style.maxWidth = '100%';
+                  lastImage.style.height = 'auto';
+                  lastImage.style.borderRadius = '8px';
+                  lastImage.style.margin = '8px 0';
+                  lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                  lastImage.setAttribute('title', file.name);
+                  lastImage.setAttribute('alt', file.name.split('.')[0]);
+                }
+              }
+            }, 100);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
   }, [execCommand]);
 
-  // Lidar com mudanças no editor
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
@@ -129,7 +187,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     updateFormatState();
   }, [onChange, updateFormatState]);
 
-  // Lidar com foco
   const handleFocus = useCallback(() => {
     setIsEditorFocused(true);
     updateFormatState();
@@ -139,9 +196,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setIsEditorFocused(false);
   }, []);
 
-  // Prevenir comportamento padrão em alguns casos
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Atalhos de teclado
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case 'b':
@@ -160,77 +215,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [execCommand]);
 
-  const toolbarButtons = [
-    {
-      icon: Bold,
-      command: 'bold',
-      title: 'Negrito (Ctrl+B)',
-      active: currentFormat.bold
-    },
-    {
-      icon: Italic,
-      command: 'italic',
-      title: 'Itálico (Ctrl+I)',
-      active: currentFormat.italic
-    },
-    {
-      icon: Underline,
-      command: 'underline',
-      title: 'Sublinhado (Ctrl+U)',
-      active: currentFormat.underline
-    },
-    {
-      icon: Strikethrough,
-      command: 'strikeThrough',
-      title: 'Riscado',
-      active: currentFormat.strikethrough
-    }
-  ];
-
-  const alignmentButtons = [
-    {
-      icon: AlignLeft,
-      command: 'justifyLeft',
-      title: 'Alinhar à esquerda'
-    },
-    {
-      icon: AlignCenter,
-      command: 'justifyCenter',
-      title: 'Centralizar'
-    },
-    {
-      icon: AlignRight,
-      command: 'justifyRight',
-      title: 'Alinhar à direita'
-    }
-  ];
-
-  const listButtons = [
-    {
-      icon: List,
-      command: 'insertUnorderedList',
-      title: 'Lista com marcadores'
-    },
-    {
-      icon: ListOrdered,
-      command: 'insertOrderedList',
-      title: 'Lista numerada'
-    }
-  ];
-
-  const colors = [
-    '#000000', '#444444', '#666666', '#999999', '#cccccc',
-    '#1a73e8', '#4285f4', '#34a853', '#fbbc04', '#ea4335',
-    '#9c27b0', '#ff9800', '#795548', '#607d8b', '#e91e63'
-  ];
-
-  const fontSizes = [
-    { label: 'Pequeno', value: '1' },
-    { label: 'Normal', value: '3' },
-    { label: 'Grande', value: '5' },
-    { label: 'Muito Grande', value: '7' }
-  ];
-
   return (
     <div style={{
       border: `2px solid ${isEditorFocused ? '#2563eb' : '#e5e7eb'}`,
@@ -239,226 +223,70 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       transition: 'border-color 0.2s',
       ...style
     }}>
-      {/* Toolbar */}
+      {/* Toolbar simplificada */}
       <div style={{
-        padding: '12px 16px',
+        padding: '8px 12px',
         borderBottom: '1px solid #e5e7eb',
         display: 'flex',
-        flexWrap: 'wrap',
         gap: '8px',
         alignItems: 'center',
         backgroundColor: '#f8fafc',
         borderRadius: '12px 12px 0 0'
       }}>
-        {/* Formatação de texto */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {toolbarButtons.map((button) => (
-            <button
-              key={button.command}
-              onClick={() => execCommand(button.command)}
-              title={button.title}
-              style={{
-                padding: '8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: button.active ? '#2563eb' : 'transparent',
-                color: button.active ? 'white' : '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (!button.active) {
-                  e.currentTarget.style.backgroundColor = '#e5e7eb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!button.active) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <button.icon size={16} />
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Tamanho da fonte */}
-        <select
-          onChange={(e) => changeFontSize(e.target.value)}
-          style={{
-            padding: '6px 8px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            fontSize: '14px',
-            backgroundColor: 'white'
-          }}
-          title="Tamanho da fonte"
-        >
-          <option value="">Tamanho</option>
-          {fontSizes.map((size) => (
-            <option key={size.value} value={size.value}>
-              {size.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Alinhamento */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {alignmentButtons.map((button) => (
-            <button
-              key={button.command}
-              onClick={() => execCommand(button.command)}
-              title={button.title}
-              style={{
-                padding: '8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <button.icon size={16} />
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Listas */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {listButtons.map((button) => (
-            <button
-              key={button.command}
-              onClick={() => execCommand(button.command)}
-              title={button.title}
-              style={{
-                padding: '8px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <button.icon size={16} />
-            </button>
-          ))}
-        </div>
-
-        {/* Separator */}
-        <div style={{ width: '1px', height: '24px', backgroundColor: '#e5e7eb' }} />
-
-        {/* Link */}
         <button
-          onClick={insertLink}
-          title="Inserir link"
+          onClick={() => execCommand('bold')}
           style={{
-            padding: '8px',
+            padding: '6px',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '4px',
+            backgroundColor: currentFormat.bold ? '#2563eb' : 'transparent',
+            color: currentFormat.bold ? 'white' : '#6b7280',
+            cursor: 'pointer'
+          }}
+        >
+          <Bold size={14} />
+        </button>
+        <button
+          onClick={() => execCommand('italic')}
+          style={{
+            padding: '6px',
+            border: 'none',
+            borderRadius: '4px',
+            backgroundColor: currentFormat.italic ? '#2563eb' : 'transparent',
+            color: currentFormat.italic ? 'white' : '#6b7280',
+            cursor: 'pointer'
+          }}
+        >
+          <Italic size={14} />
+        </button>
+        <button
+          onClick={() => execCommand('insertUnorderedList')}
+          style={{
+            padding: '6px',
+            border: 'none',
+            borderRadius: '4px',
             backgroundColor: 'transparent',
             color: '#6b7280',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#e5e7eb';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
+            cursor: 'pointer'
           }}
         >
-          <Link size={16} />
+          <List size={14} />
         </button>
-
-        {/* Cores */}
-        <div style={{ position: 'relative' }}>
-          <details style={{ position: 'relative' }}>
-            <summary style={{
-              padding: '8px',
-              border: 'none',
-              borderRadius: '6px',
-              backgroundColor: 'transparent',
-              color: '#6b7280',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              listStyle: 'none',
-              transition: 'all 0.2s'
-            }}>
-              <Palette size={16} />
-            </summary>
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              zIndex: 10,
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '8px',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: '4px',
-              minWidth: '140px'
-            }}>
-              {colors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => changeTextColor(color)}
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    backgroundColor: color,
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                  title={`Cor: ${color}`}
-                />
-              ))}
-            </div>
-          </details>
-        </div>
+        <button
+          onClick={insertLink}
+          style={{
+            padding: '6px',
+            border: 'none',
+            borderRadius: '4px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            cursor: 'pointer'
+          }}
+        >
+          <Link size={14} />
+        </button>
       </div>
 
-      {/* Editor */}
       <div
         ref={editorRef}
         contentEditable
@@ -468,785 +296,1322 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         style={{
-          padding: '16px',
+          padding: '12px',
           minHeight: minHeight,
           outline: 'none',
-          lineHeight: '1.6',
-          fontSize: '16px',
+          lineHeight: '1.5',
+          fontSize: '14px',
           color: '#1f2937',
           borderRadius: '0 0 12px 12px'
         }}
         data-placeholder={placeholder}
       />
 
-      {/* CSS para placeholder */}
       <style>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
           color: #9ca3af;
           pointer-events: none;
         }
-        
-        [contenteditable] a {
-          color: #2563eb;
-          text-decoration: underline;
-        }
-        
-        [contenteditable] ul, [contenteditable] ol {
-          margin: 8px 0;
-          padding-left: 24px;
-        }
-        
-        [contenteditable] li {
-          margin: 4px 0;
-        }
       `}</style>
     </div>
   );
 };
 
-// Componente MacroNewsCard isolado COM RICH TEXT EDITOR
-const MacroNewsCard = memo(({ 
-  news, 
+// Utilitário para gerar número da semana
+const getWeekNumber = (date: Date): string => {
+  const year = date.getFullYear();
+  const start = new Date(year, 0, 1);
+  const diff = date.getTime() - start.getTime();
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  const weekNumber = Math.ceil(diff / oneWeek);
+  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+};
+
+// Componente para criar item de seção
+const ItemEditor = memo(({ 
+  item, 
   onUpdate, 
-  onRemove 
+  onRemove,
+  secaoNome 
 }: { 
-  news: MacroNews;
-  onUpdate: (id: string, field: keyof MacroNews, value: any) => void;
-  onRemove: (id: string) => void;
+  item: ItemRelatorioSemanal | ProventoItem;
+  onUpdate: (item: any) => void;
+  onRemove: () => void;
+  secaoNome: string;
 }) => {
-  // Handlers estáveis para cada campo específico
-  const updateTitle = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(news.id, 'title', e.target.value);
-  }, [news.id, onUpdate]);
+  const isProvento = 'tipo' in item;
 
-  const updateSummary = useCallback((value: string) => {
-    onUpdate(news.id, 'summary', value);
-  }, [news.id, onUpdate]);
+  if (isProvento) {
+    const provento = item as ProventoItem;
+    return (
+      <div style={{
+        border: '2px solid #e5e7eb',
+        borderRadius: '12px',
+        padding: '16px',
+        backgroundColor: '#fefce8',
+        position: 'relative'
+      }}>
+        <button
+          onClick={onRemove}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            backgroundColor: '#dc2626',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Trash2 size={12} />
+        </button>
 
-  const updateImpact = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(news.id, 'impact', e.target.value as 'high' | 'medium' | 'low');
-  }, [news.id, onUpdate]);
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+          <input
+            placeholder="Ticker"
+            value={provento.ticker}
+            onChange={(e) => onUpdate({ ...provento, ticker: e.target.value.toUpperCase() })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            placeholder="Empresa"
+            value={provento.empresa}
+            onChange={(e) => onUpdate({ ...provento, empresa: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <select
+            value={provento.tipo}
+            onChange={(e) => onUpdate({ ...provento, tipo: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          >
+            <option value="Dividendo">Dividendo</option>
+            <option value="JCP">JCP</option>
+            <option value="Bonificação">Bonificação</option>
+          </select>
+          <input
+            placeholder="Valor (R$ 0,50)"
+            value={provento.valor}
+            onChange={(e) => onUpdate({ ...provento, valor: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            placeholder="DY (5,2%)"
+            value={provento.dy}
+            onChange={(e) => onUpdate({ ...provento, dy: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            type="date"
+            placeholder="Data-com"
+            value={provento.datacom}
+            onChange={(e) => onUpdate({ ...provento, datacom: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <input
+            type="date"
+            placeholder="Pagamento"
+            value={provento.pagamento}
+            onChange={(e) => onUpdate({ ...provento, pagamento: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
-  const updateSectors = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(news.id, 'sectors', e.target.value.split(',').map(s => s.trim()).filter(s => s));
-  }, [news.id, onUpdate]);
-
-  const updateRecommendations = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(news.id, 'recommendations', e.target.value.split(',').map(s => s.trim()).filter(s => s));
-  }, [news.id, onUpdate]);
-
-  const handleRemove = useCallback(() => {
-    onRemove(news.id);
-  }, [news.id, onRemove]);
-
+  const itemNormal = item as ItemRelatorioSemanal;
+  
   return (
     <div style={{
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '24px',
-      backgroundColor: 'white'
+      border: '2px solid #e5e7eb',
+      borderRadius: '12px',
+      padding: '16px',
+      backgroundColor: 'white',
+      position: 'relative'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Notícia Macro</h4>
+      <button
+        onClick={onRemove}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          backgroundColor: '#dc2626',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Trash2 size={12} />
+      </button>
+
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <input
+            placeholder="Ticker"
+            value={itemNormal.ticker}
+            onChange={(e) => onUpdate({ ...itemNormal, ticker: e.target.value.toUpperCase() })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          />
+          <input
+            placeholder="Empresa"
+            value={itemNormal.empresa}
+            onChange={(e) => onUpdate({ ...itemNormal, empresa: e.target.value })}
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '8px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <input
+          placeholder="Título da notícia/análise"
+          value={itemNormal.titulo}
+          onChange={(e) => onUpdate({ ...itemNormal, titulo: e.target.value })}
+          style={{
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            padding: '8px',
+            fontSize: '14px'
+          }}
+        />
+
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+            Resumo/Destaque
+          </label>
+          <RichTextEditor
+            value={itemNormal.resumo}
+            onChange={(value) => onUpdate({ ...itemNormal, resumo: value })}
+            placeholder="Resumo dos principais pontos..."
+            minHeight="80px"
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+            Análise Completa
+          </label>
+          <RichTextEditor
+            value={itemNormal.analise}
+            onChange={(value) => onUpdate({ ...itemNormal, analise: value })}
+            placeholder="Análise detalhada..."
+            minHeight="100px"
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Recomendação
+            </label>
+            <select
+              value={itemNormal.recomendacao || ''}
+              onChange={(e) => onUpdate({ ...itemNormal, recomendacao: e.target.value || undefined })}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">Selecione</option>
+              <option value="COMPRA">🟢 COMPRA</option>
+              <option value="MANTER">🟡 MANTER</option>
+              <option value="VENDA">🔴 VENDA</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Impacto
+            </label>
+            <select
+              value={itemNormal.impacto || ''}
+              onChange={(e) => onUpdate({ ...itemNormal, impacto: e.target.value || undefined })}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">Selecione</option>
+              <option value="positivo">📈 Positivo</option>
+              <option value="neutro">➖ Neutro</option>
+              <option value="negativo">📉 Negativo</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Preço Alvo (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="25.50"
+              value={itemNormal.precoAlvo || ''}
+              onChange={(e) => onUpdate({ ...itemNormal, precoAlvo: parseFloat(e.target.value) || undefined })}
+              style={{
+                width: '100%',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+        </div>
+
+        {itemNormal.destaque && (
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+              Destaque Especial
+            </label>
+            <RichTextEditor
+              value={itemNormal.destaque}
+              onChange={(value) => onUpdate({ ...itemNormal, destaque: value })}
+              placeholder="Destaque especial ou observação importante..."
+              minHeight="60px"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// Componente para seção do relatório
+const SecaoEditor = memo(({ 
+  titulo, 
+  items, 
+  onAddItem, 
+  onUpdateItem, 
+  onRemoveItem,
+  cor,
+  icone: Icone,
+  isProvento = false
+}: {
+  titulo: string;
+  items: any[];
+  onAddItem: () => void;
+  onUpdateItem: (index: number, item: any) => void;
+  onRemoveItem: (index: number) => void;
+  cor: string;
+  icone: any;
+  isProvento?: boolean;
+}) => {
+  return (
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      padding: '20px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '16px'
+      }}>
+        <h4 style={{
+          fontSize: '18px',
+          fontWeight: '600',
+          color: cor,
+          margin: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <Icone size={20} />
+          {titulo} ({items.length})
+        </h4>
+        
         <button
-          onClick={handleRemove}
-          style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
+          onClick={onAddItem}
+          style={{
+            backgroundColor: cor,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontWeight: '600'
+          }}
         >
-          <Trash2 size={16} />
+          <Plus size={14} />
+          Adicionar
         </button>
       </div>
 
       <div style={{ display: 'grid', gap: '16px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Título
-          </label>
-          <input
-            type="text"
-            value={news.title}
-            onChange={updateTitle}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="Ex: Copom eleva Selic para 15%"
-          />
-        </div>
+        {items.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px',
+            color: '#64748b',
+            backgroundColor: '#f8fafc',
+            borderRadius: '8px',
+            border: '2px dashed #cbd5e1'
+          }}>
+            <Icone size={32} style={{ color: '#cbd5e1', marginBottom: '8px' }} />
+            <p style={{ margin: 0, fontSize: '14px' }}>
+              Nenhum item adicionado ainda.
+              <br />
+              Clique em "Adicionar" para começar.
+            </p>
+          </div>
+        ) : (
+          items.map((item, index) => (
+            <ItemEditor
+              key={index}
+              item={item}
+              onUpdate={(updatedItem) => onUpdateItem(index, updatedItem)}
+              onRemove={() => onRemoveItem(index)}
+              secaoNome={titulo}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+});
 
-        {/* SUBSTITUÍDO: textarea por RichTextEditor */}
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Resumo
-          </label>
-          <RichTextEditor
-            value={news.summary}
-            onChange={updateSummary}
-            placeholder="Resumo da notícia e impactos..."
-            minHeight="150px"
-          />
-        </div>
+// 🎯 COMPONENTE DE CRIAÇÃO DE RELATÓRIO
+const CriarRelatorioForm = memo(({ 
+  onSave,
+  relatorioEditando 
+}: { 
+  onSave: (relatorio: RelatorioSemanalData) => void;
+  relatorioEditando?: RelatorioSemanalData | null;
+}) => {
+  const [relatorio, setRelatorio] = useState<RelatorioSemanalData>(() => {
+    if (relatorioEditando) {
+      return relatorioEditando;
+    }
+    
+    const hoje = new Date();
+    return {
+      id: Date.now().toString(),
+      semana: getWeekNumber(hoje),
+      dataPublicacao: hoje.toISOString().split('T')[0],
+      autor: '',
+      titulo: '',
+      macro: [],
+      proventos: [],
+      dividendos: [],
+      smallCaps: [],
+      microCaps: [],
+      exterior: [],
+      status: 'draft'
+    };
+  });
 
+  const [salvando, setSalvando] = useState(false);
+
+  // Atualizar quando relatorioEditando mudar
+  useEffect(() => {
+    if (relatorioEditando) {
+      setRelatorio(relatorioEditando);
+    }
+  }, [relatorioEditando]);
+
+  const updateField = useCallback((field: keyof RelatorioSemanalData, value: any) => {
+    setRelatorio(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const addItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>) => {
+    setRelatorio(prev => {
+      const newItem = secao === 'proventos' 
+        ? { ticker: '', empresa: '', tipo: 'Dividendo', valor: '', dy: '', datacom: '', pagamento: '' }
+        : { ticker: '', empresa: '', titulo: '', resumo: '', analise: '' };
+      
+      return {
+        ...prev,
+        [secao]: [...(prev[secao] as any[]), newItem]
+      };
+    });
+  }, []);
+
+  const updateItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>, index: number, item: any) => {
+    setRelatorio(prev => ({
+      ...prev,
+      [secao]: (prev[secao] as any[]).map((existing, i) => i === index ? item : existing)
+    }));
+  }, []);
+
+  const removeItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>, index: number) => {
+    setRelatorio(prev => ({
+      ...prev,
+      [secao]: (prev[secao] as any[]).filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    setSalvando(true);
+    
+    try {
+      // Validações básicas
+      if (!relatorio.semana || !relatorio.titulo) {
+        alert('Por favor, preencha pelo menos a Semana e o Título.');
+        return;
+      }
+      
+      await onSave(relatorio);
+      
+      // Limpar formulário apenas se não estiver editando
+      if (!relatorioEditando) {
+        const hoje = new Date();
+        setRelatorio({
+          id: Date.now().toString(),
+          semana: getWeekNumber(hoje),
+          dataPublicacao: hoje.toISOString().split('T')[0],
+          autor: '',
+          titulo: '',
+          macro: [],
+          proventos: [],
+          dividendos: [],
+          smallCaps: [],
+          microCaps: [],
+          exterior: [],
+          status: 'draft'
+        });
+      }
+      
+      alert('✅ Relatório salvo com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('❌ Erro ao salvar relatório');
+    } finally {
+      setSalvando(false);
+    }
+  }, [relatorio, onSave, relatorioEditando]);
+
+  const secoes = [
+    { key: 'macro' as const, titulo: 'Panorama Macro', cor: '#2563eb', icone: Globe },
+    { key: 'proventos' as const, titulo: 'Proventos', cor: '#4cfa00', icone: DollarSign, isProvento: true },
+    { key: 'dividendos' as const, titulo: 'Dividendos', cor: '#22c55e', icone: Calendar },
+    { key: 'smallCaps' as const, titulo: 'Small Caps', cor: '#2563eb', icone: Building },
+    { key: 'microCaps' as const, titulo: 'Micro Caps', cor: '#ea580c', icone: Zap },
+    { key: 'exterior' as const, titulo: 'Exterior', cor: '#7c3aed', icone: TrendingUp }
+  ];
+
+  return (
+    <div style={{ display: 'grid', gap: '24px' }}>
+      {/* Header com botão salvar */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0' }}>
+            {relatorioEditando ? '✏️ Editando Relatório' : '✨ Criar Novo Relatório'}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+            Relatório semanal organizado por seções
+          </p>
+        </div>
+        
+        <button
+          onClick={handleSave}
+          disabled={salvando}
+          style={{
+            backgroundColor: '#059669',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '12px',
+            border: 'none',
+            cursor: salvando ? 'not-allowed' : 'pointer',
+            opacity: salvando ? 0.5 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
+          }}
+        >
+          <Save size={16} />
+          {salvando ? 'Salvando...' : 'Salvar Relatório'}
+        </button>
+      </div>
+
+      {/* Informações básicas */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '20px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+      }}>
+        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FileText size={20} />
+          Informações Básicas
+        </h4>
+        
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Impacto
-            </label>
-            <select
-              value={news.impact}
-              onChange={updateImpact}
-              style={{
-                width: '100%',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <option value="low">Baixo</option>
-              <option value="medium">Médio</option>
-              <option value="high">Alto</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Setores (separados por vírgula)
+              Semana *
             </label>
             <input
               type="text"
-              value={news.sectors.join(', ')}
-              onChange={updateSectors}
+              value={relatorio.semana}
+              onChange={(e) => updateField('semana', e.target.value)}
+              placeholder="2025-W03"
               style={{
                 width: '100%',
-                border: '1px solid #d1d5db',
+                border: '2px solid #e5e7eb',
                 borderRadius: '8px',
-                padding: '8px 12px',
+                padding: '12px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                fontWeight: '600'
               }}
-              placeholder="Energia, Petróleo, Bancos"
             />
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Recomendações (separadas por vírgula)
+              Data de Publicação
             </label>
             <input
-              type="text"
-              value={news.recommendations.join(', ')}
-              onChange={updateRecommendations}
+              type="date"
+              value={relatorio.dataPublicacao}
+              onChange={(e) => updateField('dataPublicacao', e.target.value)}
               style={{
                 width: '100%',
-                border: '1px solid #d1d5db',
+                border: '2px solid #e5e7eb',
                 borderRadius: '8px',
-                padding: '8px 12px',
+                padding: '12px',
                 fontSize: '14px',
                 boxSizing: 'border-box'
               }}
-              placeholder="PETR4, PRIO3, RECV3"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Autor
+            </label>
+            <input
+              type="text"
+              value={relatorio.autor}
+              onChange={(e) => updateField('autor', e.target.value)}
+              placeholder="Seu Nome"
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
             />
           </div>
         </div>
+
+        <div style={{ marginTop: '16px' }}>
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+            Título do Relatório *
+          </label>
+          <input
+            type="text"
+            value={relatorio.titulo}
+            onChange={(e) => updateField('titulo', e.target.value)}
+            placeholder="Relatório Semanal - 3ª Semana de Janeiro de 2025"
+            style={{
+              width: '100%',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '12px',
+              fontSize: '14px',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
       </div>
+
+      {/* Seções do relatório */}
+      {secoes.map((secao) => (
+        <SecaoEditor
+          key={secao.key}
+          titulo={secao.titulo}
+          items={relatorio[secao.key]}
+          onAddItem={() => addItem(secao.key)}
+          onUpdateItem={(index, item) => updateItem(secao.key, index, item)}
+          onRemoveItem={(index) => removeItem(secao.key, index)}
+          cor={secao.cor}
+          icone={secao.icone}
+          isProvento={secao.isProvento}
+        />
+      ))}
     </div>
   );
 });
 
-// Componente ProventoCard isolado (sem mudanças)
-const ProventoCard = memo(({ 
-  provento, 
-  onUpdate, 
-  onRemove 
+// 📋 COMPONENTE DE RELATÓRIOS PUBLICADOS
+const RelatoriosPublicados = memo(({ 
+  relatorios, 
+  onEdit, 
+  onUnpublish,
+  onDelete 
 }: { 
-  provento: DividendoInfo;
-  onUpdate: (id: string, field: keyof DividendoInfo, value: any) => void;
-  onRemove: (id: string) => void;
+  relatorios: RelatorioSemanalData[];
+  onEdit: (relatorio: RelatorioSemanalData) => void;
+  onUnpublish: (id: string) => void;
+  onDelete: (id: string) => void;
 }) => {
-  const updateTicker = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(provento.id, 'ticker', e.target.value.toUpperCase());
-  }, [provento.id, onUpdate]);
+  const [filtroSemana, setFiltroSemana] = useState('');
 
-  const updateCompany = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(provento.id, 'company', e.target.value);
-  }, [provento.id, onUpdate]);
-
-  const updateType = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(provento.id, 'type', e.target.value as 'JCP' | 'Dividendo');
-  }, [provento.id, onUpdate]);
-
-  const updateValue = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(provento.id, 'value', e.target.value);
-  }, [provento.id, onUpdate]);
-
-  const updateDy = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(provento.id, 'dy', e.target.value);
-  }, [provento.id, onUpdate]);
-
-  const updateExDate = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(provento.id, 'exDate', e.target.value);
-  }, [provento.id, onUpdate]);
-
-  const updatePayDate = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(provento.id, 'payDate', e.target.value);
-  }, [provento.id, onUpdate]);
-
-  const updateStatus = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(provento.id, 'status', e.target.value as 'confirmed' | 'announced');
-  }, [provento.id, onUpdate]);
-
-  const handleRemove = useCallback(() => {
-    onRemove(provento.id);
-  }, [provento.id, onRemove]);
-
-  return (
-    <div style={{
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '24px',
-      backgroundColor: 'white'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Dividendo/JCP</h4>
-        <button
-          onClick={handleRemove}
-          style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Ticker
-          </label>
-          <input
-            type="text"
-            value={provento.ticker}
-            onChange={updateTicker}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="SAPR11"
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Empresa
-          </label>
-          <input
-            type="text"
-            value={provento.company}
-            onChange={updateCompany}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="Sanepar"
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Tipo
-          </label>
-          <select
-            value={provento.type}
-            onChange={updateType}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          >
-            <option value="JCP">JCP</option>
-            <option value="Dividendo">Dividendo</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Valor
-          </label>
-          <input
-            type="text"
-            value={provento.value}
-            onChange={updateValue}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="R$ 1,196"
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            DY
-          </label>
-          <input
-            type="text"
-            value={provento.dy}
-            onChange={updateDy}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="3,295%"
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Data-com
-          </label>
-          <input
-            type="date"
-            value={provento.exDate}
-            onChange={updateExDate}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Data Pagamento
-          </label>
-          <input
-            type="date"
-            value={provento.payDate}
-            onChange={updatePayDate}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Status
-          </label>
-          <select
-            value={provento.status}
-            onChange={updateStatus}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          >
-            <option value="announced">Anunciado</option>
-            <option value="confirmed">Confirmado</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// Componente StockCard isolado COM RICH TEXT EDITOR
-const StockCard = memo(({ 
-  stock, 
-  section, 
-  title, 
-  onUpdate, 
-  onRemove 
-}: { 
-  stock: StockNews;
-  section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior';
-  title: string;
-  onUpdate: (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => void;
-  onRemove: (section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => void;
-}) => {
-  const updateTicker = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(section, stock.id, 'ticker', e.target.value.toUpperCase());
-  }, [section, stock.id, onUpdate]);
-
-  const updateCompany = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(section, stock.id, 'company', e.target.value);
-  }, [section, stock.id, onUpdate]);
-
-  const updateImpact = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    onUpdate(section, stock.id, 'impact', e.target.value as 'positive' | 'negative' | 'neutral');
-  }, [section, stock.id, onUpdate]);
-
-  const updateNews = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(section, stock.id, 'news', e.target.value);
-  }, [section, stock.id, onUpdate]);
-
-  const updateHighlight = useCallback((value: string) => {
-    onUpdate(section, stock.id, 'highlight', value);
-  }, [section, stock.id, onUpdate]);
-
-  const updateRecommendation = useCallback((value: string) => {
-    onUpdate(section, stock.id, 'recommendation', value);
-  }, [section, stock.id, onUpdate]);
-
-  const handleRemove = useCallback(() => {
-    onRemove(section, stock.id);
-  }, [section, stock.id, onRemove]);
-
-  return (
-    <div style={{
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '24px',
-      backgroundColor: 'white'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <h4 style={{ fontWeight: '500', color: '#111827', margin: 0 }}>Ação {title}</h4>
-        <button
-          onClick={handleRemove}
-          style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gap: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Ticker
-            </label>
-            <input
-              type="text"
-              value={stock.ticker}
-              onChange={updateTicker}
-              style={{
-                width: '100%',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-              placeholder="JALL3"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Empresa
-            </label>
-            <input
-              type="text"
-              value={stock.company}
-              onChange={updateCompany}
-              style={{
-                width: '100%',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-              placeholder="Jalles"
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Impacto
-            </label>
-            <select
-              value={stock.impact}
-              onChange={updateImpact}
-              style={{
-                width: '100%',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <option value="positive">Positivo</option>
-              <option value="neutral">Neutro</option>
-              <option value="negative">Negativo</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Notícia
-          </label>
-          <input
-            type="text"
-            value={stock.news}
-            onChange={updateNews}
-            style={{
-              width: '100%',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-            placeholder="4T25 com forte desempenho operacional"
-          />
-        </div>
-
-        {/* SUBSTITUÍDO: textarea por RichTextEditor */}
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Destaque Principal
-          </label>
-          <RichTextEditor
-            value={stock.highlight}
-            onChange={updateHighlight}
-            placeholder="EBITDA ajustado de R$ 297,5 milhões (+131,6%)"
-            minHeight="100px"
-          />
-        </div>
-
-        {/* SUBSTITUÍDO: textarea por RichTextEditor */}
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-            Recomendação
-          </label>
-          <RichTextEditor
-            value={stock.recommendation}
-            onChange={updateRecommendation}
-            placeholder="Manutenção para quem já tem entre 2% e 3% da carteira"
-            minHeight="100px"
-          />
-        </div>
-      </div>
-    </div>
-  );
-});
-
-const AdminRelatorioSemanal = () => {
-  const [relatorio, setRelatorio] = useState<RelatorioData>({
-    date: new Date().toISOString().split('T')[0],
-    weekOf: `Semana de ${new Date().toLocaleDateString('pt-BR')}`,
-    macro: [],
-    proventos: [],
-    dividendos: [],
-    smallCaps: [],
-    microCaps: [],
-    exterior: [],
-    status: 'draft'
+  const relatoriosPublicados = relatorios.filter(r => r.status === 'published');
+  
+  const relatoriosFiltrados = relatoriosPublicados.filter(relatorio => {
+    return !filtroSemana || relatorio.semana.toLowerCase().includes(filtroSemana.toLowerCase());
   });
 
-  const [activeTab, setActiveTab] = useState('macro');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Agrupar por semana e ordenar
+  const relatoriosPorSemana = relatoriosFiltrados
+    .sort((a, b) => b.semana.localeCompare(a.semana))
+    .reduce((acc, relatorio) => {
+      if (!acc[relatorio.semana]) {
+        acc[relatorio.semana] = [];
+      }
+      acc[relatorio.semana].push(relatorio);
+      return acc;
+    }, {} as Record<string, RelatorioSemanalData[]>);
 
-  // 📚 CARREGAR RELATÓRIO EXISTENTE
-  useEffect(() => {
-    const loadRelatorio = async () => {
-      try {
-        console.log('🔄 Carregando relatório...');
-        const response = await fetch('/api/relatorio-semanal');
+  return (
+    <div style={{ display: 'grid', gap: '24px' }}>
+      {/* Filtros */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '20px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+      }}>
+        <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Filter size={18} />
+          Filtros
+        </h4>
         
-        console.log('📡 Response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📄 Dados recebidos:', data);
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+              Filtrar por Semana
+            </label>
+            <input
+              type="text"
+              value={filtroSemana}
+              onChange={(e) => setFiltroSemana(e.target.value)}
+              placeholder="Ex: 2025-W03"
+              style={{
+                width: '100%',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
           
-          if (data && data.id) {
-            setRelatorio(data);
-            console.log('✅ Relatório carregado com sucesso');
-          } else {
-            console.log('ℹ️ Nenhum relatório encontrado');
+          <div style={{ display: 'flex', alignItems: 'end' }}>
+            <button
+              onClick={() => setFiltroSemana('')}
+              style={{
+                backgroundColor: '#f1f5f9',
+                color: '#64748b',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Limpar Filtros
+            </button>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '16px', fontSize: '14px', color: '#64748b' }}>
+          Mostrando {relatoriosFiltrados.length} de {relatoriosPublicados.length} relatórios publicados
+        </div>
+      </div>
+
+      {/* Lista de Relatórios */}
+      {relatoriosFiltrados.length === 0 ? (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '64px',
+          textAlign: 'center',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📭</div>
+          <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
+            {relatoriosPublicados.length === 0 ? 'Nenhum Relatório Publicado' : 'Nenhum relatório corresponde aos filtros'}
+          </h3>
+          <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '32px' }}>
+            {relatoriosPublicados.length === 0 
+              ? 'Publique seus primeiros relatórios para vê-los aqui.'
+              : 'Tente ajustar os filtros para encontrar os relatórios desejados.'
+            }
+          </p>
+        </div>
+      ) : (
+        Object.entries(relatoriosPorSemana).map(([semana, relatoriosDaSemana]) => (
+          <div key={semana} style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+          }}>
+            {/* Header da semana */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '20px',
+              paddingBottom: '16px',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                  Semana {semana}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+                  {relatoriosDaSemana.length} relatório{relatoriosDaSemana.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              
+              <div style={{
+                backgroundColor: '#f0f9ff',
+                color: '#0c4a6e',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                border: '1px solid #7dd3fc'
+              }}>
+                📅 {semana}
+              </div>
+            </div>
+
+            {/* Grid de relatórios */}
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {relatoriosDaSemana.map((relatorio) => {
+                const totalItens = relatorio.macro.length + relatorio.proventos.length + 
+                  relatorio.dividendos.length + relatorio.smallCaps.length + 
+                  relatorio.microCaps.length + relatorio.exterior.length;
+
+                return (
+                  <div key={relatorio.id} style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    backgroundColor: '#f8fafc'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: '0 0 8px 0' }}>
+                          {relatorio.titulo}
+                        </h4>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
+                          <span>📅 {new Date(relatorio.dataPublicacao).toLocaleDateString('pt-BR')}</span>
+                          <span>✍️ {relatorio.autor}</span>
+                          <span>📊 {totalItens} itens</span>
+                        </div>
+
+                        {/* Resumo das seções */}
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '8px', 
+                          flexWrap: 'wrap',
+                          marginTop: '12px'
+                        }}>
+                          {relatorio.macro.length > 0 && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#dbeafe',
+                              color: '#1e40af',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Macro: {relatorio.macro.length}
+                            </span>
+                          )}
+                          
+                          {relatorio.proventos.length > 0 && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#f0fdf4',
+                              color: '#166534',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Proventos: {relatorio.proventos.length}
+                            </span>
+                          )}
+
+                          {relatorio.smallCaps.length > 0 && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Small Caps: {relatorio.smallCaps.length}
+                            </span>
+                          )}
+
+                          {relatorio.exterior.length > 0 && (
+                            <span style={{ 
+                              fontSize: '12px',
+                              backgroundColor: '#faf5ff',
+                              color: '#7c2d12',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '600'
+                            }}>
+                              Exterior: {relatorio.exterior.length}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ 
+                        textAlign: 'right',
+                        minWidth: '150px',
+                        marginLeft: '20px'
+                      }}>
+                        {/* Botões de ação */}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => onEdit(relatorio)}
+                            style={{
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                            title="Editar relatório"
+                          >
+                            <Edit size={14} />
+                            Editar
+                          </button>
+                          
+                          <button
+                            onClick={() => onUnpublish(relatorio.id!)}
+                            style={{
+                              backgroundColor: '#f59e0b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                            title="Despublicar (volta para rascunho)"
+                          >
+                            <Archive size={14} />
+                            Despublicar
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.')) {
+                                onDelete(relatorio.id!);
+                              }
+                            }}
+                            style={{
+                              backgroundColor: '#dc2626',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: '600'
+                            }}
+                            title="Excluir relatório"
+                          >
+                            <Trash2 size={14} />
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+});
+
+// 📝 COMPONENTE DE RASCUNHOS
+const RascunhosRelatorios = memo(({ 
+  relatorios, 
+  onEdit, 
+  onPublish,
+  onDelete 
+}: { 
+  relatorios: RelatorioSemanalData[];
+  onEdit: (relatorio: RelatorioSemanalData) => void;
+  onPublish: (id: string) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const rascunhos = relatorios.filter(r => r.status === 'draft');
+
+  return (
+    <div style={{ display: 'grid', gap: '24px' }}>
+      {rascunhos.length === 0 ? (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '64px',
+          textAlign: 'center',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📝</div>
+          <h3 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
+            Nenhum Rascunho
+          </h3>
+          <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '32px' }}>
+            Todos os seus rascunhos foram publicados ou você ainda não criou nenhum.
+          </p>
+        </div>
+      ) : (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+        }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', marginBottom: '20px' }}>
+            📝 Rascunhos ({rascunhos.length})
+          </h3>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {rascunhos.map((relatorio) => {
+              const totalItens = relatorio.macro.length + relatorio.proventos.length + 
+                relatorio.dividendos.length + relatorio.smallCaps.length + 
+                relatorio.microCaps.length + relatorio.exterior.length;
+
+              return (
+                <div key={relatorio.id} style={{
+                  border: '1px solid #fde68a',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  backgroundColor: '#fefce8'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                          {relatorio.titulo || 'Título não definido'}
+                        </h4>
+                        <span style={{
+                          backgroundColor: '#f59e0b',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {relatorio.semana}
+                        </span>
+                      </div>
+                      
+                      <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '8px' }}>
+                        {relatorio.autor || 'Autor não definido'} • {totalItens} itens
+                      </div>
+                      
+                      <div style={{ fontSize: '12px', color: '#a16207' }}>
+                        Criado em: {new Date(relatorio.dataPublicacao).toLocaleDateString('pt-BR')}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => onEdit(relatorio)}
+                        style={{
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Edit size={14} />
+                        Editar
+                      </button>
+                      
+                      <button
+                        onClick={() => onPublish(relatorio.id!)}
+                        style={{
+                          backgroundColor: '#22c55e',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Eye size={14} />
+                        Publicar
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir este rascunho?')) {
+                            onDelete(relatorio.id!);
+                          }
+                        }}
+                        style={{
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// 🏠 COMPONENTE PRINCIPAL
+const AdminRelatorioSemanal = () => {
+  const [relatorios, setRelatorios] = useState<RelatorioSemanalData[]>([]);
+  const [activeTab, setActiveTab] = useState<'criar' | 'publicados' | 'rascunhos'>('criar');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [relatorioEditando, setRelatorioEditando] = useState<RelatorioSemanalData | null>(null);
+
+  // 📚 CARREGAR RELATÓRIOS DO INDEXEDDB
+  useEffect(() => {
+    const loadRelatorios = async () => {
+      try {
+        console.log('🔄 Carregando relatórios semanais do IndexedDB...');
+        
+        const request = indexedDB.open('RelatoriosSemanaisDB', 1);
+        
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains('relatorios')) {
+            const store = db.createObjectStore('relatorios', { keyPath: 'id' });
+            store.createIndex('semana', 'semana', { unique: false });
+            store.createIndex('dataPublicacao', 'dataPublicacao', { unique: false });
+            store.createIndex('status', 'status', { unique: false });
+            console.log('✅ Object store "relatorios" criado');
           }
-        } else {
-          console.warn('⚠️ Erro ao carregar relatório:', response.status);
-        }
+        };
+        
+        request.onsuccess = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          const transaction = db.transaction(['relatorios'], 'readonly');
+          const store = transaction.objectStore('relatorios');
+          const getAllRequest = store.getAll();
+          
+          getAllRequest.onsuccess = () => {
+            const relatoriosSalvos = getAllRequest.result || [];
+            console.log(`✅ ${relatoriosSalvos.length} relatórios carregados do IndexedDB`);
+            setRelatorios(relatoriosSalvos);
+            setLoading(false);
+          };
+          
+          getAllRequest.onerror = () => {
+            console.error('❌ Erro ao carregar relatórios do IndexedDB');
+            setError('Erro ao carregar relatórios');
+            setLoading(false);
+          };
+        };
+        
+        request.onerror = () => {
+          console.error('❌ Erro ao abrir IndexedDB');
+          setError('Erro ao conectar com o banco de dados');
+          setLoading(false);
+        };
+        
       } catch (error) {
-        console.error('❌ Erro ao carregar relatório:', error);
-        setError('Erro ao carregar relatório');
+        console.error('❌ Erro geral ao carregar relatórios:', error);
+        setError('Erro ao carregar relatórios');
+        setLoading(false);
       }
     };
     
-    loadRelatorio();
-  }, []);
-
-  // Handlers principais com useCallback estável
-  const updateMacroNews = useCallback((id: string, field: keyof MacroNews, value: any) => {
-    setRelatorio(prev => ({
-      ...prev,
-      macro: prev.macro.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
-
-  const removeMacroNews = useCallback((id: string) => {
-    setRelatorio(prev => ({
-      ...prev,
-      macro: prev.macro.filter(item => item.id !== id)
-    }));
-  }, []);
-
-  const updateProvento = useCallback((id: string, field: keyof DividendoInfo, value: any) => {
-    setRelatorio(prev => ({
-      ...prev,
-      proventos: prev.proventos.map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
-
-  const removeProvento = useCallback((id: string) => {
-    setRelatorio(prev => ({
-      ...prev,
-      proventos: prev.proventos.filter(item => item.id !== id)
-    }));
-  }, []);
-
-  const updateStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string, field: keyof StockNews, value: any) => {
-    setRelatorio(prev => ({
-      ...prev,
-      [section]: prev[section].map(item => 
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
-
-  const removeStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', id: string) => {
-    setRelatorio(prev => ({
-      ...prev,
-      [section]: prev[section].filter(item => item.id !== id)
-    }));
-  }, []);
-
-  // Funções de adicionar item
-  const addMacroNews = useCallback(() => {
-    const newNews: MacroNews = {
-      id: Date.now().toString(),
-      title: '',
-      summary: '',
-      impact: 'medium',
-      sectors: [],
-      recommendations: []
-    };
-    setRelatorio(prev => ({
-      ...prev,
-      macro: [...prev.macro, newNews]
-    }));
-  }, []);
-
-  const addProvento = useCallback(() => {
-    const newProvento: DividendoInfo = {
-      id: Date.now().toString(),
-      ticker: '',
-      company: '',
-      type: 'JCP',
-      value: '',
-      dy: '',
-      exDate: '',
-      payDate: '',
-      status: 'announced'
-    };
-    setRelatorio(prev => ({
-      ...prev,
-      proventos: [...prev.proventos, newProvento]
-    }));
-  }, []);
-
-  const addStockNews = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior') => {
-    const newStock: StockNews = {
-      id: Date.now().toString(),
-      ticker: '',
-      company: '',
-      news: '',
-      impact: 'positive',
-      highlight: '',
-      recommendation: ''
-    };
-    setRelatorio(prev => ({
-      ...prev,
-      [section]: [...prev[section], newStock]
-    }));
+    loadRelatorios();
   }, []);
 
   // 💾 SALVAR RELATÓRIO
-  const saveRelatorio = async () => {
+  const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
     setSaving(true);
     setError(null);
     
     try {
-      console.log('💾 Salvando relatório...', relatorio);
+      console.log('💾 Salvando relatório no IndexedDB...', relatorio);
       
-      const token = 'fake-admin-token';
-      const userEmail = 'admin@fatosdobolsa.com';
+      const request = indexedDB.open('RelatoriosSemanaisDB', 1);
       
-      const method = relatorio.id ? 'PUT' : 'POST';
-      console.log(`📤 Enviando ${method} para /api/relatorio-semanal`);
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = db.transaction(['relatorios'], 'readwrite');
+        const store = transaction.objectStore('relatorios');
+        
+        const putRequest = store.put(relatorio);
+        
+        putRequest.onsuccess = () => {
+          console.log('✅ Relatório salvo no IndexedDB');
+          
+          // Atualizar estado local
+          setRelatorios(prev => {
+            const existing = prev.find(r => r.id === relatorio.id);
+            if (existing) {
+              return prev.map(r => r.id === relatorio.id ? relatorio : r);
+            } else {
+              return [...prev, relatorio];
+            }
+          });
+          
+          setRelatorioEditando(null);
+        };
+        
+        putRequest.onerror = () => {
+          throw new Error('Erro ao salvar no IndexedDB');
+        };
+      };
       
-      const response = await fetch('/api/relatorio-semanal', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': `Bearer ${token}`,
-          'x-user-email': userEmail
-        },
-        body: JSON.stringify(relatorio)
-      });
-      
-      console.log('📡 Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Erro na resposta:', errorData);
-        throw new Error(errorData.error || `Erro ${response.status}`);
-      }
-      
-      const savedRelatorio = await response.json();
-      console.log('✅ Relatório salvo:', savedRelatorio);
-      
-      setRelatorio(savedRelatorio);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      request.onerror = () => {
+        throw new Error('Erro ao conectar com IndexedDB');
+      };
       
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);
@@ -1255,213 +1620,75 @@ const AdminRelatorioSemanal = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
 
   // 📤 PUBLICAR RELATÓRIO
-  const publishRelatorio = async () => {
+  const publishRelatorio = useCallback(async (id: string) => {
+    const relatorio = relatorios.find(r => r.id === id);
+    if (!relatorio) return;
+    
+    const relatorioPublicado = { ...relatorio, status: 'published' as const };
+    await saveRelatorio(relatorioPublicado);
+  }, [relatorios, saveRelatorio]);
+
+  // 📥 DESPUBLICAR RELATÓRIO
+  const unpublishRelatorio = useCallback(async (id: string) => {
+    const relatorio = relatorios.find(r => r.id === id);
+    if (!relatorio) return;
+    
+    const relatorioRascunho = { ...relatorio, status: 'draft' as const };
+    await saveRelatorio(relatorioRascunho);
+  }, [relatorios, saveRelatorio]);
+
+  // 🗑️ DELETAR RELATÓRIO
+  const deleteRelatorio = useCallback(async (id: string) => {
     setSaving(true);
-    setError(null);
     
     try {
-      console.log('📤 Publicando relatório...');
+      const request = indexedDB.open('RelatoriosSemanaisDB', 1);
       
-      const publishedReport = { ...relatorio, status: 'published' as const };
-      
-      const token = 'fake-admin-token';
-      const userEmail = 'admin@fatosdobolsa.com';
-      
-      const response = await fetch('/api/relatorio-semanal', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'authorization': `Bearer ${token}`,
-          'x-user-email': userEmail
-        },
-        body: JSON.stringify(publishedReport)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao publicar');
-      }
-      
-      const savedRelatorio = await response.json();
-      setRelatorio(savedRelatorio);
-      alert('✅ Relatório publicado com sucesso!');
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = db.transaction(['relatorios'], 'readwrite');
+        const store = transaction.objectStore('relatorios');
+        
+        const deleteRequest = store.delete(id);
+        
+        deleteRequest.onsuccess = () => {
+          setRelatorios(prev => prev.filter(r => r.id !== id));
+          console.log('✅ Relatório excluído');
+        };
+      };
       
     } catch (error) {
-      console.error('❌ Erro ao publicar:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setError(`Erro ao publicar: ${errorMessage}`);
+      console.error('❌ Erro ao excluir:', error);
     } finally {
       setSaving(false);
     }
-  };
+  }, []);
 
-  // Memoização das seções para evitar re-renderização
-  const MacroSection = useMemo(() => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Panorama Macro</h3>
-        <button
-          onClick={addMacroNews}
-          style={{
-            backgroundColor: '#2563eb',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <Plus size={16} />
-          Nova Notícia
-        </button>
-      </div>
+  // ✏️ EDITAR RELATÓRIO
+  const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
+    setRelatorioEditando(relatorio);
+    setActiveTab('criar');
+  }, []);
 
-      {relatorio.macro.map((news) => (
-        <MacroNewsCard 
-          key={news.id} 
-          news={news} 
-          onUpdate={updateMacroNews} 
-          onRemove={removeMacroNews} 
-        />
-      ))}
-    </div>
-  ), [relatorio.macro, addMacroNews, updateMacroNews, removeMacroNews]);
+  const totalRelatorios = relatorios.length;
+  const relatoriosDraft = relatorios.filter(r => r.status === 'draft').length;
+  const relatoriosPublicados = relatorios.filter(r => r.status === 'published').length;
 
-  const ProventosSection = useMemo(() => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Proventos</h3>
-        <button
-          onClick={addProvento}
-          style={{
-            backgroundColor: '#059669',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <Plus size={16} />
-          Novo Provento
-        </button>
-      </div>
-
-      {relatorio.proventos.map((prov) => (
-        <ProventoCard 
-          key={prov.id} 
-          provento={prov} 
-          onUpdate={updateProvento} 
-          onRemove={removeProvento} 
-        />
-      ))}
-    </div>
-  ), [relatorio.proventos, addProvento, updateProvento, removeProvento]);
-
-  // Função factory para criar seções de stock
-  const createStockSection = useCallback((section: 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior', title: string, color: string) => {
-    const addHandler = () => addStockNews(section);
-    
+  if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{title}</h3>
-          <button
-            onClick={addHandler}
-            style={{
-              backgroundColor: color,
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Plus size={16} />
-            Nova Ação
-          </button>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>
+            Carregando relatórios...
+          </h2>
         </div>
-
-        {relatorio[section].map((stock) => (
-          <StockCard 
-            key={stock.id} 
-            stock={stock} 
-            section={section}
-            title={title}
-            onUpdate={updateStockNews} 
-            onRemove={removeStockNews} 
-          />
-        ))}
       </div>
     );
-  }, [relatorio, addStockNews, updateStockNews, removeStockNews]);
-
-  const totalItems = relatorio.macro.length + relatorio.proventos.length + 
-                    relatorio.dividendos.length + relatorio.smallCaps.length + 
-                    relatorio.microCaps.length + relatorio.exterior.length;
-
-  const tabs = [
-    { 
-      id: 'macro', 
-      label: 'Panorama Macro', 
-      icon: Globe, 
-      color: '#2563eb',
-      count: relatorio.macro.length,
-      description: 'Notícias macroeconômicas'
-    },
-    { 
-      id: 'proventos', 
-      label: 'Proventos', 
-      icon: DollarSign, 
-      color: '#4cfa00',
-      count: relatorio.proventos.length,
-      description: 'JCP e Dividendos'
-    },
-    { 
-      id: 'dividendos', 
-      label: 'Dividendos', 
-      icon: Calendar, 
-      color: '#22c55e',
-      count: relatorio.dividendos.length,
-      description: 'Notícias de dividendos'
-    },
-    { 
-      id: 'smallcaps', 
-      label: 'Small Caps', 
-      icon: Building, 
-      color: '#2563eb',
-      count: relatorio.smallCaps.length,
-      description: 'Empresas de médio porte'
-    },
-    { 
-      id: 'microcaps', 
-      label: 'Micro Caps', 
-      icon: Zap, 
-      color: '#ea580c',
-      count: relatorio.microCaps.length,
-      description: 'Empresas de pequeno porte'
-    },
-    { 
-      id: 'exterior', 
-      label: 'Exterior', 
-      icon: TrendingUp, 
-      color: '#7c3aed',
-      count: relatorio.exterior.length,
-      description: 'Ações internacionais'
-    }
-  ];
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -1469,7 +1696,7 @@ const AdminRelatorioSemanal = () => {
       <div style={{ 
         background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
         color: 'white',
-        borderBottom: '4px solid #4cfa00'
+        borderBottom: '4px solid #22c55e'
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1478,19 +1705,19 @@ const AdminRelatorioSemanal = () => {
                 width: '60px',
                 height: '60px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #4cfa00 0%, #22c55e 100%)',
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <BarChart3 size={28} style={{ color: 'white' }} />
+                <Calendar size={28} style={{ color: 'white' }} />
               </div>
               <div>
                 <h1 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 4px 0' }}>
-                  Relatório Semanal
+                  Relatórios Semanais
                 </h1>
                 <p style={{ color: '#94a3b8', margin: 0, fontSize: '16px' }}>
-                  Painel Administrativo - Fatos da Bolsa
+                  Central de Relatórios Semanais - Fatos da Bolsa
                 </p>
               </div>
             </div>
@@ -1504,10 +1731,10 @@ const AdminRelatorioSemanal = () => {
                 textAlign: 'center',
                 minWidth: '100px'
               }}>
-                <div style={{ fontSize: '24px', fontWeight: '700', color: '#4cfa00' }}>
-                  {totalItems}
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#22c55e' }}>
+                  {totalRelatorios}
                 </div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Total de Itens</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Total</div>
               </div>
               
               <div style={{
@@ -1517,14 +1744,23 @@ const AdminRelatorioSemanal = () => {
                 textAlign: 'center',
                 minWidth: '100px'
               }}>
-                <div style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '600',
-                  color: relatorio.status === 'published' ? '#4cfa00' : '#fbbf24'
-                }}>
-                  {relatorio.status === 'published' ? '✅ PUBLICADO' : '📝 RASCUNHO'}
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#fbbf24' }}>
+                  {relatoriosDraft}
                 </div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Status</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Rascunhos</div>
+              </div>
+              
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                padding: '16px',
+                textAlign: 'center',
+                minWidth: '100px'
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
+                  {relatoriosPublicados}
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Publicados</div>
               </div>
             </div>
           </div>
@@ -1532,264 +1768,253 @@ const AdminRelatorioSemanal = () => {
       </div>
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* Action Bar */}
+        {/* Sistema de Abas */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '24px',
           marginBottom: '32px',
-          border: '1px solid #e2e8f0'
+          border: '1px solid #e2e8f0',
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-              Configurações do Relatório
-            </h2>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {saved && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  color: '#22c55e',
-                  backgroundColor: '#f0fdf4',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}>
-                  <CheckCircle size={16} />
-                  Salvo com sucesso
-                </div>
-              )}
-              
-              {error && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  color: '#dc2626',
-                  backgroundColor: '#fef2f2',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}>
-                  <AlertCircle size={16} />
-                  {error}
-                </div>
-              )}
-              
-              <button
-                onClick={saveRelatorio}
-                disabled={saving}
-                style={{
-                  backgroundColor: '#2563eb',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
-                }}
-              >
-                <Save size={16} />
-                {saving ? 'Salvando...' : 'Salvar Rascunho'}
-              </button>
-              
-              <button
-                onClick={publishRelatorio}
-                disabled={saving}
-                style={{
-                  backgroundColor: '#4cfa00',
-                  color: '#1e293b',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  boxShadow: '0 4px 12px rgba(76, 250, 0, 0.3)'
-                }}
-              >
-                <Eye size={16} />
-                Publicar Relatório
-              </button>
-            </div>
-          </div>
-
-          {/* Informações Gerais - Layout moderno */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            <div>
-              <label style={{ 
-                display: 'block', 
-                fontSize: '14px', 
-                fontWeight: '600', 
-                color: '#374151', 
-                marginBottom: '8px' 
-              }}>
-                📅 Data do Relatório
-              </label>
-              <input
-                type="date"
-                value={relatorio.date}
-                onChange={(e) => setRelatorio(prev => ({ ...prev, date: e.target.value }))}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-            
-            <div>
-              <label style={{ 
-                display: 'block', 
-                fontSize: '14px', 
-                fontWeight: '600', 
-                color: '#374151', 
-                marginBottom: '8px' 
-              }}>
-                📆 Semana de Referência
-              </label>
-              <input
-                type="text"
-                value={relatorio.weekOf}
-                onChange={(e) => setRelatorio(prev => ({ ...prev, weekOf: e.target.value }))}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Semana de 22/06/2025"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs Modernas */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          overflow: 'hidden',
-          border: '1px solid #e2e8f0'
-        }}>
-          {/* Tab Navigation */}
-          <div style={{ 
-            background: 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)',
-            borderBottom: '1px solid #e2e8f0'
+          {/* Tab Headers */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid #e2e8f0',
+            backgroundColor: '#f8fafc'
           }}>
-            <div style={{ display: 'flex', padding: '8px', gap: '4px', overflowX: 'auto' }}>
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    style={{
-                      padding: '16px 20px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      minWidth: '180px',
-                      transition: 'all 0.2s',
-                      backgroundColor: isActive ? tab.color : 'transparent',
-                      color: isActive ? 'white' : '#64748b',
-                      boxShadow: isActive ? `0 4px 12px ${tab.color}40` : 'none'
-                    }}
-                  >
-                    <Icon size={18} />
-                    <div style={{ textAlign: 'left' }}>
-                      <div>{tab.label}</div>
-                      <div style={{ 
-                        fontSize: '12px', 
-                        opacity: 0.8,
-                        color: isActive ? 'rgba(255,255,255,0.8)' : '#94a3b8'
-                      }}>
-                        {tab.count} itens
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              onClick={() => setActiveTab('criar')}
+              style={{
+                flex: 1,
+                padding: '20px 24px',
+                border: 'none',
+                backgroundColor: activeTab === 'criar' ? 'white' : 'transparent',
+                color: activeTab === 'criar' ? '#1e293b' : '#64748b',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'criar' ? '3px solid #22c55e' : '3px solid transparent',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus size={20} />
+              {relatorioEditando ? 'Editar Relatório' : 'Criar Relatórios'}
+              {relatorioEditando && (
+                <span style={{
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}>
+                  EDITANDO
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('publicados')}
+              style={{
+                flex: 1,
+                padding: '20px 24px',
+                border: 'none',
+                backgroundColor: activeTab === 'publicados' ? 'white' : 'transparent',
+                color: activeTab === 'publicados' ? '#1e293b' : '#64748b',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'publicados' ? '3px solid #22c55e' : '3px solid transparent',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Eye size={20} />
+              Publicados ({relatoriosPublicados})
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('rascunhos')}
+              style={{
+                flex: 1,
+                padding: '20px 24px',
+                border: 'none',
+                backgroundColor: activeTab === 'rascunhos' ? 'white' : 'transparent',
+                color: activeTab === 'rascunhos' ? '#1e293b' : '#64748b',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'rascunhos' ? '3px solid #22c55e' : '3px solid transparent',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <FileText size={20} />
+              Rascunhos ({relatoriosDraft})
+            </button>
           </div>
 
           {/* Tab Content */}
           <div style={{ padding: '32px' }}>
-            {activeTab === 'macro' && MacroSection}
-            {activeTab === 'proventos' && ProventosSection}
-            {activeTab === 'dividendos' && createStockSection('dividendos', 'Dividendos', '#22c55e')}
-            {activeTab === 'smallcaps' && createStockSection('smallCaps', 'Small Caps', '#2563eb')}
-            {activeTab === 'microcaps' && createStockSection('microCaps', 'Micro Caps', '#ea580c')}
-            {activeTab === 'exterior' && createStockSection('exterior', 'Exterior', '#7c3aed')}
+            {activeTab === 'criar' && (
+              relatorioEditando ? (
+                <div>
+                  <div style={{
+                    backgroundColor: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '24px'
+                  }}>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#92400e', fontSize: '16px', fontWeight: '600' }}>
+                      ✏️ Editando Relatório
+                    </h4>
+                    <p style={{ margin: 0, color: '#92400e', fontSize: '14px' }}>
+                      Você está editando: <strong>{relatorioEditando.titulo || relatorioEditando.semana}</strong>
+                    </p>
+                    <button
+                      onClick={() => setRelatorioEditando(null)}
+                      style={{
+                        marginTop: '12px',
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancelar Edição
+                    </button>
+                  </div>
+                  <CriarRelatorioForm onSave={saveRelatorio} relatorioEditando={relatorioEditando} />
+                </div>
+              ) : (
+                <CriarRelatorioForm onSave={saveRelatorio} />
+              )
+            )}
+            
+            {activeTab === 'publicados' && (
+              <RelatoriosPublicados 
+                relatorios={relatorios}
+                onEdit={editRelatorio}
+                onUnpublish={unpublishRelatorio}
+                onDelete={deleteRelatorio}
+              />
+            )}
+            
+            {activeTab === 'rascunhos' && (
+              <RascunhosRelatorios 
+                relatorios={relatorios}
+                onEdit={editRelatorio}
+                onPublish={publishRelatorio}
+                onDelete={deleteRelatorio}
+              />
+            )}
           </div>
         </div>
 
-        {/* Preview */}
-        <div style={{
-          marginTop: '32px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-          border: '1px solid #e5e7eb',
-          padding: '24px'
-        }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Preview do Relatório</h2>
+        {/* Error Display */}
+        {error && (
           <div style={{
-            backgroundColor: '#f9fafb',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
             borderRadius: '8px',
-            padding: '16px'
+            padding: '16px',
+            marginBottom: '24px'
           }}>
-            <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <p style={{ margin: 0 }}><strong>ID:</strong> {relatorio.id || 'Novo relatório'}</p>
-              <p style={{ margin: 0 }}><strong>Data:</strong> {relatorio.date}</p>
-              <p style={{ margin: 0 }}><strong>Semana:</strong> {relatorio.weekOf}</p>
-              <p style={{ margin: 0 }}><strong>Notícias Macro:</strong> {relatorio.macro.length}</p>
-              <p style={{ margin: 0 }}><strong>Proventos:</strong> {relatorio.proventos.length}</p>
-              <p style={{ margin: 0 }}><strong>Dividendos:</strong> {relatorio.dividendos.length}</p>
-              <p style={{ margin: 0 }}><strong>Small Caps:</strong> {relatorio.smallCaps.length}</p>
-              <p style={{ margin: 0 }}><strong>Micro Caps:</strong> {relatorio.microCaps.length}</p>
-              <p style={{ margin: 0 }}><strong>Exterior:</strong> {relatorio.exterior.length}</p>
-              <p style={{ margin: 0 }}>
-                <strong>Status:</strong>
-                <span style={{
-                  marginLeft: '8px',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  backgroundColor: relatorio.status === 'published' ? '#dcfce7' : '#fef3c7',
-                  color: relatorio.status === 'published' ? '#166534' : '#92400e'
-                }}>
-                  {relatorio.status === 'published' ? 'Publicado' : 'Rascunho'}
-                </span>
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626' }}>
+              <AlertCircle size={16} />
+              {error}
             </div>
+          </div>
+        )}
+
+        {/* Instrução Final */}
+        <div style={{
+          backgroundColor: '#f0fdf4',
+          borderRadius: '16px',
+          padding: '32px',
+          border: '1px solid #86efac'
+        }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#15803d', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={24} />
+            Sistema de Relatórios Semanais
+          </h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <div>
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
+                ✨ Criar
+              </h4>
+              <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
+                <li>Formulário organizado por seções</li>
+                <li>Macro, Proventos, Small Caps, Exterior</li>
+                <li>Rich Text Editor para análises</li>
+                <li>Organização automática por semana</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
+                📋 Publicados
+              </h4>
+              <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
+                <li>Relatórios organizados por semana</li>
+                <li>Visualização de todas as seções</li>
+                <li>Editar relatórios publicados</li>
+                <li>Filtros por período</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
+                📝 Rascunhos
+              </h4>
+              <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
+                <li>Relatórios ainda não publicados</li>
+                <li>Continuar editando seções</li>
+                <li>Publicar quando estiver completo</li>
+                <li>Gerenciar trabalho em progresso</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div style={{
+            marginTop: '24px',
+            padding: '16px',
+            backgroundColor: '#dcfce7',
+            borderRadius: '8px',
+            border: '1px solid #86efac'
+          }}>
+            <p style={{ margin: 0, color: '#166534', fontSize: '14px', fontWeight: '500' }}>
+              💡 <strong>Fluxo Semanal:</strong> Crie um novo relatório da semana → Adicione itens em cada seção → 
+              Publique quando estiver pronto → Os relatórios ficam organizados automaticamente por semana no banco de dados local!
+            </p>
+          </div>
+          
+          <div style={{
+            marginTop: '16px',
+            padding: '16px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '8px',
+            border: '1px solid #fde68a'
+          }}>
+            <p style={{ margin: 0, color: '#92400e', fontSize: '14px', fontWeight: '500' }}>
+              🗂️ <strong>Organização:</strong> Cada relatório é identificado pela semana (ex: 2025-W03) e contém 
+              seções específicas para Macro, Proventos, Small Caps, Micro Caps e Exterior. Você tem controle total sobre o conteúdo!
+            </p>
           </div>
         </div>
       </div>
