@@ -27,6 +27,8 @@ export const paths = {
     adminEmpresas: '/dashboard/gerenciamento',
     adminProventos: '/dashboard/central-proventos',
     adminRelatorios: '/dashboard/central-relatorios',
+    // 🆕 NOVO: Admin do Relatório Semanal
+    adminRelatorioSemanal: '/dashboard/admin/relatorio-semanal',
     adminIntegracoes: '/dashboard/central-agenda',
     adminSettings: '/dashboard/admin/settings',
     adminLogs: '/dashboard/admin/logs',
@@ -39,6 +41,5 @@ export const paths = {
 
 // Export default também para compatibilidade
 export default paths;
-
 // Export tipo para TypeScript
 export type Paths = typeof paths;
