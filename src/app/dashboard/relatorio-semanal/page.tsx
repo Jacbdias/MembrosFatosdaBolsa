@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3, Lock } from 'lucide-react';
-import { useAuthAccess } from '@/hooks/use-auth-access'; // Importar o hook de permissões
+import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3 } from 'lucide-react';
 
 // Componente para renderizar HTML formatado com segurança
 interface HTMLContentProps {
@@ -134,7 +133,7 @@ const HTMLContentStyles = () => (
 );
 
 // Header com design similar ao PDF
-const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: string }) => (
+const ReportHeader = ({ relatorio }: { relatorio: any }) => (
   <div style={{
     background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
     color: 'white',
@@ -155,24 +154,6 @@ const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: stri
     }} />
     
     <div style={{ position: 'relative', zIndex: 1, maxWidth: '800px', margin: '0 auto' }}>
-      {/* Badge do plano */}
-      {planName && (
-        <div style={{
-          backgroundColor: '#4cfa00',
-          color: '#1a1a1a',
-          padding: '8px 16px',
-          borderRadius: '20px',
-          display: 'inline-block',
-          fontSize: '14px',
-          fontWeight: '700',
-          marginBottom: '20px',
-          textTransform: 'uppercase',
-          letterSpacing: '1px'
-        }}>
-          {planName}
-        </div>
-      )}
-      
       <div style={{ marginBottom: '20px' }}>
         <span style={{
           fontSize: '16px',
@@ -242,84 +223,6 @@ const ReportHeader = ({ relatorio, planName }: { relatorio: any; planName?: stri
         }}>
           <div>FATOS</div>
           <div>DA BOLSA</div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// Seção bloqueada para mostrar quando usuário não tem acesso
-const BlockedSection = ({ icon: Icon, title, color }: { icon: any, title: string, color: string }) => (
-  <div style={{
-    backgroundColor: '#f9f9f9',
-    padding: '40px',
-    marginBottom: '30px',
-    borderRadius: '0px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-    position: 'relative',
-    overflow: 'hidden',
-    opacity: 0.6
-  }}>
-    {/* Background decorativo desbotado */}
-    <div style={{
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      width: '200px',
-      height: '100%',
-      background: `linear-gradient(45deg, ${color}08, ${color}03)`,
-      clipPath: 'polygon(50% 0%, 100% 0%, 100% 100%, 0% 100%)'
-    }} />
-    
-    {/* Ícone de bloqueio */}
-    <div style={{
-      position: 'absolute',
-      top: '20px',
-      right: '40px',
-      backgroundColor: '#ef4444',
-      borderRadius: '50%',
-      width: '40px',
-      height: '40px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <Lock size={20} style={{ color: 'white' }} />
-    </div>
-    
-    <div style={{ position: 'relative', zIndex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <div style={{
-          width: '60px',
-          height: '60px',
-          backgroundColor: '#e5e7eb',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <Icon size={30} style={{ color: '#9ca3af' }} />
-        </div>
-        
-        <div>
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: '700',
-            color: '#9ca3af',
-            margin: 0,
-            textTransform: 'uppercase',
-            letterSpacing: '1px'
-          }}>
-            {title}
-          </h2>
-          <p style={{
-            fontSize: '16px',
-            color: '#ef4444',
-            margin: '5px 0 0 0',
-            fontWeight: '600'
-          }}>
-            🔒 Conteúdo exclusivo - Upgrade necessário
-          </p>
         </div>
       </div>
     </div>
@@ -408,7 +311,7 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
   </div>
 );
 
-// Sistema inteligente para encontrar logos de empresas (mantido igual)
+// Sistema inteligente para encontrar logos de empresas
 const generateLogoSources = (ticker: string, companyName?: string) => {
   const sources: string[] = [];
   
@@ -568,7 +471,7 @@ const getAvatarColor = (ticker: string) => {
   return colors[index];
 };
 
-// Componente para logo da empresa (mantido igual)
+// Componente para logo da empresa
 const CompanyLogo = ({ ticker, fallbackColor, item }: { ticker: string, fallbackColor: string, item?: any }) => {
   const [logoSrc, setLogoSrc] = useState<string>('');
   const [logoError, setLogoError] = useState(false);
@@ -683,7 +586,7 @@ const CompanyLogo = ({ ticker, fallbackColor, item }: { ticker: string, fallback
   );
 };
 
-// Card de ação com logo e HTML renderizado (mantido igual)
+// Card de ação com logo e HTML renderizado
 const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) => (
   <div style={{
     backgroundColor: 'white',
@@ -853,7 +756,7 @@ const StockCard = ({ item, sectionColor }: { item: any, sectionColor: string }) 
   </div>
 );
 
-// Card de provento com logo (mantido igual)
+// Card de provento com logo (sem mudanças, apenas dados estruturados)
 const ProventoCard = ({ item }: { item: any }) => (
   <div style={{
     backgroundColor: 'white',
@@ -932,26 +835,6 @@ export default function RelatorioSemanalPage() {
   const [relatorio, setRelatorio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // 🔥 IMPLEMENTAÇÃO COM FALLBACK ROBUSTO
-  let planInfo, authLoading, hasAccessSync, user, debugInfo;
-  
-  try {
-    const authData = useAuthAccess();
-    planInfo = authData.planInfo;
-    authLoading = authData.loading;
-    hasAccessSync = authData.hasAccessSync;
-    user = authData.user;
-    debugInfo = authData.debugInfo;
-  } catch (error) {
-    console.log('⚠️ useAuthAccess falhou, usando fallback:', error);
-    // Fallback seguro
-    planInfo = { displayName: 'Close Friends VIP', pages: ['relatorio-semanal'] };
-    authLoading = false;
-    hasAccessSync = () => true;
-    user = { plan: 'VIP', email: 'user@example.com' };
-    debugInfo = { isAdmin: false };
-  }
 
   useEffect(() => {
     const loadRelatorio = async () => {
@@ -987,64 +870,7 @@ export default function RelatorioSemanalPage() {
     loadRelatorio();
   }, []);
 
-  // 🔥 MAPEAMENTO DAS SEÇÕES PARA PERMISSÕES
-  const getSectionPermissions = () => {
-    return {
-      'macro': [], // Panorama macro disponível para todos
-      'proventos': ['dividendos', 'fundos-imobiliarios'], // Proventos = dividendos OU FIIs
-      'dividendos': ['dividendos'],
-      'smallCaps': ['small-caps'],
-      'microCaps': ['micro-caps'],
-      'exterior': ['internacional', 'internacional-etfs', 'internacional-stocks'] // Qualquer permissão internacional
-    };
-  };
-
-  // 🔥 FUNÇÃO PARA VERIFICAR SE USUÁRIO TEM ACESSO À SEÇÃO
-  const hasAccessToSection = (sectionKey: string): boolean => {
-    const sectionPermissions = getSectionPermissions();
-    const requiredPermissions = sectionPermissions[sectionKey] || [];
-    
-    // Se não requer permissão específica (como macro), libera para todos
-    if (requiredPermissions.length === 0) {
-      return true;
-    }
-    
-    // Se o usuário não está autenticado
-    if (!user) {
-      return false;
-    }
-    
-    // Admin sempre tem acesso
-    if (user.plan === 'ADMIN') {
-      return true;
-    }
-    
-    // Verifica se tem pelo menos uma das permissões necessárias
-    return requiredPermissions.some(permission => hasAccessSync(permission));
-  };
-
-  // 🔥 LOG DE DEBUG DAS PERMISSÕES
-  useEffect(() => {
-    if (!authLoading && user) {
-      console.log('🎯 [PERMISSIONS DEBUG]', {
-        user: user.email,
-        plan: user.plan,
-        planName: planInfo?.displayName,
-        permissions: planInfo?.pages,
-        customPermissions: user.customPermissions,
-        sectionsAccess: {
-          macro: hasAccessToSection('macro'),
-          proventos: hasAccessToSection('proventos'),
-          dividendos: hasAccessToSection('dividendos'),
-          smallCaps: hasAccessToSection('smallCaps'),
-          microCaps: hasAccessToSection('microCaps'),
-          exterior: hasAccessToSection('exterior')
-        }
-      });
-    }
-  }, [user, planInfo, authLoading]);
-
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <div style={{ 
         minHeight: '100vh', 
@@ -1067,7 +893,7 @@ export default function RelatorioSemanalPage() {
             Carregando Relatório
           </h2>
           <p style={{ color: '#6b7280', fontSize: '16px' }}>
-            {loading ? 'Buscando o relatório semanal...' : 'Verificando permissões...'}
+            Buscando o relatório semanal mais recente...
           </p>
         </div>
       </div>
@@ -1166,7 +992,6 @@ export default function RelatorioSemanalPage() {
     );
   }
 
-  // 🔥 DEFINIÇÃO DAS SEÇÕES COM VERIFICAÇÃO DE ACESSO
   const sections = [
     { 
       key: 'macro', 
@@ -1224,30 +1049,12 @@ export default function RelatorioSemanalPage() {
         }
       `}</style>
       
-      <ReportHeader relatorio={relatorio} planName={planInfo?.displayName} />
+      <ReportHeader relatorio={relatorio} />
       
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '50px 20px' }}>
         {sections.map((section) => {
-          const hasAccess = hasAccessToSection(section.key);
-          const hasData = section.data && section.data.length > 0;
+          if (!section.data || section.data.length === 0) return null;
           
-          // Se não tem dados para esta seção, não mostra nada
-          if (!hasData) return null;
-          
-          // 🔥 SE NÃO TEM ACESSO, MOSTRA SEÇÃO BLOQUEADA
-          if (!hasAccess) {
-            return (
-              <section key={section.key} style={{ marginBottom: '60px' }}>
-                <BlockedSection 
-                  icon={section.icon}
-                  title={section.title}
-                  color={section.color}
-                />
-              </section>
-            );
-          }
-          
-          // 🔥 SE TEM ACESSO, MOSTRA NORMALMENTE
           return (
             <section key={section.key} style={{ marginBottom: '60px' }}>
               <SectionHeader 
@@ -1269,23 +1076,6 @@ export default function RelatorioSemanalPage() {
             </section>
           );
         })}
-        
-        {/* 🔥 SEÇÃO DE DEBUG (apenas para admins) */}
-        {debugInfo?.isAdmin && (
-          <div style={{
-            backgroundColor: '#f3f4f6',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '40px',
-            fontSize: '12px',
-            fontFamily: 'monospace'
-          }}>
-            <h3 style={{ marginBottom: '10px', color: '#374151' }}>🐛 Debug Info (Admin Only)</h3>
-            <pre style={{ margin: 0, color: '#6b7280' }}>
-              {JSON.stringify(debugInfo, null, 2)}
-            </pre>
-          </div>
-        )}
         
         {/* Rodapé */}
         <div style={{
