@@ -1433,7 +1433,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
           color: '#1e293b',
           margin: '0'
         }}>
-          {isFII ? '💰 Histórico de Rendimentos (FII)' : '💰 Histórico de Proventos'}
+          {isFII ? 'Histórico de Rendimentos (FII)' : 'Histórico de Proventos'}
         </h3>
       </div>
 
@@ -1748,7 +1748,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
           color: '#1e293b',
           margin: '0 0 20px 0'
         }}>
-          📋 Relatórios da Empresa
+         Relatórios da Empresa
         </h3>
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
@@ -2109,7 +2109,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
         color: '#1e293b',
         margin: '0 0 20px 0'
       }}>
-        📅 Agenda Corporativa
+       Agenda Corporativa
       </h3>
 
       {loading ? (
