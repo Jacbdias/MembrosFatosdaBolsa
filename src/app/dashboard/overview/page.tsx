@@ -754,6 +754,10 @@ function useSmallCapsIntegradas() {
         
         if (cotacao && cotacao.precoAtual > 0) {
           const precoAtualNum = cotacao.precoAtual;
+
+  // 🚨 ALERT PARA DEBUG - ADICIONE AQUI:
+  alert(`${ativo.ticker} - API: ${cotacao.precoAtual} | Final: ${precoAtualNum}`);
+
           const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
           
           // 💰 CALCULAR PROVENTOS DO PERÍODO
