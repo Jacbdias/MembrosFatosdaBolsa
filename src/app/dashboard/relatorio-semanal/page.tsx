@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3, Lock } from 'lucide-react';
-import { useAuthAccess } from './use-auth-access'; // Importar o hook de permissões
+import { useAuthAccess } from '@/hooks/use-auth-access';
 
 // Componente para renderizar HTML formatado com segurança
 interface HTMLContentProps {
