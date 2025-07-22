@@ -8,7 +8,7 @@ export const navItems = [
     key: 'relatorio-semanal', 
     title: 'Relatório Semanal', 
     href: paths.dashboard.relatorioSemanal, // Você precisa adicionar este path
-    icon: 'document-text',
+    icon: 'chart-bar', // ou 'document-text', 'clipboard-document'
     page: 'relatorio-semanal'
   },
   
