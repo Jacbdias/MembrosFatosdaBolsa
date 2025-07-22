@@ -25,7 +25,7 @@ export function useAuthAccess() {
             // Fallback
             setPlanInfo({
               displayName: 'Close Friends VIP',
-              pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+              pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
             });
           }
           setLoading(false);
@@ -50,38 +50,45 @@ export function useAuthAccess() {
           console.log('⚠️ AuthClient falhou, usando mapeamento interno');
         }
 
-        // Mapeamento interno caso authClient falhe
+        // 🔥 MAPEAMENTO INTERNO ATUALIZADO - Relatório Semanal em TODOS os planos
         const internalPlanPermissions = {
           'VIP': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para VIP
             'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram'
           ],
           'LITE': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para LITE
             'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
           ],
           // ✅ ADICIONADO: Close Friends LITE 2.0
           'LITE_V2': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para LITE V2
             'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
             // Nota: Não inclui 'internacional' (diferença do LITE original)
           ],
           'RENDA_PASSIVA': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para Renda Passiva
             'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
           ],
           'FIIS': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para FIIs
             'fundos-imobiliarios', 'rentabilidades',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
           ],
           'AMERICA': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para América
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram'
           ],
           'ADMIN': [
+            'relatorio-semanal', // 📋 NOVO: Disponível para Admin
             'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
@@ -92,13 +99,16 @@ export function useAuthAccess() {
         };
 
         // Pegar permissões base do plano
-        const basePlanPages = basePlanInfo?.pages || internalPlanPermissions[user.plan] || [];
+        const basePlanPages = basePlanInfo?.pages || internalPlanPermissions[user.plan] || ['relatorio-semanal']; // 📋 Fallback: pelo menos relatório
         
         // Pegar permissões customizadas do usuário
         const customPermissions = user.customPermissions || [];
         
+        // 🔥 GARANTIR que 'relatorio-semanal' esteja sempre presente
+        const guaranteedPages = ['relatorio-semanal'];
+        
         // Combinar todas as permissões (sem duplicatas)
-        const allPermissions = [...new Set([...basePlanPages, ...customPermissions])];
+        const allPermissions = [...new Set([...guaranteedPages, ...basePlanPages, ...customPermissions])];
         
         console.log('📋 Permissões base do plano:', basePlanPages);
         console.log('🎯 Permissões customizadas:', customPermissions);
@@ -123,10 +133,10 @@ export function useAuthAccess() {
       } catch (error) {
         console.error('❌ Erro ao carregar info do plano:', error);
         
-        // Fallback original
+        // 🔥 FALLBACK ATUALIZADO - Sempre incluir relatório semanal
         setPlanInfo({
           displayName: 'Close Friends VIP',
-          pages: ['small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+          pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
         });
       } finally {
         setLoading(false);
@@ -144,6 +154,11 @@ export function useAuthAccess() {
     
     if (!user) {
       console.log('❌ Usuário não logado');
+      // 🔥 EXCEÇÃO: Relatório semanal disponível mesmo sem login
+      if (page === 'relatorio-semanal') {
+        console.log('📋 Relatório semanal - acesso público');
+        return true;
+      }
       return false;
     }
 
@@ -165,6 +180,12 @@ export function useAuthAccess() {
       const isRenovacoesAdmin = user.plan === 'ADMIN';
       console.log(`📊 Verificando acesso Renovações Admin para ${user.email}:`, isRenovacoesAdmin);
       return isRenovacoesAdmin;
+    }
+
+    // 📋 GARANTIR acesso ao relatório semanal para todos os usuários logados
+    if (page === 'relatorio-semanal') {
+      console.log('📋 Relatório semanal - acesso garantido para usuário logado');
+      return true;
     }
 
     const hasAccess = planInfo.pages.includes(page);

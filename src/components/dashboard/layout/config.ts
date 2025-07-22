@@ -3,6 +3,15 @@ import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 
 export const navItems = [
+  // 🆕 RELATÓRIO SEMANAL - NOVO ITEM
+  { 
+    key: 'relatorio-semanal', 
+    title: 'Relatório Semanal', 
+    href: paths.dashboard.relatorioSemanal, // Você precisa adicionar este path
+    icon: 'chart-bar', // ou 'document-text', 'clipboard-document'
+    page: 'relatorio-semanal'
+  },
+  
   { 
     key: 'overview', 
     title: 'Small Caps', 

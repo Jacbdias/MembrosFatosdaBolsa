@@ -7,6 +7,9 @@ export const paths = {
     resetPassword: '/auth/reset-password'
   },
   dashboard: {
+    // 🆕 NOVO: Relatório Semanal (primeiro item do menu)
+    relatorioSemanal: '/dashboard/relatorio-semanal',
+    
     overview: '/dashboard/overview',
     account: '/dashboard/account',
     customers: '/dashboard/customers',
@@ -15,7 +18,6 @@ export const paths = {
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
     rentabilidades: '/dashboard/rentabilidades',
-
     
     // 🛡️ ROTAS ADMINISTRATIVAS
     admin: '/dashboard/admin',
@@ -37,5 +39,6 @@ export const paths = {
 
 // Export default também para compatibilidade
 export default paths;
+
 // Export tipo para TypeScript
 export type Paths = typeof paths;
