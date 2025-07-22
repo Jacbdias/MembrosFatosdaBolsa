@@ -511,7 +511,7 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
         alignItems: 'center',
         gap: '8px'
       }}>
-        📊 Composição do ETF
+        Composição do ETF
         <span style={{
           backgroundColor: '#3b82f6',
           color: 'white',
@@ -638,7 +638,7 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
                   color: '#1e293b',
                   margin: 0
                 }}>
-                  💼 Principais Holdings
+                 Principais Holdings
                 </h4>
                 {etfData.topHoldings.length > 5 && (
                   <button
