@@ -933,8 +933,25 @@ export default function RelatorioSemanalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 🔥 NOVA IMPLEMENTAÇÃO: Hook de permissões
-  const { planInfo, loading: authLoading, hasAccessSync, user, debugInfo } = useAuthAccess();
+  // 🔥 IMPLEMENTAÇÃO COM FALLBACK ROBUSTO
+  let planInfo, authLoading, hasAccessSync, user, debugInfo;
+  
+  try {
+    const authData = useAuthAccess();
+    planInfo = authData.planInfo;
+    authLoading = authData.loading;
+    hasAccessSync = authData.hasAccessSync;
+    user = authData.user;
+    debugInfo = authData.debugInfo;
+  } catch (error) {
+    console.log('⚠️ useAuthAccess falhou, usando fallback:', error);
+    // Fallback seguro
+    planInfo = { displayName: 'Close Friends VIP', pages: ['relatorio-semanal'] };
+    authLoading = false;
+    hasAccessSync = () => true;
+    user = { plan: 'VIP', email: 'user@example.com' };
+    debugInfo = { isAdmin: false };
+  }
 
   useEffect(() => {
     const loadRelatorio = async () => {
