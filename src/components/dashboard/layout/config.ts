@@ -233,9 +233,9 @@ export const navItems = [
       {
         key: 'admin-analises-trimestrais',
         title: 'Análises Trimestrais',
-        href: paths.dashboard.admin + '/analises-trimestrais',
+        href: paths.dashboard.admin + '/analises-trimesestrais',
         icon: 'chart-line', // ou 'calendar', 'article'
-        page: 'admin-analises-trimestrais'
+        page: 'admin-analises-trimesestrais'
       },
       {
         key: 'admin-integracoes-agenda',
