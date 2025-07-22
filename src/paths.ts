@@ -29,7 +29,7 @@ export const paths = {
     adminRelatorios: '/dashboard/central-relatorios',
     adminRelatorioSemanal: '/dashboard/admin/relatorio-semanal',
     // 🆕 NOVO: Análises Trimestrais
-    adminAnalisesTrimesestrais: '/dashboard/admin/analises-trimestrais',
+    adminAnalisesTrimesestrais: '/dashboard/admin/analises-trimesestrais',
     adminIntegracoes: '/dashboard/central-agenda',
     adminSettings: '/dashboard/admin/settings',
     adminLogs: '/dashboard/admin/logs',
