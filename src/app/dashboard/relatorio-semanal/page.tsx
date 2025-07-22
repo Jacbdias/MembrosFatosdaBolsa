@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3, Lock, ChevronLeft, ChevronRight, ChevronDown, Clock, Archive, List, Eye } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Globe, Building, Zap, AlertCircle, CheckCircle, BarChart3, Lock, ChevronLeft, ChevronRight, ChevronDown, Clock, Archive } from 'lucide-react';
 import { useAuthAccess } from '@/hooks/use-auth-access';
 
 // 🎯 INTERFACES COMPATÍVEIS COM ARQUIVO 2
@@ -157,14 +157,8 @@ const WeekNavigation = ({
     }
   };
 
-  const formatarSemana = (semana: string) => {
-    if (!semana) return 'Carregando...';
-    const [ano, week] = semana.split('-W');
-    return `${week}ª Semana de ${ano}`;
-  };
-
   const formatarSemanaCompleta = (semana: string) => {
-    if (!semana) return 'Carregando...';
+    if (!semana) return { titulo: 'Carregando...', periodo: '' };
     const [ano, week] = semana.split('-W');
     const semanaNum = parseInt(week);
     const dataInicio = new Date(parseInt(ano), 0, 1 + (semanaNum - 1) * 7);
@@ -264,7 +258,6 @@ const WeekNavigation = ({
           </div>
         </div>
 
-        {/* Contador de Semanas */}
         <div style={{
           backgroundColor: '#f0fdf4',
           color: '#166534',
@@ -374,7 +367,7 @@ const WeekNavigation = ({
                 }}>
                   Selecionar Semana
                 </div>
-                {semanasDisponiveis.map((semana, index) => {
+                {semanasDisponiveis.map((semana) => {
                   const info = formatarSemanaCompleta(semana);
                   const isAtual = semana === semanaAtual;
                   
@@ -398,16 +391,6 @@ const WeekNavigation = ({
                         alignItems: 'center',
                         marginBottom: '4px',
                         transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isAtual) {
-                          e.currentTarget.style.backgroundColor = '#f8fafc';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isAtual) {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }
                       }}
                     >
                       <div>
@@ -494,7 +477,7 @@ const WeekNavigation = ({
   );
 };
 
-// Header otimizado com informações da semana
+// Header com informações da semana
 const ReportHeader = ({ relatorio, planName }: { relatorio: RelatorioSemanalData | null; planName?: string }) => {
   if (!relatorio) {
     return (
@@ -765,7 +748,7 @@ const BlockedSection = ({ icon: Icon, title, color }: { icon: any, title: string
   </div>
 );
 
-// Seção com design do PDF
+// Seção header
 const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: string, color: string, count: number }) => (
   <div style={{
     backgroundColor: 'white',
@@ -845,7 +828,7 @@ const SectionHeader = ({ icon: Icon, title, color, count }: { icon: any, title: 
   </div>
 );
 
-// Sistema de logos (simplificado para o exemplo)
+// Componente de logo simplificado
 const CompanyLogo = ({ ticker, fallbackColor }: { ticker: string, fallbackColor: string }) => (
   <div style={{
     width: '60px',
@@ -865,7 +848,7 @@ const CompanyLogo = ({ ticker, fallbackColor }: { ticker: string, fallbackColor:
   </div>
 );
 
-// Card de ação com HTML renderizado
+// Card de ação
 const StockCard = ({ item, sectionColor }: { item: ItemRelatorioSemanal, sectionColor: string }) => (
   <div style={{
     backgroundColor: 'white',
@@ -1233,9 +1216,9 @@ export default function RelatorioSemanalPage() {
   }, [semanaAtual]);
 
   // Função para mudar de semana
-  const handleSemanaChange = useCallback((novaSemana: string) => {
+  const handleSemanaChange = (novaSemana: string) => {
     setSemanaAtual(novaSemana);
-  }, []);
+  };
 
   // Sistema de permissões
   const getSectionPermissions = () => {
