@@ -3,6 +3,15 @@ import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 
 export const navItems = [
+
+  { 
+    key: 'relatorio-semanal', 
+    title: 'Atualizações Semanais', 
+    href: paths.dashboard.relatorio-semanal,
+    icon: 'calendar-check', // ou outro ícone que preferir
+    page: 'relatorio-semanal'
+  },
+
   { 
     key: 'overview', 
     title: 'Small Caps', 
