@@ -94,7 +94,7 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs'
+            'admin-relatorios', 'admin-relatorio-semanal', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 🆕 NOVO: admin-relatorio-semanal
           ]
         };
 
@@ -162,7 +162,7 @@ export function useAuthAccess() {
       return false;
     }
 
-    // Admin sempre tem acesso (incluindo Instagram e Renovações)
+    // Admin sempre tem acesso (incluindo Instagram, Renovações e Relatório Semanal Admin)
     if (user.plan === 'ADMIN') {
       console.log('✅ Admin - acesso liberado para:', page);
       return true;
@@ -180,6 +180,13 @@ export function useAuthAccess() {
       const isRenovacoesAdmin = user.plan === 'ADMIN';
       console.log(`📊 Verificando acesso Renovações Admin para ${user.email}:`, isRenovacoesAdmin);
       return isRenovacoesAdmin;
+    }
+
+    // 📋 NOVA: Verificação específica para Relatório Semanal Admin
+    if (page === 'admin-relatorio-semanal') {
+      const isRelatorioAdmin = user.plan === 'ADMIN';
+      console.log(`📋 Verificando acesso Relatório Semanal Admin para ${user.email}:`, isRelatorioAdmin);
+      return isRelatorioAdmin;
     }
 
     // 📋 GARANTIR acesso ao relatório semanal para todos os usuários logados
@@ -230,7 +237,7 @@ export function useAuthAccess() {
     return isInstagramAdmin;
   };
 
-  // 📊 NOVA FUNÇÃO para verificar acesso às Renovações
+  // 📊 Função para verificar acesso às Renovações
   const hasRenovacoesAdminAccess = (): boolean => {
     if (!user) {
       console.log('❌ Usuário não logado - sem acesso Renovações');
@@ -243,13 +250,27 @@ export function useAuthAccess() {
     return isRenovacoesAdmin;
   };
 
+  // 📋 NOVA: Função para verificar acesso ao Relatório Semanal Admin
+  const hasRelatorioSemanalAdminAccess = (): boolean => {
+    if (!user) {
+      console.log('❌ Usuário não logado - sem acesso Relatório Semanal Admin');
+      return false;
+    }
+
+    const isRelatorioAdmin = user.plan === 'ADMIN';
+    console.log(`📋 Verificando acesso Relatório Semanal Admin para ${user.email}:`, isRelatorioAdmin);
+    
+    return isRelatorioAdmin;
+  };
+
   return {
     planInfo,
     loading,
     hasAccessSync,
     hasContentAccess, // Nova função para conteúdos específicos
     hasInstagramAdminAccess, // 📱 FUNÇÃO PARA INSTAGRAM
-    hasRenovacoesAdminAccess, // 📊 NOVA FUNÇÃO PARA RENOVAÇÕES
+    hasRenovacoesAdminAccess, // 📊 FUNÇÃO PARA RENOVAÇÕES
+    hasRelatorioSemanalAdminAccess, // 📋 NOVA FUNÇÃO PARA RELATÓRIO SEMANAL ADMIN
     user,
     debugInfo: {
       userPlan: user?.plan,
@@ -257,7 +278,8 @@ export function useAuthAccess() {
       allPages: planInfo?.pages,
       isAdmin: user?.plan === 'ADMIN',
       hasInstagramAccess: user?.plan === 'ADMIN' || user?.email === 'jacbdias@gmail.com', // 📱 DEBUG INFO
-      hasRenovacoesAccess: user?.plan === 'ADMIN' // 📊 DEBUG INFO RENOVAÇÕES
+      hasRenovacoesAccess: user?.plan === 'ADMIN', // 📊 DEBUG INFO RENOVAÇÕES
+      hasRelatorioSemanalAdminAccess: user?.plan === 'ADMIN' // 📋 DEBUG INFO RELATÓRIO SEMANAL ADMIN
     }
   };
 }

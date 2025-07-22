@@ -221,6 +221,14 @@ export const navItems = [
         icon: 'chart-bar',
         page: 'admin-relatorios'
       },
+      // 🆕 NOVO ITEM: Admin do Relatório Semanal
+      {
+        key: 'admin-relatorio-semanal',
+        title: 'Relatório Semanal',
+        href: paths.dashboard.admin + '/relatorio-semanal',
+        icon: 'document-text', // ou 'clipboard-document', 'newspaper'
+        page: 'admin-relatorio-semanal'
+      },
       {
         key: 'admin-integracoes-agenda',
         title: 'Agenda Corporativa',
