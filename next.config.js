@@ -7,12 +7,10 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // ✅ Configurações experimentais para resolver problemas de build
   experimental: {
     forceSwcTransforms: true,
   },
   
-  // CONFIGURAÇÕES ADICIONADAS PARA A API FINANCEIRA:
   images: {
     domains: [
       'raw.githubusercontent.com',
@@ -22,16 +20,16 @@ const nextConfig = {
   
   async headers() {
     return [
+      // 🔥 REMOVER CACHE DAS APIs FINANCEIRAS
       {
         source: '/api/financial/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600',
+            value: 'no-store, must-revalidate', // 👈 SEM CACHE!
           },
         ],
       },
-      // ✅ Adicionar headers para todas as API routes
       {
         source: '/api/:path*',
         headers: [
@@ -44,5 +42,4 @@ const nextConfig = {
     ];
   },
 }
-
 module.exports = nextConfig;
