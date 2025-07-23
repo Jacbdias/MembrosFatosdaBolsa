@@ -29,4 +29,3 @@ src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                      fontS
 src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                        fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
 src\app\dashboard\empresa-exterior\[ticker]\page.tsx:                        justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
 src\app\dashboard\empresa-exterior\[ticker]\page.tsx:              gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(4, 1fr)', 
-src\app\dashboard\overview\page.tsx:    alert(`DEVICE TEST: ${navigator.userAgent.includes('Mobile') ? 'MOBILE' : 'DESKTOP'} - Screen: ${window.innerWidth}x${window.innerHeight}`);
