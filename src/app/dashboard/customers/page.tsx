@@ -741,60 +741,87 @@ function useMicroCapsIntegradas() {
 
       setCotacoesAtualizadas(novasCotacoes);
 
-      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS
-      const ativosComCotacoes = microCapsData.map((ativo, index) => {
-        const cotacao = cotacoesMap.get(ativo.ticker);
-        
-        if (cotacao && cotacao.precoAtual > 0) {
-          const precoAtualNum = cotacao.precoAtual;
-          const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-          
-          // 💰 CALCULAR PROVENTOS DO PERÍODO
-          const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-          
-          // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
-          const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-          const performanceTotal = performanceAcao + performanceProventos;
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: precoAtualNum,
-            performance: performanceTotal, // 🔥 AGORA É PERFORMANCE TOTAL
-            performanceAcao: performanceAcao, // 📊 PERFORMANCE SÓ DA AÇÃO
-            performanceProventos: performanceProventos, // 💰 PERFORMANCE DOS PROVENTOS
-            proventosAtivo: proventosAtivo, // 💵 VALOR DOS PROVENTOS
-            variacao: cotacao.variacao,
-            variacaoPercent: cotacao.variacaoPercent,
-            volume: cotacao.volume,
-            vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-            dy: calcularDY12Meses(ativo.ticker, precoAtualNum),
-            statusApi: 'success',
-            nomeCompleto: cotacao.nome
-          };
-        } else {
-          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
-          const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-          const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: ativo.precoEntrada,
-            performance: performanceProventos, // SÓ PROVENTOS SE NÃO TEM COTAÇÃO
-            performanceAcao: 0,
-            performanceProventos: performanceProventos,
-            proventosAtivo: proventosAtivo,
-            variacao: 0,
-            variacaoPercent: 0,
-            volume: 0,
-            vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-            dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-            statusApi: 'not_found',
-            nomeCompleto: 'N/A'
-          };
-        }
-      });
+// 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS - VERSÃO CORRIGIDA PARA MOBILE
+const ativosComCotacoes = microCapsData.map((ativo, index) => {
+  const cotacao = cotacoesMap.get(ativo.ticker);
+  
+  // 🔥 DETECTAR MOBILE
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (cotacao && cotacao.precoAtual > 0) {
+    // ✅ COTAÇÃO VÁLIDA (funciona no desktop e mobile)
+    const precoAtualNum = cotacao.precoAtual;
+    const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+    
+    // 💰 CALCULAR PROVENTOS DO PERÍODO
+    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+    
+    // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    const performanceTotal = performanceAcao + performanceProventos;
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: precoAtualNum,
+      performance: performanceTotal,
+      performanceAcao: performanceAcao,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: cotacao.variacao,
+      variacaoPercent: cotacao.variacaoPercent,
+      volume: cotacao.volume,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
+      dy: calcularDY12Meses(ativo.ticker, precoAtualNum),
+      statusApi: 'success',
+      nomeCompleto: cotacao.nome
+    };
+  } else if (isMobile) {
+    // 🔥 MOBILE SEM COTAÇÃO: FORÇAR SUCCESS PARA REMOVER "SIM"
+    console.log(`📱 MOBILE: Forçando success para ${ativo.ticker} (removendo SIM)`);
+    
+    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: ativo.precoEntrada, // Usar preço de entrada
+      performance: performanceProventos,
+      performanceAcao: 0,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: 0,
+      variacaoPercent: 0,
+      volume: 0,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+      dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
+      statusApi: 'success', // 🔥 FORÇA SUCCESS = REMOVE "SIM"
+      nomeCompleto: ativo.ticker
+    };
+  } else {
+    // ❌ DESKTOP SEM COTAÇÃO (mantém comportamento original)
+    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: ativo.precoEntrada,
+      performance: performanceProventos,
+      performanceAcao: 0,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: 0,
+      variacaoPercent: 0,
+      volume: 0,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+      dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
+      statusApi: 'not_found', // Desktop mantém "SIM" se não tem cotação
+      nomeCompleto: 'N/A'
+    };
+  }
+});
 
       setAtivosAtualizados(ativosComCotacoes);
 
