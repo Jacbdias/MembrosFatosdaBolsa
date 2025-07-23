@@ -229,14 +229,13 @@ function calcularDY12Meses(ticker: string, precoAtual: number): string {
   }
 }
 
-// 🚀 HOOK CORRIGIDO PARA BUSCAR COTAÇÕES DOS DIVIDENDOS INTERNACIONAIS DO DATASTORE
+// 🚀 HOOK CORRIGIDO ESPECIFICAMENTE PARA RESOLVER DADOS "SIM" e "N/A" NO MOBILE
 function useDividendosInternacionaisIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // 📊 OBTER DADOS DA CARTEIRA DIVIDENDOS INTERNACIONAIS DO DATASTORE
   const dividendosInternacionaisData = dados.dividendosInternacional || [];
 
   const buscarCotacoesIntegradas = React.useCallback(async () => {
@@ -244,7 +243,7 @@ function useDividendosInternacionaisIntegradas() {
       setLoading(true);
       setError(null);
 
-      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA DIVIDENDOS INTERNACIONAIS');
+      console.log('🔥 INICIANDO BUSCA OTIMIZADA PARA MOBILE');
       console.log('📋 Ativos do DataStore:', dividendosInternacionaisData);
 
       if (dividendosInternacionaisData.length === 0) {
@@ -261,70 +260,169 @@ function useDividendosInternacionaisIntegradas() {
       const tickers = dividendosInternacionaisData.map(ativo => ativo.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN E TIMEOUT
-      const LOTE_SIZE = 5;
+      // 🔥 DETECTAR SE É MOBILE
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      
+      console.log('📱 Dispositivo móvel detectado:', isMobileDevice);
+
+      // 🔄 ESTRATÉGIA ESPECÍFICA PARA MOBILE: REQUISIÇÕES SEQUENCIAIS
       const cotacoesMap = new Map();
       let sucessosTotal = 0;
       let falhasTotal = 0;
 
-      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
-        const lote = tickers.slice(i, i + LOTE_SIZE);
-        const tickersString = lote.join(',');
+      if (isMobileDevice) {
+        // 📱 ESTRATÉGIA MOBILE: UMA REQUISIÇÃO POR VEZ
+        console.log('📱 USANDO ESTRATÉGIA MOBILE: Requisições sequenciais');
         
-        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
-        
-        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+        for (const ticker of tickers) {
+          try {
+            console.log(`🔍 Buscando ${ticker} individualmente...`);
+            
+            const apiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
+            
+            // 🔥 TIMEOUT ESPECÍFICO PARA MOBILE
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        try {
-          // 🔥 ADICIONAR TIMEOUT DE 8 SEGUNDOS PARA LOTES MÚLTIPLOS
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(apiUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              },
+              signal: controller.signal,
+              mode: 'cors'
+            });
 
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'DividendosInternacionais-Portfolio-App'
-            },
-            signal: controller.signal
-          });
+            clearTimeout(timeoutId);
 
-          clearTimeout(timeoutId);
+            if (response.ok) {
+              const apiData = await response.json();
+              console.log(`📊 Resposta para ${ticker}:`, apiData);
 
-          if (response.ok) {
-            const apiData = await response.json();
-            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
-
-            if (apiData.results && Array.isArray(apiData.results)) {
-              apiData.results.forEach((quote: any) => {
-                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
-                  cotacoesMap.set(quote.symbol, {
+              if (apiData.results && Array.isArray(apiData.results) && apiData.results.length > 0) {
+                const quote = apiData.results[0];
+                
+                // 🔥 VALIDAÇÃO SUPER RIGOROSA
+                if (quote && 
+                    quote.symbol === ticker &&
+                    quote.regularMarketPrice && 
+                    typeof quote.regularMarketPrice === 'number' &&
+                    quote.regularMarketPrice > 0 &&
+                    !isNaN(quote.regularMarketPrice) &&
+                    isFinite(quote.regularMarketPrice)) {
+                  
+                  cotacoesMap.set(ticker, {
                     precoAtual: quote.regularMarketPrice,
                     variacao: quote.regularMarketChange || 0,
                     variacaoPercent: quote.regularMarketChangePercent || 0,
                     volume: quote.regularMarketVolume || 0,
-                    nome: quote.shortName || quote.longName,
+                    nome: quote.shortName || quote.longName || quote.displayName || ticker,
                     dadosCompletos: quote
                   });
+                  
                   sucessosTotal++;
-                  console.log(`✅ ${quote.symbol}: US$ ${quote.regularMarketPrice}`);
+                  console.log(`✅ ${ticker}: US$ ${quote.regularMarketPrice} - ${quote.shortName || 'Nome não disponível'}`);
                 } else {
-                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
+                  console.warn(`⚠️ ${ticker}: Dados inválidos na resposta:`, {
+                    symbol: quote?.symbol,
+                    price: quote?.regularMarketPrice,
+                    type: typeof quote?.regularMarketPrice
+                  });
                   falhasTotal++;
                 }
-              });
+              } else {
+                console.warn(`⚠️ ${ticker}: Sem resultados válidos na resposta`);
+                falhasTotal++;
+              }
+            } else {
+              console.error(`❌ ${ticker}: Erro HTTP ${response.status}: ${response.statusText}`);
+              falhasTotal++;
             }
-          } else {
-            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+            
+            // 🔥 DELAY ENTRE REQUISIÇÕES PARA MOBILE
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+          } catch (tickerError) {
+            console.error(`❌ Erro ao buscar ${ticker}:`, tickerError);
+            falhasTotal++;
+          }
+        }
+      } else {
+        // 💻 ESTRATÉGIA DESKTOP: LOTES COMO ANTES
+        console.log('💻 USANDO ESTRATÉGIA DESKTOP: Lotes de requisições');
+        
+        const LOTE_SIZE = 5;
+        
+        for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
+          const lote = tickers.slice(i, i + LOTE_SIZE);
+          const tickersString = lote.join(',');
+          
+          const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
+          
+          console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
+
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(apiUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'DividendosInternacionais-Portfolio-App'
+              },
+              signal: controller.signal,
+              mode: 'cors'
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const apiData = await response.json();
+              console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
+
+              if (apiData.results && Array.isArray(apiData.results)) {
+                apiData.results.forEach((quote: any) => {
+                  if (quote.symbol && 
+                      quote.regularMarketPrice && 
+                      quote.regularMarketPrice > 0 &&
+                      typeof quote.regularMarketPrice === 'number' &&
+                      !isNaN(quote.regularMarketPrice) &&
+                      isFinite(quote.regularMarketPrice)) {
+                    
+                    cotacoesMap.set(quote.symbol, {
+                      precoAtual: quote.regularMarketPrice,
+                      variacao: quote.regularMarketChange || 0,
+                      variacaoPercent: quote.regularMarketChangePercent || 0,
+                      volume: quote.regularMarketVolume || 0,
+                      nome: quote.shortName || quote.longName || 'N/A',
+                      dadosCompletos: quote
+                    });
+                    sucessosTotal++;
+                    console.log(`✅ ${quote.symbol}: US$ ${quote.regularMarketPrice}`);
+                  } else {
+                    console.warn(`⚠️ ${quote.symbol}: Dados inválidos`);
+                    falhasTotal++;
+                  }
+                });
+              }
+            } else {
+              console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
+              falhasTotal += lote.length;
+            }
+          } catch (loteError) {
+            console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
             falhasTotal += lote.length;
           }
-        } catch (loteError) {
-          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
-          falhasTotal += lote.length;
-        }
 
-        // DELAY entre requisições para evitar rate limiting
-        await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       }
 
       console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
@@ -335,19 +433,20 @@ function useDividendosInternacionaisIntegradas() {
         
         console.log(`\n🔄 Processando ${ativo.ticker}:`);
         console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
+        console.log(`🔍 Cotação encontrada:`, cotacao ? 'SIM' : 'NÃO');
         
         if (cotacao && cotacao.precoAtual > 0) {
-          // 📊 PREÇO E PERFORMANCE REAIS
           const precoAtualNum = cotacao.precoAtual;
           const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
           
           console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
           console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          console.log(`🏢 Nome: ${cotacao.nome}`);
           
-          // VALIDAR SE O PREÇO FAZ SENTIDO (para dividendos internacionais, usar limite maior)
+          // 🔥 VALIDAÇÃO MAIS RIGOROSA PARA EVITAR PREÇOS SUSPEITOS
           const diferencaPercent = Math.abs(performance);
-          if (diferencaPercent > 1000) {
-            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+          if (diferencaPercent > 200) {
+            console.warn(`🚨 ${ativo.ticker}: Performance suspeita ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
             return {
               ...ativo,
               id: String(ativo.id || index + 1),
@@ -357,9 +456,9 @@ function useDividendosInternacionaisIntegradas() {
               variacaoPercent: 0,
               volume: 0,
               vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-              dy: '0,00%',
+              dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
               statusApi: 'suspicious_price',
-              nomeCompleto: cotacao.nome
+              nomeCompleto: cotacao.nome || 'Nome Suspeito'
             };
           }
           
@@ -377,8 +476,8 @@ function useDividendosInternacionaisIntegradas() {
             nomeCompleto: cotacao.nome
           };
         } else {
-          // ⚠️ FALLBACK PARA DIVIDENDOS SEM COTAÇÃO
-          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
+          // ⚠️ SEM COTAÇÃO - AQUI É ONDE APARECE "SIM" e "N/A"
+          console.warn(`⚠️ ${ativo.ticker}: SEM COTAÇÃO VÁLIDA - usando preço de entrada`);
           
           return {
             ...ativo,
@@ -391,7 +490,7 @@ function useDividendosInternacionaisIntegradas() {
             vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
             dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
             statusApi: 'not_found',
-            nomeCompleto: 'N/A'
+            nomeCompleto: ativo.ticker // 🔥 USAR TICKER AO INVÉS DE 'N/A'
           };
         }
       });
@@ -409,10 +508,12 @@ function useDividendosInternacionaisIntegradas() {
       setAtivosAtualizados(ativosComCotacoes);
 
       // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
-      if (sucessos < ativosComCotacoes.length / 2) {
-        setError(`Apenas ${sucessos} de ${ativosComCotacoes.length} ativos com cotação válida`);
+      if (sucessos === 0) {
+        setError(`❌ NENHUM ativo com cotação válida! Verifique conexão/API.`);
+      } else if (sucessos < ativosComCotacoes.length / 2) {
+        setError(`⚠️ Apenas ${sucessos} de ${ativosComCotacoes.length} ativos com cotação válida`);
       } else if (suspeitos > 0) {
-        setError(`${suspeitos} ativos com preços suspeitos foram ignorados`);
+        setError(`🚨 ${suspeitos} ativos com preços suspeitos foram corrigidos`);
       }
 
     } catch (err) {
@@ -433,7 +534,7 @@ function useDividendosInternacionaisIntegradas() {
         vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
         dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
         statusApi: 'error',
-        nomeCompleto: 'Erro'
+        nomeCompleto: ativo.ticker // 🔥 USAR TICKER AO INVÉS DE 'Erro'
       }));
       setAtivosAtualizados(ativosFallback);
     } finally {
@@ -445,8 +546,13 @@ function useDividendosInternacionaisIntegradas() {
     console.log('🔄 EFFECT DISPARADO - DADOS DO DATASTORE MUDARAM');
     console.log('📊 Dividendos data length:', dados.dividendosInternacional?.length || 0);
     
-    buscarCotacoesIntegradas();
-  }, [buscarCotacoesIntegradas]);
+    // 🔥 DELAY INICIAL PARA EVITAR MÚLTIPLAS REQUISIÇÕES
+    const timeoutId = setTimeout(() => {
+      buscarCotacoesIntegradas();
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [dados.dividendosInternacional]);
 
   const refetch = React.useCallback(() => {
     console.log('🔄 FORÇANDO ATUALIZAÇÃO MANUAL...');
