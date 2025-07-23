@@ -292,23 +292,25 @@ export const DataStoreProvider = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 📖 LER DADOS DO LOCALSTORAGE
-  const lerDados = useCallback(() => {
-    try {
-      // 🔧 Verificação se estamos no browser
-      if (typeof window === 'undefined') return DADOS_INICIAIS;
-      
-      const dadosStorage = localStorage.getItem(STORAGE_KEY);
-      if (dadosStorage) {
-        const dadosParsed = JSON.parse(dadosStorage);
-        console.log('📖 Dados lidos do localStorage:', dadosParsed);
-        return { ...DADOS_INICIAIS, ...dadosParsed };
-      }
-      return DADOS_INICIAIS;
-    } catch (error) {
-      console.error('❌ Erro ao ler dados do localStorage:', error);
-      return DADOS_INICIAIS;
+
+const lerDados = useCallback(() => {
+  try {
+    if (typeof window === 'undefined') return DADOS_INICIAIS;
+    
+    const dadosStorage = localStorage.getItem(STORAGE_KEY);
+    if (dadosStorage) {
+      const dadosParsed = JSON.parse(dadosStorage);
+      console.log('📖 Dados lidos do localStorage:', dadosParsed);
+      // 🔥 CORREÇÃO: USAR DADOS DO LOCALSTORAGE, NÃO OS INICIAIS
+      return dadosParsed; // ← APENAS ISSO!
     }
-  }, []);
+    // 🔥 APENAS SE NÃO HÁ DADOS SALVOS, USAR OS INICIAIS
+    return DADOS_INICIAIS;
+  } catch (error) {
+    console.error('❌ Erro ao ler dados do localStorage:', error);
+    return DADOS_INICIAIS;
+  }
+}, []);
 
   // 💾 SALVAR DADOS NO LOCALSTORAGE E DISPARAR EVENTOS
   const salvarDados = useCallback((novosDados) => {
