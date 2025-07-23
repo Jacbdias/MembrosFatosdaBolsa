@@ -62,50 +62,122 @@ function useMicroCapsResponsive() {
       let sucessos = 0;
 
       if (isMobile) {
-        // 📱 MOBILE: Requisições individuais com timeout menor
-        console.log('📱 ESTRATÉGIA MOBILE: Requisições individuais');
+        // 📱 MOBILE: Estratégia agressiva para forçar API funcionar
+        console.log('📱 ESTRATÉGIA MOBILE: API real com configuração agressiva');
         
+        // 🔥 TENTAR VÁRIAS ESTRATÉGIAS PARA FAZER A API FUNCIONAR NO MOBILE
         for (const ticker of tickers) {
-          try {
-            console.log(`📱 Buscando ${ticker}...`);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
-
-            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'MicroCaps-Mobile-v2'
-              },
-              signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-              const data = await response.json();
+          let cotacaoObtida = false;
+          
+          // ESTRATÉGIA 1: User-Agent Desktop
+          if (!cotacaoObtida) {
+            try {
+              console.log(`📱🔄 ${ticker}: Tentativa 1 - User-Agent Desktop`);
               
-              if (data.results?.[0]?.regularMarketPrice > 0) {
-                const quote = data.results[0];
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker
-                });
-                sucessos++;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
+              const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                }
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results?.[0]?.regularMarketPrice > 0) {
+                  const quote = data.results[0];
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName || ticker
+                  });
+                  sucessos++;
+                  cotacaoObtida = true;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+                }
               }
+            } catch (error) {
+              console.log(`📱❌ ${ticker} (Desktop UA): ${error.message}`);
             }
-            
-            // Delay entre requisições no mobile
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-          } catch (error) {
-            console.log(`📱❌ ${ticker}: ${error.message}`);
           }
+          
+          // ESTRATÉGIA 2: Sem User-Agent
+          if (!cotacaoObtida) {
+            try {
+              console.log(`📱🔄 ${ticker}: Tentativa 2 - Sem User-Agent`);
+              
+              const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json'
+                }
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results?.[0]?.regularMarketPrice > 0) {
+                  const quote = data.results[0];
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName || ticker
+                  });
+                  sucessos++;
+                  cotacaoObtida = true;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+                }
+              }
+            } catch (error) {
+              console.log(`📱❌ ${ticker} (Sem UA): ${error.message}`);
+            }
+          }
+          
+          // ESTRATÉGIA 3: URL simplificada
+          if (!cotacaoObtida) {
+            try {
+              console.log(`📱🔄 ${ticker}: Tentativa 3 - URL simplificada`);
+              
+              const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+                method: 'GET',
+                mode: 'cors'
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results?.[0]?.regularMarketPrice > 0) {
+                  const quote = data.results[0];
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName || ticker
+                  });
+                  sucessos++;
+                  cotacaoObtida = true;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
+                }
+              }
+            } catch (error) {
+              console.log(`📱❌ ${ticker} (URL simples): ${error.message}`);
+            }
+          }
+          
+          if (!cotacaoObtida) {
+            console.log(`📱⚠️ ${ticker}: Todas as estratégias falharam`);
+          }
+          
+          // Delay pequeno entre ativos
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       } else {
         // 🖥️ DESKTOP: Requisição em lote
