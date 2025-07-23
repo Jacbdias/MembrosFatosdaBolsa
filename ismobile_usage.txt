@@ -1,0 +1,15 @@
+src\app\dashboard\empresa\[ticker]\page.tsx:const isMobile = () => {
+src\app\dashboard\empresa\[ticker]\page.tsx:  if (isMobile() && typeof window !== 'undefined') {
+src\app\dashboard\empresa\[ticker]\page.tsx:      const tentarAPI = !isMobile() || 
+src\app\dashboard\empresa\[ticker]\page.tsx:      const isGoodConnection = !isMobile() || 
+src\app\dashboard\empresa\[ticker]\page.tsx:            logMobile(`⏱️ Timeout de API (${isMobile() ? '2s' : '8s'})`);
+src\app\dashboard\empresa\[ticker]\page.tsx:          }, isMobile() ? 2000 : 8000);
+src\app\dashboard\empresa\[ticker]\page.tsx:              'User-Agent': isMobile() ? 'Portfolio-Mobile/1.0' : 'Portfolio-Desktop/1.0',
+src\app\dashboard\empresa\[ticker]\page.tsx:              'Cache-Control': isMobile() ? 'max-age=3600' : 'no-cache'
+src\app\dashboard\empresa\[ticker]\page.tsx:  if (!isMobile()) return null;
+src\layouts\Dashboard\index.jsx:    const isMobile = ['xs', 'sm', 'md'].includes(props.width);
+src\layouts\Dashboard\index.jsx:      isOpen: !isMobile
+src\layouts\Dashboard\index.jsx:    const isMobile = ['xs', 'sm', 'md'].includes(width);
+src\layouts\Dashboard\index.jsx:    const shiftTopbar = isOpen && !isMobile;
+src\layouts\Dashboard\index.jsx:    const shiftContent = isOpen && !isMobile;
+src\layouts\Dashboard\index.jsx:          variant={isMobile ? 'temporary' : 'persistent'}

@@ -24,12 +24,10 @@ class DashboardLayout extends Component {
   constructor(props) {
     super(props);
 
-    const isMobile = ['xs', 'sm', 'md'].includes(props.width);
-
-    this.state = {
-      isOpen: !isMobile
-    };
-  }
+const isMobile = false; // ←← FORÇA DESKTOP
+this.state = {
+  isOpen: true  // ←← FORÇA MENU SEMPRE ABERTO
+};
 
   handleClose = () => {
     this.setState({ isOpen: false });
@@ -45,7 +43,7 @@ class DashboardLayout extends Component {
     const { classes, width, title, children } = this.props;
     const { isOpen } = this.state;
 
-    const isMobile = ['xs', 'sm', 'md'].includes(width);
+const isMobile = false; // ←← FORÇA DESKTOP
     const shiftTopbar = isOpen && !isMobile;
     const shiftContent = isOpen && !isMobile;
 
