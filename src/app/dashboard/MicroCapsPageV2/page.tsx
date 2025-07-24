@@ -278,6 +278,80 @@ export default function MicroCapsV2Page() {
   const { smllData, ibovespaData } = useMarketData();
   const { ibovespaPeriodo } = useIbovespaPeriodo(ativosAtualizados);
 
+  // 🔍 DEBUG: Verificar dados no mobile
+  React.useEffect(() => {
+    console.log('🔍 DEBUG MOBILE:', {
+      isMobile,
+      screenWidth,
+      ativosCount: ativosAtualizados.length,
+      timestamp: new Date().toISOString()
+    });
+    
+    // 🎯 NOVO: Listar todos os tickers para comparar
+    const tickersAtivos = ativosAtualizados.map(a => a.ticker).sort();
+    console.log('📊 TICKERS CARREGADOS:', tickersAtivos);
+    console.log('📊 TOTAL DE TICKERS:', tickersAtivos.length);
+    
+    if (typeof window !== 'undefined') {
+      console.log('📦 localStorage keys:', Object.keys(localStorage));
+      
+      // Verificar dados originais do store
+      const dadosStore = localStorage.getItem('dados-membros');
+      if (dadosStore) {
+        try {
+          const parsed = JSON.parse(dadosStore);
+          const microCapsOriginal = parsed.microCaps || [];
+          const tickersOriginais = microCapsOriginal.map((a: any) => a.ticker).sort();
+          
+          console.log('📋 TICKERS NO STORE ORIGINAL:', tickersOriginais);
+          console.log('📋 TOTAL NO STORE:', tickersOriginais.length);
+          
+          // 🎯 ENCONTRAR DIFERENÇAS
+          const tickersFaltando = tickersOriginais.filter((t: string) => !tickersAtivos.includes(t));
+          const tickersExtras = tickersAtivos.filter(t => !tickersOriginais.includes(t));
+          
+          if (tickersFaltando.length > 0) {
+            console.log('❌ TICKERS FALTANDO (no store mas não processados):', tickersFaltando);
+          }
+          if (tickersExtras.length > 0) {
+            console.log('➕ TICKERS EXTRAS (processados mas não no store):', tickersExtras);
+          }
+          if (tickersFaltando.length === 0 && tickersExtras.length === 0) {
+            console.log('✅ TODOS OS TICKERS SINCRONIZADOS');
+          }
+        } catch (e) {
+          console.error('❌ Erro ao parsear dados do store:', e);
+        }
+      }
+    }
+  }, [ativosAtualizados, isMobile, screenWidth]);
+
+  // 🚨 NOVO: Listener para mudanças no localStorage
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dados-membros') {
+        console.log('🔄 STORAGE CHANGED DETECTED!');
+        console.log('📦 Old Value length:', e.oldValue?.length || 0);
+        console.log('📦 New Value length:', e.newValue?.length || 0);
+        
+        // Forçar re-render em 1 segundo
+        setTimeout(() => {
+          console.log('🔄 Forçando refresh após storage change...');
+          refetch();
+        }, 1000);
+      }
+    };
+
+    // Listen for storage changes from other tabs/pages
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [refetch]);
+
   // 🧮 CALCULAR MÉTRICAS
   const metricas = React.useMemo(() => 
     calcularMetricasCarteira(ativosAtualizados, 1000), 
@@ -319,6 +393,58 @@ export default function MicroCapsV2Page() {
     alert(debugInfo.join('\n'));
   }, [ativosAtualizados]);
 
+  // 🔄 FORÇA REFRESH TOTAL (MOBILE DEBUG)
+  const forceRefreshMobile = React.useCallback(() => {
+    console.log('🔄 FORÇA REFRESH MOBILE INICIADO');
+    
+    // Limpar cache de hooks
+    if (typeof window !== 'undefined') {
+      console.log('📦 Dados antes:', localStorage.getItem('dados-membros'));
+      
+      // 🎯 FORÇAR RE-READ DO DATASTORE
+      window.dispatchEvent(new Event('storage'));
+      
+      // Tentar forçar refresh do hook
+      setTimeout(() => {
+        console.log('🔄 Forçando reload da página...');
+        window.location.reload();
+      }, 500);
+    }
+    
+    // Forçar re-fetch
+    refetch();
+  }, [refetch]);
+
+  // 🚨 NOVO: Debug específico do DataStore
+  const debugDataStore = React.useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    const dadosAtual = localStorage.getItem('dados-membros');
+    console.log('🔍 DEBUG DATASTORE COMPLETO:');
+    console.log('📦 Raw localStorage:', dadosAtual);
+    
+    if (dadosAtual) {
+      try {
+        const parsed = JSON.parse(dadosAtual);
+        console.log('📊 Dados parseados:', parsed);
+        console.log('📋 MicroCaps no store:', parsed.microCaps?.length || 0);
+        console.log('📋 Tickers no store:', parsed.microCaps?.map((a: any) => a.ticker) || []);
+        
+        // Verificar timestamp da última atualização
+        if (parsed.lastUpdated) {
+          console.log('⏰ Última atualização:', new Date(parsed.lastUpdated).toLocaleString());
+        }
+      } catch (e) {
+        console.error('❌ Erro ao parsear:', e);
+      }
+    }
+    
+    alert(`DataStore Debug:
+    - Ativos na página: ${ativosAtualizados.length}
+    - Device: ${isMobile ? 'Mobile' : 'Desktop'}
+    - Veja console para detalhes`);
+  }, [ativosAtualizados, isMobile]);
+
   // 🔄 LOADING STATE
   if (loading) {
     return (
@@ -356,7 +482,8 @@ export default function MicroCapsV2Page() {
           
           <div style={{
             display: 'flex',
-            gap: '12px'
+            gap: '12px',
+            flexWrap: 'wrap'
           }}>
             <button
               onClick={handleRefresh}
@@ -385,15 +512,51 @@ export default function MicroCapsV2Page() {
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
-                padding: isMobile ? '12px 20px' : '12px 24px',
-                fontSize: isMobile ? '14px' : '16px',
+                padding: isMobile ? '12px 16px' : '12px 24px',
+                fontSize: isMobile ? '12px' : '16px',
                 fontWeight: '600',
                 cursor: 'pointer'
               }}
               className="card-hover"
             >
-              🔍 Debug
+              🔍 Proventos
             </button>
+
+            <button
+              onClick={debugDataStore}
+              style={{
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: isMobile ? '12px 16px' : '12px 24px',
+                fontSize: isMobile ? '12px' : '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+              className="card-hover"
+            >
+              📊 DataStore
+            </button>
+
+            {isMobile && (
+              <button
+                onClick={forceRefreshMobile}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+                className="card-hover"
+              >
+                📱 Force Sync
+              </button>
+            )}
           </div>
         </div>
         
@@ -921,6 +1084,11 @@ export default function MicroCapsV2Page() {
         <div>🔄 Hooks: useMicroCapsData + useMarketData + useApiStrategy + useResponsive • Ativos: {stats.totalAtivos}</div>
         <div>📈 API: {stats.ativosComCotacao} cotações + {stats.ativosComDY} DY • Layout: {isMobile ? 'Cards' : 'Table'} • Gráfico: {isMobile ? 'Mobile (250px)' : 'Desktop (400px)'}</div>
         <div>📍 Rota: /dashboard/MicroCapsPageV2 • Performance: Total Return (ação + proventos)</div>
+        {isMobile && (
+          <div style={{ color: '#ef4444', fontWeight: '600', marginTop: '8px' }}>
+            📱 MOBILE SYNC ISSUE: Se alterações do gerenciamento não aparecem, use "📊 DataStore" e "📱 Force Sync"
+          </div>
+        )}
       </div>
     </div>
   );
