@@ -1300,6 +1300,37 @@ export default function MicroCapsPage() {
     refetch();
   };
 
+// 🔍 FUNÇÃO DE DEBUG VISUAL (TEMPORÁRIA) - ADICIONAR AQUI
+const debugProventos = () => {
+  if (typeof window === 'undefined') return;
+  
+  const debugInfo = [];
+  
+  // Verificar se tem master
+  const master = localStorage.getItem('proventos_central_master');
+  debugInfo.push(`Master: ${master ? 'EXISTE' : 'NÃO EXISTE'}`);
+  
+  if (master) {
+    try {
+      const dados = JSON.parse(master);
+      debugInfo.push(`Total proventos no master: ${dados.length}`);
+      const tickers = new Set(dados.map(d => d.ticker));
+      debugInfo.push(`Tickers no master: ${Array.from(tickers).slice(0, 5).join(', ')}...`);
+    } catch (e) {
+      debugInfo.push(`Erro no master: ${e.message}`);
+    }
+  }
+  
+  // Verificar alguns tickers individuais
+  const tickersAmostra = ativosAtualizados.slice(0, 3).map(a => a.ticker);
+  tickersAmostra.forEach(ticker => {
+    const individual = localStorage.getItem(`proventos_${ticker}`);
+    debugInfo.push(`${ticker} individual: ${individual ? 'EXISTE' : 'NÃO EXISTE'}`);
+  });
+  
+  alert(debugInfo.join('\n'));
+};
+
   if (loading) {
     return (
       <div style={{
@@ -1405,27 +1436,51 @@ export default function MicroCapsPage() {
             Dados atualizados a cada 15 minutos • {metricas.quantidadeAtivos} ativos • 📱 {isMobile ? 'Mobile' : 'Desktop'} ({screenWidth}px)
           </p>
           
-          <button
-            onClick={handleRefresh}
-            style={{
-              backgroundColor: '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: isMobile ? '12px 20px' : '12px 24px',
-              fontSize: isMobile ? '14px' : '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              alignSelf: isMobile ? 'flex-start' : 'center'
-            }}
-            className="card-hover"
-          >
-            🔄 Atualizar
-          </button>
-        </div>
+ <div style={{
+  display: 'flex',
+  gap: '12px',
+  alignSelf: isMobile ? 'flex-start' : 'center'
+}}>
+  <button
+    onClick={handleRefresh}
+    style={{
+      backgroundColor: '#10b981',
+      color: 'white',
+      border: 'none',
+      borderRadius: '12px',
+      padding: isMobile ? '12px 20px' : '12px 24px',
+      fontSize: isMobile ? '14px' : '16px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    }}
+    className="card-hover"
+  >
+    🔄 Atualizar
+  </button>
+  
+  <button
+    onClick={debugProventos}
+    style={{
+      backgroundColor: '#f59e0b',
+      color: 'white',
+      border: 'none',
+      borderRadius: '12px',
+      padding: isMobile ? '12px 20px' : '12px 24px',
+      fontSize: isMobile ? '14px' : '16px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    }}
+    className="card-hover"
+  >
+    🔍 Debug
+  </button>
+</div>
         
         {error && (
           <div style={{
