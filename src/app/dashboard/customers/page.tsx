@@ -1228,11 +1228,21 @@ setAtivosAtualizados(ativosFallback);
     }
   }, [microCapsData, isMobile]);
 
-  React.useEffect(() => {
-    if (microCapsData.length > 0) {
+React.useEffect(() => {
+  if (microCapsData.length > 0) {
+    // 🔥 FORÇAR EXECUÇÃO NO MOBILE COM DELAY
+    if (isMobile) {
+      // No mobile, aguardar um pouco mais para garantir que tudo carregou
+      setTimeout(() => {
+        console.log('📱 Executando buscarCotacoes no mobile com delay');
+        buscarCotacoes();
+      }, 500);
+    } else {
+      // No desktop, execução normal
       buscarCotacoes();
     }
-  }, [buscarCotacoes]);
+  }
+}, [buscarCotacoes, isMobile]); // ← Adicionar isMobile como dependência
 
   return {
     ativosAtualizados,
