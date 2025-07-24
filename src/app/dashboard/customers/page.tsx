@@ -685,189 +685,112 @@ const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => 
   }
 };
 
-// 🔥 FUNÇÃO calcularDY12Meses ATUALIZADA COM FALLBACK PARA MASTER
-function calcularDY12Meses(ticker: string, precoAtual: number): string {
+// 🚀 NOVA FUNÇÃO calcularDY12Meses VIA API BRAPI - SUBSTITUI A ANTIGA
+async function calcularDY12MesesAPI(ticker: string): Promise<string> {
   try {
-    if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
+    console.log(`🔍 [DY-API] Buscando DY via BRAPI para ${ticker}`);
     
-    console.log(`🔍 [DY] Calculando DY para ${ticker} (preço: R$ ${precoAtual.toFixed(2)})`);
+    const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+    const url = `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
     
-    // 🎯 TENTATIVA 1: Buscar por ticker específico (método original)
-    let proventosData = localStorage.getItem(`proventos_${ticker}`);
-    let fonte = 'individual';
+    // 🔥 TIMEOUT DE 3 SEGUNDOS
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     
-    // 🔄 TENTATIVA 2: Fallback para master (NOVA LÓGICA)
-    if (!proventosData) {
-      console.log(`⚠️ [DY] Proventos individuais de ${ticker} não encontrados, buscando no master...`);
-      
-      const masterData = localStorage.getItem('proventos_central_master');
-      if (masterData) {
-        try {
-          const todosProviventos = JSON.parse(masterData);
-          console.log(`📊 [DY] Master carregado: ${todosProviventos.length} proventos totais`);
-          
-          // Filtrar apenas os proventos do ticker específico
-          const proventosTicker = todosProviventos.filter((p: any) => 
-            p.ticker && p.ticker.toUpperCase() === ticker.toUpperCase()
-          );
-          
-          console.log(`🎯 [DY] Encontrados ${proventosTicker.length} proventos para ${ticker} no master`);
-          
-          if (proventosTicker.length > 0) {
-            proventosData = JSON.stringify(proventosTicker);
-            fonte = 'master';
-          }
-        } catch (error) {
-          console.error(`❌ [DY] Erro ao processar master:`, error);
-        }
-      } else {
-        console.log(`❌ [DY] Master também não encontrado`);
-      }
-    } else {
-      console.log(`✅ [DY] Dados individuais encontrados para ${ticker}`);
-    }
-    
-    // ❌ Se ainda não encontrou nada, retornar 0%
-    if (!proventosData) {
-      console.log(`❌ [DY] Nenhum provento encontrado para ${ticker}`);
-      return '0,00%';
-    }
-    
-    // 📋 Processar os proventos encontrados
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) {
-      console.log(`❌ [DY] Array de proventos vazio ou inválido para ${ticker}`);
-      return '0,00%';
-    }
-    
-    console.log(`📋 [DY] Processando ${proventos.length} proventos (fonte: ${fonte})`);
-    
-    // 📅 Data de 12 meses atrás
-    const hoje = new Date();
-    const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
-    
-    console.log(`📅 [DY] Período: ${umAnoAtras.toLocaleDateString('pt-BR')} até ${hoje.toLocaleDateString('pt-BR')}`);
-    
-    // 🔍 Filtrar proventos dos últimos 12 meses
-    const proventosUltimos12Meses = proventos.filter((provento: any) => {
-      let dataProvento: Date;
-      
-      // 🔄 Tentar várias formas de parsing da data
-      try {
-        if (provento.dataObj) {
-          // Se já tem dataObj, usar diretamente
-          dataProvento = new Date(provento.dataObj);
-        } else if (provento.dataCom) {
-          // Usar dataCom (formato da Central de Proventos)
-          if (provento.dataCom.includes('/')) {
-            const [d, m, a] = provento.dataCom.split('/');
-            dataProvento = new Date(+a, +m - 1, +d, 12, 0, 0);
-          } else if (provento.dataCom.includes('-')) {
-            const partes = provento.dataCom.split('-');
-            if (partes[0].length === 4) {
-              // YYYY-MM-DD
-              dataProvento = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
-            } else {
-              // DD-MM-YYYY
-              dataProvento = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
-            }
-          } else {
-            dataProvento = new Date(provento.dataCom);
-          }
-        } else if (provento.data) {
-          // Usar campo data (formato antigo)
-          if (provento.data.includes('/')) {
-            const [d, m, a] = provento.data.split('/');
-            dataProvento = new Date(+a, +m - 1, +d, 12, 0, 0);
-          } else if (provento.data.includes('-')) {
-            const partes = provento.data.split('-');
-            if (partes[0].length === 4) {
-              dataProvento = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
-            } else {
-              dataProvento = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
-            }
-          } else {
-            dataProvento = new Date(provento.data);
-          }
-        } else {
-          console.log(`⚠️ [DY] Provento sem data válida:`, provento);
-          return false;
-        }
-        
-        // Verificar se a data é válida
-        if (isNaN(dataProvento.getTime())) {
-          console.log(`⚠️ [DY] Data inválida:`, provento);
-          return false;
-        }
-        
-        // Verificar se está no período de 12 meses
-        const estaNoperiodo = dataProvento >= umAnoAtras && dataProvento <= hoje;
-        
-        if (estaNoperiodo) {
-          console.log(`✅ [DY] Provento válido: ${dataProvento.toLocaleDateString('pt-BR')} - R$ ${provento.valor}`);
-        }
-        
-        return estaNoperiodo;
-        
-      } catch (error) {
-        console.error(`❌ [DY] Erro ao processar data do provento:`, error, provento);
-        return false;
-      }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'MicroCaps-DY-API'
+      },
+      signal: controller.signal
     });
     
-    if (proventosUltimos12Meses.length === 0) {
-      console.log(`❌ [DY] ${ticker}: Nenhum provento nos últimos 12 meses`);
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`📊 [DY-API] Resposta BRAPI para ${ticker}:`, data);
+      
+      const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+      
+      if (dy && dy > 0) {
+        console.log(`✅ [DY-API] ${ticker}: DY encontrado = ${dy.toFixed(2)}%`);
+        return `${dy.toFixed(2).replace('.', ',')}%`;
+      } else {
+        console.log(`❌ [DY-API] ${ticker}: DY não encontrado ou zerado`);
+        return '0,00%';
+      }
+    } else {
+      console.log(`❌ [DY-API] ${ticker}: Erro HTTP ${response.status}`);
       return '0,00%';
     }
-    
-    console.log(`📊 [DY] ${ticker}: ${proventosUltimos12Meses.length} proventos válidos encontrados`);
-    
-    // 💰 Somar valores dos proventos
-    const totalProventos = proventosUltimos12Meses.reduce((total: number, provento: any) => {
-      let valor = 0;
-      
-      if (typeof provento.valor === 'number') {
-        valor = provento.valor;
-      } else if (typeof provento.valor === 'string') {
-        // Limpar string e converter
-        valor = parseFloat(
-          provento.valor
-            .toString()
-            .replace('R$', '')
-            .replace(/\s/g, '')
-            .replace(',', '.')
-        );
-      }
-      
-      if (isNaN(valor)) {
-        console.log(`⚠️ [DY] Valor inválido:`, provento.valor);
-        valor = 0;
-      }
-      
-      return total + valor;
-    }, 0);
-    
-    if (totalProventos <= 0) {
-      console.log(`❌ [DY] ${ticker}: Total de proventos = R$ 0,00`);
-      return '0,00%';
-    }
-    
-    // 📈 Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
-    const dy = (totalProventos / precoAtual) * 100;
-    
-    console.log(`✅ [DY] ${ticker} - RESULTADO FINAL:`);
-    console.log(`  💰 Total proventos 12m: R$ ${totalProventos.toFixed(2)}`);
-    console.log(`  📈 Preço atual: R$ ${precoAtual.toFixed(2)}`);
-    console.log(`  📊 DY calculado: ${dy.toFixed(2)}%`);
-    console.log(`  📋 Proventos encontrados: ${proventosUltimos12Meses.length}`);
-    console.log(`  🔄 Fonte dos dados: ${fonte}`);
-    
-    return `${dy.toFixed(2).replace('.', ',')}%`;
     
   } catch (error) {
-    console.error(`❌ [DY] Erro geral ao calcular DY para ${ticker}:`, error);
+    if (error.name === 'AbortError') {
+      console.log(`⏰ [DY-API] ${ticker}: Timeout de 3s excedido`);
+    } else {
+      console.error(`❌ [DY-API] ${ticker}: Erro geral:`, error);
+    }
     return '0,00%';
   }
+}
+
+// 🔄 FUNÇÃO AUXILIAR PARA BUSCAR DY EM LOTE (MAIS EFICIENTE)
+async function buscarDYsEmLote(tickers: string[]): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  
+  try {
+    console.log(`🔍 [DY-LOTE] Buscando DY para ${tickers.length} tickers em lote`);
+    
+    // 🎯 BUSCAR EM LOTE (MAIS RÁPIDO)
+    const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'MicroCaps-DY-Batch'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`📊 [DY-LOTE] Resposta recebida para ${data.results?.length || 0} ativos`);
+      
+      data.results?.forEach((result: any) => {
+        const ticker = result.symbol;
+        const dy = result.defaultKeyStatistics?.dividendYield;
+        
+        if (dy && dy > 0) {
+          dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+          console.log(`✅ [DY-LOTE] ${ticker}: ${dy.toFixed(2)}%`);
+        } else {
+          dyMap.set(ticker, '0,00%');
+          console.log(`❌ [DY-LOTE] ${ticker}: DY não encontrado`);
+        }
+      });
+      
+    } else {
+      console.log(`❌ [DY-LOTE] Erro HTTP ${response.status}`);
+      // Fallback: definir 0% para todos
+      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+    }
+    
+  } catch (error) {
+    console.error(`❌ [DY-LOTE] Erro geral:`, error);
+    // Fallback: definir 0% para todos
+    tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+  }
+  
+  return dyMap;
 }
 
 // 🔥 HOOK MOBILE-FIRST RESPONSIVO (BASEADO NO ARQUIVO 2)
@@ -1080,69 +1003,74 @@ function useMicroCapsResponsive() {
         }
       }
 
-      console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
+console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
 
-      // 🔥 PROCESSAR DADOS COM ESTRATÉGIA UNIFICADA
-      const ativosProcessados = microCapsData.map((ativo, index) => {
-        const cotacao = cotacoesMap.get(ativo.ticker);
-        
-        if (cotacao) {
-          // ✅ COTAÇÃO VÁLIDA
-          const precoAtual = cotacao.precoAtual;
-          const performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-          
-          // 💰 CALCULAR PROVENTOS DO PERÍODO
-          const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-          
-          // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
-          const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-          const performanceTotal = performanceAcao + performanceProventos;
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual,
-            performance: performanceTotal,
-            performanceAcao: performanceAcao,
-            performanceProventos: performanceProventos,
-            proventosAtivo: proventosAtivo,
-            variacao: cotacao.variacao,
-            variacaoPercent: cotacao.variacaoPercent,
-            volume: cotacao.volume,
-            vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtual.toFixed(2).replace('.', ',')}`),
-            dy: calcularDY12Meses(ativo.ticker, precoAtual),
-            statusApi: 'success', // ✅ SEMPRE SUCCESS SE TEM COTAÇÃO
-            nomeCompleto: cotacao.nome,
-            rank: `${index + 1}°`
-          };
-        } else {
-          // ⚠️ SEM COTAÇÃO - MAS SEMPRE SUCCESS (remove "SIM")
-          console.log(`⚠️ ${ativo.ticker}: Sem cotação`);
-          
-          const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-          const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: ativo.precoEntrada,
-            performance: performanceProventos,
-            performanceAcao: 0,
-            performanceProventos: performanceProventos,
-            proventosAtivo: proventosAtivo,
-            variacao: 0,
-            variacaoPercent: 0,
-            volume: 0,
-            vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-            dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-            statusApi: 'success', // 🔥 SEMPRE SUCCESS (remove "SIM")
-            nomeCompleto: ativo.ticker,
-            rank: `${index + 1}°`
-          };
-        }
-      });
+// 🚀 BUSCAR DY EM LOTE VIA API (NOVO)
+console.log('📈 Buscando DY via API BRAPI...');
+const dyMap = await buscarDYsEmLote(tickers);
 
-      setAtivosAtualizados(ativosProcessados);
+// 🔥 PROCESSAR DADOS COM DY VIA API
+const ativosProcessados = microCapsData.map((ativo, index) => {
+  const cotacao = cotacoesMap.get(ativo.ticker);
+  const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
+  
+  if (cotacao) {
+    // ✅ COTAÇÃO VÁLIDA
+    const precoAtual = cotacao.precoAtual;
+    const performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+    
+    // 💰 CALCULAR PROVENTOS DO PERÍODO
+    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+    
+    // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    const performanceTotal = performanceAcao + performanceProventos;
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual,
+      performance: performanceTotal,
+      performanceAcao: performanceAcao,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: cotacao.variacao,
+      variacaoPercent: cotacao.variacaoPercent,
+      volume: cotacao.volume,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtual.toFixed(2).replace('.', ',')}`),
+      dy: dyAPI, // 🚀 DY VIA API
+      statusApi: 'success',
+      nomeCompleto: cotacao.nome,
+      rank: `${index + 1}°`
+    };
+  } else {
+    // ⚠️ SEM COTAÇÃO
+    console.log(`⚠️ ${ativo.ticker}: Sem cotação`);
+    
+    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: ativo.precoEntrada,
+      performance: performanceProventos,
+      performanceAcao: 0,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: 0,
+      variacaoPercent: 0,
+      volume: 0,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+      dy: dyAPI, // 🚀 DY VIA API (mesmo sem cotação)
+      statusApi: 'success',
+      nomeCompleto: ativo.ticker,
+      rank: `${index + 1}°`
+    };
+  }
+});
+
+setAtivosAtualizados(ativosProcessados);
 
       if (sucessos === 0) {
         setError('Nenhuma cotação obtida');
@@ -1155,30 +1083,34 @@ function useMicroCapsResponsive() {
       setError(errorMessage);
       console.error('❌ Erro geral:', err);
       
-      // 🔄 FALLBACK: Dados básicos com statusApi: 'success'
-      const ativosFallback = microCapsData.map((ativo, index) => {
-        const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-        
-        return {
-          ...ativo,
-          id: String(ativo.id || index + 1),
-          precoAtual: ativo.precoEntrada,
-          performance: performanceProventos,
-          performanceAcao: 0,
-          performanceProventos: performanceProventos,
-          proventosAtivo: proventosAtivo,
-          variacao: 0,
-          variacaoPercent: 0,
-          volume: 0,
-          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-          dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-          statusApi: 'success', // 🔥 SEMPRE SUCCESS
-          nomeCompleto: ativo.ticker,
-          rank: `${index + 1}°`
-        };
-      });
-      setAtivosAtualizados(ativosFallback);
+// 🔄 FALLBACK: Buscar DY mesmo com erro nas cotações
+console.log('🔄 Buscando DY para fallback...');
+const dyMapFallback = await buscarDYsEmLote(tickers);
+
+const ativosFallback = microCapsData.map((ativo, index) => {
+  const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+  const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+  const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
+  
+  return {
+    ...ativo,
+    id: String(ativo.id || index + 1),
+    precoAtual: ativo.precoEntrada,
+    performance: performanceProventos,
+    performanceAcao: 0,
+    performanceProventos: performanceProventos,
+    proventosAtivo: proventosAtivo,
+    variacao: 0,
+    variacaoPercent: 0,
+    volume: 0,
+    vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+    dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
+    statusApi: 'success',
+    nomeCompleto: ativo.ticker,
+    rank: `${index + 1}°`
+  };
+});
+setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
     }
