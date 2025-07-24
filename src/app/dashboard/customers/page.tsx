@@ -1481,6 +1481,7 @@ const debugProventos = () => {
     🔍 Debug
   </button>
 </div>
+        </div>
         
         {error && (
           <div style={{
