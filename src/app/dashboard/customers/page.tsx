@@ -1265,6 +1265,7 @@ React.useEffect(() => {
     return () => clearTimeout(timer);
   }
 }, [isMobile, ativosAtualizados, loading, buscarCotacoes]);
+
   return {
     ativosAtualizados,
     loading,
