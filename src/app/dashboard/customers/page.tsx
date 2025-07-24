@@ -1244,6 +1244,28 @@ React.useEffect(() => {
   }
 }, [buscarCotacoes, isMobile]); // ← Adicionar isMobile como dependência
 
+// 📱 HOOK ADICIONAL SÓ PARA MOBILE - verificar se precisa re-executar
+React.useEffect(() => {
+  if (isMobile && ativosAtualizados.length > 0 && !loading) {
+    const timer = setTimeout(() => {
+      // Verificar se os DY carregaram
+      const totalDYs = ativosAtualizados.length;
+      const dysZerados = ativosAtualizados.filter(a => a.dy === '0,00%' || !a.dy).length;
+      const porcentagemSemDY = (dysZerados / totalDYs) * 100;
+      
+      console.log(`📱 Verificação DY: ${dysZerados}/${totalDYs} sem DY (${porcentagemSemDY.toFixed(1)}%)`);
+      
+      // Se mais de 50% dos ativos estão sem DY, re-executar
+      if (porcentagemSemDY > 50) {
+        console.log('📱 Mais de 50% sem DY, re-executando automaticamente...');
+        buscarCotacoes();
+      }
+    }, 3000); // Aguardar 3 segundos após o carregamento
+    
+    return () => clearTimeout(timer);
+  }
+}, [isMobile, ativosAtualizados, loading, buscarCotacoes]);
+
   return {
     ativosAtualizados,
     loading,
