@@ -866,14 +866,21 @@ function useMicroCapsResponsive() {
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
+  const microCapsData = dados.microCaps || [];
+
   // 🎯 CACHE SIMPLES PARA EVITAR REQUISIÇÕES DESNECESSÁRIAS
   const [lastUpdate, setLastUpdate] = React.useState(0);
-  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
-
-  const microCapsData = dados.microCaps || [];
+  const CACHE_DURATION = React.useMemo(() => 2 * 60 * 1000, []); // 2 minutos
 
   // 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES
   const buscarCotacoes = React.useCallback(async () => {
+    // ✅ VERIFICAR CACHE ANTES DE BUSCAR
+    const now = Date.now();
+    if (now - lastUpdate < CACHE_DURATION && ativosAtualizados.length > 0) {
+      console.log('📱💾 Usando cache, última atualização:', new Date(lastUpdate).toLocaleTimeString());
+      return;
+    }
+
     try {
       setLoadingStates({ cotacoes: true, dy: false, processamento: false });
       setError(null);
@@ -1103,26 +1110,13 @@ function useMicroCapsResponsive() {
     } finally {
       setLoadingStates({ cotacoes: false, dy: false, processamento: false });
     }
-  }, [microCapsData, isMobile]);
-
-  // 🎯 FUNÇÃO COM CACHE PARA EVITAR REQUISIÇÕES DESNECESSÁRIAS
-  const buscarCotacoesComCache = React.useCallback(async () => {
-    const now = Date.now();
-    
-    // ✅ SE ATUALIZOU RECENTEMENTE, NÃO BUSCAR NOVAMENTE
-    if (now - lastUpdate < CACHE_DURATION && ativosAtualizados.length > 0) {
-      console.log('📱💾 Usando cache, última atualização:', new Date(lastUpdate).toLocaleTimeString());
-      return;
-    }
-    
-    await buscarCotacoes();
-  }, [buscarCotacoes, lastUpdate, ativosAtualizados.length]);
+  }, [microCapsData, isMobile, lastUpdate, CACHE_DURATION, ativosAtualizados.length]);
 
   // ✅ USEEFFECT OTIMIZADO - EXECUÇÃO IMEDIATA SEM DELAY
   React.useEffect(() => {
     if (microCapsData.length > 0) {
       console.log('🚀 Executando buscarCotacoes IMEDIATAMENTE');
-      buscarCotacoesComCache();
+      buscarCotacoes();
     }
   }, [microCapsData.length]); // ← Só depender do comprimento, não do array completo
 
@@ -1145,7 +1139,7 @@ function useMicroCapsResponsive() {
       
       return () => clearTimeout(timer);
     }
-  }, [isMobile, ativosAtualizados.length, loadingStates, buscarCotacoes]); // ← Dependências otimizadas
+  }, [isMobile, ativosAtualizados.length, loadingStates.cotacoes, loadingStates.dy, loadingStates.processamento]); // ← Dependências específicas
 
   // ⚡ CALCULAR LOADING GERAL
   const loading = loadingStates.cotacoes || loadingStates.dy || loadingStates.processamento;
@@ -1173,7 +1167,7 @@ export default function MicroCapsPage() {
   const valorPorAtivo = 1000;
 
   // 🧮 CALCULAR MÉTRICAS DA CARTEIRA
-  const calcularMetricas = React.useMemo(() => {
+  const calcularMetricas = () => {
     if (!ativosAtualizados || ativosAtualizados.length === 0) {
       return {
         valorInicial: 0,
@@ -1239,7 +1233,9 @@ export default function MicroCapsPage() {
       ativosPositivos,
       ativosNegativos
     };
-  }, [ativosAtualizados]); // ✅ useMemo para otimizar cálculos
+  };
+
+  const metricas = calcularMetricas();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -1536,10 +1532,10 @@ export default function MicroCapsPage() {
           <div style={{ 
             fontSize: isMobile ? '20px' : '24px', 
             fontWeight: '700', 
-            color: calcularMetricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
+            color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {formatPercentage(calcularMetricas.rentabilidadeTotal)}
+            {formatPercentage(metricas.rentabilidadeTotal)}
           </div>
         </div>
 
@@ -1565,7 +1561,7 @@ export default function MicroCapsPage() {
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {calcularMetricas.dyMedio.toFixed(1)}%
+            {metricas.dyMedio.toFixed(1)}%
           </div>
         </div>
 
@@ -1695,7 +1691,7 @@ export default function MicroCapsPage() {
             color: '#10b981',
             lineHeight: '1'
           }}>
-            {calcularMetricas.ativosPositivos}
+            {metricas.ativosPositivos}
           </div>
         </div>
 
@@ -1721,7 +1717,7 @@ export default function MicroCapsPage() {
             color: '#ef4444',
             lineHeight: '1'
           }}>
-            {calcularMetricas.ativosNegativos}
+            {metricas.ativosNegativos}
           </div>
         </div>
       </div>
