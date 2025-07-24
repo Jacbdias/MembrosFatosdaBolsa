@@ -5,18 +5,31 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 
-// 🚀 HOOK OTIMIZADO PARA SMLL - MAIS RÁPIDO
+// 🔒 SSR-SAFE: Verificação de ambiente
+const isClient = typeof window !== 'undefined';
+
+// 🚀 HOOK SSR-SAFE PARA SMLL
 function useSmllRealTime() {
   const [smllData, setSmllData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [mounted, setMounted] = React.useState(false);
+
+  // 🔒 SSR PROTECTION
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const buscarSmllReal = React.useCallback(async () => {
+    if (!isClient || !mounted) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // 🔥 TIMEOUT REDUZIDO PARA MOBILE (2s)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
       
@@ -62,7 +75,7 @@ function useSmllRealTime() {
         console.log('SMLL API falhou, usando fallback');
       }
 
-      // 🔄 FALLBACK RÁPIDO
+      // Fallback
       const dadosFallback = {
         valor: 2204.90,
         valorFormatado: '2.205',
@@ -89,27 +102,38 @@ function useSmllRealTime() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mounted]);
 
   React.useEffect(() => {
-    buscarSmllReal();
-  }, [buscarSmllReal]);
+    if (mounted) {
+      buscarSmllReal();
+    }
+  }, [buscarSmllReal, mounted]);
 
   return { smllData, loading, error, refetch: buscarSmllReal };
 }
 
-// 🚀 HOOK OTIMIZADO PARA IBOVESPA - MAIS RÁPIDO
+// 🚀 HOOK SSR-SAFE PARA IBOVESPA
 function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const buscarIbovespaReal = React.useCallback(async () => {
+    if (!isClient || !mounted) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // 🔥 TIMEOUT REDUZIDO (2s)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
 
@@ -153,7 +177,6 @@ function useIbovespaRealTime() {
     } catch (err) {
       setError('Erro ao carregar Ibovespa');
       
-      // 🔄 FALLBACK RÁPIDO
       const fallbackData = {
         valor: 137213,
         valorFormatado: '137.213',
@@ -167,123 +190,104 @@ function useIbovespaRealTime() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mounted]);
 
   React.useEffect(() => {
-    buscarIbovespaReal();
-  }, [buscarIbovespaReal]);
+    if (mounted) {
+      buscarIbovespaReal();
+    }
+  }, [buscarIbovespaReal, mounted]);
 
   return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
 }
 
-// 🚀 FUNÇÃO OTIMIZADA PARA CALCULAR PROVENTOS - CACHE LOCAL
-const calcularProventosAtivo = React.useMemo(() => {
-  const cache = new Map<string, number>();
+// 🔒 SSR-SAFE: Função para calcular proventos
+const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => {
+  if (!isClient) return 0;
   
-  return (ticker: string, dataEntrada: string): number => {
-    const cacheKey = `${ticker}_${dataEntrada}`;
+  try {
+    let proventosData = localStorage.getItem(`proventos_${ticker}`);
     
-    if (cache.has(cacheKey)) {
-      return cache.get(cacheKey)!;
-    }
-
-    try {
-      if (typeof window === 'undefined') return 0;
-      
-      // 🎯 BUSCAR PROVENTOS (OTIMIZADO)
-      let proventosData = localStorage.getItem(`proventos_${ticker}`);
-      
-      if (!proventosData) {
-        const masterData = localStorage.getItem('proventos_central_master');
-        if (masterData) {
-          try {
-            const todosProviventos = JSON.parse(masterData);
-            const proventosTicker = todosProviventos.filter((p: any) => 
-              p.ticker && p.ticker.toUpperCase() === ticker.toUpperCase()
-            );
-            
-            if (proventosTicker.length > 0) {
-              proventosData = JSON.stringify(proventosTicker);
-            }
-          } catch (error) {
-            console.error('Erro ao processar master:', error);
+    if (!proventosData) {
+      const masterData = localStorage.getItem('proventos_central_master');
+      if (masterData) {
+        try {
+          const todosProviventos = JSON.parse(masterData);
+          const proventosTicker = todosProviventos.filter((p: any) => 
+            p.ticker && p.ticker.toUpperCase() === ticker.toUpperCase()
+          );
+          
+          if (proventosTicker.length > 0) {
+            proventosData = JSON.stringify(proventosTicker);
           }
+        } catch (error) {
+          console.error('Erro ao processar master:', error);
         }
       }
-      
-      if (!proventosData) {
-        cache.set(cacheKey, 0);
-        return 0;
-      }
-      
-      const proventos = JSON.parse(proventosData);
-      if (!Array.isArray(proventos) || proventos.length === 0) {
-        cache.set(cacheKey, 0);
-        return 0;
-      }
-      
-      // 📅 CONVERTER DATA DE ENTRADA
-      const [dia, mes, ano] = dataEntrada.split('/');
-      const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
-      
-      // 🔍 FILTRAR E SOMAR PROVENTOS
-      const totalProventos = proventos.reduce((total: number, provento: any) => {
-        try {
-          let dataProventoObj: Date;
-          
-          if (provento.dataPagamento) {
-            if (provento.dataPagamento.includes('/')) {
-              const [d, m, a] = provento.dataPagamento.split('/');
-              dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
-            } else {
-              dataProventoObj = new Date(provento.dataPagamento);
-            }
-          } else if (provento.data) {
-            if (provento.data.includes('/')) {
-              const [d, m, a] = provento.data.split('/');
-              dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
-            } else {
-              dataProventoObj = new Date(provento.data);
-            }
+    }
+    
+    if (!proventosData) return 0;
+    
+    const proventos = JSON.parse(proventosData);
+    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
+    
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
+    
+    const totalProventos = proventos.reduce((total: number, provento: any) => {
+      try {
+        let dataProventoObj: Date;
+        
+        if (provento.dataPagamento) {
+          if (provento.dataPagamento.includes('/')) {
+            const [d, m, a] = provento.dataPagamento.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
           } else {
-            return total;
+            dataProventoObj = new Date(provento.dataPagamento);
           }
-          
-          if (isNaN(dataProventoObj.getTime()) || dataProventoObj < dataEntradaObj) {
-            return total;
+        } else if (provento.data) {
+          if (provento.data.includes('/')) {
+            const [d, m, a] = provento.data.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
+          } else {
+            dataProventoObj = new Date(provento.data);
           }
-          
-          let valor = 0;
-          if (typeof provento.valor === 'number') {
-            valor = provento.valor;
-          } else if (typeof provento.valor === 'string') {
-            valor = parseFloat(
-              provento.valor
-                .toString()
-                .replace('R$', '')
-                .replace(/\s/g, '')
-                .replace(',', '.')
-            );
-          }
-          
-          return total + (isNaN(valor) ? 0 : valor);
-        } catch (error) {
+        } else {
           return total;
         }
-      }, 0);
-      
-      cache.set(cacheKey, totalProventos);
-      return totalProventos;
-      
-    } catch (error) {
-      console.error(`Erro ao calcular proventos para ${ticker}:`, error);
-      cache.set(cacheKey, 0);
-      return 0;
-    }
-  };
-}, []);
+        
+        if (isNaN(dataProventoObj.getTime()) || dataProventoObj < dataEntradaObj) {
+          return total;
+        }
+        
+        let valor = 0;
+        if (typeof provento.valor === 'number') {
+          valor = provento.valor;
+        } else if (typeof provento.valor === 'string') {
+          valor = parseFloat(
+            provento.valor
+              .toString()
+              .replace('R$', '')
+              .replace(/\s/g, '')
+              .replace(',', '.')
+          );
+        }
+        
+        return total + (isNaN(valor) ? 0 : valor);
+      } catch (error) {
+        return total;
+      }
+    }, 0);
+    
+    return totalProventos;
+    
+  } catch (error) {
+    console.error(`Erro ao calcular proventos para ${ticker}:`, error);
+    return 0;
+  }
+};
 
-// 🔥 FUNÇÃO OTIMIZADA PARA CALCULAR VIÉS
+// 🔒 SSR-SAFE: Função para calcular viés
 const calcularViesAutomatico = (precoTeto: number | undefined, precoAtual: string): string => {
   if (!precoTeto || precoAtual === 'N/A') return 'Aguardar';
   
@@ -294,17 +298,25 @@ const calcularViesAutomatico = (precoTeto: number | undefined, precoAtual: strin
   return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
 };
 
-// 🚀 HOOK MOBILE-FIRST SUPER OTIMIZADO
-function useMicroCapsOptimized() {
+// 🚀 HOOK PRINCIPAL SSR-SAFE
+function useMicroCapsSSRSafe() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [isMobile, setIsMobile] = React.useState(false);
   const [screenWidth, setScreenWidth] = React.useState(0);
+  const [mounted, setMounted] = React.useState(false);
 
-  // 🔥 DETECTAR DISPOSITIVO - OTIMIZADO
+  // 🔒 SSR PROTECTION
   React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Device Detection - SSR Safe
+  React.useEffect(() => {
+    if (!mounted || !isClient) return;
+
     const checkDevice = () => {
       const width = window.innerWidth;
       const mobile = width <= 768;
@@ -313,25 +325,28 @@ function useMicroCapsOptimized() {
     };
 
     checkDevice();
-    const debouncedResize = React.useMemo(
-      () => {
-        let timeoutId: NodeJS.Timeout;
-        return () => {
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(checkDevice, 150);
-        };
-      },
-      []
-    );
+    
+    let timeoutId: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkDevice, 150);
+    };
     
     window.addEventListener('resize', debouncedResize);
-    return () => window.removeEventListener('resize', debouncedResize);
-  }, []);
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(timeoutId);
+    };
+  }, [mounted]);
 
-  const microCapsData = dados.microCaps || [];
+  const microCapsData = dados?.microCaps || [];
 
-  // 🚀 FUNÇÃO DE BUSCAR COTAÇÕES OTIMIZADA
   const buscarCotacoes = React.useCallback(async () => {
+    if (!mounted || !isClient) {
+      setLoading(false);
+      return;
+    }
+
     if (microCapsData.length === 0) {
       setAtivosAtualizados([]);
       setLoading(false);
@@ -343,15 +358,12 @@ function useMicroCapsOptimized() {
       setError(null);
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-      const tickers = microCapsData.map(ativo => ativo.ticker);
+      const tickers = microCapsData.map((ativo: any) => ativo.ticker);
       const cotacoesMap = new Map();
       const dyMap = new Map();
       
-      // 🔥 ESTRATÉGIA OTIMIZADA PARA MOBILE
+      // Mobile Strategy
       if (isMobile) {
-        console.log('📱 MOBILE: Processamento paralelo otimizado');
-        
-        // 📊 PROCESSAR EM LOTES PEQUENOS (5 por vez)
         const batchSize = 5;
         const batches = [];
         
@@ -360,9 +372,8 @@ function useMicroCapsOptimized() {
         }
         
         for (const batch of batches) {
-          const promises = batch.map(async (ticker) => {
+          const promises = batch.map(async (ticker: string) => {
             try {
-              // 🔥 TIMEOUT AGRESSIVO DE 1.5s POR TICKER
               const controller = new AbortController();
               const timeoutId = setTimeout(() => controller.abort(), 1500);
               
@@ -387,7 +398,7 @@ function useMicroCapsOptimized() {
               
               clearTimeout(timeoutId);
               
-              // 📊 PROCESSAR COTAÇÃO
+              // Process cotação
               if (cotacaoResponse.status === 'fulfilled' && cotacaoResponse.value.ok) {
                 const data = await cotacaoResponse.value.json();
                 if (data.results?.[0]?.regularMarketPrice > 0) {
@@ -402,7 +413,7 @@ function useMicroCapsOptimized() {
                 }
               }
               
-              // 📈 PROCESSAR DY
+              // Process DY
               if (dyResponse.status === 'fulfilled' && dyResponse.value.ok) {
                 const dyData = await dyResponse.value.json();
                 const dy = dyData.results?.[0]?.defaultKeyStatistics?.dividendYield;
@@ -416,23 +427,20 @@ function useMicroCapsOptimized() {
               }
               
             } catch (error) {
-              console.log(`❌ ${ticker}: ${error.message}`);
+              console.log(`❌ ${ticker}: ${error}`);
               dyMap.set(ticker, '0,00%');
             }
           });
           
           await Promise.allSettled(promises);
           
-          // 🔥 DELAY MÍNIMO ENTRE LOTES
           if (batches.indexOf(batch) < batches.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
         
       } else {
-        // 🖥️ DESKTOP: Requisição em lote (mais rápida)
-        console.log('🖥️ DESKTOP: Requisição em lote');
-        
+        // Desktop Strategy
         try {
           const [cotacaoResponse, dyResponse] = await Promise.allSettled([
             fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
@@ -451,7 +459,7 @@ function useMicroCapsOptimized() {
             })
           ]);
           
-          // Processar cotações
+          // Process cotações
           if (cotacaoResponse.status === 'fulfilled' && cotacaoResponse.value.ok) {
             const data = await cotacaoResponse.value.json();
             data.results?.forEach((quote: any) => {
@@ -467,7 +475,7 @@ function useMicroCapsOptimized() {
             });
           }
           
-          // Processar DY
+          // Process DY
           if (dyResponse.status === 'fulfilled' && dyResponse.value.ok) {
             const dyData = await dyResponse.value.json();
             dyData.results?.forEach((result: any) => {
@@ -483,16 +491,15 @@ function useMicroCapsOptimized() {
           }
           
         } catch (error) {
-          console.log('🖥️❌ Erro na requisição em lote:', error);
+          console.log('Desktop batch error:', error);
         }
       }
 
-      // 🔥 PROCESSAR DADOS FINAL - OTIMIZADO
-      const ativosProcessados = microCapsData.map((ativo, index) => {
+      // Process final data
+      const ativosProcessados = microCapsData.map((ativo: any, index: number) => {
         const cotacao = cotacoesMap.get(ativo.ticker);
         const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
         
-        // 💰 CALCULAR PROVENTOS (COM CACHE)
         const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
         
         if (cotacao) {
@@ -553,10 +560,10 @@ function useMicroCapsOptimized() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro geral:', err);
+      console.error('Erro geral:', err);
       
-      // 🔄 FALLBACK RÁPIDO
-      const ativosFallback = microCapsData.map((ativo, index) => {
+      // Fallback
+      const ativosFallback = microCapsData.map((ativo: any, index: number) => {
         const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
         const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
         
@@ -583,22 +590,20 @@ function useMicroCapsOptimized() {
     } finally {
       setLoading(false);
     }
-  }, [microCapsData, isMobile]);
+  }, [microCapsData, isMobile, mounted]);
 
-  // 🔥 EFFECT OTIMIZADO - SÓ EXECUTA QUANDO NECESSÁRIO
   React.useEffect(() => {
-    if (microCapsData.length > 0) {
-      // 🚀 DELAY MÍNIMO NO MOBILE PARA GARANTIR RENDER
+    if (mounted && microCapsData.length > 0) {
       const delay = isMobile ? 200 : 0;
       const timer = setTimeout(() => {
         buscarCotacoes();
       }, delay);
       
       return () => clearTimeout(timer);
-    } else {
+    } else if (mounted) {
       setLoading(false);
     }
-  }, [buscarCotacoes]);
+  }, [buscarCotacoes, mounted]);
 
   return {
     ativosAtualizados,
@@ -606,22 +611,23 @@ function useMicroCapsOptimized() {
     error,
     refetch: buscarCotacoes,
     isMobile,
-    screenWidth
+    screenWidth,
+    mounted
   };
 }
 
-// 🔥 COMPONENTE PRINCIPAL OTIMIZADO
+// 🚀 COMPONENTE PRINCIPAL SSR-SAFE
 export default function MicroCapsPage() {
   const { dados } = useDataStore();
-  const { ativosAtualizados, loading, error, refetch, isMobile, screenWidth } = useMicroCapsOptimized();
+  const { ativosAtualizados, loading, error, refetch, isMobile, screenWidth, mounted } = useMicroCapsSSRSafe();
   const { smllData } = useSmllRealTime();
   const { ibovespaData } = useIbovespaRealTime();
 
   const valorPorAtivo = 1000;
 
-  // 🧮 CALCULAR MÉTRICAS - OTIMIZADO COM USEMEMO
+  // Memoized metrics calculation - SSR Safe
   const metricas = React.useMemo(() => {
-    if (!ativosAtualizados || ativosAtualizados.length === 0) {
+    if (!mounted || !ativosAtualizados || ativosAtualizados.length === 0) {
       return {
         valorInicial: 0,
         valorAtual: 0,
@@ -662,7 +668,6 @@ export default function MicroCapsPage() {
         piorAtivo = { ...ativo, performance: ativo.performance };
       }
       
-      // DY
       const dy = parseFloat(ativo.dy.replace('%', '').replace(',', '.'));
       if (!isNaN(dy) && dy > 0) {
         dyValues.push(dy);
@@ -686,16 +691,17 @@ export default function MicroCapsPage() {
       ativosPositivos,
       ativosNegativos
     };
-  }, [ativosAtualizados, valorPorAtivo]);
+  }, [ativosAtualizados, valorPorAtivo, mounted]);
 
-  // 🔥 FUNÇÕES DE FORMATAÇÃO - OTIMIZADAS
+  // Format functions - SSR Safe
   const formatCurrency = React.useCallback((value: number) => {
+    if (!mounted || !isClient) return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 2
     }).format(value);
-  }, []);
+  }, [mounted]);
 
   const formatPercentage = React.useCallback((value: number) => {
     const signal = value >= 0 ? '+' : '';
@@ -703,11 +709,44 @@ export default function MicroCapsPage() {
   }, []);
 
   const handleRefresh = React.useCallback(() => {
-    console.log('🔄 Refresh manual');
-    refetch();
-  }, [refetch]);
+    if (mounted) {
+      console.log('🔄 Refresh manual');
+      refetch();
+    }
+  }, [refetch, mounted]);
 
-  // 🔥 LOADING OTIMIZADO
+  // SSR: Show loading while mounting
+  if (!mounted) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '48px',
+          textAlign: 'center',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1e293b',
+            margin: '0'
+          }}>
+            Inicializando...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div style={{
@@ -748,7 +787,7 @@ export default function MicroCapsPage() {
             fontSize: isMobile ? '13px' : '14px',
             margin: '0'
           }}>
-            📱 {isMobile ? 'Mobile' : 'Desktop'} • Otimizado para velocidade
+            📱 {isMobile ? 'Mobile' : 'Desktop'} • SSR Safe
           </p>
         </div>
       </div>
@@ -761,7 +800,6 @@ export default function MicroCapsPage() {
       backgroundColor: '#f5f5f5', 
       padding: isMobile ? '12px' : '24px' 
     }}>
-      {/* 🔥 CSS ANIMATIONS - OTIMIZADO */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -793,7 +831,7 @@ export default function MicroCapsPage() {
         }
       `}</style>
 
-      {/* Header Otimizado */}
+      {/* Header */}
       <div style={{ marginBottom: isMobile ? '20px' : '32px' }} className="fade-in">
         <h1 style={{ 
           fontSize: isMobile ? '28px' : '48px', 
@@ -817,7 +855,7 @@ export default function MicroCapsPage() {
             margin: '0',
             lineHeight: '1.5'
           }}>
-            {metricas.quantidadeAtivos} ativos • 📱 {isMobile ? 'Mobile' : 'Desktop'} • Otimizado
+            {metricas.quantidadeAtivos} ativos • 📱 {isMobile ? 'Mobile' : 'Desktop'} • SSR Safe
           </p>
           
           <button
@@ -856,7 +894,7 @@ export default function MicroCapsPage() {
         )}
       </div>
 
-      {/* Cards de Métricas Otimizados */}
+      {/* Metrics Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
@@ -864,7 +902,6 @@ export default function MicroCapsPage() {
         marginBottom: isMobile ? '20px' : '32px'
       }} className="fade-in">
         
-        {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -890,7 +927,6 @@ export default function MicroCapsPage() {
           </div>
         </div>
 
-        {/* DY Médio */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -916,7 +952,6 @@ export default function MicroCapsPage() {
           </div>
         </div>
 
-        {/* SMLL */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -951,7 +986,6 @@ export default function MicroCapsPage() {
           </div>
         </div>
 
-        {/* Ibovespa */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -986,7 +1020,6 @@ export default function MicroCapsPage() {
           </div>
         </div>
 
-        {/* No Verde */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -1012,7 +1045,6 @@ export default function MicroCapsPage() {
           </div>
         </div>
 
-        {/* No Vermelho */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -1039,7 +1071,7 @@ export default function MicroCapsPage() {
         </div>
       </div>
 
-      {/* Lista de Ativos Otimizada */}
+      {/* Assets List */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '12px',
@@ -1048,7 +1080,6 @@ export default function MicroCapsPage() {
         overflow: 'hidden'
       }} className="fade-in">
         
-        {/* Header */}
         <div style={{
           padding: isMobile ? '16px' : '24px',
           borderBottom: '1px solid #e2e8f0',
@@ -1067,11 +1098,10 @@ export default function MicroCapsPage() {
             fontSize: isMobile ? '13px' : '16px',
             margin: '0'
           }}>
-            {ativosAtualizados.length} ativos • {isMobile ? 'Mobile' : 'Desktop'} • Otimizado
+            {ativosAtualizados.length} ativos • {isMobile ? 'Mobile' : 'Desktop'} • SSR Safe
           </p>
         </div>
 
-        {/* Lista Mobile Otimizada */}
         {isMobile ? (
           <div style={{ padding: '12px' }}>
             {ativosAtualizados.map((ativo, index) => (
@@ -1087,7 +1117,6 @@ export default function MicroCapsPage() {
                 }}
                 className="card-hover"
               >
-                {/* Header do Card */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1133,7 +1162,6 @@ export default function MicroCapsPage() {
                   </div>
                 </div>
 
-                {/* Dados do Card */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -1170,7 +1198,6 @@ export default function MicroCapsPage() {
             ))}
           </div>
         ) : (
-          // Desktop Table Otimizada
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -1283,7 +1310,7 @@ export default function MicroCapsPage() {
         )}
       </div>
 
-      {/* Debug Info Otimizado */}
+      {/* Debug Info */}
       <div style={{
         marginTop: '16px',
         padding: '12px',
@@ -1293,7 +1320,7 @@ export default function MicroCapsPage() {
         fontSize: '11px',
         color: '#64748b'
       }}>
-        <div>📱 {isMobile ? 'Mobile' : 'Desktop'} • {screenWidth}px • {ativosAtualizados.length} ativos • Otimizado para velocidade</div>
+        <div>📱 {isMobile ? 'Mobile' : 'Desktop'} • {screenWidth}px • {ativosAtualizados.length} ativos • SSR Safe ✅</div>
       </div>
     </div>
   );
