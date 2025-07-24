@@ -1,4 +1,35 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
+// 🚨 NOVO: Debug específico do DataStore
+  const debugDataStore = React.useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    const dadosAtual = localStorage.getItem('dados-membros');
+    console.log('🔍 DEBUG DATASTORE COMPLETO:');
+    console.log('📦 Raw localStorage:', dadosAtual);
+    
+    if (dadosAtual) {
+      try {
+        const parsed = JSON.parse(dadosAtual);
+        console.log('📊 Dados parseados:', parsed);
+        console.log('📋 MicroCaps no store:', parsed.microCaps?.length || 0);
+        console.log('📋 Tickers no store:', parsed.microCaps?.map((a: any) => a.ticker) || []);
+        
+        // Verificar timestamp da última atualização
+        if (parsed.lastUpdated) {
+          console.log('⏰ Última atualização:', new Date(parsed.lastUpdated).toLocaleString());
+        }
+      } catch (e) {
+        console.error('❌ Erro ao parsear:', e);
+      }
+    }
+    
+    alert(`📊 localStorage Status:
+    - Ativos neste dispositivo: ${ativosAtualizados.length}
+    - Device: ${isMobile ? 'Mobile' : 'Desktop'}
+    
+⚠️ IMPORTANTE:
+localStorage é específico por dispositivo.
+Desktop e Mobile têm dados separados!`);
+  }, [ativosAtualizados, isMobile]);/* eslint-disable @typescript-eslint/explicit-function-return-type */
 'use client';
 
 import * as React from 'react';
@@ -415,35 +446,35 @@ export default function MicroCapsV2Page() {
     refetch();
   }, [refetch]);
 
-  // 🚨 NOVO: Debug específico do DataStore
-  const debugDataStore = React.useCallback(() => {
+  // 🚨 NOVO: Sync com servidor (futuro)
+  const syncComServidor = React.useCallback(async () => {
     if (typeof window === 'undefined') return;
     
-    const dadosAtual = localStorage.getItem('dados-membros');
-    console.log('🔍 DEBUG DATASTORE COMPLETO:');
-    console.log('📦 Raw localStorage:', dadosAtual);
-    
-    if (dadosAtual) {
-      try {
-        const parsed = JSON.parse(dadosAtual);
-        console.log('📊 Dados parseados:', parsed);
-        console.log('📋 MicroCaps no store:', parsed.microCaps?.length || 0);
-        console.log('📋 Tickers no store:', parsed.microCaps?.map((a: any) => a.ticker) || []);
-        
-        // Verificar timestamp da última atualização
-        if (parsed.lastUpdated) {
-          console.log('⏰ Última atualização:', new Date(parsed.lastUpdated).toLocaleString());
-        }
-      } catch (e) {
-        console.error('❌ Erro ao parsear:', e);
-      }
+    try {
+      console.log('🔄 SYNC COM SERVIDOR INICIADO...');
+      
+      // TODO: Implementar API para sincronizar
+      // 1. Enviar localStorage atual para servidor
+      // 2. Baixar dados mais recentes do servidor
+      // 3. Atualizar localStorage local
+      
+      alert(`🔄 Sync Manual:
+      
+PROBLEMA IDENTIFICADO:
+- localStorage não sincroniza entre dispositivos
+- Desktop e Mobile têm dados diferentes
+      
+SOLUÇÕES:
+1. Usar banco de dados real
+2. Implementar sync manual
+3. Avisar sobre limitação localStorage
+
+Por ora, faça alterações diretamente no dispositivo que está usando.`);
+      
+    } catch (error) {
+      console.error('❌ Erro no sync:', error);
     }
-    
-    alert(`DataStore Debug:
-    - Ativos na página: ${ativosAtualizados.length}
-    - Device: ${isMobile ? 'Mobile' : 'Desktop'}
-    - Veja console para detalhes`);
-  }, [ativosAtualizados, isMobile]);
+  }, []);
 
   // 🔄 LOADING STATE
   if (loading) {
@@ -537,6 +568,23 @@ export default function MicroCapsV2Page() {
               className="card-hover"
             >
               📊 DataStore
+            </button>
+
+            <button
+              onClick={syncComServidor}
+              style={{
+                backgroundColor: '#6366f1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: isMobile ? '12px 16px' : '12px 24px',
+                fontSize: isMobile ? '12px' : '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+              className="card-hover"
+            >
+              🔄 Sync Issue
             </button>
 
             {isMobile && (
@@ -1084,9 +1132,12 @@ export default function MicroCapsV2Page() {
         <div>🔄 Hooks: useMicroCapsData + useMarketData + useApiStrategy + useResponsive • Ativos: {stats.totalAtivos}</div>
         <div>📈 API: {stats.ativosComCotacao} cotações + {stats.ativosComDY} DY • Layout: {isMobile ? 'Cards' : 'Table'} • Gráfico: {isMobile ? 'Mobile (250px)' : 'Desktop (400px)'}</div>
         <div>📍 Rota: /dashboard/MicroCapsPageV2 • Performance: Total Return (ação + proventos)</div>
+        <div style={{ color: '#ef4444', fontWeight: '600', marginTop: '8px' }}>
+          ⚠️ PROBLEMA IDENTIFICADO: localStorage não sincroniza entre Desktop ↔ Mobile (são independentes)
+        </div>
         {isMobile && (
-          <div style={{ color: '#ef4444', fontWeight: '600', marginTop: '8px' }}>
-            📱 MOBILE SYNC ISSUE: Se alterações do gerenciamento não aparecem, use "📊 DataStore" e "📱 Force Sync"
+          <div style={{ color: '#f59e0b', fontWeight: '600', marginTop: '4px' }}>
+            📱 MOBILE: Para ver alterações do desktop, refaça as alterações diretamente no mobile
           </div>
         )}
       </div>
