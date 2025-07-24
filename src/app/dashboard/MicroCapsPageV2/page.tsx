@@ -180,15 +180,35 @@ const AssetCard: React.FC<{ ativo: any; index: number }> = ({ ativo, index }) =>
         width: '40px',
         height: '40px',
         borderRadius: '8px',
-        backgroundColor: ativo.performance >= 0 ? '#dcfce7' : '#fee2e2',
-        color: ativo.performance >= 0 ? '#065f46' : '#991b1b',
+        overflow: 'hidden',
+        backgroundColor: '#f8fafc',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '14px',
-        fontWeight: '700'
+        border: '1px solid #e2e8f0'
       }}>
-        {ativo.ticker.slice(0, 2)}
+        <img 
+          src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+          alt={`Logo ${ativo.ticker}`}
+          style={{
+            width: '32px',
+            height: '32px',
+            objectFit: 'contain'
+          }}
+          onError={(e) => {
+            // Fallback para ícone com iniciais se a imagem não carregar
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+              parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+              parent.style.fontWeight = '700';
+              parent.style.fontSize = '14px';
+              parent.textContent = ativo.ticker.slice(0, 2);
+            }
+          }}
+        />
       </div>
       <div style={{ flex: 1 }}>
         <div style={{
@@ -531,15 +551,35 @@ export default function MicroCapsV2Page() {
                           width: '40px',
                           height: '40px',
                           borderRadius: '8px',
-                          backgroundColor: ativo.performance >= 0 ? '#dcfce7' : '#fee2e2',
-                          color: ativo.performance >= 0 ? '#065f46' : '#991b1b',
+                          overflow: 'hidden',
+                          backgroundColor: '#f8fafc',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: '700'
+                          border: '1px solid #e2e8f0'
                         }}>
-                          {ativo.ticker.slice(0, 2)}
+                          <img 
+                            src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                            alt={`Logo ${ativo.ticker}`}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              objectFit: 'contain'
+                            }}
+                            onError={(e) => {
+                              // Fallback para ícone com iniciais se a imagem não carregar
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                parent.style.fontWeight = '700';
+                                parent.style.fontSize = '14px';
+                                parent.textContent = ativo.ticker.slice(0, 2);
+                              }
+                            }}
+                          />
                         </div>
                         <div>
                           <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '16px' }}>
