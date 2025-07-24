@@ -507,155 +507,365 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
 }
 
 // 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM ATIVO NO PERÍODO (desde a data de entrada)
+// 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM ATIVO NO PERÍODO (COM FALLBACK)
 const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => {
   try {
     if (typeof window === 'undefined') return 0;
     
-    // Buscar proventos do localStorage da Central de Proventos
-    const proventosKey = `proventos_${ticker}`;
-    const proventosData = localStorage.getItem(proventosKey);
-    if (!proventosData) return 0;
+    console.log(`💰 [PROV] Calculando proventos para ${ticker} desde ${dataEntrada}`);
+    
+    // 🎯 TENTATIVA 1: Buscar proventos do ticker específico
+    let proventosData = localStorage.getItem(`proventos_${ticker}`);
+    let fonte = 'individual';
+    
+    // 🔄 TENTATIVA 2: Fallback para master
+    if (!proventosData) {
+      console.log(`⚠️ [PROV] Proventos individuais de ${ticker} não encontrados, buscando no master...`);
+      
+      const masterData = localStorage.getItem('proventos_central_master');
+      if (masterData) {
+        try {
+          const todosProviventos = JSON.parse(masterData);
+          console.log(`📊 [PROV] Master carregado: ${todosProviventos.length} proventos totais`);
+          
+          // Filtrar apenas os proventos do ticker específico
+          const proventosTicker = todosProviventos.filter((p: any) => 
+            p.ticker && p.ticker.toUpperCase() === ticker.toUpperCase()
+          );
+          
+          console.log(`🎯 [PROV] Encontrados ${proventosTicker.length} proventos para ${ticker} no master`);
+          
+          if (proventosTicker.length > 0) {
+            proventosData = JSON.stringify(proventosTicker);
+            fonte = 'master';
+          }
+        } catch (error) {
+          console.error(`❌ [PROV] Erro ao processar master:`, error);
+        }
+      } else {
+        console.log(`❌ [PROV] Master também não encontrado`);
+      }
+    } else {
+      console.log(`✅ [PROV] Dados individuais encontrados para ${ticker}`);
+    }
+    
+    if (!proventosData) {
+      console.log(`❌ [PROV] Nenhum provento encontrado para ${ticker}`);
+      return 0;
+    }
     
     const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
+    if (!Array.isArray(proventos) || proventos.length === 0) {
+      console.log(`❌ [PROV] Array de proventos vazio para ${ticker}`);
+      return 0;
+    }
     
-    // Converter data de entrada para objeto Date
+    // 📅 Converter data de entrada para objeto Date
     const [dia, mes, ano] = dataEntrada.split('/');
-    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
     
-    console.log(`🔍 Calculando proventos para ${ticker} desde ${dataEntrada}`);
+    console.log(`📅 [PROV] Data de entrada: ${dataEntradaObj.toLocaleDateString('pt-BR')}`);
+    console.log(`📋 [PROV] Processando ${proventos.length} proventos (fonte: ${fonte})`);
     
-    // Filtrar proventos pagos após a data de entrada
+    // 🔍 Filtrar proventos pagos após a data de entrada
     const proventosFiltrados = proventos.filter((provento: any) => {
       try {
         let dataProventoObj: Date;
         
-        // Tentar diferentes formatos de data
-        if (provento.dataPagamento) {
+        // 🔄 Tentar diferentes formatos de data
+        if (provento.dataObj) {
+          dataProventoObj = new Date(provento.dataObj);
+        } else if (provento.dataPagamento) {
+          // Usar data de pagamento se disponível
           if (provento.dataPagamento.includes('/')) {
             const [d, m, a] = provento.dataPagamento.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
           } else if (provento.dataPagamento.includes('-')) {
+            const partes = provento.dataPagamento.split('-');
+            if (partes[0].length === 4) {
+              dataProventoObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]), 12, 0, 0);
+            } else {
+              dataProventoObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]), 12, 0, 0);
+            }
+          } else {
             dataProventoObj = new Date(provento.dataPagamento);
           }
-        } else if (provento.data) {
-          if (provento.data.includes('/')) {
-            const [d, m, a] = provento.data.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.data.includes('-')) {
-            dataProventoObj = new Date(provento.data);
-          }
         } else if (provento.dataCom) {
+          // Usar data com
           if (provento.dataCom.includes('/')) {
             const [d, m, a] = provento.dataCom.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
           } else if (provento.dataCom.includes('-')) {
+            const partes = provento.dataCom.split('-');
+            if (partes[0].length === 4) {
+              dataProventoObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]), 12, 0, 0);
+            } else {
+              dataProventoObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]), 12, 0, 0);
+            }
+          } else {
             dataProventoObj = new Date(provento.dataCom);
           }
-        } else if (provento.dataObj) {
-          dataProventoObj = new Date(provento.dataObj);
+        } else if (provento.data) {
+          // Usar campo data (formato antigo)
+          if (provento.data.includes('/')) {
+            const [d, m, a] = provento.data.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
+          } else if (provento.data.includes('-')) {
+            const partes = provento.data.split('-');
+            if (partes[0].length === 4) {
+              dataProventoObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]), 12, 0, 0);
+            } else {
+              dataProventoObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]), 12, 0, 0);
+            }
+          } else {
+            dataProventoObj = new Date(provento.data);
+          }
         } else {
+          console.log(`⚠️ [PROV] Provento sem data:`, provento);
           return false;
         }
         
-        return dataProventoObj && dataProventoObj >= dataEntradaObj;
+        // Verificar se a data é válida
+        if (isNaN(dataProventoObj.getTime())) {
+          console.log(`⚠️ [PROV] Data inválida:`, provento);
+          return false;
+        }
+        
+        // Verificar se o provento é posterior à data de entrada
+        const esPosterior = dataProventoObj >= dataEntradaObj;
+        
+        if (esPosterior) {
+          console.log(`✅ [PROV] Provento válido: ${dataProventoObj.toLocaleDateString('pt-BR')} - R$ ${provento.valor}`);
+        }
+        
+        return esPosterior;
+        
       } catch (error) {
-        console.error('Erro ao processar data do provento:', error);
+        console.error(`❌ [PROV] Erro ao processar data do provento:`, error, provento);
         return false;
       }
     });
     
-    // Somar valores dos proventos
+    console.log(`📊 [PROV] ${ticker}: ${proventosFiltrados.length} proventos válidos desde a entrada`);
+    
+    // 💰 Somar valores dos proventos
     const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
+      let valor = 0;
+      
+      if (typeof provento.valor === 'number') {
+        valor = provento.valor;
+      } else if (typeof provento.valor === 'string') {
+        valor = parseFloat(
+          provento.valor
+            .toString()
+            .replace('R$', '')
+            .replace(/\s/g, '')
+            .replace(',', '.')
+        );
+      }
+      
+      if (isNaN(valor)) {
+        console.log(`⚠️ [PROV] Valor inválido:`, provento.valor);
+        valor = 0;
+      }
+      
+      return total + valor;
     }, 0);
     
-    console.log(`✅ ${ticker}: ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
+    console.log(`✅ [PROV] ${ticker} - RESULTADO:`);
+    console.log(`  💰 Total proventos desde entrada: R$ ${totalProventos.toFixed(2)}`);
+    console.log(`  📋 Quantidade: ${proventosFiltrados.length}`);
+    console.log(`  🔄 Fonte: ${fonte}`);
     
     return totalProventos;
     
   } catch (error) {
-    console.error(`❌ Erro ao calcular proventos para ${ticker}:`, error);
+    console.error(`❌ [PROV] Erro ao calcular proventos para ${ticker}:`, error);
     return 0;
   }
 };
 
+// 🔥 FUNÇÃO calcularDY12Meses ATUALIZADA COM FALLBACK PARA MASTER
 function calcularDY12Meses(ticker: string, precoAtual: number): string {
   try {
     if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
     
-    // Buscar proventos do ticker específico no localStorage
-    const proventosData = localStorage.getItem(`proventos_${ticker}`);
-    if (!proventosData) return '0,00%';
+    console.log(`🔍 [DY] Calculando DY para ${ticker} (preço: R$ ${precoAtual.toFixed(2)})`);
     
+    // 🎯 TENTATIVA 1: Buscar por ticker específico (método original)
+    let proventosData = localStorage.getItem(`proventos_${ticker}`);
+    let fonte = 'individual';
+    
+    // 🔄 TENTATIVA 2: Fallback para master (NOVA LÓGICA)
+    if (!proventosData) {
+      console.log(`⚠️ [DY] Proventos individuais de ${ticker} não encontrados, buscando no master...`);
+      
+      const masterData = localStorage.getItem('proventos_central_master');
+      if (masterData) {
+        try {
+          const todosProviventos = JSON.parse(masterData);
+          console.log(`📊 [DY] Master carregado: ${todosProviventos.length} proventos totais`);
+          
+          // Filtrar apenas os proventos do ticker específico
+          const proventosTicker = todosProviventos.filter((p: any) => 
+            p.ticker && p.ticker.toUpperCase() === ticker.toUpperCase()
+          );
+          
+          console.log(`🎯 [DY] Encontrados ${proventosTicker.length} proventos para ${ticker} no master`);
+          
+          if (proventosTicker.length > 0) {
+            proventosData = JSON.stringify(proventosTicker);
+            fonte = 'master';
+          }
+        } catch (error) {
+          console.error(`❌ [DY] Erro ao processar master:`, error);
+        }
+      } else {
+        console.log(`❌ [DY] Master também não encontrado`);
+      }
+    } else {
+      console.log(`✅ [DY] Dados individuais encontrados para ${ticker}`);
+    }
+    
+    // ❌ Se ainda não encontrou nada, retornar 0%
+    if (!proventosData) {
+      console.log(`❌ [DY] Nenhum provento encontrado para ${ticker}`);
+      return '0,00%';
+    }
+    
+    // 📋 Processar os proventos encontrados
     const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return '0,00%';
+    if (!Array.isArray(proventos) || proventos.length === 0) {
+      console.log(`❌ [DY] Array de proventos vazio ou inválido para ${ticker}`);
+      return '0,00%';
+    }
     
-    // Data de 12 meses atrás
+    console.log(`📋 [DY] Processando ${proventos.length} proventos (fonte: ${fonte})`);
+    
+    // 📅 Data de 12 meses atrás
     const hoje = new Date();
     const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
     
-    console.log(`🔍 Calculando DY para ${ticker}:`);
-    console.log(`📅 Período: ${umAnoAtras.toLocaleDateString('pt-BR')} até ${hoje.toLocaleDateString('pt-BR')}`);
+    console.log(`📅 [DY] Período: ${umAnoAtras.toLocaleDateString('pt-BR')} até ${hoje.toLocaleDateString('pt-BR')}`);
     
-    // Filtrar proventos dos últimos 12 meses
+    // 🔍 Filtrar proventos dos últimos 12 meses
     const proventosUltimos12Meses = proventos.filter((provento: any) => {
       let dataProvento: Date;
       
-      // Tentar várias formas de parsing da data
-      if (provento.dataObj) {
-        dataProvento = new Date(provento.dataObj);
-      } else if (provento.dataCom) {
-        if (provento.dataCom.includes('/')) {
-          const [d, m, a] = provento.dataCom.split('/');
-          dataProvento = new Date(+a, +m - 1, +d);
+      // 🔄 Tentar várias formas de parsing da data
+      try {
+        if (provento.dataObj) {
+          // Se já tem dataObj, usar diretamente
+          dataProvento = new Date(provento.dataObj);
+        } else if (provento.dataCom) {
+          // Usar dataCom (formato da Central de Proventos)
+          if (provento.dataCom.includes('/')) {
+            const [d, m, a] = provento.dataCom.split('/');
+            dataProvento = new Date(+a, +m - 1, +d, 12, 0, 0);
+          } else if (provento.dataCom.includes('-')) {
+            const partes = provento.dataCom.split('-');
+            if (partes[0].length === 4) {
+              // YYYY-MM-DD
+              dataProvento = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
+            } else {
+              // DD-MM-YYYY
+              dataProvento = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
+            }
+          } else {
+            dataProvento = new Date(provento.dataCom);
+          }
+        } else if (provento.data) {
+          // Usar campo data (formato antigo)
+          if (provento.data.includes('/')) {
+            const [d, m, a] = provento.data.split('/');
+            dataProvento = new Date(+a, +m - 1, +d, 12, 0, 0);
+          } else if (provento.data.includes('-')) {
+            const partes = provento.data.split('-');
+            if (partes[0].length === 4) {
+              dataProvento = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
+            } else {
+              dataProvento = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
+            }
+          } else {
+            dataProvento = new Date(provento.data);
+          }
         } else {
-          dataProvento = new Date(provento.dataCom);
+          console.log(`⚠️ [DY] Provento sem data válida:`, provento);
+          return false;
         }
-      } else if (provento.data) {
-        if (provento.data.includes('/')) {
-          const [d, m, a] = provento.data.split('/');
-          dataProvento = new Date(+a, +m - 1, +d);
-        } else {
-          dataProvento = new Date(provento.data);
+        
+        // Verificar se a data é válida
+        if (isNaN(dataProvento.getTime())) {
+          console.log(`⚠️ [DY] Data inválida:`, provento);
+          return false;
         }
-      } else {
+        
+        // Verificar se está no período de 12 meses
+        const estaNoperiodo = dataProvento >= umAnoAtras && dataProvento <= hoje;
+        
+        if (estaNoperiodo) {
+          console.log(`✅ [DY] Provento válido: ${dataProvento.toLocaleDateString('pt-BR')} - R$ ${provento.valor}`);
+        }
+        
+        return estaNoperiodo;
+        
+      } catch (error) {
+        console.error(`❌ [DY] Erro ao processar data do provento:`, error, provento);
         return false;
       }
-      
-      return dataProvento >= umAnoAtras && dataProvento <= hoje;
     });
     
     if (proventosUltimos12Meses.length === 0) {
-      console.log(`❌ ${ticker}: Nenhum provento nos últimos 12 meses`);
+      console.log(`❌ [DY] ${ticker}: Nenhum provento nos últimos 12 meses`);
       return '0,00%';
     }
     
-    // Somar valores dos proventos
+    console.log(`📊 [DY] ${ticker}: ${proventosUltimos12Meses.length} proventos válidos encontrados`);
+    
+    // 💰 Somar valores dos proventos
     const totalProventos = proventosUltimos12Meses.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
+      let valor = 0;
+      
+      if (typeof provento.valor === 'number') {
+        valor = provento.valor;
+      } else if (typeof provento.valor === 'string') {
+        // Limpar string e converter
+        valor = parseFloat(
+          provento.valor
+            .toString()
+            .replace('R$', '')
+            .replace(/\s/g, '')
+            .replace(',', '.')
+        );
+      }
+      
+      if (isNaN(valor)) {
+        console.log(`⚠️ [DY] Valor inválido:`, provento.valor);
+        valor = 0;
+      }
+      
+      return total + valor;
     }, 0);
     
     if (totalProventos <= 0) {
-      console.log(`❌ ${ticker}: Total de proventos = R$ 0,00`);
+      console.log(`❌ [DY] ${ticker}: Total de proventos = R$ 0,00`);
       return '0,00%';
     }
     
-    // Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
+    // 📈 Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
     const dy = (totalProventos / precoAtual) * 100;
     
-    console.log(`✅ ${ticker}:`);
+    console.log(`✅ [DY] ${ticker} - RESULTADO FINAL:`);
     console.log(`  💰 Total proventos 12m: R$ ${totalProventos.toFixed(2)}`);
     console.log(`  📈 Preço atual: R$ ${precoAtual.toFixed(2)}`);
     console.log(`  📊 DY calculado: ${dy.toFixed(2)}%`);
     console.log(`  📋 Proventos encontrados: ${proventosUltimos12Meses.length}`);
+    console.log(`  🔄 Fonte dos dados: ${fonte}`);
     
     return `${dy.toFixed(2).replace('.', ',')}%`;
     
   } catch (error) {
-    console.error(`❌ Erro ao calcular DY para ${ticker}:`, error);
+    console.error(`❌ [DY] Erro geral ao calcular DY para ${ticker}:`, error);
     return '0,00%';
   }
 }
