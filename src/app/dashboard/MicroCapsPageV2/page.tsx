@@ -629,6 +629,259 @@ export default function MicroCapsV2Page() {
         )}
       </div>
 
+      {/* 📊 Gráfico de Composição por Ativos - SOMENTE DESKTOP */}
+      {!isMobile && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
+          marginBottom: '32px'
+        }} className="fade-in">
+          <div style={{
+            padding: '24px',
+            borderBottom: '1px solid #e2e8f0',
+            backgroundColor: '#f8fafc'
+          }}>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              color: '#1e293b',
+              margin: '0 0 8px 0'
+            }}>
+              📊 Composição por Ativos
+            </h3>
+            <p style={{
+              color: '#64748b',
+              fontSize: '16px',
+              margin: '0'
+            }}>
+              Distribuição percentual da carteira • {ativosAtualizados.length} ativos
+            </p>
+          </div>
+
+          <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
+            {/* Gráfico SVG */}
+            <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
+              {(() => {
+                const cores = [
+                  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                  '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                  '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+                ];
+                
+                const radius = 150;
+                const innerRadius = 75;
+                const centerX = 200;
+                const centerY = 200;
+                const totalAtivos = ativosAtualizados.length;
+                
+                if (totalAtivos === 0) {
+                  return (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      color: '#64748b',
+                      fontSize: '16px'
+                    }}>
+                      Nenhum ativo para exibir
+                    </div>
+                  );
+                }
+                
+                const anglePerSlice = (2 * Math.PI) / totalAtivos;
+                
+                const createPath = (startAngle: number, endAngle: number) => {
+                  const x1 = centerX + radius * Math.cos(startAngle);
+                  const y1 = centerY + radius * Math.sin(startAngle);
+                  const x2 = centerX + radius * Math.cos(endAngle);
+                  const y2 = centerY + radius * Math.sin(endAngle);
+                  
+                  const x3 = centerX + innerRadius * Math.cos(endAngle);
+                  const y3 = centerY + innerRadius * Math.sin(endAngle);
+                  const x4 = centerX + innerRadius * Math.cos(startAngle);
+                  const y4 = centerY + innerRadius * Math.sin(startAngle);
+                  
+                  const largeArcFlag = endAngle - startAngle <= Math.PI ? "0" : "1";
+                  
+                  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4} Z`;
+                };
+                
+                return (
+                  <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
+                    <defs>
+                      <style>
+                        {`
+                          .slice-text {
+                            opacity: 0;
+                            transition: opacity 0.3s ease;
+                            pointer-events: none;
+                          }
+                          .slice-group:hover .slice-text {
+                            opacity: 1;
+                          }
+                          .slice-path {
+                            transition: all 0.3s ease;
+                            cursor: pointer;
+                          }
+                          .slice-group:hover .slice-path {
+                            transform: scale(1.05);
+                            transform-origin: ${centerX}px ${centerY}px;
+                          }
+                        `}
+                      </style>
+                    </defs>
+                    
+                    {ativosAtualizados.map((ativo, index) => {
+                      const startAngle = index * anglePerSlice - Math.PI / 2;
+                      const endAngle = (index + 1) * anglePerSlice - Math.PI / 2;
+                      const cor = cores[index % cores.length];
+                      const path = createPath(startAngle, endAngle);
+                      
+                      // Calcular posição do texto no meio da fatia
+                      const middleAngle = (startAngle + endAngle) / 2;
+                      const textRadius = (radius + innerRadius) / 2; // Meio da fatia
+                      const textX = centerX + textRadius * Math.cos(middleAngle);
+                      const textY = centerY + textRadius * Math.sin(middleAngle);
+                      const porcentagem = (100 / totalAtivos).toFixed(1);
+                      
+                      return (
+                        <g key={ativo.ticker} className="slice-group">
+                          <path
+                            d={path}
+                            fill={cor}
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                            className="slice-path"
+                          >
+                            <title>{ativo.ticker}: {porcentagem}%</title>
+                          </path>
+                          
+                          {/* Textos que aparecem no hover */}
+                          <g className="slice-text">
+                            {/* Texto do ticker */}
+                            <text
+                              x={textX}
+                              y={textY - 6}
+                              textAnchor="middle"
+                              fontSize="11"
+                              fontWeight="700"
+                              fill="#ffffff"
+                              style={{ 
+                                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                              }}
+                            >
+                              {ativo.ticker}
+                            </text>
+                            
+                            {/* Texto da porcentagem */}
+                            <text
+                              x={textX}
+                              y={textY + 8}
+                              textAnchor="middle"
+                              fontSize="10"
+                              fontWeight="600"
+                              fill="#ffffff"
+                              style={{ 
+                                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                              }}
+                            >
+                              {porcentagem}%
+                            </text>
+                          </g>
+                        </g>
+                      );
+                    })}
+                    
+                    {/* Círculo central */}
+                    <circle
+                      cx={centerX}
+                      cy={centerY}
+                      r={innerRadius}
+                      fill="#f8fafc"
+                      stroke="#e2e8f0"
+                      strokeWidth="2"
+                    />
+                    
+                    {/* Texto central */}
+                    <text
+                      x={centerX}
+                      y={centerY - 10}
+                      textAnchor="middle"
+                      fontSize="16"
+                      fontWeight="700"
+                      fill="#1e293b"
+                    >
+                      {totalAtivos}
+                    </text>
+                    <text
+                      x={centerX}
+                      y={centerY + 10}
+                      textAnchor="middle"
+                      fontSize="12"
+                      fill="#64748b"
+                    >
+                      ATIVOS
+                    </text>
+                  </svg>
+                );
+              })()}
+            </div>
+            
+            {/* Legenda */}
+            <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+              {ativosAtualizados.map((ativo, index) => {
+                const porcentagem = ativosAtualizados.length > 0 ? ((1 / ativosAtualizados.length) * 100).toFixed(1) : '0.0';
+                const cores = [
+                  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                  '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                  '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+                ];
+                const cor = cores[index % cores.length];
+                
+                return (
+                  <div key={ativo.ticker} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '2px',
+                      backgroundColor: cor,
+                      flexShrink: 0
+                    }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: '#1e293b', 
+                        fontSize: '14px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {ativo.ticker}
+                      </div>
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {porcentagem}%
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 📊 Debug Info */}
       <div style={{
         padding: '16px',
