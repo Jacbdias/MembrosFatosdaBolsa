@@ -10,12 +10,6 @@ import { useMarketData, useIbovespaPeriodo } from '@/hooks/micro-caps/useMarketD
 // 🧮 UTILITÁRIOS
 import { calcularMetricasCarteira, formatCurrency, formatPercentage } from '@/utils/micro-caps/calculationUtils';
 
-// 🎨 METADATA DA PÁGINA
-export const metadata = {
-  title: 'Micro Caps V2 - Refatorado',
-  description: 'Carteira de Micro Caps com hooks customizados'
-};
-
 // 🎨 ESTILOS RESPONSIVOS
 const styles = {
   container: (isMobile: boolean) => ({
@@ -607,7 +601,7 @@ export default function MicroCapsV2Page() {
         <div>✅ REFATORADO V2 • App Router • Next.js 13+ • Device: {isMobile ? 'Mobile' : 'Desktop'} • Screen: {screenWidth}px</div>
         <div>🔄 Hooks: useMicroCapsData + useMarketData + useApiStrategy + useResponsive • Ativos: {stats.totalAtivos}</div>
         <div>📈 API: {stats.ativosComCotacao} cotações + {stats.ativosComDY} DY • Layout: {isMobile ? 'Cards' : 'Table'}</div>
-        <div>📍 Rota: /dashboard/micro-caps-v2 • Performance: Total Return (ação + proventos)</div>
+        <div>📍 Rota: /dashboard/MicroCapsPageV2 • Performance: Total Return (ação + proventos)</div>
       </div>
     </div>
   );
