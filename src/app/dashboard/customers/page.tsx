@@ -1230,43 +1230,29 @@ setAtivosAtualizados(ativosFallback);
 
 React.useEffect(() => {
   if (microCapsData.length > 0) {
+    // 🔥 FORÇAR EXECUÇÃO NO MOBILE COM DELAY
     if (isMobile) {
-      // 📱 MOBILE: Estratégia mais agressiva com múltiplas tentativas
-      const executarComTentativas = async () => {
-        console.log('📱 Primeira tentativa no mobile...');
-        await buscarCotacoes();
-        
-        // Aguardar um pouco e verificar se os dados carregaram
-        setTimeout(() => {
-          const nenhumDYCarregado = ativosAtualizados.length === 0 || 
-                                   ativosAtualizados.every(a => a.dy === '0,00%' || !a.dy);
-          
-          if (nenhumDYCarregado) {
-            console.log('📱 Segunda tentativa no mobile - dados não carregaram completamente...');
-            buscarCotacoes();
-            
-            // Terceira tentativa se ainda não funcionou
-            setTimeout(() => {
-              const aindaSemDados = ativosAtualizados.length === 0 || 
-                                   ativosAtualizados.every(a => a.dy === '0,00%' || !a.dy);
-              
-              if (aindaSemDados) {
-                console.log('📱 Terceira tentativa no mobile...');
-                buscarCotacoes();
-              }
-            }, 3000);
-          }
-        }, 2000);
-      };
-      
-      // Aguardar um pouco antes da primeira tentativa
-      setTimeout(executarComTentativas, 800);
+      // No mobile, aguardar um pouco mais para garantir que tudo carregou
+      setTimeout(() => {
+        console.log('📱 Executando buscarCotacoes no mobile com delay');
+        buscarCotacoes();
+      }, 500);
     } else {
-      // 🖥️ DESKTOP: Execução normal
+      // No desktop, execução normal
       buscarCotacoes();
     }
   }
-}, [buscarCotacoes, isMobile, microCapsData.length]);
+}, [buscarCotacoes, isMobile]); // ← Adicionar isMobile como dependência
+
+  return {
+    ativosAtualizados,
+    loading,
+    error,
+    refetch: buscarCotacoes,
+    isMobile,
+    screenWidth
+  };
+}
 
 export default function MicroCapsPage() {
   const { dados } = useDataStore();
