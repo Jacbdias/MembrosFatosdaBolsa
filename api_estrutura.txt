@@ -1,0 +1,6 @@
+Listagem de caminhos de pasta para o volume Acer
+O número de série do volume é 20AE-A7B2
+C:\USERS\JACBD\ONEDRIVE\DOCUMENTOS\GITHUB\MEMBROSFATOSDABOLSA\PAGES\API
+Caminho inválido - \USERS\JACBD\ONEDRIVE\DOCUMENTOS\GITHUB\MEMBROSFATOSDABOLSA\PAGES\API
+Não existem subpastas 
+

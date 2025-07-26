@@ -4,6 +4,7 @@
 import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
+import { useProventosPorAtivo } from '@/hooks/useProventosPorAtivo';
 
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DO SMLL - VERSÃO TOTALMENTE DINÂMICA
 function useSmllRealTime() {
@@ -206,8 +207,8 @@ function useIbovespaRealTime() {
       // 🔄 FALLBACK CORRIGIDO: Usar valor atual baseado na pesquisa
       console.log('🔄 Usando fallback com valor atual do Ibovespa...');
       const fallbackData = {
-        valor: 137213,
-        valorFormatado: '137.213',
+        valor: 134500,
+        valorFormatado: '134.500',
         variacao: -588.25,
         variacaoPercent: -0.43,
         trend: 'down',
@@ -239,6 +240,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
 
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
+      console.log('🔥 DEBUG: useIbovespaPeriodo executando...', ativosAtualizados.length);
       if (!ativosAtualizados || ativosAtualizados.length === 0) return;
 
       try {
@@ -261,48 +263,59 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
         // 🔑 TOKEN BRAPI
         const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
         
-        // 📊 BUSCAR IBOVESPA ATUAL
-        let ibovAtual = 137213; // Fallback padrão
+        // 📊 BUSCAR IBOVESPA ATUAL (CORRIGIDO)
+        let ibovAtual = 134500; // Fallback atualizado baseado nos dados reais
         try {
           const ibovAtualUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
           const responseAtual = await fetch(ibovAtualUrl);
           if (responseAtual.ok) {
             const dataAtual = await responseAtual.json();
-            ibovAtual = dataAtual.results?.[0]?.regularMarketPrice || 137213;
+            ibovAtual = dataAtual.results?.[0]?.regularMarketPrice || 134500;
+            console.log('✅ Ibovespa atual obtido via API:', ibovAtual);
           }
         } catch (error) {
-          console.log('⚠️ Erro ao buscar Ibovespa atual, usando fallback');
+          console.log('⚠️ Erro ao buscar Ibovespa atual, usando fallback:', ibovAtual);
         }
 
-        // 🎯 BUSCAR VALOR HISTÓRICO DO IBOVESPA NA DATA ESPECÍFICA
+        // 🎯 BUSCAR VALOR HISTÓRICO COM FALLBACK MELHORADO
         let ibovInicial: number;
         
         try {
-          // 📈 TENTAR BUSCAR DADOS HISTÓRICOS ESPECÍFICOS
+          // 📈 TENTAR BUSCAR DADOS HISTÓRICOS ESPECÍFICOS VIA API
           const anoInicial = dataMaisAntiga.getFullYear();
-          const mesInicial = dataMaisAntiga.getMonth() + 1; // getMonth() retorna 0-11
+          const mesInicial = dataMaisAntiga.getMonth() + 1;
           const diaInicial = dataMaisAntiga.getDate();
           
-          // Formato de data para API: YYYY-MM-DD
           const dataFormatada = `${anoInicial}-${mesInicial.toString().padStart(2, '0')}-${diaInicial.toString().padStart(2, '0')}`;
+          console.log(`🔍 Buscando Ibovespa histórico para: ${dataFormatada}`);
           
-          console.log(`🔍 Buscando Ibovespa histórico para data: ${dataFormatada}`);
+          // 🌐 USAR ENDPOINT HISTÓRICO COM TIMEOUT MAIOR
+          const historicoUrl = `https://brapi.dev/api/quote/^BVSP?range=5y&interval=1d&token=${BRAPI_TOKEN}`;
           
-          // 🌐 USAR ENDPOINT HISTÓRICO MAIS ESPECÍFICO
-          const historicoUrl = `https://brapi.dev/api/quote/^BVSP?range=2y&interval=1d&token=${BRAPI_TOKEN}`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
           
-          const responseHistorico = await fetch(historicoUrl);
+          const responseHistorico = await fetch(historicoUrl, {
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'SmallCaps-Ibov-Historical'
+            }
+          });
+          
+          clearTimeout(timeoutId);
+          
           if (responseHistorico.ok) {
             const dataHistorico = await responseHistorico.json();
             const historicalData = dataHistorico.results?.[0]?.historicalDataPrice || [];
             
             if (historicalData.length > 0) {
-              // 🎯 ENCONTRAR A DATA MAIS PRÓXIMA À DATA DE ENTRADA
+              // 🎯 ENCONTRAR A DATA MAIS PRÓXIMA
               let melhorMatch = null;
               let menorDiferenca = Infinity;
               
               historicalData.forEach((ponto: any) => {
-                const dataHistorica = new Date(ponto.date * 1000); // Unix timestamp para Date
+                const dataHistorica = new Date(ponto.date * 1000);
                 const diferenca = Math.abs(dataHistorica.getTime() - dataMaisAntiga.getTime());
                 
                 if (diferenca < menorDiferenca) {
@@ -314,112 +327,111 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
               if (melhorMatch && melhorMatch.close) {
                 ibovInicial = melhorMatch.close;
                 const dataEncontrada = new Date(melhorMatch.date * 1000);
-                console.log(`✅ Valor histórico encontrado: ${ibovInicial} em ${dataEncontrada.toLocaleDateString('pt-BR')}`);
+                console.log(`✅ Valor histórico API: ${ibovInicial} em ${dataEncontrada.toLocaleDateString('pt-BR')}`);
               } else {
-                throw new Error('Nenhum dado histórico válido encontrado');
+                throw new Error('Nenhum dado histórico válido');
               }
             } else {
-              throw new Error('Array de dados históricos vazio');
+              throw new Error('Array histórico vazio');
             }
           } else {
-            throw new Error(`Erro na API histórica: ${responseHistorico.status}`);
+            throw new Error(`Erro API: ${responseHistorico.status}`);
           }
         } catch (error) {
-          console.log('⚠️ API histórica falhou, usando estimativas melhoradas baseadas em dados reais');
+          console.log('⚠️ API histórica falhou, usando valores corrigidos baseados em dados reais');
           
-          // 📊 FALLBACK COM VALORES HISTÓRICOS MAIS PRECISOS
+          // 📊 VALORES HISTÓRICOS CORRIGIDOS COM DADOS REAIS
           const anoInicial = dataMaisAntiga.getFullYear();
           const mesInicial = dataMaisAntiga.getMonth(); // 0-11
           
-          // 📈 VALORES HISTÓRICOS CORRIGIDOS (baseados em dados reais do B3)
-          const valoresHistoricosPrecisos: { [key: string]: number } = {
-            // 2020
-            '2020-0': 115000, // Jan 2020
-            '2020-1': 105000, // Fev 2020
-            '2020-2': 75000,  // Mar 2020: mínimo do crash COVID (~75k)
-            '2020-3': 85000,  // Abr 2020: início recuperação
-            '2020-4': 90000,  // Mai 2020
+          const valoresHistoricosCorretos: { [key: string]: number } = {
+            // 2020 - VALORES BASEADOS NO CRASH REAL DO COVID
+            '2020-0': 118000, // Jan 2020 - pré-pandemia
+            '2020-1': 112000, // Fev 2020 - início dos temores
+            '2020-2': 63500,  // Mar 2020: CRASH COVID - mínima histórica real
+            '2020-3': 73000,  // Abr 2020: início recuperação gradual
+            '2020-4': 80000,  // Mai 2020
             '2020-5': 95000,  // Jun 2020
             '2020-6': 100000, // Jul 2020
             '2020-7': 105000, // Ago 2020
-            '2020-8': 103000, // Set 2020
-            '2020-9': 103000, // Out 2020
-            '2020-10': 110000, // Nov 2020
+            '2020-8': 100000, // Set 2020
+            '2020-9': 97000,  // Out 2020
+            '2020-10': 103000, // Nov 2020
             '2020-11': 118000, // Dez 2020
             
-            // 2021
-            '2021-0': 119000, // Jan 2021
-            '2021-1': 115000, // Fev 2021
-            '2021-2': 115000, // Mar 2021
+            // 2021 - RECUPERAÇÃO PÓS-COVID
+            '2021-0': 119000, // Jan 2021: máxima em 125k
+            '2021-1': 116000, // Fev 2021
+            '2021-2': 112000, // Mar 2021
             '2021-3': 118000, // Abr 2021
-            '2021-4': 125000, // Mai 2021: subida para pico
-            '2021-5': 130000, // Jun 2021: pico histórico (~130k)
+            '2021-4': 125000, // Mai 2021: próximo do pico
+            '2021-5': 127000, // Jun 2021: pico histórico ~130k
             '2021-6': 125000, // Jul 2021
             '2021-7': 120000, // Ago 2021
             '2021-8': 115000, // Set 2021
-            '2021-9': 110000, // Out 2021: início da queda
-            '2021-10': 105000, // Nov 2021
+            '2021-9': 108000, // Out 2021: início da correção
+            '2021-10': 103000, // Nov 2021
             '2021-11': 105000, // Dez 2021
             
-            // 2022
+            // 2022 - VOLATILIDADE E RECUPERAÇÃO
             '2022-0': 110000, // Jan 2022
-            '2022-1': 115000, // Fev 2022
-            '2022-2': 120000, // Mar 2022
-            '2022-3': 118000, // Abr 2022
-            '2022-4': 115000, // Mai 2022
-            '2022-5': 105000, // Jun 2022
-            '2022-6': 100000, // Jul 2022
-            '2022-7': 110000, // Ago 2022
+            '2022-1': 114000, // Fev 2022
+            '2022-2': 118000, // Mar 2022
+            '2022-3': 116000, // Abr 2022
+            '2022-4': 112000, // Mai 2022
+            '2022-5': 103000, // Jun 2022: correção
+            '2022-6': 100000, // Jul 2022: mínimo do ano
+            '2022-7': 112000, // Ago 2022: recuperação
             '2022-8': 115000, // Set 2022
-            '2022-9': 115000, // Out 2022
-            '2022-10': 120000, // Nov 2022
-            '2022-11': 110000, // Dez 2022
+            '2022-9': 116000, // Out 2022
+            '2022-10': 118000, // Nov 2022
+            '2022-11': 109000, // Dez 2022: fechamento +4.69%
             
-            // 2023
-            '2023-0': 110000, // Jan 2023
-            '2023-1': 115000, // Fev 2023
-            '2023-2': 105000, // Mar 2023
-            '2023-3': 110000, // Abr 2023
-            '2023-4': 115000, // Mai 2023
-            '2023-5': 120000, // Jun 2023
+            // 2023 - ANO POSITIVO +22.28%
+            '2023-0': 109000, // Jan 2023
+            '2023-1': 112000, // Fev 2023
+            '2023-2': 108000, // Mar 2023
+            '2023-3': 112000, // Abr 2023
+            '2023-4': 116000, // Mai 2023
+            '2023-5': 121000, // Jun 2023
             '2023-6': 125000, // Jul 2023
-            '2023-7': 120000, // Ago 2023
-            '2023-8': 115000, // Set 2023
-            '2023-9': 110000, // Out 2023
+            '2023-7': 122000, // Ago 2023
+            '2023-8': 118000, // Set 2023
+            '2023-9': 115000, // Out 2023
             '2023-10': 125000, // Nov 2023
-            '2023-11': 130000, // Dez 2023
+            '2023-11': 133000, // Dez 2023: fechamento do ano
             
-            // 2024
-            '2024-0': 132000, // Jan 2024
-            '2024-1': 130000, // Fev 2024
+            // 2024 - ANO NEGATIVO -10.36%
+            '2024-0': 134000, // Jan 2024
+            '2024-1': 132000, // Fev 2024
             '2024-2': 130000, // Mar 2024
             '2024-3': 128000, // Abr 2024
-            '2024-4': 125000, // Mai 2024
-            '2024-5': 120000, // Jun 2024
-            '2024-6': 125000, // Jul 2024
-            '2024-7': 130000, // Ago 2024
-            '2024-8': 133000, // Set 2024
-            '2024-9': 130000, // Out 2024
-            '2024-10': 135000, // Nov 2024
-            '2024-11': 137000, // Dez 2024
+            '2024-4': 126000, // Mai 2024
+            '2024-5': 123000, // Jun 2024
+            '2024-6': 128000, // Jul 2024
+            '2024-7': 133000, // Ago 2024: nova máxima ~137k
+            '2024-8': 135000, // Set 2024
+            '2024-9': 132000, // Out 2024
+            '2024-10': 130000, // Nov 2024
+            '2024-11': 119000, // Dez 2024: fechamento -10.36%
             
-            // 2025
-            '2025-0': 137000, // Jan 2025
-            '2025-1': 137000, // Fev 2025
-            '2025-2': 137000, // Mar 2025
-            '2025-3': 137000, // Abr 2025
-            '2025-4': 137000, // Mai 2025
-            '2025-5': 137000, // Jun 2025
-            '2025-6': 137000, // Jul 2025
+            // 2025 - INÍCIO DO ANO
+            '2025-0': 119000, // Jan 2025
+            '2025-1': 122000, // Fev 2025
+            '2025-2': 128000, // Mar 2025
+            '2025-3': 132000, // Abr 2025
+            '2025-4': 134000, // Mai 2025
+            '2025-5': 136000, // Jun 2025
+            '2025-6': 134500, // Jul 2025: atual
           };
           
-          // 🎯 BUSCAR VALOR MAIS ESPECÍFICO (ANO-MÊS)
+          // 🎯 BUSCAR VALOR MAIS ESPECÍFICO
           const chaveEspecifica = `${anoInicial}-${mesInicial}`;
-          ibovInicial = valoresHistoricosPrecisos[chaveEspecifica] || 
-                       valoresHistoricosPrecisos[`${anoInicial}-0`] || 
-                       90000; // Fallback final
+          ibovInicial = valoresHistoricosCorretos[chaveEspecifica] || 
+                       valoresHistoricosCorretos[`${anoInicial}-0`] || 
+                       85000; // Fallback final mais conservador
           
-          console.log(`📊 Usando valor estimado para ${chaveEspecifica}: ${ibovInicial}`);
+          console.log(`📊 Valor histórico corrigido para ${chaveEspecifica}: ${ibovInicial}`);
         }
 
         // 🧮 CALCULAR PERFORMANCE NO PERÍODO
@@ -457,20 +469,20 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
       } catch (error) {
         console.error('❌ Erro ao calcular Ibovespa período:', error);
         
-        // 🔄 FALLBACK MELHORADO
+        // 🔄 FALLBACK DE EMERGÊNCIA COM DADOS REALISTAS
         const hoje = new Date();
-        const estimativaAnos = hoje.getFullYear() - 2020; // Anos desde início comum das carteiras
-        const performanceAnualMedia = 8.5; // Performance anual média histórica do Ibovespa
-        const performanceEstimada = estimativaAnos * performanceAnualMedia;
+        
+        // Se a carteira é de março 2020 (crash COVID), usar dados reais
+        const performanceRealCrash = ((134500 - 63500) / 63500) * 100; // ~111.8%
         
         setIbovespaPeriodo({
-          performancePeriodo: performanceEstimada,
+          performancePeriodo: performanceRealCrash,
           dataInicial: 'mar/2020',
-          ibovInicial: 85000,
-          ibovAtual: 137213,
+          ibovInicial: 63500, // Mínima real do crash COVID
+          ibovAtual: 134500,  // Valor atual aproximado
           anoInicial: 2020,
-          diasNoPeriodo: Math.floor((hoje.getTime() - new Date(2020, 2, 15).getTime()) / (1000 * 60 * 60 * 24)),
-          dataEntradaCompleta: '15/03/2020',
+          diasNoPeriodo: Math.floor((hoje.getTime() - new Date(2020, 2, 23).getTime()) / (1000 * 60 * 60 * 24)),
+          dataEntradaCompleta: '23/03/2020',
           isEstimativa: true
         });
       } finally {
@@ -506,170 +518,251 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   }
 }
 
-// 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM ATIVO NO PERÍODO (desde a data de entrada)
-const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => {
-  try {
-    if (typeof window === 'undefined') return 0;
+// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (IGUAL AOS MICROCAPS)
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  
+  if (isMobile) {
+    // 📱 MOBILE: Estratégia individual (igual às cotações)
+    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
     
-    // Buscar proventos do localStorage da Central de Proventos
-    const proventosKey = `proventos_${ticker}`;
-    const proventosData = localStorage.getItem(proventosKey);
-    if (!proventosData) return 0;
-    
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
-    
-    // Converter data de entrada para objeto Date
-    const [dia, mes, ano] = dataEntrada.split('/');
-    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-    
-    console.log(`🔍 Calculando proventos para ${ticker} desde ${dataEntrada}`);
-    
-    // Filtrar proventos pagos após a data de entrada
-    const proventosFiltrados = proventos.filter((provento: any) => {
-      try {
-        let dataProventoObj: Date;
-        
-        // Tentar diferentes formatos de data
-        if (provento.dataPagamento) {
-          if (provento.dataPagamento.includes('/')) {
-            const [d, m, a] = provento.dataPagamento.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.dataPagamento.includes('-')) {
-            dataProventoObj = new Date(provento.dataPagamento);
-          }
-        } else if (provento.data) {
-          if (provento.data.includes('/')) {
-            const [d, m, a] = provento.data.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.data.includes('-')) {
-            dataProventoObj = new Date(provento.data);
-          }
-        } else if (provento.dataCom) {
-          if (provento.dataCom.includes('/')) {
-            const [d, m, a] = provento.dataCom.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.dataCom.includes('-')) {
-            dataProventoObj = new Date(provento.dataCom);
-          }
-        } else if (provento.dataObj) {
-          dataProventoObj = new Date(provento.dataObj);
-        } else {
-          return false;
-        }
-        
-        return dataProventoObj && dataProventoObj >= dataEntradaObj;
-      } catch (error) {
-        console.error('Erro ao processar data do provento:', error);
-        return false;
-      }
-    });
-    
-    // Somar valores dos proventos
-    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
-    }, 0);
-    
-    console.log(`✅ ${ticker}: ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
-    
-    return totalProventos;
-    
-  } catch (error) {
-    console.error(`❌ Erro ao calcular proventos para ${ticker}:`, error);
-    return 0;
-  }
-};
+    for (const ticker of tickers) {
+      let dyObtido = false;
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
 
-function calcularDY12Meses(ticker: string, precoAtual: number): string {
-  try {
-    if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
-    
-    // Buscar proventos do ticker específico no localStorage
-    const proventosData = localStorage.getItem(`proventos_${ticker}`);
-    if (!proventosData) return '0,00%';
-    
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return '0,00%';
-    
-    // Data de 12 meses atrás
-    const hoje = new Date();
-    const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
-    
-    console.log(`🔍 Calculando DY para ${ticker}:`);
-    console.log(`📅 Período: ${umAnoAtras.toLocaleDateString('pt-BR')} até ${hoje.toLocaleDateString('pt-BR')}`);
-    
-    // Filtrar proventos dos últimos 12 meses
-    const proventosUltimos12Meses = proventos.filter((provento: any) => {
-      let dataProvento: Date;
-      
-      // Tentar várias formas de parsing da data
-      if (provento.dataObj) {
-        dataProvento = new Date(provento.dataObj);
-      } else if (provento.dataCom) {
-        if (provento.dataCom.includes('/')) {
-          const [d, m, a] = provento.dataCom.split('/');
-          dataProvento = new Date(+a, +m - 1, +d);
-        } else {
-          dataProvento = new Date(provento.dataCom);
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
+              dyObtido = true; // Considera obtido mesmo se zero
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
         }
-      } else if (provento.data) {
-        if (provento.data.includes('/')) {
-          const [d, m, a] = provento.data.split('/');
-          dataProvento = new Date(+a, +m - 1, +d);
-        } else {
-          dataProvento = new Date(provento.data);
-        }
-      } else {
-        return false;
       }
       
-      return dataProvento >= umAnoAtras && dataProvento <= hoje;
-    });
-    
-    if (proventosUltimos12Meses.length === 0) {
-      console.log(`❌ ${ticker}: Nenhum provento nos últimos 12 meses`);
-      return '0,00%';
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 3: URL simplificada
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 3 - URL simplificada`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
+        }
+      }
+      
+      // Se ainda não obteve, definir como 0%
+      if (!dyObtido) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
+      }
+      
+      // Delay pequeno entre requests
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
     
-    // Somar valores dos proventos
-    const totalProventos = proventosUltimos12Meses.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
-    }, 0);
+  } else {
+    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
+    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
     
-    if (totalProventos <= 0) {
-      console.log(`❌ ${ticker}: Total de proventos = R$ 0,00`);
-      return '0,00%';
+    try {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SmallCaps-DY-Batch'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
+        
+        data.results?.forEach((result: any) => {
+          const ticker = result.symbol;
+          const dy = result.defaultKeyStatistics?.dividendYield;
+          
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          } else {
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+          }
+        });
+        
+      } else {
+        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
+        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+      }
+      
+    } catch (error) {
+      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
+      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
     }
-    
-    // Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
-    const dy = (totalProventos / precoAtual) * 100;
-    
-    console.log(`✅ ${ticker}:`);
-    console.log(`  💰 Total proventos 12m: R$ ${totalProventos.toFixed(2)}`);
-    console.log(`  📈 Preço atual: R$ ${precoAtual.toFixed(2)}`);
-    console.log(`  📊 DY calculado: ${dy.toFixed(2)}%`);
-    console.log(`  📋 Proventos encontrados: ${proventosUltimos12Meses.length}`);
-    
-    return `${dy.toFixed(2).replace('.', ',')}%`;
-    
-  } catch (error) {
-    console.error(`❌ Erro ao calcular DY para ${ticker}:`, error);
-    return '0,00%';
   }
+  
+  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  return dyMap;
 }
 
-// 🚀 HOOK CORRIGIDO PARA BUSCAR COTAÇÕES DOS SMALL CAPS DO DATASTORE
+// 🚀 HOOK PADRONIZADO PARA BUSCAR COTAÇÕES DOS SMALL CAPS COM DY VIA API
 function useSmallCapsIntegradas() {
-  const { dados } = useDataStore(); // 🔥 USAR dados DIRETAMENTE
+  const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
   const [cotacoesAtualizadas, setCotacoesAtualizadas] = React.useState<any>({});
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
+  // 🔥 DETECTAR DISPOSITIVO (ADICIONADO)
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  // 💰 HOOK PARA BUSCAR PROVENTOS VIA API
+  const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
+
   // 📊 OBTER DADOS DA CARTEIRA SMALL CAPS DO DATASTORE
   const smallCapsData = dados.smallCaps || [];
+
+  // ✅ ADICIONAR A FUNÇÃO AQUI (após os states, antes dos useEffect):
+  const buscarProventosAtivos = React.useCallback(async (tickers: string[], ativosData: any[]) => {
+    console.log('💰 Buscando proventos via API para todos os ativos...');
+    const novosProventos = new Map<string, number>();
+    
+    for (const ativo of ativosData) {
+      try {
+        // 📅 Converter data de entrada para formato API
+        const [dia, mes, ano] = ativo.dataEntrada.split('/');
+        const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+        
+        // 🌐 Buscar proventos via API
+        const response = await fetch(`/api/proventos/${ativo.ticker}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const proventosRaw = await response.json();
+          
+          if (Array.isArray(proventosRaw)) {
+            // 📅 Filtrar proventos a partir da data de entrada
+            const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+            
+            const proventosFiltrados = proventosRaw.filter((p: any) => {
+              if (!p.dataObj) return false;
+              const dataProvento = new Date(p.dataObj);
+              return dataProvento >= dataEntradaDate;
+            });
+            
+            // 💰 Calcular total
+            const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
+            novosProventos.set(ativo.ticker, total);
+            
+            console.log(`✅ ${ativo.ticker}: R$ ${total.toFixed(2)} em proventos`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Erro ao buscar proventos para ${ativo.ticker}:`, error);
+        novosProventos.set(ativo.ticker, 0);
+      }
+    }
+    
+    setProventosMap(novosProventos);
+    return novosProventos;
+  }, []);
+
+  React.useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      console.log('📱 SmallCaps - Dispositivo detectado:', { width, isMobile: mobile });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   const buscarCotacoesIntegradas = React.useCallback(async () => {
     try {
@@ -678,6 +771,7 @@ function useSmallCapsIntegradas() {
 
       console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
       console.log('📋 Ativos do DataStore:', smallCapsData);
+      console.log('📱 Device Info:', { isMobile });
 
       if (smallCapsData.length === 0) {
         console.log('⚠️ Nenhum ativo encontrado no DataStore');
@@ -693,7 +787,7 @@ function useSmallCapsIntegradas() {
       const tickers = smallCapsData.map(ativo => ativo.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 BUSCAR INDIVIDUALMENTE COM DELAY
+      // 🔄 BUSCAR COTAÇÕES INDIVIDUALMENTE COM DELAY
       const cotacoesMap = new Map();
       const novasCotacoes: any = {};
 
@@ -741,16 +835,25 @@ function useSmallCapsIntegradas() {
 
       setCotacoesAtualizadas(novasCotacoes);
 
-      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS
+      // 💰 BUSCAR PROVENTOS VIA API
+      console.log('💰 Buscando proventos via API...');
+      const proventosData = await buscarProventosAtivos(tickers, smallCapsData);
+
+      // 🚀 BUSCAR DY EM LOTE VIA API (NOVO)
+      console.log('📈 Buscando DY via API BRAPI...');
+      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
+
+      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES E DY VIA API
       const ativosComCotacoes = smallCapsData.map((ativo, index) => {
         const cotacao = cotacoesMap.get(ativo.ticker);
+        const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
         
         if (cotacao && cotacao.precoAtual > 0) {
           const precoAtualNum = cotacao.precoAtual;
           const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
           
-          // 💰 CALCULAR PROVENTOS DO PERÍODO
-          const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+          // 💰 CALCULAR PROVENTOS DO PERÍODO VIA API
+          const proventosAtivo = proventosData.get(ativo.ticker) || 0;
           
           // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
           const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
@@ -768,13 +871,13 @@ function useSmallCapsIntegradas() {
             variacaoPercent: cotacao.variacaoPercent,
             volume: cotacao.volume,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-            dy: calcularDY12Meses(ativo.ticker, precoAtualNum),
+            dy: dyAPI, // 🚀 DY VIA API (EM VEZ DE calcularDY12Meses)
             statusApi: 'success',
             nomeCompleto: cotacao.nome
           };
         } else {
           // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
-          const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+          const proventosAtivo = proventosData.get(ativo.ticker) || 0;
           const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
           
           return {
@@ -789,7 +892,7 @@ function useSmallCapsIntegradas() {
             variacaoPercent: 0,
             volume: 0,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-            dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
+            dy: dyAPI, // 🚀 DY VIA API (MESMO SEM COTAÇÃO)
             statusApi: 'not_found',
             nomeCompleto: 'N/A'
           };
@@ -803,25 +906,38 @@ function useSmallCapsIntegradas() {
       setError(errorMessage);
       console.error('❌ Erro geral ao buscar cotações:', err);
       
-      // 🔄 FALLBACK: USAR DADOS DO DATASTORE SEM COTAÇÕES
-      const ativosFallback = smallCapsData.map((ativo, index) => ({
-        ...ativo,
-        id: String(ativo.id || index + 1),
-        precoAtual: ativo.precoEntrada,
-        performance: 0,
-        variacao: 0,
-        variacaoPercent: 0,
-        volume: 0,
-        vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-        dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-        statusApi: 'error',
-        nomeCompleto: 'Erro'
-      }));
+      // 🔄 FALLBACK: Buscar DY mesmo com erro nas cotações
+      console.log('🔄 Buscando DY para fallback...');
+      const tickers = smallCapsData.map(ativo => ativo.ticker);
+      const dyMapFallback = await buscarDYsComEstrategia(tickers, isMobile);
+      
+      const ativosFallback = smallCapsData.map((ativo, index) => {
+        const proventosAtivo = proventosMap.get(ativo.ticker) || 0;
+        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+        const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
+        
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: ativo.precoEntrada,
+          performance: performanceProventos,
+          performanceAcao: 0,
+          performanceProventos: performanceProventos,
+          proventosAtivo: proventosAtivo,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+          dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
+          statusApi: 'error',
+          nomeCompleto: 'Erro'
+        };
+      });
       setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
     }
-  }, [dados.smallCaps]);
+  }, [smallCapsData, isMobile, buscarProventosAtivos, proventosMap]);
 
   React.useEffect(() => {
     buscarCotacoesIntegradas();
@@ -838,12 +954,13 @@ function useSmallCapsIntegradas() {
     loading,
     error,
     refetch,
+    isMobile, // NOVO: Expor estado mobile
   };
 }
 
 export default function SmallCapsPage() {
   const { dados } = useDataStore();
-  const { ativosAtualizados, cotacoesAtualizadas, setCotacoesAtualizadas, loading } = useSmallCapsIntegradas();
+  const { ativosAtualizados, cotacoesAtualizadas, setCotacoesAtualizadas, loading, isMobile } = useSmallCapsIntegradas();
   const { smllData } = useSmllRealTime();
   const { ibovespaData } = useIbovespaRealTime();
   const { ibovespaPeriodo } = useIbovespaPeriodo(ativosAtualizados);
@@ -928,12 +1045,12 @@ export default function SmallCapsPage() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '16px' : '24px'  // ✅ RESPONSIVO
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      {/* Header Responsivo */}
+      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px',  // ✅ RESPONSIVO
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
@@ -942,31 +1059,33 @@ export default function SmallCapsPage() {
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '18px',
+          fontSize: isMobile ? '16px' : '18px',  // ✅ RESPONSIVO
           margin: '0',
           lineHeight: '1.5'
         }}>
-          Dados atualizados a cada 15 minutos
+          Dados atualizados a cada 15 minutos • {ativosAtualizados.length} ativos • 📱 DY via API BRAPI • {isMobile ? 'Mobile' : 'Desktop'}
         </p>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Cards de Métricas Responsivos */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '12px',
+        gridTemplateColumns: isMobile 
+          ? 'repeat(auto-fit, minmax(140px, 1fr))'  // ✅ Menor no mobile
+          : 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: isMobile ? '8px' : '12px',  // ✅ RESPONSIVO
         marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',  // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',  // ✅ RESPONSIVO
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -974,7 +1093,7 @@ export default function SmallCapsPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px',  // ✅ RESPONSIVO
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -987,12 +1106,12 @@ export default function SmallCapsPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',  // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',  // ✅ RESPONSIVO
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1000,7 +1119,7 @@ export default function SmallCapsPage() {
             DY médio 12M
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px',  // ✅ RESPONSIVO
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
@@ -1013,12 +1132,12 @@ export default function SmallCapsPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',  // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',  // ✅ RESPONSIVO
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1026,7 +1145,7 @@ export default function SmallCapsPage() {
             SMLL Index
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',  // ✅ RESPONSIVO
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -1035,7 +1154,7 @@ export default function SmallCapsPage() {
             {smllData?.valorFormatado || '2.205'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',  // ✅ RESPONSIVO
             fontWeight: '600', 
             color: smllData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -1048,12 +1167,12 @@ export default function SmallCapsPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',  // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',  // ✅ RESPONSIVO
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1061,16 +1180,16 @@ export default function SmallCapsPage() {
             Ibovespa
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',  // ✅ RESPONSIVO
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {ibovespaData?.valorFormatado || '137.213'}
+            {ibovespaData?.valorFormatado || '134.500'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',  // ✅ RESPONSIVO
             fontWeight: '600', 
             color: ibovespaData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -1083,12 +1202,12 @@ export default function SmallCapsPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',  // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',  // ✅ RESPONSIVO
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1096,25 +1215,25 @@ export default function SmallCapsPage() {
             Ibovespa período
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',  // ✅ RESPONSIVO
             fontWeight: '700', 
             color: ibovespaPeriodo?.performancePeriodo >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {ibovespaPeriodo ? formatPercentage(ibovespaPeriodo.performancePeriodo) : '+19.2%'}
+            {ibovespaPeriodo ? formatPercentage(ibovespaPeriodo.performancePeriodo) : '+111.8%'}
           </div>
           <div style={{ 
             fontSize: '11px', 
             color: '#64748b',
             lineHeight: '1'
           }}>
-            Desde {ibovespaPeriodo?.dataInicial || 'jan/2020'}
+            Desde {ibovespaPeriodo?.dataInicial || 'mar/2020'}
           </div>
         </div>
       </div>
 
-      {/* Resto do componente permanece igual... */}
+      {/* Tabela/Cards Responsivos */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1124,12 +1243,12 @@ export default function SmallCapsPage() {
         marginBottom: '32px'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px',  // ✅ RESPONSIVO
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',  // ✅ RESPONSIVO
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1138,243 +1257,395 @@ export default function SmallCapsPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',  // ✅ RESPONSIVO
             margin: '0'
           }}>
-            Dados integrados do DataStore com cotações em tempo real • {ativosAtualizados.length} ativos
+            Dados integrados do DataStore com cotações em tempo real • {ativosAtualizados.length} ativos • DY via API BRAPI
           </p>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f1f5f9' }}>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ATIVO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ENTRADA
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO INICIAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO ATUAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO TETO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                    PERFORMANCE TOTAL
-                    <div 
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        backgroundColor: '#64748b',
-                        color: 'white',
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'help',
-                        position: 'relative'
-                      }}
-                      onMouseEnter={(e) => {
-                        const tooltip = document.createElement('div');
-                        tooltip.id = 'performance-tooltip';
-                        tooltip.innerHTML = 'A rentabilidade de todos os ativos é calculada pelo método "Total Return", ou seja, incluindo o reinvestimento dos proventos.';
-                        tooltip.style.cssText = `
-                          position: absolute;
-                          top: 25px;
-                          left: 50%;
-                          transform: translateX(-50%);
-                          background: #ffffff;
-                          color: #1f2937;
-                          border: 1px solid #e5e7eb;
-                          padding: 12px 16px;
-                          border-radius: 8px;
-                          font-size: 14px;
-                          font-weight: 500;
-                          max-width: 450px;
-                          width: max-content;
-                          white-space: normal;
-                          line-height: 1.5;
-                          z-index: 1000;
-                          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-                        `;
-                        // Adicionar seta
-                        const arrow = document.createElement('div');
-                        arrow.style.cssText = `
-                          position: absolute;
-                          top: -8px;
-                          left: 50%;
-                          transform: translateX(-50%);
-                          width: 0;
-                          height: 0;
-                          border-left: 8px solid transparent;
-                          border-right: 8px solid transparent;
-                          border-bottom: 8px solid #ffffff;
-                        `;
-                        tooltip.appendChild(arrow);
-                        e.currentTarget.appendChild(tooltip);
-                      }}
-                      onMouseLeave={(e) => {
-                        const tooltip = e.currentTarget.querySelector('#performance-tooltip');
-                        if (tooltip) {
-                          tooltip.remove();
-                        }
-                      }}
-                    >
-                      i
+        {/* ✅ CONDICIONAL: Cards no mobile, tabela no desktop */}
+        {isMobile ? (
+          // 📱 MOBILE: Cards verticais
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {ativosAtualizados.map((ativo, index) => {
+              const temCotacaoReal = ativo.statusApi === 'success';
+              
+              return (
+                <div 
+                  key={ativo.id || index}
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onClick={() => {
+                    window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                  }}
+                  onTouchStart={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  }}
+                  onTouchEnd={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                >
+                  {/* Header do Card */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '6px',
+                      overflow: 'hidden',
+                      backgroundColor: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <img 
+                        src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                        alt={`Logo ${ativo.ticker}`}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          objectFit: 'contain'
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                            parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                            parent.style.fontWeight = '700';
+                            parent.style.fontSize = '12px';
+                            parent.textContent = ativo.ticker.slice(0, 2);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div style={{ flex: '1' }}>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: '#1e293b', 
+                        fontSize: '16px'
+                      }}>
+                        {ativo.ticker}
+                        {!temCotacaoReal && (
+                          <span style={{ 
+                            marginLeft: '8px', 
+                            fontSize: '10px', 
+                            color: '#f59e0b',
+                            backgroundColor: '#fef3c7',
+                            padding: '2px 4px',
+                            borderRadius: '3px'
+                          }}>
+                            SIM
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '12px' }}>
+                        {ativo.setor}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                      color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                    }}>
+                      {ativo.vies}
                     </div>
                   </div>
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  DY 12M
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  VIÉS
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {ativosAtualizados.map((ativo, index) => {
-                const temCotacaoReal = ativo.statusApi === 'success';
-                
-                return (
-                  <tr 
-                    key={ativo.id || index} 
-                    style={{ 
-                      borderBottom: '1px solid #f1f5f9',
-                      transition: 'background-color 0.2s',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                      // Navegar para página de detalhes do ativo
-                      window.location.href = `/dashboard/ativo/${ativo.ticker}`;
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          backgroundColor: '#f8fafc',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '1px solid #e2e8f0'
-                        }}>
-                          <img 
-                            src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
-                            alt={`Logo ${ativo.ticker}`}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              objectFit: 'contain'
-                            }}
-                            onError={(e) => {
-                              // Fallback para ícone com iniciais se a imagem não carregar
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
-                                parent.style.fontWeight = '700';
-                                parent.style.fontSize = '14px';
-                                parent.textContent = ativo.ticker.slice(0, 2);
-                              }
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ 
-                            fontWeight: '700', 
-                            color: '#1e293b', 
-                            fontSize: '16px'
-                          }}>
-                            {ativo.ticker}
-                            {!temCotacaoReal && (
-                              <span style={{ 
-                                marginLeft: '8px', 
-                                fontSize: '12px', 
-                                color: '#f59e0b',
-                                backgroundColor: '#fef3c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                SIM
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ color: '#64748b', fontSize: '14px' }}>
-                            {ativo.setor}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                      {ativo.dataEntrada}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
-                      {formatCurrency(ativo.precoEntrada)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
-                      {formatCurrency(ativo.precoAtual)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
-                      {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
-                    </td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center', 
+                  
+                  {/* Dados em Grid */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 1fr', 
+                    gap: '8px', 
+                    fontSize: '14px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                      <span style={{ fontWeight: '600', color: '#1e293b' }}>{ativo.dataEntrada}</span>
+                    </div>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
+                      <span style={{ fontWeight: '700', color: '#1e293b' }}>{ativo.dy}</span>
+                    </div>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
+                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                        {formatCurrency(ativo.precoAtual)}
+                      </span>
+                    </div>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Preço Teto:</span><br />
+                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                        {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Performance em destaque */}
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '8px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                      Performance Total
+                    </div>
+                    <div style={{ 
+                      fontSize: '18px', 
                       fontWeight: '800',
-                      fontSize: '16px',
                       color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
                     }}>
                       {formatPercentage(ativo.performance)}
-                    </td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center',
-                      fontWeight: '700',
-                      color: '#1e293b'
-                    }}>
-                      {ativo.dy}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
-                        color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          // 🖥️ DESKTOP: Tabela completa
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f1f5f9' }}>
+                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    ATIVO
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    ENTRADA
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    PREÇO INICIAL
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    PREÇO ATUAL
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    PREÇO TETO
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      PERFORMANCE TOTAL
+                      <div 
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          borderRadius: '50%',
+                          backgroundColor: '#64748b',
+                          color: 'white',
+                          fontSize: '10px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'help',
+                          position: 'relative'
+                        }}
+                        onMouseEnter={(e) => {
+                          const tooltip = document.createElement('div');
+                          tooltip.id = 'performance-tooltip';
+                          tooltip.innerHTML = 'A rentabilidade de todos os ativos é calculada pelo método "Total Return", ou seja, incluindo o reinvestimento dos proventos.';
+                          tooltip.style.cssText = `
+                            position: absolute;
+                            top: 25px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: #ffffff;
+                            color: #1f2937;
+                            border: 1px solid #e5e7eb;
+                            padding: 12px 16px;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 500;
+                            max-width: 450px;
+                            width: max-content;
+                            white-space: normal;
+                            line-height: 1.5;
+                            z-index: 1000;
+                            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                          `;
+                          const arrow = document.createElement('div');
+                          arrow.style.cssText = `
+                            position: absolute;
+                            top: -8px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            width: 0;
+                            height: 0;
+                            border-left: 8px solid transparent;
+                            border-right: 8px solid transparent;
+                            border-bottom: 8px solid #ffffff;
+                          `;
+                          tooltip.appendChild(arrow);
+                          e.currentTarget.appendChild(tooltip);
+                        }}
+                        onMouseLeave={(e) => {
+                          const tooltip = e.currentTarget.querySelector('#performance-tooltip');
+                          if (tooltip) {
+                            tooltip.remove();
+                          }
+                        }}
+                      >
+                        i
+                      </div>
+                    </div>
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    DY 12M
+                  </th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    VIÉS
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ativosAtualizados.map((ativo, index) => {
+                  const temCotacaoReal = ativo.statusApi === 'success';
+                  
+                  return (
+                    <tr 
+                      key={ativo.id || index} 
+                      style={{ 
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'background-color 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <td style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            backgroundColor: '#f8fafc',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid #e2e8f0'
+                          }}>
+                            <img 
+                              src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                              alt={`Logo ${ativo.ticker}`}
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                objectFit: 'contain'
+                              }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                  parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                  parent.style.fontWeight = '700';
+                                  parent.style.fontSize = '14px';
+                                  parent.textContent = ativo.ticker.slice(0, 2);
+                                }
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <div style={{ 
+                              fontWeight: '700', 
+                              color: '#1e293b', 
+                              fontSize: '16px'
+                            }}>
+                              {ativo.ticker}
+                              {!temCotacaoReal && (
+                                <span style={{ 
+                                  marginLeft: '8px', 
+                                  fontSize: '12px', 
+                                  color: '#f59e0b',
+                                  backgroundColor: '#fef3c7',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px'
+                                }}>
+                                  SIM
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ color: '#64748b', fontSize: '14px' }}>
+                              {ativo.setor}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                        {ativo.dataEntrada}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
+                        {formatCurrency(ativo.precoEntrada)}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
+                        {formatCurrency(ativo.precoAtual)}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
+                        {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                      </td>
+                      <td style={{ 
+                        padding: '16px', 
+                        textAlign: 'center', 
+                        fontWeight: '800',
+                        fontSize: '16px',
+                        color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
                       }}>
-                        {ativo.vies}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {formatPercentage(ativo.performance)}
+                      </td>
+                      <td style={{ 
+                        padding: '16px', 
+                        textAlign: 'center',
+                        fontWeight: '700',
+                        color: '#1e293b'
+                      }}>
+                        {ativo.dy}
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                        }}>
+                          {ativo.vies}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Gráfico de Composição por Ativos */}
+      {/* Gráfico de Composição Responsivo */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1383,12 +1654,12 @@ export default function SmallCapsPage() {
         overflow: 'hidden'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px',  // ✅ RESPONSIVO
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',  // ✅ RESPONSIVO
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1397,16 +1668,26 @@ export default function SmallCapsPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',  // ✅ RESPONSIVO
             margin: '0'
           }}>
             Distribuição percentual da carteira • {ativosAtualizados.length} ativos
           </p>
         </div>
 
-        <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
-          {/* Gráfico SVG */}
-          <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
+        <div style={{ 
+          padding: isMobile ? '16px' : '32px',  // ✅ RESPONSIVO
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',  // ✅ RESPONSIVO
+          gap: isMobile ? '16px' : '32px',  // ✅ RESPONSIVO
+          alignItems: 'center' 
+        }}>
+          {/* Gráfico SVG Responsivo */}
+          <div style={{ 
+            flex: isMobile ? '1' : '0 0 400px',  // ✅ RESPONSIVO
+            height: isMobile ? '300px' : '400px',  // ✅ RESPONSIVO
+            position: 'relative' 
+          }}>
             {(() => {
               const cores = [
                 '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
@@ -1415,11 +1696,28 @@ export default function SmallCapsPage() {
                 '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
               ];
               
-              const radius = 150;
-              const innerRadius = 75;
-              const centerX = 200;
-              const centerY = 200;
+              const chartSize = isMobile ? 300 : 400;  // ✅ RESPONSIVO
+              const radius = isMobile ? 120 : 150;  // ✅ RESPONSIVO
+              const innerRadius = isMobile ? 60 : 75;  // ✅ RESPONSIVO
+              const centerX = chartSize / 2;
+              const centerY = chartSize / 2;
               const totalAtivos = ativosAtualizados.length;
+              
+              if (totalAtivos === 0) {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#64748b',
+                    fontSize: '16px'
+                  }}>
+                    Nenhum ativo para exibir
+                  </div>
+                );
+              }
+              
               const anglePerSlice = (2 * Math.PI) / totalAtivos;
               
               const createPath = (startAngle: number, endAngle: number) => {
@@ -1439,7 +1737,12 @@ export default function SmallCapsPage() {
               };
               
               return (
-                <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
+                <svg 
+                  width={chartSize} 
+                  height={chartSize} 
+                  viewBox={`0 0 ${chartSize} ${chartSize}`} 
+                  style={{ width: '100%', height: '100%' }}
+                >
                   <defs>
                     <style>
                       {`
@@ -1469,9 +1772,8 @@ export default function SmallCapsPage() {
                     const cor = cores[index % cores.length];
                     const path = createPath(startAngle, endAngle);
                     
-                    // Calcular posição do texto no meio da fatia
                     const middleAngle = (startAngle + endAngle) / 2;
-                    const textRadius = (radius + innerRadius) / 2; // Meio da fatia
+                    const textRadius = (radius + innerRadius) / 2;
                     const textX = centerX + textRadius * Math.cos(middleAngle);
                     const textY = centerY + textRadius * Math.sin(middleAngle);
                     const porcentagem = (100 / totalAtivos).toFixed(1);
@@ -1488,14 +1790,12 @@ export default function SmallCapsPage() {
                           <title>{ativo.ticker}: {porcentagem}%</title>
                         </path>
                         
-                        {/* Textos que aparecem no hover */}
                         <g className="slice-text">
-                          {/* Texto do ticker */}
                           <text
                             x={textX}
                             y={textY - 6}
                             textAnchor="middle"
-                            fontSize="11"
+                            fontSize={isMobile ? "10" : "11"}  // ✅ RESPONSIVO
                             fontWeight="700"
                             fill="#ffffff"
                             style={{ 
@@ -1505,12 +1805,11 @@ export default function SmallCapsPage() {
                             {ativo.ticker}
                           </text>
                           
-                          {/* Texto da porcentagem */}
                           <text
                             x={textX}
                             y={textY + 8}
                             textAnchor="middle"
-                            fontSize="10"
+                            fontSize={isMobile ? "9" : "10"}  // ✅ RESPONSIVO
                             fontWeight="600"
                             fill="#ffffff"
                             style={{ 
@@ -1524,7 +1823,6 @@ export default function SmallCapsPage() {
                     );
                   })}
                   
-                  {/* Círculo central */}
                   <circle
                     cx={centerX}
                     cy={centerY}
@@ -1534,12 +1832,11 @@ export default function SmallCapsPage() {
                     strokeWidth="2"
                   />
                   
-                  {/* Texto central */}
                   <text
                     x={centerX}
                     y={centerY - 10}
                     textAnchor="middle"
-                    fontSize="16"
+                    fontSize={isMobile ? "14" : "16"}  // ✅ RESPONSIVO
                     fontWeight="700"
                     fill="#1e293b"
                   >
@@ -1549,7 +1846,7 @@ export default function SmallCapsPage() {
                     x={centerX}
                     y={centerY + 10}
                     textAnchor="middle"
-                    fontSize="12"
+                    fontSize={isMobile ? "10" : "12"}  // ✅ RESPONSIVO
                     fill="#64748b"
                   >
                     ATIVOS
@@ -1559,10 +1856,17 @@ export default function SmallCapsPage() {
             })()}
           </div>
           
-          {/* Legenda */}
-          <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+          {/* Legenda Responsiva */}
+          <div style={{ 
+            flex: '1', 
+            display: 'grid', 
+            gridTemplateColumns: isMobile 
+              ? 'repeat(auto-fit, minmax(100px, 1fr))'  // ✅ Menor no mobile
+              : 'repeat(auto-fit, minmax(120px, 1fr))', 
+            gap: isMobile ? '8px' : '12px'  // ✅ RESPONSIVO
+          }}>
             {ativosAtualizados.map((ativo, index) => {
-              const porcentagem = ((1 / ativosAtualizados.length) * 100).toFixed(1);
+              const porcentagem = ativosAtualizados.length > 0 ? ((1 / ativosAtualizados.length) * 100).toFixed(1) : '0.0';
               const cores = [
                 '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
                 '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
@@ -1584,7 +1888,7 @@ export default function SmallCapsPage() {
                     <div style={{ 
                       fontWeight: '700', 
                       color: '#1e293b', 
-                      fontSize: '14px',
+                      fontSize: isMobile ? '12px' : '14px',  // ✅ RESPONSIVO
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
@@ -1593,7 +1897,7 @@ export default function SmallCapsPage() {
                     </div>
                     <div style={{ 
                       color: '#64748b', 
-                      fontSize: '12px',
+                      fontSize: isMobile ? '10px' : '12px',  // ✅ RESPONSIVO
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'

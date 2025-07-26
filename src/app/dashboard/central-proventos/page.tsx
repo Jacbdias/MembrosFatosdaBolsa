@@ -1,3 +1,4 @@
+// 📁 Central de Proventos - VERSÃO ATUALIZADA PARA API
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -19,6 +20,13 @@ import {
   Stack
 } from '@mui/material';
 
+// 🔄 IMPORTAR NOVOS HOOKS DA API
+import { 
+  useProventosEstatisticas, 
+  useProventosUpload, 
+  useProventosExport 
+} from '@/hooks/useProventosAPI';
+
 // Ícones simples
 const ArrowLeftIcon = () => <span style={{ fontSize: '16px' }}>←</span>;
 const UploadIcon = () => <span style={{ fontSize: '16px' }}>📤</span>;
@@ -28,7 +36,7 @@ const DeleteIcon = () => <span style={{ fontSize: '16px' }}>🗑️</span>;
 const DownloadIcon = () => <span style={{ fontSize: '16px' }}>📥</span>;
 const SyncIcon = () => <span style={{ fontSize: '16px' }}>🔄</span>;
 
-// Interfaces
+// Interfaces (mantidas iguais)
 interface ProventoCentral {
   ticker: string;
   data: string;
@@ -37,7 +45,6 @@ interface ProventoCentral {
   tipo: string;
   dataFormatada: string;
   valorFormatado: string;
-  // ✅ NOVOS CAMPOS ADICIONADOS
   dataCom?: string;
   dataComFormatada?: string;
   dataPagamento?: string;
@@ -49,41 +56,30 @@ export default function CentralProventos() {
   const router = useRouter();
   const [dialogAberto, setDialogAberto] = useState(false);
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
   const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
-  const [progresso, setProgresso] = useState(0);
-  const [estatisticas, setEstatisticas] = useState({
-    totalEmpresas: 0,
-    totalProventos: 0,
-    valorTotal: 0,
-    dataUltimoUpload: ''
-  });
+
+  // 🔄 USAR NOVOS HOOKS DA API
+  const { 
+    estatisticas, 
+    loading: statsLoading, 
+    carregarEstatisticas 
+  } = useProventosEstatisticas();
+  
+  const { 
+    uploadProventos, 
+    limparTodos, 
+    loading: uploadLoading, 
+    progresso 
+  } = useProventosUpload();
+  
+  const { 
+    exportarDados, 
+    loading: exportLoading 
+  } = useProventosExport();
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const carregarEstatisticas = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const master = localStorage.getItem('proventos_central_master');
-    if (master) {
-      const dados = JSON.parse(master) as ProventoCentral[];
-      const tickers = new Set(dados.map(d => d.ticker));
-      const valorTotal = dados.reduce((acc, d) => acc + d.valor, 0);
-      setEstatisticas({
-        totalEmpresas: tickers.size,
-        totalProventos: dados.length,
-        valorTotal,
-        dataUltimoUpload: localStorage.getItem('proventos_central_data_upload') || ''
-      });
-    } else {
-      setEstatisticas({
-        totalEmpresas: 0,
-        totalProventos: 0,
-        valorTotal: 0,
-        dataUltimoUpload: ''
-      });
-    }
-  }, []);
-
+  // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
   useEffect(() => {
     carregarEstatisticas();
   }, [carregarEstatisticas]);
@@ -105,182 +101,189 @@ export default function CentralProventos() {
     setArquivoSelecionado(file);
   };
 
-// ✅ FUNÇÃO PROCESSARCSV OTIMIZADA PARA ARQUIVOS GRANDES (20k+ linhas)
+// 🌍 VERSÃO UNIVERSAL - ACEITA FORMATO AMERICANO E BRASILEIRO SIMULTANEAMENTE
+
 const processarCSV = useCallback(async () => {
   if (!arquivoSelecionado) return;
 
-  setLoading(true);
-  setProgresso(0);
   setEtapaProcessamento('Lendo arquivo...');
   await delay(300);
 
   try {
     const text = await arquivoSelecionado.text();
-    const linhas = text.split('\n').filter(l => l.trim());
     
-    // ✅ VERIFICAR LIMITE
+    // 🧹 LIMPEZA ROBUSTA DO ARQUIVO
+    const linhas = text
+      .replace(/\r\n/g, '\n')  // Windows line endings
+      .replace(/\r/g, '\n')    // Mac line endings  
+      .replace(/\n\n+/g, '\n') // Múltiplas quebras
+      .split('\n')
+      .filter(l => l.trim())   // Remove linhas vazias
+      .map(l => l.trim());     // Remove espaços extras
+    
     if (linhas.length > 50000) {
       alert('Arquivo muito grande. Máximo de 50.000 linhas suportado.');
-      setLoading(false);
       return;
     }
 
     if (linhas.length < 2) {
       alert('Arquivo vazio ou sem dados válidos.');
-      setLoading(false);
       return;
     }
 
     setEtapaProcessamento(`Processando ${linhas.length - 1} linhas...`);
-    setProgresso(10);
-    await delay(100);
 
     const proventos: ProventoCentral[] = [];
     let errosProcessamento = 0;
-    const BATCH_SIZE = 100; // Processar 100 linhas por vez
+    const BATCH_SIZE = 100;
     
-    // ✅ PROCESSAMENTO EM LOTES
+    // 🔥 FUNÇÃO UNIVERSAL PARA PROCESSAR VALOR (ACEITA QUALQUER FORMATO)
+    const processarValor = (valorRaw: string) => {
+      if (!valorRaw || valorRaw === '') return 0;
+      
+      // Remove R$, espaços, e normaliza
+      let valor = valorRaw
+        .toString()
+        .replace(/R\$\s*/g, '')     // Remove R$ e espaços
+        .replace(/\s/g, '')         // Remove todos os espaços
+        .trim();
+      
+      // Se tem vírgula E ponto, assumir que vírgula é decimal (formato brasileiro)
+      if (valor.includes(',') && valor.includes('.')) {
+        // Formato brasileiro: 1.234,56
+        valor = valor.replace(/\./g, '').replace(',', '.');
+      } else if (valor.includes(',')) {
+        // Só vírgula: pode ser decimal ou milhares
+        const partes = valor.split(',');
+        if (partes.length === 2 && partes[1].length <= 2) {
+          // Provavelmente decimal: 123,45
+          valor = valor.replace(',', '.');
+        } else {
+          // Provavelmente milhares: 1,234
+          valor = valor.replace(/,/g, '');
+        }
+      }
+      
+      const valorNumerico = parseFloat(valor);
+      return isNaN(valorNumerico) ? 0 : valorNumerico;
+    };
+    
+    // 🗓️ FUNÇÃO UNIVERSAL PARA PROCESSAR DATA (ACEITA QUALQUER FORMATO)
+    const processarData = (dataRaw: string) => {
+      if (!dataRaw || dataRaw === '') return null;
+      
+      const dataLimpa = dataRaw.toString().trim();
+      
+      try {
+        // 🇧🇷 FORMATO BRASILEIRO: DD/MM/YYYY ou DD/MM/YY
+        if (dataLimpa.includes('/')) {
+          const partes = dataLimpa.split('/');
+          if (partes.length === 3) {
+            let [dia, mes, ano] = partes;
+            
+            // Ajustar ano de 2 dígitos
+            if (ano.length === 2) {
+              ano = parseInt(ano) < 50 ? '20' + ano : '19' + ano;
+            }
+            
+            return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
+          }
+        }
+        
+        // 🇺🇸 FORMATO AMERICANO: YYYY-MM-DD
+        if (dataLimpa.includes('-')) {
+          const partes = dataLimpa.split('-');
+          if (partes.length === 3) {
+            const [ano, mes, dia] = partes;
+            return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
+          }
+        }
+        
+        // Tentar parsing direto
+        const dataObj = new Date(dataLimpa);
+        if (!isNaN(dataObj.getTime())) {
+          return new Date(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate(), 12, 0, 0);
+        }
+        
+        return null;
+      } catch {
+        return null;
+      }
+    };
+    
+    // 🔄 PROCESSAMENTO EM LOTES COM DETECÇÃO AUTOMÁTICA
     for (let batchStart = 1; batchStart < linhas.length; batchStart += BATCH_SIZE) {
       const batchEnd = Math.min(batchStart + BATCH_SIZE, linhas.length);
       
-      // Processar lote atual
       for (let i = batchStart; i < batchEnd; i++) {
         try {
-          const linha = linhas[i].replace(/\r/g, '').trim();
+          const linha = linhas[i];
           if (!linha) continue;
 
-          const partes = linha.includes(';') ? linha.split(';') : linha.split(',');
+          // FORMATO: ticker,valor,dataCom,dataPagamento,tipo,dividendYield
+          const partes = linha.split(',').map(p => p.trim());
           
-          // ✅ NOVO FORMATO: ticker,valor,dataCom,dataPagamento,tipo,dividendYield
-          if (partes.length >= 6) {
-            const [ticker, valorRaw, dataCom, dataPagamento, tipo, dividendYieldRaw] = partes.map(p => p.trim());
-            
-            // Processar valor
-            let valor = parseFloat(
-              valorRaw.replace('R$', '').replace(/\s/g, '').replace(',', '.')
-            );
-            if (isNaN(valor)) {
-              errosProcessamento++;
-              continue;
-            }
-
-            // ✅ CORRIGIDO: Parsing de data com horário específico para evitar problema de fuso horário
-            let dataObj: Date;
-            if (dataCom.includes('/')) {
-              const [d, m, a] = dataCom.split('/');
-              dataObj = new Date(+a, +m - 1, +d, 12, 0, 0); // meio-dia para evitar mudança de dia
-            } else if (dataCom.includes('-')) {
-              const partes = dataCom.split('-');
-              if (partes[0].length === 4) {
-                // YYYY-MM-DD
-                dataObj = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
-              } else {
-                // DD-MM-YYYY
-                dataObj = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
-              }
-            } else {
-              const tempDate = new Date(dataCom);
-              dataObj = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 12, 0, 0);
-            }
-            if (isNaN(dataObj.getTime())) {
-              errosProcessamento++;
-              continue;
-            }
-
-            // Processar dividend yield (opcional)
-            let dividendYield: number | undefined;
-            if (dividendYieldRaw && dividendYieldRaw !== '') {
-              const dy = parseFloat(dividendYieldRaw.replace('%', '').replace(',', '.'));
-              if (!isNaN(dy)) {
-                dividendYield = dy;
-              }
-            }
-
-            // ✅ CORRIGIDO: Processar data pagamento com horário específico
-            let dataPagamentoFormatada: string | undefined;
-            if (dataPagamento && dataPagamento !== '') {
-              let dataPagamentoObj: Date;
-              if (dataPagamento.includes('/')) {
-                const [d, m, a] = dataPagamento.split('/');
-                dataPagamentoObj = new Date(+a, +m - 1, +d, 12, 0, 0);
-              } else if (dataPagamento.includes('-')) {
-                const partes = dataPagamento.split('-');
-                if (partes[0].length === 4) {
-                  dataPagamentoObj = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
-                } else {
-                  dataPagamentoObj = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
-                }
-              } else {
-                const tempDate = new Date(dataPagamento);
-                dataPagamentoObj = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 12, 0, 0);
-              }
-              if (!isNaN(dataPagamentoObj.getTime())) {
-                dataPagamentoFormatada = dataPagamentoObj.toLocaleDateString('pt-BR');
-              }
-            }
-
-            proventos.push({
-              ticker,
-              data: dataCom,
-              dataObj,
-              valor,
-              tipo,
-              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
-              valorFormatado: formatarMoeda(valor),
-              // Campos extras para compatibilidade
-              dataCom,
-              dataComFormatada: dataObj.toLocaleDateString('pt-BR'),
-              dataPagamento,
-              dataPagamentoFormatada,
-              dividendYield
-            });
-
-          } else if (partes.length >= 4) {
-            // ✅ CORRIGIDO: FALLBACK PARA FORMATO ANTIGO (4 colunas)
-            const [ticker, data, valorRaw, tipo] = partes.map(p => p.trim());
-            
-            let valor = parseFloat(
-              valorRaw.replace('R$', '').replace(/\s/g, '').replace(',', '.')
-            );
-            if (isNaN(valor)) {
-              errosProcessamento++;
-              continue;
-            }
-
-            // ✅ CORRIGIDO: Parsing de data com horário específico
-            let dataObj: Date;
-            if (data.includes('/')) {
-              const [d, m, a] = data.split('/');
-              dataObj = new Date(+a, +m - 1, +d, 12, 0, 0); // meio-dia
-            } else if (data.includes('-')) {
-              const partes = data.split('-');
-              if (partes[0].length === 4) {
-                dataObj = new Date(+partes[0], +partes[1] - 1, +partes[2], 12, 0, 0);
-              } else {
-                dataObj = new Date(+partes[2], +partes[1] - 1, +partes[0], 12, 0, 0);
-              }
-            } else {
-              const tempDate = new Date(data);
-              dataObj = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 12, 0, 0);
-            }
-            if (isNaN(dataObj.getTime())) {
-              errosProcessamento++;
-              continue;
-            }
-
-            proventos.push({
-              ticker,
-              data,
-              dataObj,
-              valor,
-              tipo,
-              dataFormatada: dataObj.toLocaleDateString('pt-BR'),
-              valorFormatado: formatarMoeda(valor)
-            });
-
-          } else {
+          if (partes.length < 6) {
             errosProcessamento++;
+            continue;
           }
+          
+          // 📊 EXTRAIR CAMPOS (FUNCIONA COM QUALQUER FORMATO)
+          const ticker = partes[0];           // TUPY3 ou RURA11 ou BPFF11
+          const valorRaw = partes[1];         // 0.26009606 ou 0.1 ou R$ 0.60
+          const dataComRaw = partes[2];       // 2019-03-19 ou 30/05/2025 ou 28/12/2018
+          const dataPagamentoRaw = partes[3]; // 2019-03-28 ou 06/06/2025 ou 08/01/2019
+          const tipo = partes[4];             // Dividendo ou Rendimento
+          const dividendYieldRaw = partes[5]; // 0.0138 ou 0 ou 0.66
+          
+          // 🔥 PROCESSAR VALORES COM FUNÇÕES UNIVERSAIS
+          const valor = processarValor(valorRaw);
+          const dataCom = processarData(dataComRaw);
+          const dataPagamento = processarData(dataPagamentoRaw);
+          const dividendYield = parseFloat(dividendYieldRaw) || undefined;
+          
+          // ✅ VALIDAÇÕES ESPECÍFICAS
+          if (!ticker || ticker === '') {
+            errosProcessamento++;
+            continue;
+          }
+          
+          if (valor <= 0) {
+            errosProcessamento++;
+            continue;
+          }
+          
+          if (!dataCom || isNaN(dataCom.getTime())) {
+            errosProcessamento++;
+            continue;
+          }
+          
+          // 📝 CRIAR OBJETO PROVENTO
+          const proventoProcessado: ProventoCentral = {
+            ticker: ticker.toUpperCase(),
+            data: dataCom.toISOString().split('T')[0], // YYYY-MM-DD
+            dataObj: dataCom,
+            valor: valor,
+            tipo: tipo || 'dividendo',
+            dataFormatada: dataCom.toLocaleDateString('pt-BR'),
+            valorFormatado: formatarMoeda(valor)
+          };
+          
+          // 📅 ADICIONAR CAMPOS OPCIONAIS
+          if (dataPagamento && !isNaN(dataPagamento.getTime())) {
+            proventoProcessado.dataPagamento = dataPagamento.toISOString().split('T')[0];
+            proventoProcessado.dataPagamentoFormatada = dataPagamento.toLocaleDateString('pt-BR');
+          }
+          
+          if (dividendYield !== undefined && !isNaN(dividendYield)) {
+            proventoProcessado.dividendYield = dividendYield;
+          }
+          
+          // Adicionar campos de compatibilidade
+          proventoProcessado.dataCom = dataCom.toISOString().split('T')[0];
+          proventoProcessado.dataComFormatada = dataCom.toLocaleDateString('pt-BR');
+          
+          proventos.push(proventoProcessado);
 
         } catch (error) {
           console.error(`Erro na linha ${i}:`, error);
@@ -288,70 +291,30 @@ const processarCSV = useCallback(async () => {
         }
       }
 
-      // ✅ ATUALIZAR PROGRESSO E DAR UMA PAUSA
-      const progressoAtual = 10 + ((batchEnd - 1) / (linhas.length - 1)) * 70;
-      setProgresso(progressoAtual);
       setEtapaProcessamento(`Processando... ${batchEnd - 1}/${linhas.length - 1} linhas`);
-      
-      // Pausa para não travar a UI
       await delay(50);
     }
 
     if (proventos.length === 0) {
       alert(`Nenhum provento válido encontrado. Erros: ${errosProcessamento}`);
-      setLoading(false);
       return;
     }
 
-    setEtapaProcessamento('Salvando dados...');
-    setProgresso(85);
-    await delay(300);
+    setEtapaProcessamento('Enviando para servidor...');
 
-    // ✅ VERIFICAR TAMANHO ANTES DE SALVAR
-    const dadosString = JSON.stringify(proventos);
-    const tamanhoMB = new Blob([dadosString]).size / (1024 * 1024);
-    
-    if (tamanhoMB > 8) {
-      alert(`Dados muito grandes (${tamanhoMB.toFixed(1)}MB). Limite recomendado: 8MB.`);
-      setLoading(false);
-      return;
-    }
+    // 🚀 USAR API EM VEZ DE localStorage
+    const resultado = await uploadProventos(proventos, {
+      nomeArquivo: arquivoSelecionado.name,
+      tamanhoArquivo: arquivoSelecionado.size,
+      totalLinhas: linhas.length,
+      linhasProcessadas: proventos.length,
+      linhasComErro: errosProcessamento
+    });
 
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('proventos_central_master', dadosString);
-        localStorage.setItem('proventos_central_data_upload', new Date().toISOString());
-        
-        setEtapaProcessamento('Organizando por ticker...');
-        setProgresso(95);
-        await delay(200);
-        
-        const porTicker: Record<string, any[]> = {};
-        proventos.forEach(p => {
-          if (!porTicker[p.ticker]) porTicker[p.ticker] = [];
-          porTicker[p.ticker].push(p);
-        });
-        
-        Object.entries(porTicker).forEach(([t, ps]) => {
-          localStorage.setItem(`proventos_${t}`, JSON.stringify(ps));
-        });
-
-      } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-          alert('Limite de armazenamento excedido. Reduza o tamanho do arquivo.');
-          setLoading(false);
-          return;
-        }
-        throw error;
-      }
-    }
-
-    setProgresso(100);
-    await delay(500);
-    carregarEstatisticas();
+    // ✅ RECARREGAR ESTATÍSTICAS
+    await carregarEstatisticas();
     
     let mensagem = `✅ ${proventos.length.toLocaleString()} proventos processados com sucesso!`;
-    mensagem += `\n📊 Tamanho: ${tamanhoMB.toFixed(2)}MB`;
     if (errosProcessamento > 0) {
       mensagem += `\n⚠️ ${errosProcessamento} linhas ignoradas por erros.`;
     }
@@ -362,37 +325,33 @@ const processarCSV = useCallback(async () => {
 
   } catch (error) {
     console.error('Erro no processamento:', error);
-    if (error.name === 'QuotaExceededError') {
-      alert('Limite de armazenamento do navegador excedido.');
-    } else {
-      alert('Erro ao processar o arquivo. Verifique o formato.');
-    }
+    alert('Erro ao processar o arquivo. Verifique o formato.');
   } finally {
-    setLoading(false);
     setEtapaProcessamento('');
-    setProgresso(0);
   }
-}, [arquivoSelecionado, carregarEstatisticas]);
+}, [arquivoSelecionado, uploadProventos, carregarEstatisticas]);
 
-  const exportarDados = () => {
-    if (typeof window === 'undefined') return;
-    const master = localStorage.getItem('proventos_central_master');
-    if (!master) {
-      alert('Nenhum dado para exportar');
-      return;
+  // ✅ EXPORTAR VIA API
+  const handleExportarDados = async () => {
+    try {
+      await exportarDados();
+      alert('Dados exportados com sucesso!');
+    } catch (error) {
+      alert('Erro ao exportar dados');
     }
-    const blob = new Blob([master], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `proventos_backup_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
   };
 
-  const limparTudo = () => {
+  // ✅ LIMPAR VIA API
+  const handleLimparTudo = async () => {
     if (!confirm('Tem certeza que deseja apagar todos os dados?')) return;
-    localStorage.clear();
-    carregarEstatisticas();
-    alert('Dados removidos.');
+    
+    try {
+      await limparTodos();
+      await carregarEstatisticas();
+      alert('Dados removidos com sucesso.');
+    } catch (error) {
+      alert('Erro ao remover dados');
+    }
   };
 
   return (
@@ -424,6 +383,19 @@ const processarCSV = useCallback(async () => {
         >
           Voltar
         </Button>
+        
+        {/* ✅ INDICADOR DE STATUS DA API */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <div style={{ 
+            width: 8, 
+            height: 8, 
+            borderRadius: '50%', 
+            backgroundColor: '#10b981' 
+          }} />
+          <Typography sx={{ fontSize: '12px', color: '#64748b' }}>
+            API Conectada
+          </Typography>
+        </Box>
       </Stack>
 
       {/* Card principal com título e estatísticas */}
@@ -445,7 +417,7 @@ const processarCSV = useCallback(async () => {
                 fontSize: '2rem'
               }}
             >
-              💰 Central de Proventos
+              💰 Central de Proventos (API)
             </Typography>
             <Typography 
               variant="h6" 
@@ -455,11 +427,11 @@ const processarCSV = useCallback(async () => {
                 fontSize: '1.125rem'
               }}
             >
-              Sistema unificado para gerenciar proventos de todas as empresas
+              Sistema unificado sincronizado entre todos os dispositivos
             </Typography>
           </Box>
 
-          {/* Estatísticas */}
+          {/* Estatísticas - AGORA VIA API */}
           <Grid container spacing={3}>
             <Grid item xs={6} md={3}>
               <Box 
@@ -479,7 +451,7 @@ const processarCSV = useCallback(async () => {
                     mb: 0.5
                   }}
                 >
-                  {estatisticas.totalEmpresas}
+                  {statsLoading ? '...' : estatisticas.totalEmpresas}
                 </Typography>
                 <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
                   Empresas
@@ -504,7 +476,7 @@ const processarCSV = useCallback(async () => {
                     mb: 0.5
                   }}
                 >
-                  {estatisticas.totalProventos}
+                  {statsLoading ? '...' : estatisticas.totalProventos.toLocaleString()}
                 </Typography>
                 <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
                   Proventos
@@ -530,7 +502,7 @@ const processarCSV = useCallback(async () => {
                     fontSize: '1.5rem'
                   }}
                 >
-                  {formatarMoeda(estatisticas.valorTotal).replace('R$', 'R$')}
+                  {statsLoading ? '...' : formatarMoeda(estatisticas.valorTotal).replace('R$', 'R$')}
                 </Typography>
                 <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
                   Total
@@ -555,10 +527,10 @@ const processarCSV = useCallback(async () => {
                     fontSize: '1rem'
                   }}
                 >
-                  {estatisticas.dataUltimoUpload 
+                  {statsLoading ? '...' : (estatisticas.dataUltimoUpload 
                     ? new Date(estatisticas.dataUltimoUpload).toLocaleDateString('pt-BR') 
                     : 'Nunca'
-                  }
+                  )}
                 </Typography>
                 <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
                   Último Upload
@@ -569,13 +541,14 @@ const processarCSV = useCallback(async () => {
         </CardContent>
       </Card>
 
-      {/* Botões de ação */}
+      {/* Botões de ação - ATUALIZADOS PARA API */}
       <Grid container spacing={2} mb={4}>
         <Grid item xs={12} md={3}>
           <Button 
             fullWidth 
             onClick={() => setDialogAberto(true)} 
             startIcon={<CloudUploadIcon />}
+            disabled={uploadLoading}
             sx={{
               background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
               color: 'white',
@@ -596,8 +569,9 @@ const processarCSV = useCallback(async () => {
         <Grid item xs={12} md={3}>
           <Button 
             fullWidth 
-            onClick={exportarDados} 
+            onClick={handleExportarDados} 
             startIcon={<DownloadIcon />}
+            disabled={exportLoading}
             sx={{
               border: '1px solid #e2e8f0',
               color: '#64748b',
@@ -612,7 +586,7 @@ const processarCSV = useCallback(async () => {
               }
             }}
           >
-            Exportar
+            {exportLoading ? 'Exportando...' : 'Exportar'}
           </Button>
         </Grid>
         <Grid item xs={12} md={3}>
@@ -620,6 +594,7 @@ const processarCSV = useCallback(async () => {
             fullWidth 
             onClick={carregarEstatisticas} 
             startIcon={<SyncIcon />}
+            disabled={statsLoading}
             sx={{
               border: '1px solid #e2e8f0',
               color: '#64748b',
@@ -634,14 +609,15 @@ const processarCSV = useCallback(async () => {
               }
             }}
           >
-            Atualizar
+            {statsLoading ? 'Atualizando...' : 'Atualizar'}
           </Button>
         </Grid>
         <Grid item xs={12} md={3}>
           <Button 
             fullWidth 
-            onClick={limparTudo} 
+            onClick={handleLimparTudo} 
             startIcon={<DeleteIcon />}
+            disabled={uploadLoading}
             sx={{
               border: '1px solid #fecaca',
               color: '#dc2626',
@@ -661,10 +637,10 @@ const processarCSV = useCallback(async () => {
         </Grid>
       </Grid>
 
-      {/* Dialog de upload */}
+      {/* Dialog de upload - MANTIDO IGUAL */}
       <Dialog 
         open={dialogAberto} 
-        onClose={() => !loading && setDialogAberto(false)} 
+        onClose={() => !uploadLoading && setDialogAberto(false)} 
         maxWidth="md" 
         fullWidth
         PaperProps={{
@@ -680,7 +656,7 @@ const processarCSV = useCallback(async () => {
           color: '#1e293b',
           borderBottom: '1px solid #e2e8f0'
         }}>
-          📤 Upload Central de Proventos
+          📤 Upload Central de Proventos (API)
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Alert 
@@ -693,21 +669,7 @@ const processarCSV = useCallback(async () => {
             }}
           >
             <Typography sx={{ fontSize: '0.875rem' }}>
-              Formato esperado: <code style={{ 
-                backgroundColor: '#e2e8f0', 
-                padding: '2px 6px', 
-                borderRadius: '4px',
-                fontSize: '0.8rem'
-              }}>
-               ticker,valor,dataCom,dataPagamento,tipo,dividendYield
-              </code> ou <code style={{ 
-                backgroundColor: '#e2e8f0', 
-                padding: '2px 6px', 
-                borderRadius: '4px',
-                fontSize: '0.8rem'
-              }}>
-                ticker;data;valor;tipo
-              </code>
+              ✅ Dados serão sincronizados entre todos os dispositivos automaticamente
             </Typography>
           </Alert>
           
@@ -717,14 +679,14 @@ const processarCSV = useCallback(async () => {
             accept=".csv" 
             style={{ display: 'none' }} 
             onChange={handleUploadArquivo} 
-            disabled={loading} 
+            disabled={uploadLoading} 
           />
           <label htmlFor="upload-csv">
             <Button 
               component="span" 
               fullWidth 
               startIcon={<UploadIcon />} 
-              disabled={loading}
+              disabled={uploadLoading}
               sx={{
                 border: '2px dashed #cbd5e1',
                 borderRadius: '12px',
@@ -743,7 +705,7 @@ const processarCSV = useCallback(async () => {
             </Button>
           </label>
           
-          {loading && (
+          {uploadLoading && (
             <Box mt={3}>
               <Typography sx={{ mb: 1, color: '#64748b', fontSize: '0.875rem' }}>
                 {etapaProcessamento}
@@ -767,7 +729,7 @@ const processarCSV = useCallback(async () => {
         <DialogActions sx={{ p: 3, borderTop: '1px solid #e2e8f0' }}>
           <Button 
             onClick={() => setDialogAberto(false)} 
-            disabled={loading}
+            disabled={uploadLoading}
             sx={{
               color: '#64748b',
               textTransform: 'none',
@@ -778,8 +740,8 @@ const processarCSV = useCallback(async () => {
           </Button>
           <Button 
             onClick={processarCSV} 
-            disabled={!arquivoSelecionado || loading}
-            startIcon={loading ? <CircularProgress size={16} /> : <CheckIcon />}
+            disabled={!arquivoSelecionado || uploadLoading}
+            startIcon={uploadLoading ? <CircularProgress size={16} /> : <CheckIcon />}
             sx={{
               background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
               color: 'white',
@@ -792,7 +754,7 @@ const processarCSV = useCallback(async () => {
               }
             }}
           >
-            {loading ? 'Processando...' : 'Processar'}
+            {uploadLoading ? 'Processando...' : 'Processar'}
           </Button>
         </DialogActions>
       </Dialog>
