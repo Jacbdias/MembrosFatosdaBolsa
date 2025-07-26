@@ -4,19 +4,17 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
 import { relatoriosDB } from '../../../../utils/relatoriosDB';
-import AnalisesTrimesestrais from '@/components/AnalisesTrimesestrais'; // ← ADICIONAR ESTA LINHA
-import ETFHoldings from '@/components/ETFHoldings'; // ← ADICIONAR
-
+import AnalisesTrimesestrais from '@/components/AnalisesTrimesestrais';
+import ETFHoldings from '@/components/ETFHoldings';
 
 // ✅ IMPORT ÚNICO CORRIGIDO - todos os hooks e utilitários em um só lugar
 import { 
   useDadosFinanceiros, 
   useDadosFII, 
-  useDividendYield,
   useDadosBDR, 
   useHGBrasilAcoes,
   useYahooFinanceInternacional,
-  useCotacaoUSD, // ✅ ADICIONE ESTA LINHA
+  useCotacaoUSD,
   formatCurrency, 
   formatarValor,
   isBDREstrangeiro,        
@@ -26,6 +24,598 @@ import {
   DadosFII,
   Relatorio 
 } from '../../../../hooks/useAtivoDetalhes';
+
+// 🔥 NOVO: FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA (do arquivo 1)
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  
+  if (isMobile) {
+    // 📱 MOBILE: Estratégia individual
+    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
+    
+    for (const ticker of tickers) {
+      let dyObtido = false;
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      // Se ainda não obteve, definir como 0%
+      if (!dyObtido) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
+      }
+      
+      // Delay pequeno entre requests
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+  } else {
+    // 🖥️ DESKTOP: Requisição em lote
+    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
+    
+    try {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SmallCaps-DY-Batch'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
+        
+        data.results?.forEach((result: any) => {
+          const ticker = result.symbol;
+          const dy = result.defaultKeyStatistics?.dividendYield;
+          
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          } else {
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+          }
+        });
+        
+      } else {
+        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
+        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+      }
+      
+    } catch (error) {
+      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
+      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+    }
+  }
+  
+  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  return dyMap;
+}
+
+// 🔥 NOVO: FUNÇÃO PARA BUSCAR PROVENTOS VIA API (do arquivo 1)
+async function buscarProventosViaAPI(ticker: string, dataEntrada: string): Promise<number> {
+  try {
+    console.log(`💰 Buscando proventos via API para ${ticker}...`);
+    
+    // 📅 Converter data de entrada para formato API
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+    
+    // 🌐 Buscar proventos via API
+    const response = await fetch(`/api/proventos/${ticker}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      const proventosRaw = await response.json();
+      
+      if (Array.isArray(proventosRaw)) {
+        // 📅 Filtrar proventos a partir da data de entrada
+        const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+        
+        const proventosFiltrados = proventosRaw.filter((p: any) => {
+          if (!p.dataObj) return false;
+          const dataProvento = new Date(p.dataObj);
+          return dataProvento >= dataEntradaDate;
+        });
+        
+        // 💰 Calcular total
+        const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
+        
+        console.log(`✅ ${ticker}: R$ ${total.toFixed(2)} em proventos (${proventosFiltrados.length} pagamentos)`);
+        return total;
+      }
+    }
+    
+    console.log(`⚠️ ${ticker}: API de proventos falhou, tentando localStorage...`);
+    
+    // FALLBACK: localStorage como no código original
+    return calcularProventosLocalStorage(ticker, dataEntrada);
+    
+  } catch (error) {
+    console.error(`❌ Erro ao buscar proventos para ${ticker}:`, error);
+    return calcularProventosLocalStorage(ticker, dataEntrada);
+  }
+}
+
+// 🔄 FUNÇÃO FALLBACK PARA PROVENTOS (localStorage)
+function calcularProventosLocalStorage(ticker: string, dataEntrada: string): number {
+  try {
+    if (typeof window === 'undefined') return 0;
+    
+    const proventosKey = `proventos_${ticker}`;
+    const proventosData = localStorage.getItem(proventosKey);
+    if (!proventosData) return 0;
+    
+    const proventos = JSON.parse(proventosData);
+    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
+    
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    
+    const proventosFiltrados = proventos.filter((provento: any) => {
+      try {
+        let dataProventoObj: Date;
+        
+        if (provento.dataPagamento) {
+          if (provento.dataPagamento.includes('/')) {
+            const [d, m, a] = provento.dataPagamento.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.dataPagamento.includes('-')) {
+            dataProventoObj = new Date(provento.dataPagamento);
+          }
+        } else if (provento.data) {
+          if (provento.data.includes('/')) {
+            const [d, m, a] = provento.data.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.data.includes('-')) {
+            dataProventoObj = new Date(provento.data);
+          }
+        } else if (provento.dataCom) {
+          if (provento.dataCom.includes('/')) {
+            const [d, m, a] = provento.dataCom.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.dataCom.includes('-')) {
+            dataProventoObj = new Date(provento.dataCom);
+          }
+        } else if (provento.dataObj) {
+          dataProventoObj = new Date(provento.dataObj);
+        } else {
+          return false;
+        }
+        
+        return dataProventoObj && dataProventoObj >= dataEntradaObj;
+      } catch (error) {
+        return false;
+      }
+    });
+    
+    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
+      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
+      return total + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    console.log(`✅ ${ticker} (localStorage): ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
+    return totalProventos;
+    
+  } catch (error) {
+    console.error(`❌ Erro localStorage para ${ticker}:`, error);
+    return 0;
+  }
+}
+
+// 🔥 NOVO: HOOK INTEGRADO PARA DY (substituindo useDividendYield)
+function useDividendYieldIntegrado(ticker: string, isMobile: boolean = false) {
+  const [dyData, setDyData] = useState<{
+    dy12Meses: number;
+    dyFormatado: string;
+    fonte: string;
+  }>({
+    dy12Meses: 0,
+    dyFormatado: '0,00%',
+    fonte: 'indisponível'
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchDY = useCallback(async () => {
+    if (!ticker) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log(`📈 Buscando DY para ${ticker} usando estratégia integrada...`);
+
+      const dyMap = await buscarDYsComEstrategia([ticker], isMobile);
+      const dyFormatado = dyMap.get(ticker) || '0,00%';
+      const dyNumerico = parseFloat(dyFormatado.replace('%', '').replace(',', '.'));
+
+      setDyData({
+        dy12Meses: dyNumerico,
+        dyFormatado: dyFormatado,
+        fonte: dyNumerico > 0 ? 'BRAPI-Estratégia' : 'indisponível'
+      });
+
+      console.log(`✅ DY ${ticker}: ${dyFormatado} (fonte: BRAPI-Estratégia)`);
+    } catch (error) {
+      console.error(`❌ Erro ao buscar DY para ${ticker}:`, error);
+      setDyData({
+        dy12Meses: 0,
+        dyFormatado: '0,00%',
+        fonte: 'erro'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker, isMobile]);
+
+  useEffect(() => {
+    fetchDY();
+  }, [fetchDY]);
+
+  return {
+    dy12Meses: dyData.dy12Meses,
+    dyFormatado: dyData.dyFormatado,
+    loading,
+    fonte: dyData.fonte,
+    refetch: fetchDY
+  };
+}
+
+// 🔥 HOOK INTEGRADO PARA PROVENTOS - VERSÃO COMPLETA
+function useProventosIntegrado(ticker: string, dataEntrada: string, precoEntrada?: number | string) {
+  const [proventosData, setProventosData] = useState<{
+    valor: number;
+    performanceProventos: number;
+    fonte: string;
+  }>({
+    valor: 0,
+    performanceProventos: 0,
+    fonte: 'carregando'
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchProventos = useCallback(async () => {
+    if (!ticker || !dataEntrada) {
+      console.log(`❌ [PROVENTOS] Dados insuficientes:`, { ticker, dataEntrada });
+      setProventosData({
+        valor: 0,
+        performanceProventos: 0,
+        fonte: 'dados insuficientes'
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log(`💰 [PROVENTOS] === INICIANDO BUSCA PARA ${ticker} ===`);
+      console.log(`📅 [PROVENTOS] Data entrada: ${dataEntrada}`);
+
+      // 📅 PROCESSAR DATA DE ENTRADA
+      if (!dataEntrada.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        throw new Error(`Data de entrada inválida: ${dataEntrada}`);
+      }
+
+      const [dia, mes, ano] = dataEntrada.split('/');
+      const dataEntradaDate = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+      dataEntradaDate.setHours(0, 0, 0, 0);
+      
+      console.log(`📅 [PROVENTOS] Data processada:`, {
+        original: dataEntrada,
+        processada: dataEntradaDate.toISOString(),
+        timestamp: dataEntradaDate.getTime()
+      });
+
+      let valorProventos = 0;
+      let fonte = 'API';
+
+      // 🌐 MÉTODO 1: Buscar via API
+      try {
+        console.log(`🌐 [PROVENTOS] Chamando API: /api/proventos/${ticker}`);
+        
+        const response = await fetch(`/api/proventos/${ticker}`, {
+          method: 'GET',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const proventosAPI = await response.json();
+        console.log(`📊 [PROVENTOS] API respondeu:`, {
+          ticker,
+          totalRecebido: proventosAPI.length,
+          amostra: proventosAPI.slice(0, 2)
+        });
+        
+        if (Array.isArray(proventosAPI) && proventosAPI.length > 0) {
+          // Filtrar proventos a partir da data de entrada
+          const proventosFiltrados = proventosAPI.filter((provento: any) => {
+            try {
+              const dataProvento = new Date(provento.dataObj);
+              
+              if (isNaN(dataProvento.getTime())) {
+                console.warn(`⚠️ [PROVENTOS] Data inválida:`, provento.dataObj);
+                return false;
+              }
+
+              dataProvento.setHours(0, 0, 0, 0);
+              const isValido = dataProvento >= dataEntradaDate;
+              
+              if (isValido) {
+                console.log(`✅ [PROVENTOS] INCLUÍDO: R$ ${provento.valor.toFixed(2)} em ${dataProvento.toLocaleDateString('pt-BR')}`);
+              } else {
+                console.log(`❌ [PROVENTOS] EXCLUÍDO: R$ ${provento.valor.toFixed(2)} em ${dataProvento.toLocaleDateString('pt-BR')} (antes da entrada)`);
+              }
+              
+              return isValido;
+            } catch (error) {
+              console.error(`❌ [PROVENTOS] Erro ao processar:`, error, provento);
+              return false;
+            }
+          });
+          
+          // Calcular valor total
+          valorProventos = proventosFiltrados.reduce((total: number, provento: any) => {
+            return total + (parseFloat(provento.valor) || 0);
+          }, 0);
+          
+          console.log(`🎯 [PROVENTOS] API PROCESSADA:`, {
+            ticker,
+            totalAPI: proventosAPI.length,
+            filtrados: proventosFiltrados.length,
+            valorTotal: `R$ ${valorProventos.toFixed(2)}`,
+            dataCorte: dataEntrada
+          });
+          
+        } else {
+          console.log(`❌ [PROVENTOS] API retornou array vazio para ${ticker}`);
+        }
+        
+      } catch (apiError) {
+        console.error(`❌ [PROVENTOS] Erro na API:`, apiError);
+        fonte = 'localStorage';
+        valorProventos = await calcularProventosLocalStorageAprimorado(ticker, dataEntrada);
+      }
+
+// 📊 CALCULAR PERFORMANCE DOS PROVENTOS
+let performanceProventos = 0;
+let precoEntradaNumerico = null;
+
+// Usar preço de entrada passado como parâmetro
+if (precoEntrada) {
+  precoEntradaNumerico = typeof precoEntrada === 'number' 
+    ? precoEntrada 
+    : parseFloat(String(precoEntrada).replace(',', '.'));
+  
+  console.log(`💰 [PROVENTOS] Preço de entrada recebido: R$ ${precoEntradaNumerico.toFixed(2)}`);
+}
+
+      // Calcular performance
+if (precoEntradaNumerico && precoEntradaNumerico > 0 && valorProventos > 0) {
+  performanceProventos = (valorProventos / precoEntradaNumerico) * 100;
+console.log(`📊 [PROVENTOS] PERFORMANCE CALCULADA:`, {
+  ticker,
+  valorProventos: `R$ ${valorProventos.toFixed(2)}`,
+  precoEntrada: `R$ ${precoEntradaNumerico.toFixed(2)}`,
+  performance: `${performanceProventos.toFixed(2)}%`,
+  calculo: `(${valorProventos.toFixed(2)} / ${precoEntradaNumerico.toFixed(2)}) * 100`
+});
+      } else {
+        console.log(`⚠️ [PROVENTOS] Performance não calculada:`, {
+          ticker,
+          valorProventos,
+          precoEntrada,
+          motivo: precoEntrada <= 0 ? 'Preço de entrada inválido' : 'Sem proventos'
+        });
+      }
+
+      // Determinar fonte final
+      const fonteAtual = valorProventos > 0 ? fonte : 'sem dados';
+
+      // Atualizar estado
+      setProventosData({
+        valor: valorProventos,
+        performanceProventos: performanceProventos,
+        fonte: fonteAtual
+      });
+
+      console.log(`🏆 [PROVENTOS] === RESULTADO FINAL ${ticker} ===`, {
+        valorProventos: `R$ ${valorProventos.toFixed(2)}`,
+        performance: `${performanceProventos.toFixed(2)}%`,
+        fonte: fonteAtual,
+        periodo: `desde ${dataEntrada}`
+      });
+
+    } catch (error) {
+      console.error(`❌ [PROVENTOS] Erro geral para ${ticker}:`, error);
+      setProventosData({
+        valor: 0,
+        performanceProventos: 0,
+        fonte: 'erro'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker, dataEntrada]);
+
+  useEffect(() => {
+    fetchProventos();
+  }, [fetchProventos]);
+
+  return {
+    valorProventos: proventosData.valor,
+    performanceProventos: proventosData.performanceProventos,
+    loading,
+    fonte: proventosData.fonte,
+    refetch: fetchProventos
+  };
+}
+
+// 📁 FUNÇÃO FALLBACK PARA LOCALSTORAGE
+async function calcularProventosLocalStorageAprimorado(ticker: string, dataEntrada: string): Promise<number> {
+  try {
+    console.log(`📁 [localStorage] Buscando fallback para ${ticker}...`);
+    
+    if (typeof window === 'undefined') return 0;
+
+    const chavesPossiveis = [
+      `proventos_${ticker}`,
+      `dividendos_${ticker}`,
+      `rendimentos_${ticker}`,
+      `dividendos_fii_${ticker}`,
+      'proventos_central_master'
+    ];
+
+    let proventosEncontrados: any[] = [];
+
+    for (const chave of chavesPossiveis) {
+      const dados = localStorage.getItem(chave);
+      if (dados) {
+        try {
+          const dadosParseados = JSON.parse(dados);
+          
+          if (Array.isArray(dadosParseados)) {
+            const proventosTicker = dadosParseados.filter((item: any) => 
+              item.ticker === ticker || item.symbol === ticker
+            );
+            proventosEncontrados.push(...proventosTicker);
+          }
+        } catch (parseError) {
+          console.warn(`⚠️ [localStorage] Erro ao parsear ${chave}:`, parseError);
+        }
+      }
+    }
+
+    if (proventosEncontrados.length === 0) {
+      console.log(`❌ [localStorage] Nenhum provento encontrado para ${ticker}`);
+      return 0;
+    }
+
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    dataEntradaObj.setHours(0, 0, 0, 0);
+
+    const proventosFiltrados = proventosEncontrados.filter((provento: any) => {
+      try {
+        let dataProventoObj: Date | null = null;
+
+        if (provento.dataObj) {
+          dataProventoObj = new Date(provento.dataObj);
+        } else if (provento.dataPagamento && provento.dataPagamento.includes('/')) {
+          const [d, m, a] = provento.dataPagamento.split('/');
+          dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+        } else if (provento.data && provento.data.includes('/')) {
+          const [d, m, a] = provento.data.split('/');
+          dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+        }
+
+        if (!dataProventoObj || isNaN(dataProventoObj.getTime())) {
+          return false;
+        }
+
+        dataProventoObj.setHours(0, 0, 0, 0);
+        return dataProventoObj >= dataEntradaObj;
+      } catch (error) {
+        return false;
+      }
+    });
+
+    const valorTotal = proventosFiltrados.reduce((total: number, provento: any) => {
+      const valor = typeof provento.valor === 'number' 
+        ? provento.valor 
+        : parseFloat(String(provento.valor || '0').replace(',', '.'));
+      return total + (isNaN(valor) ? 0 : valor);
+    }, 0);
+
+    console.log(`✅ [localStorage] ${ticker}: ${proventosFiltrados.length} proventos = R$ ${valorTotal.toFixed(2)}`);
+    return valorTotal;
+
+  } catch (error) {
+    console.error(`❌ [localStorage] Erro para ${ticker}:`, error);
+    return 0;
+  }
+}
 
 // 🔥 HOOK OTIMIZADO PARA HG BRASIL API - DADOS REAIS DE FII
 function useHGBrasilFII(ticker) {
@@ -1348,65 +1938,190 @@ const MetricCard = React.memo(({
   </div>
 ));
 
-// Histórico de Dividendos
+// 🔥 HISTÓRICO DE DIVIDENDOS COM BOTÃO MOSTRAR TODOS CORRIGIDO
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: { ticker: string; dataEntrada: string; isFII?: boolean }) => {
   const [proventos, setProventos] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fonte, setFonte] = useState<string>('');
+  const [totalOriginal, setTotalOriginal] = useState(0); // Total antes do filtro por data
 
   useEffect(() => {
-    if (ticker && typeof window !== 'undefined') {
-      let dadosSalvos = null;
-      
-      if (isFII) {
-        dadosSalvos = localStorage.getItem(`dividendos_fii_${ticker}`) || 
-                     localStorage.getItem(`proventos_${ticker}`) ||
-                     localStorage.getItem(`rendimentos_${ticker}`);
-      } else {
-        dadosSalvos = localStorage.getItem(`proventos_${ticker}`);
+    const carregarProventos = async () => {
+      if (!ticker) {
+        setLoading(false);
+        return;
       }
 
-      if (!dadosSalvos) {
-        const proventosCentral = localStorage.getItem('proventos_central_master');
-        if (proventosCentral) {
-          try {
-            const todosDados = JSON.parse(proventosCentral);
-            const dadosTicker = todosDados.filter((item: any) => item.ticker === ticker);
-            if (dadosTicker.length > 0) {
-              dadosSalvos = JSON.stringify(dadosTicker);
+      try {
+        setLoading(true);
+        console.log(`📊 [HISTORICO] Carregando proventos para ${ticker}...`);
+
+        let proventosEncontrados: any[] = [];
+        let fonteAtual = '';
+        let totalAntesFiltro = 0;
+
+        // 🌐 MÉTODO 1: Buscar via API primeiro
+        try {
+          console.log(`🌐 [HISTORICO] Tentando API para ${ticker}...`);
+          
+          const response = await fetch(`/api/proventos/${ticker}`, {
+            method: 'GET',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
             }
-          } catch (err) {
-            console.error('Erro ao buscar do sistema central:', err);
+          });
+          
+          if (response.ok) {
+            const dadosAPI = await response.json();
+            totalAntesFiltro = dadosAPI.length; // Total original da API
+            console.log(`📊 [HISTORICO] API retornou ${dadosAPI.length} proventos para ${ticker}`);
+            
+            if (Array.isArray(dadosAPI) && dadosAPI.length > 0) {
+              // Converter dados da API para formato esperado
+              let proventosConvertidos = dadosAPI.map((item: any) => ({
+                ...item,
+                dataObj: new Date(item.dataObj),
+                valorFormatado: item.valorFormatado || `R$ ${item.valor.toFixed(2).replace('.', ',')}`,
+                dataFormatada: item.dataFormatada || new Date(item.dataObj).toLocaleDateString('pt-BR'),
+                dataComFormatada: item.dataFormatada || new Date(item.dataObj).toLocaleDateString('pt-BR'),
+                dataPagamentoFormatada: item.dataPagamento ? new Date(item.dataPagamento).toLocaleDateString('pt-BR') : 'N/A',
+                tipo: item.tipo || (isFII ? 'Rendimento' : 'Dividendo')
+              }));
+              
+              // 📅 FILTRAR POR DATA DE ENTRADA SE ESPECIFICADA
+              if (dataEntrada) {
+                const [dia, mes, ano] = dataEntrada.split('/');
+                const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+                dataEntradaObj.setHours(0, 0, 0, 0);
+                
+                console.log(`📅 [HISTORICO] Filtrando desde: ${dataEntrada}`);
+                
+                proventosConvertidos = proventosConvertidos.filter((item: any) => {
+                  if (!item.dataObj || isNaN(item.dataObj.getTime())) {
+                    return false;
+                  }
+                  
+                  const dataItem = new Date(item.dataObj);
+                  dataItem.setHours(0, 0, 0, 0);
+                  
+                  return dataItem >= dataEntradaObj;
+                });
+                
+                console.log(`📊 [HISTORICO] Após filtro por data: ${totalAntesFiltro} → ${proventosConvertidos.length} proventos`);
+              }
+              
+              proventosEncontrados = proventosConvertidos;
+              fonteAtual = 'API';
+              console.log(`✅ [HISTORICO] ${proventosEncontrados.length} proventos processados da API`);
+            }
+          } else {
+            console.warn(`⚠️ [HISTORICO] API retornou status ${response.status}`);
+          }
+        } catch (apiError) {
+          console.warn(`⚠️ [HISTORICO] Erro na API:`, apiError);
+        }
+
+        // 📁 MÉTODO 2: Fallback para localStorage se API falhar
+        if (proventosEncontrados.length === 0) {
+          console.log(`📁 [HISTORICO] Buscando no localStorage para ${ticker}...`);
+          
+          // [Mesmo código do localStorage da versão anterior]
+          let dadosSalvos = null;
+          const chavesPossiveis = [
+            `proventos_${ticker}`,
+            `dividendos_${ticker}`,
+            `rendimentos_${ticker}`,
+            `dividendos_fii_${ticker}`,
+            `proventos_fii_${ticker}`
+          ];
+          
+          for (const chave of chavesPossiveis) {
+            const dados = localStorage.getItem(chave);
+            if (dados) {
+              dadosSalvos = dados;
+              break;
+            }
+          }
+          
+          if (!dadosSalvos) {
+            const proventosCentral = localStorage.getItem('proventos_central_master');
+            if (proventosCentral) {
+              try {
+                const todosDados = JSON.parse(proventosCentral);
+                const dadosTicker = Array.isArray(todosDados) 
+                  ? todosDados.filter((item: any) => item.ticker === ticker)
+                  : [];
+                
+                if (dadosTicker.length > 0) {
+                  dadosSalvos = JSON.stringify(dadosTicker);
+                  totalAntesFiltro = dadosTicker.length;
+                }
+              } catch (err) {
+                console.error('❌ [HISTORICO] Erro sistema central:', err);
+              }
+            }
+          }
+          
+          if (dadosSalvos) {
+            try {
+              const proventosSalvos = JSON.parse(dadosSalvos);
+              totalAntesFiltro = proventosSalvos.length;
+              
+              proventosEncontrados = proventosSalvos.slice(0, 500).map((item: any) => ({
+                ...item,
+                dataObj: new Date(item.dataCom || item.data || item.dataObj || item.dataFormatada),
+                valorFormatado: item.valorFormatado || `R$ ${(item.valor || 0).toFixed(2).replace('.', ',')}`,
+                tipo: item.tipo || (isFII ? 'Rendimento' : 'Dividendo')
+              }));
+              
+              fonteAtual = 'localStorage';
+            } catch (err) {
+              console.error('❌ [HISTORICO] Erro localStorage:', err);
+            }
           }
         }
-      }
-      
-      if (dadosSalvos) {
-        try {
-          const proventosSalvos = JSON.parse(dadosSalvos);
-          const proventosLimitados = proventosSalvos.slice(0, 500).map((item: any) => ({
-            ...item,
-            dataObj: new Date(item.dataCom || item.data || item.dataObj || item.dataFormatada)
-          }));
-          
-          const proventosValidos = proventosLimitados.filter((item: any) => 
-            item.dataObj && !isNaN(item.dataObj.getTime()) && item.valor && item.valor > 0
-          );
-          
-          proventosValidos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-          setProventos(proventosValidos);
-          
-        } catch (err) {
-          console.error('Erro ao carregar proventos salvos:', err);
-          setProventos([]);
-        }
-      } else {
-        setProventos([]);
-      }
-    }
-  }, [ticker, isFII]);
 
+        // 📋 VALIDAR E PROCESSAR DADOS FINAIS
+        const proventosValidos = proventosEncontrados.filter((item: any) => 
+          item.dataObj && 
+          !isNaN(item.dataObj.getTime()) && 
+          item.valor && 
+          item.valor > 0
+        );
+        
+        // Ordenar por data (mais recente primeiro)
+        proventosValidos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+        
+        console.log(`🎯 [HISTORICO] RESULTADO FINAL:`, {
+          ticker,
+          fonte: fonteAtual,
+          totalOriginal: totalAntesFiltro,
+          totalValidos: proventosValidos.length,
+          periodo: dataEntrada ? `desde ${dataEntrada}` : 'todos'
+        });
+
+        setProventos(proventosValidos);
+        setFonte(fonteAtual || 'sem dados');
+        setTotalOriginal(totalAntesFiltro); // Salvar total original
+        
+      } catch (error) {
+        console.error('❌ [HISTORICO] Erro geral:', error);
+        setProventos([]);
+        setFonte('erro');
+        setTotalOriginal(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarProventos();
+  }, [ticker, isFII, dataEntrada]);
+
+  // Cálculos para os cards de resumo
   const { totalProventos, mediaProvento, ultimoProvento } = useMemo(() => {
-    const total = proventos.reduce((sum, item) => sum + item.valor, 0);
+    const total = proventos.reduce((sum, item) => sum + (item.valor || 0), 0);
     const media = proventos.length > 0 ? total / proventos.length : 0;
     const ultimo = proventos.length > 0 ? proventos[0] : null;
 
@@ -1416,6 +2131,10 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
       ultimoProvento: ultimo
     };
   }, [proventos]);
+
+  // 🔥 LÓGICA MELHORADA PARA O BOTÃO "MOSTRAR TODOS"
+  const temMaisProventos = proventos.length > 10;
+  const proventosExibidos = mostrarTodos ? proventos : proventos.slice(0, 10);
 
   return (
     <div style={{
@@ -1435,9 +2154,28 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
         }}>
           {isFII ? 'Histórico de Rendimentos (FII)' : 'Histórico de Proventos'}
         </h3>
+        
+        {/* Indicador de fonte */}
+        {fonte && (
+          <span style={{
+            backgroundColor: fonte === 'API' ? '#22c55e' : fonte === 'localStorage' ? '#f59e0b' : '#6b7280',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '600'
+          }}>
+            📊 {fonte}
+          </span>
+        )}
       </div>
 
-      {proventos.length === 0 ? (
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
+          <p>Carregando proventos de {ticker}...</p>
+        </div>
+      ) : proventos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <p>
             {isFII ? `❌ Nenhum rendimento carregado para ${ticker}` : `❌ Nenhum provento carregado para ${ticker}`}
@@ -1445,9 +2183,13 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
           <p style={{ fontSize: '14px', marginTop: '8px' }}>
             📅 Data de entrada: {dataEntrada}
           </p>
+          <p style={{ fontSize: '12px', marginTop: '8px', color: '#94a3b8' }}>
+            Fonte consultada: {fonte} • Total original: {totalOriginal}
+          </p>
         </div>
       ) : (
         <>
+          {/* Cards de resumo */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
             <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
               <h4 style={{ fontSize: '20px', fontWeight: '700', color: '#0ea5e9', margin: '0' }}>
@@ -1457,13 +2199,13 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             </div>
             <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
               <h4 style={{ fontSize: '20px', fontWeight: '700', color: '#22c55e', margin: '0' }}>
-                {formatarValor(totalProventos).replace('R$ ', '')}
+                R$ {totalProventos.toFixed(2).replace('.', ',')}
               </h4>
               <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Total</p>
             </div>
             <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#fefce8', borderRadius: '8px' }}>
               <h4 style={{ fontSize: '20px', fontWeight: '700', color: '#eab308', margin: '0' }}>
-                {formatarValor(mediaProvento).replace('R$ ', '')}
+                R$ {mediaProvento.toFixed(2).replace('.', ',')}
               </h4>
               <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Média</p>
             </div>
@@ -1477,19 +2219,21 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             </div>
           </div>
           
-          {proventos.length > 10 && (
+          {/* 🔥 BOTÃO MOSTRAR TODOS - SEMPRE VISÍVEL QUANDO HÁ MAIS DE 10 */}
+          {temMaisProventos && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
               <button
                 onClick={() => setMostrarTodos(!mostrarTodos)}
                 style={{
-                  backgroundColor: '#f1f5f9',
-                  color: '#64748b',
-                  border: '1px solid #cbd5e1',
+                  backgroundColor: mostrarTodos ? '#fef3c7' : '#f1f5f9',
+                  color: mostrarTodos ? '#d97706' : '#64748b',
+                  border: `1px solid ${mostrarTodos ? '#fde68a' : '#cbd5e1'}`,
                   borderRadius: '8px',
                   padding: '8px 16px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 {mostrarTodos 
@@ -1500,6 +2244,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             </div>
           )}
 
+          {/* Tabela de proventos */}
           <div style={{ 
             backgroundColor: 'white', 
             borderRadius: '8px',
@@ -1519,13 +2264,13 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                 </tr>
               </thead>
               <tbody>
-                {(mostrarTodos ? proventos : proventos.slice(0, 10)).map((provento, index) => (
-                  <tr key={`${provento.data || provento.dataCom}-${index}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                {proventosExibidos.map((provento, index) => (
+                  <tr key={`${provento.id || provento.data || provento.dataCom}-${index}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px', fontWeight: '500' }}>
                       {ticker}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>
-                      {provento.valorFormatado || formatarValor(provento.valor)}
+                      {provento.valorFormatado || `R$ ${(provento.valor || 0).toFixed(2).replace('.', ',')}`}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center', fontWeight: '500' }}>
                       {provento.dataComFormatada || 
@@ -1535,8 +2280,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center', fontWeight: '500' }}>
                       {provento.dataPagamentoFormatada || 
-                       provento.dataFormatada || 
-                       provento.dataObj?.toLocaleDateString('pt-BR') || 
+                       provento.dataPagamento || 
                        'N/A'}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -1553,7 +2297,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                       </span>
                     </td>
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: '700', color: '#1976d2' }}>
-                      {provento.dividendYield ? `${(!isFII && provento.dividendYield > 0 && provento.dividendYield < 1 ? provento.dividendYield * 100 : provento.dividendYield).toFixed(2)}%` : '-'}
+                      {provento.dividendYield ? `${(provento.dividendYield * 100).toFixed(2)}%` : '-'}
                     </td>
                   </tr>
                 ))}
@@ -1561,16 +2305,25 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             </table>
           </div>
           
-          {proventos.length > 10 && (
-            <div style={{ textAlign: 'center', marginTop: '16px' }}>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>
-                {mostrarTodos 
-                  ? `Mostrando todos os ${proventos.length} proventos com rolagem`
-                  : `Mostrando os 10 mais recentes • Total: ${proventos.length}`
-                }
+          {/* Footer com informações MELHORADAS */}
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>
+              {mostrarTodos 
+                ? `Mostrando todos os ${proventos.length} proventos • Fonte: ${fonte}`
+                : `Mostrando os ${Math.min(10, proventos.length)} mais recentes • Total: ${proventos.length} • Fonte: ${fonte}`
+              }
+            </p>
+            {dataEntrada && (
+              <p style={{ fontSize: '11px', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                📅 Período: desde {dataEntrada}
+                {totalOriginal > proventos.length && (
+                  <span style={{ color: '#f59e0b', fontWeight: '600' }}>
+                    {' '}• {totalOriginal - proventos.length} proventos anteriores à data de entrada
+                  </span>
+                )}
               </p>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>
@@ -2693,9 +3446,9 @@ const BDRAmericanoInfo = React.memo(({
   bdrLoading: boolean;
   precoTetoBDR?: number | null;
   cotacaoUSD?: number | null;
-  loadingUSD?: boolean; // ← NOVA PROP
-  atualizacaoUSD?: string; // ← NOVA PROP
-  refetchUSD?: () => void; // ← NOVA PROP
+  loadingUSD?: boolean;
+  atualizacaoUSD?: string;
+  refetchUSD?: () => void;
 }) => {
 
   console.log('🇺🇸 BDRAmericanoInfo props atualizadas:', { 
@@ -2992,9 +3745,9 @@ const BDREstrangeiroInfo = React.memo(({
   bdrError: string | null;
   precoTetoBDR?: number | null;
   cotacaoUSD?: number | null;
-  loadingUSD?: boolean; // ← NOVA PROP
-  atualizacaoUSD?: string; // ← NOVA PROP
-  refetchUSD?: () => void; // ← NOVA PROP
+  loadingUSD?: boolean;
+  atualizacaoUSD?: string;
+  refetchUSD?: () => void;
 }) => {
 
   console.log('🌍 BDREstrangeiroInfo props:', { ticker, ehBDREstrangeiro, precoTetoBDR, cotacaoUSD });
@@ -3237,7 +3990,7 @@ export default function AtivoPage() {
     CARTEIRAS_CONFIG, 
     cotacoes, 
     buscarCotacoes,
-    cotacaoUSD: cotacaoUSDGlobal, // ← Renomeado para evitar conflito
+    cotacaoUSD: cotacaoUSDGlobal,
     debug
   } = useDataStore();
   
@@ -3245,10 +3998,28 @@ export default function AtivoPage() {
   const [ativo, setAtivo] = useState(null);
   const [carteira, setCarteira] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ✅ DETECTAR DISPOSITIVO
+  useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      console.log('📱 Dispositivo detectado:', { width, isMobile: mobile });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   // ✅ HOOK USD ESPECÍFICO (agora deve funcionar)
   const { cotacaoUSD, loading: loadingUSD, ultimaAtualizacao: atualizacaoUSD, refetch: refetchUSD } = useCotacaoUSD();
 
+  // ✅ HOOKS INTEGRADOS (substituindo os antigos)
+  const { dy12Meses, dyFormatado, loading: loadingDY, fonte: fonteDY, refetch: refetchDY } = useDividendYieldIntegrado(ticker, isMobile);
+const { valorProventos, performanceProventos, loading: loadingProventos, fonte: fonteProventos, refetch: refetchProventos } = useProventosIntegrado(ticker, ativo?.dataEntrada || '', ativo?.precoEntrada);
 
   // Função para calcular percentual automático da carteira
   const calcularPercentualCarteira = (nomeCarteira: string) => {
@@ -3727,133 +4498,46 @@ export default function AtivoPage() {
   // OBTER PREÇO TETO BDR
   const precoTetoBDR = obterPrecoTetoBDR();
 
-// Hook para DY CORRIGIDO
-const { 
-  dy12Meses, 
-  dyDesdeEntrada, 
-  loading: loadingDY, 
-  fonte: fonteDY, 
-  refetch: refetchDY 
-} = useDividendYield(
-  ticker, 
-  ativo?.dataEntrada || '', 
-  cotacaoCompleta?.regularMarketPrice || dadosFinanceiros?.precoAtual, 
-  ativo?.precoEntrada || '',
-  ativo?.tipo === 'FII'
-);
-
-// 💰 FUNÇÃO PARA CALCULAR PROVENTOS (adicionar antes da função calcularPerformance)
-const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => {
-  try {
-    if (typeof window === 'undefined') return 0;
+  // 🔄 FUNÇÃO calcularPerformance INTEGRADA COM API (Total Return)
+  const calcularPerformance = () => {
+    if (!ativo) return { total: 0, acao: 0, proventos: 0, valorProventos: 0 };
     
-    // Buscar proventos do localStorage da Central de Proventos
-    const proventosKey = `proventos_${ticker}`;
-    const proventosData = localStorage.getItem(proventosKey);
-    if (!proventosData) return 0;
+    // 📊 CALCULAR PERFORMANCE DA AÇÃO
+    let performanceAcao = 0;
     
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
-    
-    // Converter data de entrada para objeto Date
-    const [dia, mes, ano] = dataEntrada.split('/');
-    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-    
-    // Filtrar proventos pagos após a data de entrada
-    const proventosFiltrados = proventos.filter((provento: any) => {
-      try {
-        let dataProventoObj: Date;
-        
-        // Tentar diferentes formatos de data
-        if (provento.dataPagamento) {
-          if (provento.dataPagamento.includes('/')) {
-            const [d, m, a] = provento.dataPagamento.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.dataPagamento.includes('-')) {
-            dataProventoObj = new Date(provento.dataPagamento);
-          }
-        } else if (provento.data) {
-          if (provento.data.includes('/')) {
-            const [d, m, a] = provento.data.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.data.includes('-')) {
-            dataProventoObj = new Date(provento.data);
-          }
-        } else if (provento.dataCom) {
-          if (provento.dataCom.includes('/')) {
-            const [d, m, a] = provento.dataCom.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.dataCom.includes('-')) {
-            dataProventoObj = new Date(provento.dataCom);
-          }
-        } else if (provento.dataObj) {
-          dataProventoObj = new Date(provento.dataObj);
-        } else {
-          return false;
-        }
-        
-        return dataProventoObj && dataProventoObj >= dataEntradaObj;
-      } catch (error) {
-        console.error('Erro ao processar data do provento:', error);
-        return false;
+    if (ativo.posicaoEncerrada && ativo.precoSaida) {
+      performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+    } else {
+      const precoAtual = cotacaoCompleta?.regularMarketPrice || 
+                        (cotacoes[ticker] && typeof cotacoes[ticker] === 'object' ? cotacoes[ticker].regularMarketPrice : cotacoes[ticker]);
+      
+      if (precoAtual && ativo.precoEntrada) {
+        performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
       }
+    }
+    
+    // 💰 USAR PROVENTOS INTEGRADOS (via API)
+    const performanceProventosIntegrada = performanceProventos || 0;
+    const valorProventosIntegrado = valorProventos || 0;
+    
+    // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS VIA API)
+    const performanceTotal = performanceAcao + performanceProventosIntegrada;
+    
+    console.log(`📊 Performance ${ticker} (INTEGRADA):`, {
+      acao: `${performanceAcao.toFixed(2)}%`,
+      proventos: `${performanceProventosIntegrada.toFixed(2)}%`,
+      total: `${performanceTotal.toFixed(2)}%`,
+      valorProventos: `R$ ${valorProventosIntegrado.toFixed(2)}`,
+      fonte: fonteProventos
     });
     
-    // Somar valores dos proventos
-    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
-    }, 0);
-    
-    console.log(`✅ ${ticker}: ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
-    
-    return totalProventos;
-    
-  } catch (error) {
-    console.error(`❌ Erro ao calcular proventos para ${ticker}:`, error);
-    return 0;
-  }
-};
-
-// 🔄 FUNÇÃO calcularPerformance MODIFICADA (Total Return)
-const calcularPerformance = () => {
-  if (!ativo) return { total: 0, acao: 0, proventos: 0, valorProventos: 0 };
-  
-  // 📊 CALCULAR PERFORMANCE DA AÇÃO
-  let performanceAcao = 0;
-  
-  if (ativo.posicaoEncerrada && ativo.precoSaida) {
-    performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-  } else {
-    const precoAtual = cotacaoCompleta?.regularMarketPrice || 
-                      (cotacoes[ticker] && typeof cotacoes[ticker] === 'object' ? cotacoes[ticker].regularMarketPrice : cotacoes[ticker]);
-    
-    if (precoAtual && ativo.precoEntrada) {
-      performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-    }
-  }
-  
-  // 💰 CALCULAR PROVENTOS DO PERÍODO
-  const valorProventos = calcularProventosAtivo(ticker, ativo.dataEntrada);
-  const performanceProventos = ativo.precoEntrada > 0 ? (valorProventos / ativo.precoEntrada) * 100 : 0;
-  
-  // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
-  const performanceTotal = performanceAcao + performanceProventos;
-  
-  console.log(`📊 Performance ${ticker}:`, {
-    acao: `${performanceAcao.toFixed(2)}%`,
-    proventos: `${performanceProventos.toFixed(2)}%`,
-    total: `${performanceTotal.toFixed(2)}%`,
-    valorProventos: `R$ ${valorProventos.toFixed(2)}`
-  });
-  
-  return {
-    total: performanceTotal,
-    acao: performanceAcao,
-    proventos: performanceProventos,
-    valorProventos: valorProventos
+    return {
+      total: performanceTotal,
+      acao: performanceAcao,
+      proventos: performanceProventosIntegrada,
+      valorProventos: valorProventosIntegrado
+    };
   };
-};
 
   // Calcular dias investido
   const calcularDiasInvestido = () => {
@@ -3938,7 +4622,7 @@ const calcularPerformance = () => {
 
   const carteiraConfig = CARTEIRAS_CONFIG[carteira];
   const performanceData = calcularPerformance();
-const performance = performanceData.total; // Para manter compatibilidade
+  const performance = performanceData.total; // Para manter compatibilidade
   const diasInvestido = calcularDiasInvestido();
   
   // Usar cotação local primeiro, depois global
@@ -4003,7 +4687,7 @@ const performance = performanceData.total; // Para manter compatibilidade
         </button>
       </div>
 
-      {/* Header Principal MELHORADO COM AVATAR DO ARQUIVO 2 */}
+      {/* Header Principal MELHORADO COM AVATAR */}
       <div style={{
         marginBottom: '32px',
         background: (() => {
@@ -4466,7 +5150,7 @@ const performance = performanceData.total; // Para manter compatibilidade
       bdrData={bdrDataAPI}
       bdrLoading={bdrLoadingAPI}
       precoTetoBDR={precoTetoBDR}
-      cotacaoUSD={cotacaoUSD} // ← Usar do hook específico
+      cotacaoUSD={cotacaoUSD}
       loadingUSD={loadingUSD}
       atualizacaoUSD={atualizacaoUSD}
       refetchUSD={refetchUSD}
@@ -4483,7 +5167,7 @@ const performance = performanceData.total; // Para manter compatibilidade
       bdrLoading={bdrLoadingAPI || bdrLoading}
       bdrError={bdrError}
       precoTetoBDR={precoTetoBDR}
-      cotacaoUSD={cotacaoUSD} // ← Usar do hook específico
+      cotacaoUSD={cotacaoUSD}
       loadingUSD={loadingUSD}
       atualizacaoUSD={atualizacaoUSD}
       refetchUSD={refetchUSD}
@@ -4508,12 +5192,61 @@ const performance = performanceData.total; // Para manter compatibilidade
     gap: '20px',
     marginBottom: '32px'
   }}>
-<MetricCard 
-  title="PERFORMANCE TOTAL" 
-  value={`${performanceData.total >= 0 ? '+' : ''}${performanceData.total.toFixed(2)}%`}
-  subtitle={`Ação: ${performanceData.acao.toFixed(1)}% • Proventos: ${performanceData.proventos.toFixed(1)}%`}
-/>
-    
+<div style={{
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  padding: '20px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+  textAlign: 'center',
+  height: '100%'
+}}>
+  <h4 style={{
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#64748b',
+    margin: '0 0 8px 0',
+    textTransform: 'uppercase'
+  }}>
+    PERFORMANCE TOTAL
+  </h4>
+  
+  {loadingProventos ? (
+    <div style={{ color: '#64748b', fontSize: '18px' }}>⏳</div>
+  ) : (
+    <>
+      <p style={{
+        fontSize: '24px',
+        fontWeight: '800',
+        color: (performanceData.acao + performanceProventos) >= 0 ? '#22c55e' : '#ef4444',
+        margin: '0 0 4px 0'
+      }}>
+        {(performanceData.acao + performanceProventos) >= 0 ? '+' : ''}{(performanceData.acao + performanceProventos).toFixed(2)}%
+      </p>
+      
+      <p style={{
+        fontSize: '12px',
+        color: '#64748b',
+        margin: '0',
+        lineHeight: '1.4'
+      }}>
+        Ação: {performanceData.acao.toFixed(1)}% • Proventos: {performanceProventos.toFixed(1)}%
+        <br/>
+        <span style={{ 
+          fontSize: '10px',
+          backgroundColor: fonteProventos === 'API' ? '#22c55e' : fonteProventos === 'localStorage' ? '#f59e0b' : '#6b7280',
+          color: 'white',
+          padding: '1px 4px',
+          borderRadius: '3px',
+          marginTop: '2px',
+          display: 'inline-block'
+        }}>
+          {fonteProventos}
+        </span>
+      </p>
+    </>
+  )}
+</div>    
     {/* 📊 P/L MELHORADO - MÚLTIPLAS FONTES */}
     <MetricCard 
       title="P/L" 
@@ -4545,13 +5278,13 @@ const performance = performanceData.total; // Para manter compatibilidade
       loading={dadosLoading || loadingHGBrasil || loadingYahoo}
     />
     
-    {/* 💰 DIVIDEND YIELD MELHORADO */}
+    {/* 💰 DIVIDEND YIELD INTEGRADO */}
     <MetricCard 
       title="DIVIDEND YIELD" 
       value={(() => {
-        // Prioridade: Hook personalizado > Yahoo > HG Brasil
+        // Prioridade: Hook integrado > Yahoo > HG Brasil
         if (dy12Meses > 0) {
-          return `${dy12Meses.toFixed(2)}%`;
+          return dyFormatado;
         }
         if (dadosYahoo?.dividendYield && dadosYahoo.dividendYield > 0) {
           return `${dadosYahoo.dividendYield.toFixed(2)}%`;
@@ -4563,7 +5296,7 @@ const performance = performanceData.total; // Para manter compatibilidade
       })()}
       subtitle={(() => {
         if (dy12Meses > 0) {
-          return fonteDY || "calculado";
+          return fonteDY || "BRAPI-Estratégia";
         }
         if (dadosYahoo?.dividendYield && dadosYahoo.dividendYield > 0) {
           return dadosYahoo.fonte || "International";

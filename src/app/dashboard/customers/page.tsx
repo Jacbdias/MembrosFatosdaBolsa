@@ -4,6 +4,8 @@
 import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
+import { calcularProventosAtivoAPI } from '@/hooks/useProventosAPI';
+
 
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DO SMLL - VERSÃO TOTALMENTE DINÂMICA
 function useSmllRealTime() {
@@ -506,185 +508,6 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   }
 }
 
-// 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM ATIVO NO PERÍODO (desde a data de entrada)
-// 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM ATIVO NO PERÍODO (COM FALLBACK)
-const calcularProventosAtivo = (ticker: string, dataEntrada: string): number => {
-  try {
-    if (typeof window === 'undefined') return 0;
-    
-    console.log(`💰 [PROV] Calculando proventos para ${ticker} desde ${dataEntrada}`);
-    
-    // 🎯 TENTATIVA 1: Buscar proventos do ticker específico
-    let proventosData = localStorage.getItem(`proventos_${ticker}`);
-    let fonte = 'individual';
-    
-    // 🔄 TENTATIVA 2: Fallback para master
-    if (!proventosData) {
-      console.log(`⚠️ [PROV] Proventos individuais de ${ticker} não encontrados, buscando no master...`);
-      
-      const masterData = localStorage.getItem('proventos_central_master');
-      if (masterData) {
-        try {
-          const todosProviventos = JSON.parse(masterData);
-          console.log(`📊 [PROV] Master carregado: ${todosProviventos.length} proventos totais`);
-          
-          // Filtrar apenas os proventos do ticker específico
-          const proventosTicker = todosProviventos.filter((p: any) => 
-            p.ticker && p.ticker.toUpperCase() === ticker.toUpperCase()
-          );
-          
-          console.log(`🎯 [PROV] Encontrados ${proventosTicker.length} proventos para ${ticker} no master`);
-          
-          if (proventosTicker.length > 0) {
-            proventosData = JSON.stringify(proventosTicker);
-            fonte = 'master';
-          }
-        } catch (error) {
-          console.error(`❌ [PROV] Erro ao processar master:`, error);
-        }
-      } else {
-        console.log(`❌ [PROV] Master também não encontrado`);
-      }
-    } else {
-      console.log(`✅ [PROV] Dados individuais encontrados para ${ticker}`);
-    }
-    
-    if (!proventosData) {
-      console.log(`❌ [PROV] Nenhum provento encontrado para ${ticker}`);
-      return 0;
-    }
-    
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) {
-      console.log(`❌ [PROV] Array de proventos vazio para ${ticker}`);
-      return 0;
-    }
-    
-    // 📅 Converter data de entrada para objeto Date
-    const [dia, mes, ano] = dataEntrada.split('/');
-    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
-    
-    console.log(`📅 [PROV] Data de entrada: ${dataEntradaObj.toLocaleDateString('pt-BR')}`);
-    console.log(`📋 [PROV] Processando ${proventos.length} proventos (fonte: ${fonte})`);
-    
-    // 🔍 Filtrar proventos pagos após a data de entrada
-    const proventosFiltrados = proventos.filter((provento: any) => {
-      try {
-        let dataProventoObj: Date;
-        
-        // 🔄 Tentar diferentes formatos de data
-        if (provento.dataObj) {
-          dataProventoObj = new Date(provento.dataObj);
-        } else if (provento.dataPagamento) {
-          // Usar data de pagamento se disponível
-          if (provento.dataPagamento.includes('/')) {
-            const [d, m, a] = provento.dataPagamento.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
-          } else if (provento.dataPagamento.includes('-')) {
-            const partes = provento.dataPagamento.split('-');
-            if (partes[0].length === 4) {
-              dataProventoObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]), 12, 0, 0);
-            } else {
-              dataProventoObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]), 12, 0, 0);
-            }
-          } else {
-            dataProventoObj = new Date(provento.dataPagamento);
-          }
-        } else if (provento.dataCom) {
-          // Usar data com
-          if (provento.dataCom.includes('/')) {
-            const [d, m, a] = provento.dataCom.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
-          } else if (provento.dataCom.includes('-')) {
-            const partes = provento.dataCom.split('-');
-            if (partes[0].length === 4) {
-              dataProventoObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]), 12, 0, 0);
-            } else {
-              dataProventoObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]), 12, 0, 0);
-            }
-          } else {
-            dataProventoObj = new Date(provento.dataCom);
-          }
-        } else if (provento.data) {
-          // Usar campo data (formato antigo)
-          if (provento.data.includes('/')) {
-            const [d, m, a] = provento.data.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d), 12, 0, 0);
-          } else if (provento.data.includes('-')) {
-            const partes = provento.data.split('-');
-            if (partes[0].length === 4) {
-              dataProventoObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]), 12, 0, 0);
-            } else {
-              dataProventoObj = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]), 12, 0, 0);
-            }
-          } else {
-            dataProventoObj = new Date(provento.data);
-          }
-        } else {
-          console.log(`⚠️ [PROV] Provento sem data:`, provento);
-          return false;
-        }
-        
-        // Verificar se a data é válida
-        if (isNaN(dataProventoObj.getTime())) {
-          console.log(`⚠️ [PROV] Data inválida:`, provento);
-          return false;
-        }
-        
-        // Verificar se o provento é posterior à data de entrada
-        const esPosterior = dataProventoObj >= dataEntradaObj;
-        
-        if (esPosterior) {
-          console.log(`✅ [PROV] Provento válido: ${dataProventoObj.toLocaleDateString('pt-BR')} - R$ ${provento.valor}`);
-        }
-        
-        return esPosterior;
-        
-      } catch (error) {
-        console.error(`❌ [PROV] Erro ao processar data do provento:`, error, provento);
-        return false;
-      }
-    });
-    
-    console.log(`📊 [PROV] ${ticker}: ${proventosFiltrados.length} proventos válidos desde a entrada`);
-    
-    // 💰 Somar valores dos proventos
-    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
-      let valor = 0;
-      
-      if (typeof provento.valor === 'number') {
-        valor = provento.valor;
-      } else if (typeof provento.valor === 'string') {
-        valor = parseFloat(
-          provento.valor
-            .toString()
-            .replace('R$', '')
-            .replace(/\s/g, '')
-            .replace(',', '.')
-        );
-      }
-      
-      if (isNaN(valor)) {
-        console.log(`⚠️ [PROV] Valor inválido:`, provento.valor);
-        valor = 0;
-      }
-      
-      return total + valor;
-    }, 0);
-    
-    console.log(`✅ [PROV] ${ticker} - RESULTADO:`);
-    console.log(`  💰 Total proventos desde entrada: R$ ${totalProventos.toFixed(2)}`);
-    console.log(`  📋 Quantidade: ${proventosFiltrados.length}`);
-    console.log(`  🔄 Fonte: ${fonte}`);
-    
-    return totalProventos;
-    
-  } catch (error) {
-    console.error(`❌ [PROV] Erro ao calcular proventos para ${ticker}:`, error);
-    return 0;
-  }
-};
-
 // 🚀 NOVA FUNÇÃO calcularDY12Meses VIA API BRAPI - SUBSTITUI A ANTIGA
 async function calcularDY12MesesAPI(ticker: string): Promise<string> {
   try {
@@ -937,7 +760,7 @@ function useMicroCapsResponsive() {
 
   const microCapsData = dados.microCaps || [];
 
-  const buscarCotacoes = React.useCallback(async () => {
+const buscarCotacoes = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -1120,66 +943,69 @@ console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
 console.log('📈 Buscando DY via API BRAPI...');
 const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
 
-// 🔥 PROCESSAR DADOS COM DY VIA API
-const ativosProcessados = microCapsData.map((ativo, index) => {
-  const cotacao = cotacoesMap.get(ativo.ticker);
-  const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
-  
-  if (cotacao) {
-    // ✅ COTAÇÃO VÁLIDA
-    const precoAtual = cotacao.precoAtual;
-    const performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+// 🔥 PROCESSAR DADOS COM DY VIA API - ✅ CORRIGIDO
+const ativosProcessados = await Promise.all(
+  microCapsData.map(async (ativo, index) => {
+    const cotacao = cotacoesMap.get(ativo.ticker);
+    const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
     
-    // 💰 CALCULAR PROVENTOS DO PERÍODO
-    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-    
-    // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
-    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-    const performanceTotal = performanceAcao + performanceProventos;
-    
-    return {
-      ...ativo,
-      id: String(ativo.id || index + 1),
-      precoAtual,
-      performance: performanceTotal,
-      performanceAcao: performanceAcao,
-      performanceProventos: performanceProventos,
-      proventosAtivo: proventosAtivo,
-      variacao: cotacao.variacao,
-      variacaoPercent: cotacao.variacaoPercent,
-      volume: cotacao.volume,
-      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtual.toFixed(2).replace('.', ',')}`),
-      dy: dyAPI, // 🚀 DY VIA API
-      statusApi: 'success',
-      nomeCompleto: cotacao.nome,
-      rank: `${index + 1}°`
-    };
-  } else {
-    // ⚠️ SEM COTAÇÃO
-    console.log(`⚠️ ${ativo.ticker}: Sem cotação`);
-    
-    const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-    
-    return {
-      ...ativo,
-      id: String(ativo.id || index + 1),
-      precoAtual: ativo.precoEntrada,
-      performance: performanceProventos,
-      performanceAcao: 0,
-      performanceProventos: performanceProventos,
-      proventosAtivo: proventosAtivo,
-      variacao: 0,
-      variacaoPercent: 0,
-      volume: 0,
-      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-      dy: dyAPI, // 🚀 DY VIA API (mesmo sem cotação)
-      statusApi: 'success',
-      nomeCompleto: ativo.ticker,
-      rank: `${index + 1}°`
-    };
-  }
-});
+    if (cotacao) {
+      // ✅ COTAÇÃO VÁLIDA
+      const precoAtual = cotacao.precoAtual;
+      const performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+      
+      // 💰 CALCULAR PROVENTOS VIA API (ASYNC/AWAIT CORRETO)
+      const proventosAtivo = await calcularProventosAtivoAPI(ativo.ticker, ativo.dataEntrada);
+      
+      // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
+      const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+      const performanceTotal = performanceAcao + performanceProventos;
+      
+      return {
+        ...ativo,
+        id: String(ativo.id || index + 1),
+        precoAtual,
+        performance: performanceTotal,
+        performanceAcao: performanceAcao,
+        performanceProventos: performanceProventos,
+        proventosAtivo: proventosAtivo,
+        variacao: cotacao.variacao,
+        variacaoPercent: cotacao.variacaoPercent,
+        volume: cotacao.volume,
+        vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtual.toFixed(2).replace('.', ',')}`),
+        dy: dyAPI, // 🚀 DY VIA API
+        statusApi: 'success',
+        nomeCompleto: cotacao.nome,
+        rank: `${index + 1}°`
+      };
+    } else {
+      // ⚠️ SEM COTAÇÃO
+      console.log(`⚠️ ${ativo.ticker}: Sem cotação`);
+      
+      // 💰 CALCULAR PROVENTOS VIA API (ASYNC/AWAIT CORRETO)
+      const proventosAtivo = await calcularProventosAtivoAPI(ativo.ticker, ativo.dataEntrada);
+      const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+      
+      return {
+        ...ativo,
+        id: String(ativo.id || index + 1),
+        precoAtual: ativo.precoEntrada,
+        performance: performanceProventos,
+        performanceAcao: 0,
+        performanceProventos: performanceProventos,
+        proventosAtivo: proventosAtivo,
+        variacao: 0,
+        variacaoPercent: 0,
+        volume: 0,
+        vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+        dy: dyAPI, // 🚀 DY VIA API (mesmo sem cotação)
+        statusApi: 'success',
+        nomeCompleto: ativo.ticker,
+        rank: `${index + 1}°`
+      };
+    }
+  })
+);
 
 setAtivosAtualizados(ativosProcessados);
 
@@ -1198,29 +1024,32 @@ setAtivosAtualizados(ativosProcessados);
 console.log('🔄 Buscando DY para fallback...');
 const dyMapFallback = await buscarDYsComEstrategia(tickers, isMobile);
 
-const ativosFallback = microCapsData.map((ativo, index) => {
-  const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-  const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-  const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
-  
-  return {
-    ...ativo,
-    id: String(ativo.id || index + 1),
-    precoAtual: ativo.precoEntrada,
-    performance: performanceProventos,
-    performanceAcao: 0,
-    performanceProventos: performanceProventos,
-    proventosAtivo: proventosAtivo,
-    variacao: 0,
-    variacaoPercent: 0,
-    volume: 0,
-    vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-    dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
-    statusApi: 'success',
-    nomeCompleto: ativo.ticker,
-    rank: `${index + 1}°`
-  };
-});
+// ✅ FALLBACK CORRIGIDO - USA API
+const ativosFallback = await Promise.all(
+  microCapsData.map(async (ativo, index) => {
+    const proventosAtivo = await calcularProventosAtivoAPI(ativo.ticker, ativo.dataEntrada);
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: ativo.precoEntrada,
+      performance: performanceProventos,
+      performanceAcao: 0,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: 0,
+      variacaoPercent: 0,
+      volume: 0,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+      dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
+      statusApi: 'success',
+      nomeCompleto: ativo.ticker,
+      rank: `${index + 1}°`
+    };
+  })
+);
 setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
@@ -1343,35 +1172,32 @@ export default function MicroCapsPage() {
     refetch();
   };
 
-// 🔍 FUNÇÃO DE DEBUG VISUAL (TEMPORÁRIA) - ADICIONAR AQUI
+// 🔍 FUNÇÃO DE DEBUG ATUALIZADA PARA API
 const debugProventos = () => {
   if (typeof window === 'undefined') return;
   
   const debugInfo = [];
   
-  // Verificar se tem master
-  const master = localStorage.getItem('proventos_central_master');
-  debugInfo.push(`Master: ${master ? 'EXISTE' : 'NÃO EXISTE'}`);
+  // ✅ ATUALIZAR DEBUG PARA API
+  debugInfo.push('🌐 SISTEMA: API Centralizada');
+  debugInfo.push('✅ Dados sincronizados entre dispositivos');
+  debugInfo.push('📊 Fonte: Banco de dados PostgreSQL');
   
-  if (master) {
-    try {
-      const dados = JSON.parse(master);
-      debugInfo.push(`Total proventos no master: ${dados.length}`);
-      const tickers = new Set(dados.map(d => d.ticker));
-      debugInfo.push(`Tickers no master: ${Array.from(tickers).slice(0, 5).join(', ')}...`);
-    } catch (e) {
-      debugInfo.push(`Erro no master: ${e.message}`);
-    }
-  }
+  // Verificar alguns tickers via API
+  const testTickers = ['ITUB4', 'PETR4', 'VALE3'];
+  debugInfo.push(`\n🧪 Testando conectividade da API...`);
   
-  // Verificar alguns tickers individuais
-  const tickersAmostra = ativosAtualizados.slice(0, 3).map(a => a.ticker);
-  tickersAmostra.forEach(ticker => {
-    const individual = localStorage.getItem(`proventos_${ticker}`);
-    debugInfo.push(`${ticker} individual: ${individual ? 'EXISTE' : 'NÃO EXISTE'}`);
-  });
-  
-  alert(debugInfo.join('\n'));
+  // Teste básico de conectividade
+  fetch('/api/proventos/estatisticas')
+    .then(response => response.json())
+    .then(stats => {
+      debugInfo.push(`✅ API Conectada: ${stats.totalProventos} proventos`);
+      alert(debugInfo.join('\n'));
+    })
+    .catch(error => {
+      debugInfo.push(`❌ API Offline: ${error.message}`);
+      alert(debugInfo.join('\n'));
+    });
 };
 
   if (loading) {
@@ -2367,7 +2193,7 @@ const debugProventos = () => {
         color: '#64748b'
       }}>
         <div>📱 Device: {isMobile ? 'Mobile' : 'Desktop'} • Screen: {screenWidth}px • Ativos: {ativosAtualizados.length}</div>
-        <div>🔄 StatusApi: Todos SUCCESS (SIM removido) • Layout: {isMobile ? 'Cards' : 'Table'} • Graph: {isMobile ? 'Hidden' : 'Shown'}</div>
+        <div>🔄 StatusApi: Todos SUCCESS • Layout: {isMobile ? 'Cards' : 'Table'} • Graph: {isMobile ? 'Hidden' : 'Shown'}</div>
       </div>
     </div>
   );

@@ -8,40 +8,51 @@ datasource db {
 }
 
 model User {
-  id                 String               @id @default(cuid())
-  firstName          String
-  lastName           String
-  email              String               @unique
-  password           String?
-  avatar             String?
-  plan               String               @default("LITE")
-  status             String               @default("ACTIVE")
-  hotmartCustomerId  String?
-  expirationDate     DateTime?
-  customPermissions  String?              @default("[]")
-  passwordCreatedAt  DateTime?
-  mustChangePassword Boolean              @default(true)
-  loginAttempts      Int                  @default(0)
-  lockedUntil        DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  lastLogin          DateTime?
-  loginLogs          LoginLog[]
-  resetTokens        PasswordResetToken[]
-  purchases          Purchase[]
-  carteirasAnalista  CarteiraAnalise[]    @relation("CarteirasAnalista")
-  carteiras          CarteiraAnalise[]    @relation("CarteirasUsuario")
-  instagramCadastro  InstagramCadastro?
-  // ✅ ADICIONAR RELAÇÃO COM RELATÓRIOS
-  relatorios         RelatorioSemanal[]
+  id                      String                        @id @default(cuid())
+  firstName               String
+  lastName                String
+  email                   String                        @unique
+  password                String?
+  avatar                  String?
+  plan                    String                        @default("LITE")
+  status                  String                        @default("ACTIVE")
+  hotmartCustomerId       String?
+  expirationDate          DateTime?
+  customPermissions       String?                       @default("[]")
+  passwordCreatedAt       DateTime?
+  mustChangePassword      Boolean                       @default(true)
+  loginAttempts           Int                           @default(0)
+  lockedUntil             DateTime?
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+  lastLogin               DateTime?
+  loginLogs               LoginLog[]
+  resetTokens             PasswordResetToken[]
+  purchases               Purchase[]
+  carteirasAnalista       CarteiraAnalise[]             @relation("CarteirasAnalista")
+  carteiras               CarteiraAnalise[]             @relation("CarteirasUsuario")
+  instagramCadastro       InstagramCadastro?
+  // ✅ COMENTADO TEMPORARIAMENTE PARA RESOLVER FK CONSTRAINT
+  // relatorios              RelatorioSemanal[]
+  dividendos              UserDividendos[]
+  dividendosInternacional UserDividendosInternacional[]
+  etfs                    UserEtfs[]
+  exteriorStocks          UserExteriorStocks[]
+  fiis                    UserFiis[]
+  microCaps               UserMicroCaps[]
+  projetoAmerica          UserProjetoAmerica[]
+  smallCaps               UserSmallCaps[]
+  
+  // ✅ NOVO: Relacionamento com uploads de proventos
+  proventoUploads         ProventoUpload[]              @relation("ProventoUploads")
 }
 
 model Purchase {
   id                   String   @id @default(cuid())
   userId               String
-  amount               Float    // Pode ser negativo para reembolsos (-valor)
+  amount               Float
   productName          String?
-  status               String   @default("COMPLETED") // COMPLETED, REFUNDED, CANCELLED, CHARGEBACK
+  status               String   @default("COMPLETED")
   hotmartTransactionId String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -128,39 +139,327 @@ model InstagramCadastro {
 }
 
 model HotmartIntegration {
-  id          String   @id @default(cuid())
-  name        String   // Nome da integração (ex: "Projeto Trump")
-  token       String   @unique // Token único para o webhook
-  plan        String   // Plano que será atribuído (VIP, LITE, etc.)
-  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
-  totalSales  Int      @default(0) // Contador de vendas
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  token      String   @unique
+  plan       String
+  status     String   @default("ACTIVE")
+  totalSales Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("hotmart_integrations")
 }
 
 model RelatorioSemanal {
-  id        String   @id @default(cuid())
-  date      String
-  weekOf    String
-  
-  // ✅ Estrutura JSON para armazenar arrays de objetos
-  macro     Json     @default("[]")      // MacroNews[]
-  proventos Json     @default("[]")      // DividendoInfo[]
-  dividendos Json    @default("[]")      // StockNews[]
-  smallCaps Json     @default("[]")      // StockNews[]
-  microCaps Json     @default("[]")      // StockNews[]
-  exterior  Json     @default("[]")      // StockNews[]
-  
-  status    String   @default("draft")   // 'draft' | 'published'
-  authorId  String
-  
-  // ✅ ADICIONAR RELAÇÃO COM USER
-  author    User     @relation(fields: [authorId], references: [id])
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  date       String
+  weekOf     String
+  macro      Json     @default("[]")
+  proventos  Json     @default("[]")
+  dividendos Json     @default("[]")
+  smallCaps  Json     @default("[]")
+  microCaps  Json     @default("[]")
+  exterior   Json     @default("[]")
+  status     String   @default("draft")
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  // ✅ COMENTADO TEMPORARIAMENTE PARA RESOLVER FK CONSTRAINT
+  // author     User     @relation(fields: [authorId], references: [id])
 
   @@map("relatorio_semanal")
+}
+
+model UserMicroCaps {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  precoTetoBDR       Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_micro_caps")
+}
+
+model UserSmallCaps {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_small_caps")
+}
+
+model UserDividendos {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_dividendos")
+}
+
+model UserFiis {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_fiis")
+}
+
+model UserDividendosInternacional {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  precoTetoBDR       Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_dividendos_internacional")
+}
+
+model UserEtfs {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_etfs")
+}
+
+model UserProjetoAmerica {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  precoTetoBDR       Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_projeto_america")
+}
+
+model UserExteriorStocks {
+  id                 String   @id @default(cuid())
+  userId             String
+  ticker             String
+  setor              String
+  dataEntrada        String
+  precoEntrada       Float
+  precoTeto          Float?
+  precoTetoBDR       Float?
+  posicaoEncerrada   Boolean  @default(false)
+  dataSaida          String?
+  precoSaida         Float?
+  motivoEncerramento String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  editadoEm          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@map("user_exterior_stocks")
+}
+
+// =====================================================
+// 💰 NOVOS MODELOS PARA SISTEMA DE PROVENTOS
+// =====================================================
+
+model Provento {
+  id                    String   @id @default(cuid())
+  
+  // 📊 Dados básicos do provento
+  ticker                String   // ITUB4, PETR4, etc.
+  valor                 Float    // Valor em reais (ex: 0.50)
+  tipo                  String   // "dividendo", "jcp", "jscp", "bonus", etc.
+  
+  // 📅 Datas (mantendo flexibilidade do sistema atual)
+  data                  String   // Data original do CSV (formato string)
+  dataObj               DateTime // Data processada como DateTime
+  dataCom               String?  // Data com direito (opcional)
+  dataPagamento         String?  // Data de pagamento (opcional)
+  
+  // 📈 Dados calculados/formatados
+  dataFormatada         String   // "15/03/2024" - para exibição
+  valorFormatado        String   // "R$ 0,50" - para exibição
+  dividendYield         Float?   // DY% na época (opcional)
+  
+  // 🏢 Dados da empresa (desnormalizados para performance)
+  nomeEmpresa           String?  // Nome da empresa
+  setor                 String?  // Setor da empresa
+  
+  // 📋 Metadados
+  fonte                 String?  // "csv_upload", "manual", "api", etc.
+  observacoes           String?  // Observações adicionais
+  
+  // ⏰ Auditoria
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // 📊 Indexes para performance
+  @@index([ticker])                    // Busca por ticker
+  @@index([dataObj])                   // Busca por data
+  @@index([ticker, dataObj])           // Busca combinada (mais comum)
+  @@index([tipo])                      // Busca por tipo
+  @@index([createdAt])                 // Ordenação por criação
+  
+  // 🔍 Constraint para evitar duplicatas
+  @@unique([ticker, dataObj, valor, tipo], name: "unique_provento")
+  
+  @@map("proventos")
+}
+
+// 📊 MODELO PARA ESTATÍSTICAS DE PROVENTOS (OPCIONAL - para cache)
+model ProventoEstatistica {
+  id                    String   @id @default(cuid())
+  
+  // 📈 Agregações por ticker
+  ticker                String   @unique
+  nomeEmpresa           String?
+  setor                 String?
+  
+  // 💰 Estatísticas calculadas
+  totalProventos        Int      @default(0)           // Quantidade total
+  valorTotal            Float    @default(0)           // Soma total em R$
+  valorMedio            Float    @default(0)           // Valor médio
+  ultimoProvento        DateTime?                      // Data do último provento
+  primeiroProvento      DateTime?                      // Data do primeiro provento
+  
+  // 📊 Estatísticas por tipo
+  totalDividendos       Int      @default(0)
+  totalJCP              Int      @default(0)
+  totalBonus            Int      @default(0)
+  
+  valorDividendos       Float    @default(0)
+  valorJCP              Float    @default(0)
+  valorBonus            Float    @default(0)
+  
+  // 📈 Yield médio (se disponível)
+  dividendYieldMedio    Float?
+  
+  // ⏰ Cache control
+  ultimaAtualizacao     DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([ticker])
+  @@index([ultimaAtualizacao])
+  
+  @@map("proventos_estatisticas")
+}
+
+// 🔄 MODELO PARA LOG DE UPLOADS (OPCIONAL - para auditoria)
+model ProventoUpload {
+  id                    String   @id @default(cuid())
+  
+  // 📁 Dados do upload
+  nomeArquivo           String
+  tamanhoArquivo        Int                            // em bytes
+  totalLinhas           Int                            // linhas do CSV
+  linhasProcessadas     Int                            // linhas válidas
+  linhasComErro         Int                            // linhas com erro
+  
+  // 📊 Estatísticas do processamento
+  tempoProcessamento    Int?                           // em milissegundos
+  proventosCriados      Int      @default(0)
+  proventosAtualizados  Int      @default(0)
+  
+  // 🔍 Metadados
+  formatoDetectado      String?  // "novo_6_colunas", "antigo_4_colunas"
+  errosDetalhados       String?  // JSON com detalhes dos erros
+  
+  // 👤 Relacionamento com usuário (opcional)
+  userId                String?
+  user                  User?    @relation("ProventoUploads", fields: [userId], references: [id])
+  
+  // ⏰ Timestamps
+  iniciadoEm            DateTime @default(now())
+  finalizadoEm          DateTime?
+  createdAt             DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  
+  @@map("proventos_uploads")
 }
