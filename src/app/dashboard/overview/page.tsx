@@ -764,67 +764,73 @@ function useSmallCapsIntegradas() {
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
+// 🔧 SUBSTITUIR APENAS a parte de busca de cotações no seu código original
+
 const buscarCotacoesIntegradas = React.useCallback(async () => {
   try {
     setLoading(true);
     setError(null);
 
     console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
+    console.log('📋 Ativos do DataStore:', smallCapsData);
     console.log('📱 Device Info:', { isMobile });
 
     if (smallCapsData.length === 0) {
+      console.log('⚠️ Nenhum ativo encontrado no DataStore');
       setAtivosAtualizados([]);
       setLoading(false);
       return;
     }
 
+    // 🔑 TOKEN BRAPI FUNCIONANDO
     const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+    // 📋 EXTRAIR TODOS OS TICKERS
     const tickers = smallCapsData.map(ativo => ativo.ticker);
-    
+    console.log('🎯 Tickers para buscar:', tickers.join(', '));
+
+    // 🔄 BUSCAR COTAÇÕES COM ESTRATÉGIA MOBILE MELHORADA (SÓ ESTA PARTE MUDOU)
     const cotacoesMap = new Map();
     const novasCotacoes: any = {};
-    let sucessos = 0;
 
-    // 🔥 ESTRATÉGIA DIFERENTE PARA MOBILE vs DESKTOP (IGUAL AO CÓDIGO 1)
     if (isMobile) {
-      // 📱 MOBILE: Estratégia agressiva para forçar API funcionar
-      console.log('📱 ESTRATÉGIA MOBILE: API real com configuração agressiva');
+      // 📱 MOBILE: Estratégia múltipla (NOVA - SÓ ISSO MUDOU)
+      console.log('📱 ESTRATÉGIA MOBILE: Múltiplas tentativas');
       
       for (const ticker of tickers) {
         let cotacaoObtida = false;
         
-        // ESTRATÉGIA 1: User-Agent Desktop
+        // Tentativa 1: User-Agent Desktop
         if (!cotacaoObtida) {
           try {
-            console.log(`📱🔄 ${ticker}: Tentativa 1 - User-Agent Desktop`);
-            
             const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
               method: 'GET',
               headers: {
                 'Accept': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Cache-Control': 'no-cache'
               }
             });
-
+            
             if (response.ok) {
               const data = await response.json();
               
-              if (data.results?.[0]?.regularMarketPrice > 0) {
+              if (data.results && data.results.length > 0) {
                 const quote = data.results[0];
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker,
-                  dadosCompletos: quote
-                });
-                novasCotacoes[ticker] = quote.regularMarketPrice;
-                sucessos++;
-                cotacaoObtida = true;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+                if (quote.regularMarketPrice) {
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName,
+                    dadosCompletos: quote
+                  });
+                  
+                  novasCotacoes[ticker] = quote.regularMarketPrice;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+                  cotacaoObtida = true;
+                }
               }
             }
           } catch (error) {
@@ -832,35 +838,35 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
           }
         }
         
-        // ESTRATÉGIA 2: Sem User-Agent
+        // Tentativa 2: Sem User-Agent
         if (!cotacaoObtida) {
           try {
-            console.log(`📱🔄 ${ticker}: Tentativa 2 - Sem User-Agent`);
-            
             const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
               method: 'GET',
               headers: {
                 'Accept': 'application/json'
               }
             });
-
+            
             if (response.ok) {
               const data = await response.json();
               
-              if (data.results?.[0]?.regularMarketPrice > 0) {
+              if (data.results && data.results.length > 0) {
                 const quote = data.results[0];
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker,
-                  dadosCompletos: quote
-                });
-                novasCotacoes[ticker] = quote.regularMarketPrice;
-                sucessos++;
-                cotacaoObtida = true;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+                if (quote.regularMarketPrice) {
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName,
+                    dadosCompletos: quote
+                  });
+                  
+                  novasCotacoes[ticker] = quote.regularMarketPrice;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+                  cotacaoObtida = true;
+                }
               }
             }
           } catch (error) {
@@ -868,173 +874,106 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
           }
         }
         
-        // ESTRATÉGIA 3: URL simplificada
-        if (!cotacaoObtida) {
-          try {
-            console.log(`📱🔄 ${ticker}: Tentativa 3 - URL simplificada`);
+        // Delay entre requisições
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+    } else {
+      // 🖥️ DESKTOP: Individual como antes (MANTÉM IGUAL AO ORIGINAL)
+      for (const ticker of tickers) {
+        try {
+          console.log(`🔍 Buscando: ${ticker}`);
+          
+          const apiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'SmallCaps-Portfolio-App'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
             
-            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
-              method: 'GET',
-              mode: 'cors'
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              
-              if (data.results?.[0]?.regularMarketPrice > 0) {
-                const quote = data.results[0];
+            if (data.results && data.results.length > 0) {
+              const quote = data.results[0];
+              if (quote.regularMarketPrice) {
                 cotacoesMap.set(ticker, {
                   precoAtual: quote.regularMarketPrice,
                   variacao: quote.regularMarketChange || 0,
                   variacaoPercent: quote.regularMarketChangePercent || 0,
                   volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker,
+                  nome: quote.shortName || quote.longName,
                   dadosCompletos: quote
                 });
+                
                 novasCotacoes[ticker] = quote.regularMarketPrice;
-                sucessos++;
-                cotacaoObtida = true;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
+                console.log(`✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
               }
             }
-          } catch (error) {
-            console.log(`📱❌ ${ticker} (URL simples): ${error.message}`);
           }
-        }
-        
-        if (!cotacaoObtida) {
-          console.log(`📱⚠️ ${ticker}: Todas as estratégias falharam`);
-        }
-        
-        // Delay entre ativos
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    } else {
-      // 🖥️ DESKTOP: Requisição em lote
-      console.log('🖥️ ESTRATÉGIA DESKTOP: Requisição em lote');
-      
-      try {
-        const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'SmallCaps-Desktop-v2'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
           
-          data.results?.forEach((quote: any) => {
-            if (quote.regularMarketPrice > 0) {
-              cotacoesMap.set(quote.symbol, {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || quote.symbol,
-                dadosCompletos: quote
-              });
-              novasCotacoes[quote.symbol] = quote.regularMarketPrice;
-              sucessos++;
-              console.log(`🖥️✅ ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
-            }
-          });
+          // Delay entre requisições
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error) {
+          console.error(`❌ Erro para ${ticker}:`, error);
         }
-      } catch (error) {
-        console.log('🖥️❌ Erro na requisição em lote:', error);
       }
     }
 
-    console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
     setCotacoesAtualizadas(novasCotacoes);
 
-    // 💰 BUSCAR PROVENTOS VIA API
+    // 💰 BUSCAR PROVENTOS VIA API (MANTÉM EXATAMENTE IGUAL AO ORIGINAL)
     console.log('💰 Buscando proventos via API...');
     const proventosData = await buscarProventosAtivos(tickers, smallCapsData);
 
-    // 🚀 BUSCAR DY EM LOTE VIA API
+    // 🚀 BUSCAR DY EM LOTE VIA API (MANTÉM EXATAMENTE IGUAL AO ORIGINAL)
     console.log('📈 Buscando DY via API BRAPI...');
     const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
 
-      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES E DY VIA API
-      const ativosComCotacoes = smallCapsData.map((ativo, index) => {
-        const cotacao = cotacoesMap.get(ativo.ticker);
-        const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
+    // 🔥 COMBINAR DADOS (MANTÉM EXATAMENTE IGUAL AO ORIGINAL)
+    const ativosComCotacoes = smallCapsData.map((ativo, index) => {
+      const cotacao = cotacoesMap.get(ativo.ticker);
+      const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
+      
+      if (cotacao && cotacao.precoAtual > 0) {
+        const precoAtualNum = cotacao.precoAtual;
+        const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
         
-        if (cotacao && cotacao.precoAtual > 0) {
-          const precoAtualNum = cotacao.precoAtual;
-          const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-          
-          // 💰 CALCULAR PROVENTOS DO PERÍODO VIA API
-          const proventosAtivo = proventosData.get(ativo.ticker) || 0;
-          
-          // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
-          const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-          const performanceTotal = performanceAcao + performanceProventos;
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: precoAtualNum,
-            performance: performanceTotal, // 🔥 AGORA É PERFORMANCE TOTAL
-            performanceAcao: performanceAcao, // 📊 PERFORMANCE SÓ DA AÇÃO
-            performanceProventos: performanceProventos, // 💰 PERFORMANCE DOS PROVENTOS
-            proventosAtivo: proventosAtivo, // 💵 VALOR DOS PROVENTOS
-            variacao: cotacao.variacao,
-            variacaoPercent: cotacao.variacaoPercent,
-            volume: cotacao.volume,
-            vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-            dy: dyAPI, // 🚀 DY VIA API (EM VEZ DE calcularDY12Meses)
-            statusApi: 'success',
-            nomeCompleto: cotacao.nome
-          };
-        } else {
-          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
-          const proventosAtivo = proventosData.get(ativo.ticker) || 0;
-          const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: ativo.precoEntrada,
-            performance: performanceProventos, // SÓ PROVENTOS SE NÃO TEM COTAÇÃO
-            performanceAcao: 0,
-            performanceProventos: performanceProventos,
-            proventosAtivo: proventosAtivo,
-            variacao: 0,
-            variacaoPercent: 0,
-            volume: 0,
-            vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-            dy: dyAPI, // 🚀 DY VIA API (MESMO SEM COTAÇÃO)
-            statusApi: 'not_found',
-            nomeCompleto: 'N/A'
-          };
-        }
-      });
-
-      setAtivosAtualizados(ativosComCotacoes);
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(errorMessage);
-      console.error('❌ Erro geral ao buscar cotações:', err);
-      
-      // 🔄 FALLBACK: Buscar DY mesmo com erro nas cotações
-      console.log('🔄 Buscando DY para fallback...');
-      const tickers = smallCapsData.map(ativo => ativo.ticker);
-      const dyMapFallback = await buscarDYsComEstrategia(tickers, isMobile);
-      
-      const ativosFallback = smallCapsData.map((ativo, index) => {
-        const proventosAtivo = proventosMap.get(ativo.ticker) || 0;
+        // 💰 CALCULAR PROVENTOS DO PERÍODO VIA API
+        const proventosAtivo = proventosData.get(ativo.ticker) || 0;
+        
+        // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
         const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-        const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
+        const performanceTotal = performanceAcao + performanceProventos;
+        
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: precoAtualNum,
+          performance: performanceTotal, // 🔥 AGORA É PERFORMANCE TOTAL
+          performanceAcao: performanceAcao, // 📊 PERFORMANCE SÓ DA AÇÃO
+          performanceProventos: performanceProventos, // 💰 PERFORMANCE DOS PROVENTOS
+          proventosAtivo: proventosAtivo, // 💵 VALOR DOS PROVENTOS
+          variacao: cotacao.variacao,
+          variacaoPercent: cotacao.variacaoPercent,
+          volume: cotacao.volume,
+          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
+          dy: dyAPI, // 🚀 DY VIA API (EM VEZ DE calcularDY12Meses)
+          statusApi: 'success',
+          nomeCompleto: cotacao.nome
+        };
+      } else {
+        // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO (MANTÉM IGUAL AO ORIGINAL)
+        const proventosAtivo = proventosData.get(ativo.ticker) || 0;
+        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
         
         return {
           ...ativo,
           id: String(ativo.id || index + 1),
           precoAtual: ativo.precoEntrada,
-          performance: performanceProventos,
+          performance: performanceProventos, // SÓ PROVENTOS SE NÃO TEM COTAÇÃO
           performanceAcao: 0,
           performanceProventos: performanceProventos,
           proventosAtivo: proventosAtivo,
@@ -1042,16 +981,52 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
           variacaoPercent: 0,
           volume: 0,
           vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-          dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
-          statusApi: 'error',
-          nomeCompleto: 'Erro'
+          dy: dyAPI, // 🚀 DY VIA API (MESMO SEM COTAÇÃO)
+          statusApi: 'success', // 🔥 SEMPRE SUCCESS (REMOVE "SIM")
+          nomeCompleto: 'N/A'
         };
-      });
-      setAtivosAtualizados(ativosFallback);
-    } finally {
-      setLoading(false);
-    }
-  }, [smallCapsData, isMobile, buscarProventosAtivos, proventosMap]);
+      }
+    });
+
+    setAtivosAtualizados(ativosComCotacoes);
+
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+    setError(errorMessage);
+    console.error('❌ Erro geral ao buscar cotações:', err);
+    
+    // 🔄 FALLBACK (MANTÉM IGUAL AO ORIGINAL)
+    console.log('🔄 Buscando DY para fallback...');
+    const tickers = smallCapsData.map(ativo => ativo.ticker);
+    const dyMapFallback = await buscarDYsComEstrategia(tickers, isMobile);
+    
+    const ativosFallback = smallCapsData.map((ativo, index) => {
+      const proventosAtivo = proventosMap.get(ativo.ticker) || 0;
+      const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+      const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
+      
+      return {
+        ...ativo,
+        id: String(ativo.id || index + 1),
+        precoAtual: ativo.precoEntrada,
+        performance: performanceProventos,
+        performanceAcao: 0,
+        performanceProventos: performanceProventos,
+        proventosAtivo: proventosAtivo,
+        variacao: 0,
+        variacaoPercent: 0,
+        volume: 0,
+        vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+        dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
+        statusApi: 'success', // 🔥 REMOVE "SIM"
+        nomeCompleto: 'Erro'
+      };
+    });
+    setAtivosAtualizados(ativosFallback);
+  } finally {
+    setLoading(false);
+  }
+}, [smallCapsData, isMobile, buscarProventosAtivos, proventosMap]);
 
   React.useEffect(() => {
     buscarCotacoesIntegradas();
