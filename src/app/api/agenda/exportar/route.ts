@@ -2,6 +2,13 @@
 // 📥 GET /api/agenda/exportar
 // ==========================================
 
+// ✅ Adicionar estas importações no topo do arquivo
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+// ✅ Inicializar o Prisma
+const prisma = new PrismaClient();
+
 export async function GET() {
   try {
     const eventos = await prisma.eventoCorporativo.findMany({
