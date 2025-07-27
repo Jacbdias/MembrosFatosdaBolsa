@@ -688,8 +688,6 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
 }
 
 // 🚀 HOOK PADRONIZADO PARA BUSCAR COTAÇÕES DOS SMALL CAPS COM DY VIA API
-// 🔧 SUBSTITUIR NO SEU CÓDIGO - useSmallCapsIntegradas
-
 function useSmallCapsIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
