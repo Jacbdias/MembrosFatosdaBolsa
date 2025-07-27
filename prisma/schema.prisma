@@ -463,3 +463,20 @@ model ProventoUpload {
   
   @@map("proventos_uploads")
 }
+
+model EventoCorporativo {
+  id           String   @id @default(cuid())
+  ticker       String
+  tipo_evento  String
+  titulo       String
+  data_evento  DateTime
+  descricao    String
+  status       String
+  prioridade   String?
+  url_externo  String?
+  observacoes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("eventos_corporativos")
+}

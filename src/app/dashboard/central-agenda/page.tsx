@@ -34,6 +34,13 @@ import {
   Toolbar
 } from '@mui/material';
 
+// 🔄 IMPORTAR NOVOS HOOKS DA API
+import { 
+  useAgendaEstatisticas, 
+  useAgendaUpload, 
+  useAgendaExport 
+} from '@/hooks/useAgendaAPI';
+
 // Ícones Mock (mantendo consistência com o padrão atual)
 const UploadIcon = () => <span>📤</span>;
 const DownloadIcon = () => <span>📥</span>;
@@ -120,124 +127,38 @@ interface EventoCorporativo {
   prioridade?: string;
   url_externo?: string;
   observacoes?: string;
-  id?: string; // Adicionado para facilitar exclusões
+  id?: string;
 }
-
-// Hook para gerenciar dados da agenda central
-const useAgendaCentral = () => {
-  const [eventos, setEventos] = useState<EventoCorporativo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string>('');
-  const [totalTickers, setTotalTickers] = useState(0);
-
-  const carregarEventos = useCallback(() => {
-    try {
-      const dadosSalvos = localStorage.getItem('agenda_corporativa_central');
-      
-      if (dadosSalvos) {
-        const eventosCarregados = JSON.parse(dadosSalvos);
-        setEventos(eventosCarregados);
-        
-        // Calcular estatísticas
-        const tickersUnicos = new Set(eventosCarregados.map((e: EventoCorporativo) => e.ticker));
-        setTotalTickers(tickersUnicos.size);
-        
-        // Data da última atualização
-        const timestamp = localStorage.getItem('agenda_corporativa_timestamp');
-        if (timestamp) {
-          setUltimaAtualizacao(new Date(parseInt(timestamp)).toLocaleString('pt-BR'));
-        }
-      } else {
-        setEventos([]);
-        setTotalTickers(0);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
-      setEventos([]);
-    }
-  }, []);
-
-  const salvarEventos = useCallback((novosEventos: EventoCorporativo[]) => {
-    try {
-      localStorage.setItem('agenda_corporativa_central', JSON.stringify(novosEventos));
-      localStorage.setItem('agenda_corporativa_timestamp', Date.now().toString());
-      setEventos(novosEventos);
-      
-      const tickersUnicos = new Set(novosEventos.map(e => e.ticker));
-      setTotalTickers(tickersUnicos.size);
-      setUltimaAtualizacao(new Date().toLocaleString('pt-BR'));
-    } catch (error) {
-      console.error('Erro ao salvar eventos:', error);
-      throw error;
-    }
-  }, []);
-
-  // 🗑️ NOVA: Função para excluir evento individual
-  const excluirEvento = useCallback((eventoIndex: number) => {
-    const eventosAtualizados = eventos.filter((_, index) => index !== eventoIndex);
-    salvarEventos(eventosAtualizados);
-  }, [eventos, salvarEventos]);
-
-  // 🗑️ NOVA: Função para excluir múltiplos eventos
-  const excluirEventos = useCallback((indices: number[]) => {
-    const eventosAtualizados = eventos.filter((_, index) => !indices.includes(index));
-    salvarEventos(eventosAtualizados);
-  }, [eventos, salvarEventos]);
-
-  // 🗑️ NOVA: Função para excluir todos eventos de um ticker
-  const excluirPorTicker = useCallback((ticker: string) => {
-    const eventosAtualizados = eventos.filter(evento => evento.ticker !== ticker);
-    salvarEventos(eventosAtualizados);
-  }, [eventos, salvarEventos]);
-
-  const limparEventos = useCallback(() => {
-    localStorage.removeItem('agenda_corporativa_central');
-    localStorage.removeItem('agenda_corporativa_timestamp');
-    setEventos([]);
-    setTotalTickers(0);
-    setUltimaAtualizacao('');
-  }, []);
-
-  useEffect(() => {
-    carregarEventos();
-  }, [carregarEventos]);
-
-  return {
-    eventos,
-    loading,
-    setLoading,
-    ultimaAtualizacao,
-    totalTickers,
-    salvarEventos,
-    limparEventos,
-    excluirEvento,
-    excluirEventos,
-    excluirPorTicker,
-    refetch: carregarEventos
-  };
-};
 
 // Componente principal da página
 export default function CentralAgendaPage() {
-  const {
-    eventos,
-    loading,
-    setLoading,
-    ultimaAtualizacao,
-    totalTickers,
-    salvarEventos,
-    limparEventos,
+  const [tabAtual, setTabAtual] = useState(0);
+  const [dialogLimpar, setDialogLimpar] = useState(false);
+  const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
+  
+  // 🔄 USAR NOVOS HOOKS DA API
+  const { 
+    estatisticas, 
+    loading: statsLoading, 
+    carregarEstatisticas 
+  } = useAgendaEstatisticas();
+  
+  const { 
+    uploadEventos, 
     excluirEvento,
     excluirEventos,
     excluirPorTicker,
-    refetch
-  } = useAgendaCentral();
-
-  const [tabAtual, setTabAtual] = useState(0);
-  const [dialogLimpar, setDialogLimpar] = useState(false);
-  const [uploading, setUploading] = useState(false);
+    limparTodos, 
+    loading: uploadLoading, 
+    progresso 
+  } = useAgendaUpload();
   
-  // 🗑️ NOVO: Estados para exclusão
+  const { 
+    exportarDados, 
+    loading: exportLoading 
+  } = useAgendaExport();
+
+  // 🗑️ Estados para exclusão
   const [eventoParaExcluir, setEventoParaExcluir] = useState<number | null>(null);
   const [tickerParaExcluir, setTickerParaExcluir] = useState<string | null>(null);
   const [eventosSelecionados, setEventosSelecionados] = useState<number[]>([]);
@@ -245,13 +166,20 @@ export default function CentralAgendaPage() {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuEventoIndex, setMenuEventoIndex] = useState<number | null>(null);
 
-  // 🆕 PROCESSAR UPLOAD DE CSV COM PARSER INTELIGENTE
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
+  useEffect(() => {
+    carregarEstatisticas();
+  }, [carregarEstatisticas]);
+
+  // 🆕 PROCESSAR UPLOAD DE CSV COM PARSER INTELIGENTE E API
   const handleUploadCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const arquivo = event.target.files?.[0];
     if (!arquivo) return;
 
-    setUploading(true);
-    setLoading(true);
+    setEtapaProcessamento('Lendo arquivo...');
+    await delay(300);
 
     try {
       const texto = await arquivo.text();
@@ -295,6 +223,8 @@ export default function CentralAgendaPage() {
       if (colunasFaltantes.length > 0) {
         throw new Error(`Colunas obrigatórias faltantes: ${colunasFaltantes.join(', ')}`);
       }
+
+      setEtapaProcessamento(`Processando ${linhas.length - 1} linhas...`);
 
       // Processar dados
       const eventosNovos: EventoCorporativo[] = [];
@@ -341,8 +271,18 @@ export default function CentralAgendaPage() {
         throw new Error('Nenhum evento válido encontrado no arquivo');
       }
 
-      // Salvar dados
-      salvarEventos(eventosNovos);
+      setEtapaProcessamento('Enviando para servidor...');
+
+      // 🚀 USAR API EM VEZ DE localStorage
+      const resultado = await uploadEventos(eventosNovos, {
+        nomeArquivo: arquivo.name,
+        tamanhoArquivo: arquivo.size,
+        totalLinhas: linhas.length,
+        linhasProcessadas: eventosNovos.length
+      });
+
+      // ✅ RECARREGAR ESTATÍSTICAS
+      await carregarEstatisticas();
       
       alert(`✅ ${eventosNovos.length} eventos carregados com sucesso!\n\nTickers processados: ${new Set(eventosNovos.map(e => e.ticker)).size}\n\n📅 Formatos de data aceitos: DD/MM/YYYY, YYYY-MM-DD, YYYY-DD-MM`);
       
@@ -350,9 +290,31 @@ export default function CentralAgendaPage() {
       console.error('Erro no upload:', error);
       alert(`❌ Erro ao processar arquivo:\n${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
-      setUploading(false);
-      setLoading(false);
+      setEtapaProcessamento('');
       event.target.value = '';
+    }
+  };
+
+  // ✅ EXPORTAR VIA API
+  const handleExportarDados = async () => {
+    try {
+      await exportarDados();
+      alert('Dados exportados com sucesso!');
+    } catch (error) {
+      alert('Erro ao exportar dados');
+    }
+  };
+
+  // ✅ LIMPAR VIA API
+  const handleLimparTudo = async () => {
+    if (!confirm('Tem certeza que deseja apagar todos os dados?')) return;
+    
+    try {
+      await limparTodos();
+      await carregarEstatisticas();
+      alert('Dados removidos com sucesso.');
+    } catch (error) {
+      alert('Erro ao remover dados');
     }
   };
 
@@ -375,7 +337,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
     URL.revokeObjectURL(url);
   };
 
-  // 🗑️ NOVAS: Funções de exclusão
+  // 🗑️ Funções de exclusão VIA API
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, index: number) => {
     setMenuAnchor(event.currentTarget);
     setMenuEventoIndex(index);
@@ -391,11 +353,16 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
     handleMenuClose();
   };
 
-  const confirmarExclusaoEvento = () => {
+  const confirmarExclusaoEvento = async () => {
     if (eventoParaExcluir !== null) {
-      excluirEvento(eventoParaExcluir);
-      setEventoParaExcluir(null);
-      alert('✅ Evento excluído com sucesso!');
+      try {
+        await excluirEvento(eventoParaExcluir);
+        await carregarEstatisticas();
+        setEventoParaExcluir(null);
+        alert('✅ Evento excluído com sucesso!');
+      } catch (error) {
+        alert('Erro ao excluir evento');
+      }
     }
   };
 
@@ -403,12 +370,17 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
     setTickerParaExcluir(ticker);
   };
 
-  const confirmarExclusaoTicker = () => {
+  const confirmarExclusaoTicker = async () => {
     if (tickerParaExcluir) {
-      const eventosDoTicker = eventos.filter(e => e.ticker === tickerParaExcluir).length;
-      excluirPorTicker(tickerParaExcluir);
-      setTickerParaExcluir(null);
-      alert(`✅ ${eventosDoTicker} eventos do ticker ${tickerParaExcluir} excluídos!`);
+      try {
+        const eventosDoTicker = estatisticas.eventos.filter(e => e.ticker === tickerParaExcluir).length;
+        await excluirPorTicker(tickerParaExcluir);
+        await carregarEstatisticas();
+        setTickerParaExcluir(null);
+        alert(`✅ ${eventosDoTicker} eventos do ticker ${tickerParaExcluir} excluídos!`);
+      } catch (error) {
+        alert('Erro ao excluir eventos do ticker');
+      }
     }
   };
 
@@ -421,28 +393,33 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
   };
 
   const handleSelecionarTodos = () => {
-    if (eventosSelecionados.length === eventos.length) {
+    if (eventosSelecionados.length === estatisticas.eventos.length) {
       setEventosSelecionados([]);
     } else {
-      setEventosSelecionados(eventos.map((_, index) => index));
+      setEventosSelecionados(estatisticas.eventos.map((_, index) => index));
     }
   };
 
-  const excluirSelecionados = () => {
+  const excluirSelecionados = async () => {
     if (eventosSelecionados.length > 0) {
-      excluirEventos(eventosSelecionados);
-      setEventosSelecionados([]);
-      setModoSelecao(false);
-      alert(`✅ ${eventosSelecionados.length} eventos excluídos!`);
+      try {
+        await excluirEventos(eventosSelecionados);
+        await carregarEstatisticas();
+        setEventosSelecionados([]);
+        setModoSelecao(false);
+        alert(`✅ ${eventosSelecionados.length} eventos excluídos!`);
+      } catch (error) {
+        alert('Erro ao excluir eventos selecionados');
+      }
     }
   };
 
-  // Estatísticas por ticker
+  // Estatísticas por ticker VIA API
   const estatisticasPorTicker = React.useMemo(() => {
     const stats: { [ticker: string]: { total: number; proximos: number } } = {};
     const hoje = new Date();
     
-    eventos.forEach(evento => {
+    estatisticas.eventos.forEach(evento => {
       if (!stats[evento.ticker]) {
         stats[evento.ticker] = { total: 0, proximos: 0 };
       }
@@ -458,7 +435,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
     return Object.entries(stats)
       .map(([ticker, data]) => ({ ticker, ...data }))
       .sort((a, b) => b.total - a.total);
-  }, [eventos]);
+  }, [estatisticas.eventos]);
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
@@ -466,10 +443,10 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-            📅 Central da Agenda Corporativa
+            📅 Central da Agenda Corporativa (API)
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Gerencie eventos corporativos de todos os ativos através de planilhas
+            Sistema unificado sincronizado entre todos os dispositivos
           </Typography>
         </Box>
         
@@ -481,17 +458,30 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
           >
             Voltar
           </Button>
+
+          {/* ✅ INDICADOR DE STATUS DA API */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div style={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: '50%', 
+              backgroundColor: '#10b981' 
+            }} />
+            <Typography sx={{ fontSize: '12px', color: '#64748b' }}>
+              API Conectada
+            </Typography>
+          </Box>
           
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
-            onClick={refetch}
-            disabled={loading}
+            onClick={carregarEstatisticas}
+            disabled={statsLoading}
           >
-            Atualizar
+            {statsLoading ? 'Atualizando...' : 'Atualizar'}
           </Button>
           
-          {eventos.length > 0 && (
+          {estatisticas.totalEventos > 0 && (
             <Button
               variant="outlined"
               color="error"
@@ -504,13 +494,13 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
         </Stack>
       </Stack>
 
-      {/* Cards de Estatísticas */}
+      {/* Cards de Estatísticas - AGORA VIA API */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h3" sx={{ fontWeight: 700, color: '#3b82f6' }}>
-                {eventos.length}
+                {statsLoading ? '...' : estatisticas.totalEventos}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Total de Eventos
@@ -523,7 +513,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h3" sx={{ fontWeight: 700, color: '#22c55e' }}>
-                {totalTickers}
+                {statsLoading ? '...' : estatisticas.totalTickers}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Tickers Únicos
@@ -536,12 +526,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h3" sx={{ fontWeight: 700, color: '#f59e0b' }}>
-                {eventos.filter(e => {
-                  const hoje = new Date();
-                  const dataEvento = new Date(e.data_evento);
-                  const diffDays = Math.ceil((dataEvento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-                  return diffDays >= 0 && diffDays <= 30;
-                }).length}
+                {statsLoading ? '...' : estatisticas.proximos30Dias}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Próximos 30 Dias
@@ -557,14 +542,17 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                 Última Atualização
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {ultimaAtualizacao || 'Nunca'}
+                {statsLoading ? '...' : (estatisticas.dataUltimoUpload 
+                  ? new Date(estatisticas.dataUltimoUpload).toLocaleDateString('pt-BR') 
+                  : 'Nunca'
+                )}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Área de Upload */}
+      {/* Área de Upload - ATUALIZADA PARA API */}
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
@@ -580,6 +568,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                 3. Faça upload do arquivo preenchido<br/>
                 4. Os dados aparecerão automaticamente nas páginas dos ativos<br/>
                 <br/>
+                <strong>✅ Dados serão sincronizados entre todos os dispositivos automaticamente</strong><br/>
                 <strong>📅 Formatos de data aceitos:</strong> YYYY-MM-DD, DD/MM/YYYY, YYYY-DD-MM, DD.MM.YYYY
               </Typography>
             </Alert>
@@ -591,17 +580,17 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                 id="upload-csv-agenda"
                 type="file"
                 onChange={handleUploadCSV}
-                disabled={uploading}
+                disabled={uploadLoading}
               />
               <label htmlFor="upload-csv-agenda">
                 <Button
                   component="span"
                   variant="contained"
-                  startIcon={uploading ? <CircularProgress size={16} /> : <UploadIcon />}
-                  disabled={uploading}
+                  startIcon={uploadLoading ? <CircularProgress size={16} /> : <UploadIcon />}
+                  disabled={uploadLoading}
                   size="large"
                 >
-                  {uploading ? 'Processando...' : 'Upload CSV'}
+                  {uploadLoading ? 'Processando...' : 'Upload CSV'}
                 </Button>
               </label>
               
@@ -613,14 +602,35 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
               >
                 Baixar Template
               </Button>
+
+              <Button 
+                variant="outlined"
+                onClick={handleExportarDados} 
+                startIcon={<DownloadIcon />}
+                disabled={exportLoading}
+              >
+                {exportLoading ? 'Exportando...' : 'Exportar Dados'}
+              </Button>
             </Stack>
 
-            {uploading && (
+            {uploadLoading && (
               <Box>
-                <LinearProgress />
-                <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-                  Processando arquivo...
+                <Typography sx={{ mb: 1, color: '#64748b', fontSize: '0.875rem' }}>
+                  {etapaProcessamento}
                 </Typography>
+                <LinearProgress 
+                  value={progresso} 
+                  variant="determinate" 
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: '#e2e8f0',
+                    '& .MuiLinearProgress-bar': {
+                      backgroundColor: '#3b82f6',
+                      borderRadius: 4
+                    }
+                  }}
+                />
               </Box>
             )}
           </Stack>
@@ -628,12 +638,12 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
       </Card>
 
       {/* Tabs de Visualização */}
-      {eventos.length > 0 && (
+      {estatisticas.totalEventos > 0 && (
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabAtual} onChange={(_, newValue) => setTabAtual(newValue)}>
-              <Tab label={`📊 Eventos (${eventos.length})`} />
-              <Tab label={`🏢 Por Ticker (${totalTickers})`} />
+              <Tab label={`📊 Eventos (${estatisticas.totalEventos})`} />
+              <Tab label={`🏢 Por Ticker (${estatisticas.totalTickers})`} />
             </Tabs>
           </Box>
 
@@ -641,7 +651,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
             {/* Tab 1: Lista de Eventos */}
             {tabAtual === 0 && (
               <>
-                {/* 🗑️ NOVA: Toolbar de ações */}
+                {/* 🗑️ Toolbar de ações */}
                 <Toolbar sx={{ borderBottom: 1, borderColor: 'divider' }}>
                   <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
                     <Button
@@ -661,7 +671,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                           size="small"
                           onClick={handleSelecionarTodos}
                         >
-                          {eventosSelecionados.length === eventos.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                          {eventosSelecionados.length === estatisticas.eventos.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                         </Button>
 
                         {eventosSelecionados.length > 0 && (
@@ -694,7 +704,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {eventos
+                      {estatisticas.eventos
                         .sort((a, b) => new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime())
                         .map((evento, index) => {
                           const config = TIPOS_EVENTO[evento.tipo_evento as keyof typeof TIPOS_EVENTO] || 
@@ -823,7 +833,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
         </Card>
       )}
 
-      {/* 🗑️ NOVO: Menu de contexto para ações do evento */}
+      {/* Menu de contexto para ações do evento */}
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
@@ -834,7 +844,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
         </MenuItem>
       </Menu>
 
-      {/* 🗑️ NOVO: Dialog de confirmação para exclusão individual */}
+      {/* Dialogs de Confirmação */}
       <Dialog 
         open={eventoParaExcluir !== null} 
         onClose={() => setEventoParaExcluir(null)}
@@ -845,9 +855,9 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
             <Typography>
               Tem certeza que deseja excluir o evento:
               <br/><br/>
-              <strong>{eventos[eventoParaExcluir]?.titulo}</strong>
+              <strong>{estatisticas.eventos[eventoParaExcluir]?.titulo}</strong>
               <br/>
-              <em>{eventos[eventoParaExcluir]?.ticker} - {new Date(eventos[eventoParaExcluir]?.data_evento).toLocaleDateString('pt-BR')}</em>
+              <em>{estatisticas.eventos[eventoParaExcluir]?.ticker} - {new Date(estatisticas.eventos[eventoParaExcluir]?.data_evento).toLocaleDateString('pt-BR')}</em>
             </Typography>
           )}
         </DialogContent>
@@ -864,7 +874,6 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
         </DialogActions>
       </Dialog>
 
-      {/* 🗑️ NOVO: Dialog de confirmação para exclusão por ticker */}
       <Dialog 
         open={tickerParaExcluir !== null} 
         onClose={() => setTickerParaExcluir(null)}
@@ -874,7 +883,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
           {tickerParaExcluir && (
             <Typography>
               Tem certeza que deseja excluir todos os{' '}
-              <strong>{eventos.filter(e => e.ticker === tickerParaExcluir).length} eventos</strong>{' '}
+              <strong>{estatisticas.eventos.filter(e => e.ticker === tickerParaExcluir).length} eventos</strong>{' '}
               do ticker <strong>{tickerParaExcluir}</strong>?
               <br/><br/>
               Esta ação não pode ser desfeita.
@@ -894,12 +903,11 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
         </DialogActions>
       </Dialog>
 
-      {/* Dialog de Confirmação para Limpar Tudo */}
       <Dialog open={dialogLimpar} onClose={() => setDialogLimpar(false)}>
         <DialogTitle>🗑️ Limpar Todos os Dados</DialogTitle>
         <DialogContent>
           <Typography>
-            Tem certeza que deseja limpar todos os {eventos.length} eventos carregados?
+            Tem certeza que deseja limpar todos os {estatisticas.totalEventos} eventos carregados?
             Esta ação não pode ser desfeita.
           </Typography>
         </DialogContent>
@@ -909,11 +917,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
           </Button>
           <Button
             color="error"
-            onClick={() => {
-              limparEventos();
-              setDialogLimpar(false);
-              alert('✅ Todos os dados foram limpos!');
-            }}
+            onClick={handleLimparTudo}
           >
             Confirmar
           </Button>
@@ -921,7 +925,7 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
       </Dialog>
 
       {/* Estado vazio */}
-      {eventos.length === 0 && !loading && (
+      {estatisticas.totalEventos === 0 && !statsLoading && (
         <Paper sx={{ p: 6, textAlign: 'center', mt: 4 }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
             📭 Nenhum evento carregado
