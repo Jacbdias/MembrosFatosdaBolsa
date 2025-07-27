@@ -518,108 +518,30 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   }
 }
 
-// 🔧 VERSÃO CORRIGIDA - SEM RACE CONDITIONS
-function useSmallCapsIntegradas() {
-  const { dados } = useDataStore();
-  const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
-  const [cotacoesAtualizadas, setCotacoesAtualizadas] = React.useState<any>({});
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
-
-  // 🔥 DETECTAR DISPOSITIVO UMA ÚNICA VEZ (SSR-SAFE)
-  const [isMobile, setIsMobile] = React.useState(() => {
-    // Valor padrão seguro para SSR
-    if (typeof window === 'undefined') return false;
+// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (IGUAL AOS MICROCAPS)
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  
+  if (isMobile) {
+    // 📱 MOBILE: Estratégia individual (igual às cotações)
+    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
     
-    const width = window.innerWidth;
-    return width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  });
-
-  // 📊 DADOS ESTÁVEIS
-  const smallCapsData = React.useMemo(() => dados.smallCaps || [], [dados.smallCaps]);
-  const tickers = React.useMemo(() => smallCapsData.map(ativo => ativo.ticker), [smallCapsData]);
-
-  // ✅ DETECTAR DISPOSITIVO APENAS UMA VEZ, SEM CAUSAR RE-RENDER
-  React.useEffect(() => {
-    const checkDevice = () => {
-      const width = window.innerWidth;
-      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    for (const ticker of tickers) {
+      let dyObtido = false;
       
-      // ✅ SÓ ATUALIZA SE REALMENTE MUDOU
-      setIsMobile(prevMobile => {
-        if (prevMobile !== mobile) {
-          console.log('📱 Dispositivo detectado:', { width, isMobile: mobile });
-          return mobile;
-        }
-        return prevMobile;
-      });
-    };
-
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []); // ✅ SEM DEPENDÊNCIAS
-
-  // 💰 BUSCAR PROVENTOS (FUNÇÃO ESTÁVEL)
-  const buscarProventosAtivos = React.useCallback(async (tickersArray: string[], ativosData: any[]) => {
-    console.log('💰 Buscando proventos via API...');
-    const novosProventos = new Map<string, number>();
-    
-    for (const ativo of ativosData) {
-      try {
-        const [dia, mes, ano] = ativo.dataEntrada.split('/');
-        const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-        
-        const response = await fetch(`/api/proventos/${ativo.ticker}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-          const proventosRaw = await response.json();
-          
-          if (Array.isArray(proventosRaw)) {
-            const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
-            
-            const proventosFiltrados = proventosRaw.filter((p: any) => {
-              if (!p.dataObj) return false;
-              const dataProvento = new Date(p.dataObj);
-              return dataProvento >= dataEntradaDate;
-            });
-            
-            const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
-            novosProventos.set(ativo.ticker, total);
-            console.log(`✅ ${ativo.ticker}: R$ ${total.toFixed(2)} em proventos`);
-          }
-        }
-      } catch (error) {
-        console.error(`❌ Erro ao buscar proventos para ${ativo.ticker}:`, error);
-        novosProventos.set(ativo.ticker, 0);
-      }
-    }
-    
-    return novosProventos;
-  }, []); // ✅ SEM DEPENDÊNCIAS EXTERNAS
-
-  // 📈 BUSCAR DY (FUNÇÃO ESTÁVEL)
-  const buscarDYsUnificado = React.useCallback(async (tickersArray: string[], isMobileParam: boolean): Promise<Map<string, string>> => {
-    const dyMap = new Map<string, string>();
-    const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-    
-    console.log(`📈 Buscando DY - Modo: ${isMobileParam ? 'MOBILE' : 'DESKTOP'}`);
-    
-    try {
-      // 🚀 ESTRATÉGIA UNIFICADA: SEMPRE USAR REQUISIÇÕES INDIVIDUAIS
-      // (Mais confiável tanto no mobile quanto desktop)
-      
-      for (const ticker of tickersArray) {
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
         try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
           const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'SmallCaps-DY-Unified'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
             }
           });
 
@@ -629,52 +551,246 @@ function useSmallCapsIntegradas() {
             
             if (dy && dy > 0) {
               dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`✅ [DY] ${ticker}: ${dy.toFixed(2)}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
+              dyObtido = true;
             } else {
               dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
+              dyObtido = true; // Considera obtido mesmo se zero
             }
-          } else {
-            dyMap.set(ticker, '0,00%');
           }
         } catch (error) {
-          console.log(`❌ [DY] ${ticker}: ${error.message}`);
-          dyMap.set(ticker, '0,00%');
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
         }
+      }
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 3: URL simplificada
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 3 - URL simplificada`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
+        }
+      }
+      
+      // Se ainda não obteve, definir como 0%
+      if (!dyObtido) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
+      }
+      
+      // Delay pequeno entre requests
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+  } else {
+    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
+    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
+    
+    try {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SmallCaps-DY-Batch'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
         
-        // ✅ DELAY CONSISTENTE PARA AMBOS OS DISPOSITIVOS
-        await new Promise(resolve => setTimeout(resolve, 150));
+        data.results?.forEach((result: any) => {
+          const ticker = result.symbol;
+          const dy = result.defaultKeyStatistics?.dividendYield;
+          
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          } else {
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+          }
+        });
+        
+      } else {
+        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
+        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
       }
       
     } catch (error) {
-      console.error('❌ Erro geral DY:', error);
-      tickersArray.forEach(ticker => dyMap.set(ticker, '0,00%'));
+      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
+      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+    }
+  }
+  
+  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  return dyMap;
+}
+
+// 🚀 HOOK PADRONIZADO PARA BUSCAR COTAÇÕES DOS SMALL CAPS COM DY VIA API
+function useSmallCapsIntegradas() {
+  const { dados } = useDataStore();
+  const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
+  const [cotacoesAtualizadas, setCotacoesAtualizadas] = React.useState<any>({});
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  // 🔥 DETECTAR DISPOSITIVO (ADICIONADO)
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  // 💰 HOOK PARA BUSCAR PROVENTOS VIA API
+  const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
+
+  // 📊 OBTER DADOS DA CARTEIRA SMALL CAPS DO DATASTORE
+  const smallCapsData = dados.smallCaps || [];
+
+  // ✅ ADICIONAR A FUNÇÃO AQUI (após os states, antes dos useEffect):
+  const buscarProventosAtivos = React.useCallback(async (tickers: string[], ativosData: any[]) => {
+    console.log('💰 Buscando proventos via API para todos os ativos...');
+    const novosProventos = new Map<string, number>();
+    
+    for (const ativo of ativosData) {
+      try {
+        // 📅 Converter data de entrada para formato API
+        const [dia, mes, ano] = ativo.dataEntrada.split('/');
+        const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+        
+        // 🌐 Buscar proventos via API
+        const response = await fetch(`/api/proventos/${ativo.ticker}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const proventosRaw = await response.json();
+          
+          if (Array.isArray(proventosRaw)) {
+            // 📅 Filtrar proventos a partir da data de entrada
+            const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+            
+            const proventosFiltrados = proventosRaw.filter((p: any) => {
+              if (!p.dataObj) return false;
+              const dataProvento = new Date(p.dataObj);
+              return dataProvento >= dataEntradaDate;
+            });
+            
+            // 💰 Calcular total
+            const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
+            novosProventos.set(ativo.ticker, total);
+            
+            console.log(`✅ ${ativo.ticker}: R$ ${total.toFixed(2)} em proventos`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Erro ao buscar proventos para ${ativo.ticker}:`, error);
+        novosProventos.set(ativo.ticker, 0);
+      }
     }
     
-    return dyMap;
-  }, []); // ✅ SEM DEPENDÊNCIAS EXTERNAS
+    setProventosMap(novosProventos);
+    return novosProventos;
+  }, []);
 
-  // 🔍 BUSCAR COTAÇÕES (FUNÇÃO ESTÁVEL)
+  React.useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      console.log('📱 SmallCaps - Dispositivo detectado:', { width, isMobile: mobile });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
   const buscarCotacoesIntegradas = React.useCallback(async () => {
-    if (smallCapsData.length === 0) {
-      console.log('⚠️ Nenhum ativo encontrado');
-      setAtivosAtualizados([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
       console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
-      console.log('📋 Ativos:', smallCapsData.length);
-      console.log('📱 Device:', isMobile ? 'MOBILE' : 'DESKTOP');
+      console.log('📋 Ativos do DataStore:', smallCapsData);
+      console.log('📱 Device Info:', { isMobile });
 
+      if (smallCapsData.length === 0) {
+        console.log('⚠️ Nenhum ativo encontrado no DataStore');
+        setAtivosAtualizados([]);
+        setLoading(false);
+        return;
+      }
+
+      // 🔑 TOKEN BRAPI FUNCIONANDO
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+      // 📋 EXTRAIR TODOS OS TICKERS
+      const tickers = smallCapsData.map(ativo => ativo.ticker);
+      console.log('🎯 Tickers para buscar:', tickers.join(', '));
+
+      // 🔄 BUSCAR COTAÇÕES INDIVIDUALMENTE COM DELAY
       const cotacoesMap = new Map();
       const novasCotacoes: any = {};
 
-      // 🚀 ESTRATÉGIA UNIFICADA: SEMPRE INDIVIDUAL (MAIS CONFIÁVEL)
       for (const ticker of tickers) {
         try {
           console.log(`🔍 Buscando: ${ticker}`);
@@ -684,7 +800,7 @@ function useSmallCapsIntegradas() {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'SmallCaps-Portfolio-Unified'
+              'User-Agent': 'SmallCaps-Portfolio-App'
             }
           });
           
@@ -709,7 +825,7 @@ function useSmallCapsIntegradas() {
             }
           }
           
-          // ✅ DELAY CONSISTENTE
+          // Delay entre requisições
           await new Promise(resolve => setTimeout(resolve, 100));
           
         } catch (error) {
@@ -719,24 +835,27 @@ function useSmallCapsIntegradas() {
 
       setCotacoesAtualizadas(novasCotacoes);
 
-      // 💰 BUSCAR PROVENTOS
-      console.log('💰 Buscando proventos...');
+      // 💰 BUSCAR PROVENTOS VIA API
+      console.log('💰 Buscando proventos via API...');
       const proventosData = await buscarProventosAtivos(tickers, smallCapsData);
-      setProventosMap(proventosData);
 
-      // 📈 BUSCAR DY
-      console.log('📈 Buscando DY...');
-      const dyMap = await buscarDYsUnificado(tickers, isMobile);
+      // 🚀 BUSCAR DY EM LOTE VIA API (NOVO)
+      console.log('📈 Buscando DY via API BRAPI...');
+      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
 
-      // 🔥 COMBINAR DADOS
+      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES E DY VIA API
       const ativosComCotacoes = smallCapsData.map((ativo, index) => {
         const cotacao = cotacoesMap.get(ativo.ticker);
         const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
-        const proventosAtivo = proventosData.get(ativo.ticker) || 0;
         
         if (cotacao && cotacao.precoAtual > 0) {
           const precoAtualNum = cotacao.precoAtual;
           const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+          
+          // 💰 CALCULAR PROVENTOS DO PERÍODO VIA API
+          const proventosAtivo = proventosData.get(ativo.ticker) || 0;
+          
+          // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
           const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
           const performanceTotal = performanceAcao + performanceProventos;
           
@@ -744,26 +863,28 @@ function useSmallCapsIntegradas() {
             ...ativo,
             id: String(ativo.id || index + 1),
             precoAtual: precoAtualNum,
-            performance: performanceTotal,
-            performanceAcao: performanceAcao,
-            performanceProventos: performanceProventos,
-            proventosAtivo: proventosAtivo,
+            performance: performanceTotal, // 🔥 AGORA É PERFORMANCE TOTAL
+            performanceAcao: performanceAcao, // 📊 PERFORMANCE SÓ DA AÇÃO
+            performanceProventos: performanceProventos, // 💰 PERFORMANCE DOS PROVENTOS
+            proventosAtivo: proventosAtivo, // 💵 VALOR DOS PROVENTOS
             variacao: cotacao.variacao,
             variacaoPercent: cotacao.variacaoPercent,
             volume: cotacao.volume,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-            dy: dyAPI,
+            dy: dyAPI, // 🚀 DY VIA API (EM VEZ DE calcularDY12Meses)
             statusApi: 'success',
             nomeCompleto: cotacao.nome
           };
         } else {
+          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
+          const proventosAtivo = proventosData.get(ativo.ticker) || 0;
           const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
           
           return {
             ...ativo,
             id: String(ativo.id || index + 1),
             precoAtual: ativo.precoEntrada,
-            performance: performanceProventos,
+            performance: performanceProventos, // SÓ PROVENTOS SE NÃO TEM COTAÇÃO
             performanceAcao: 0,
             performanceProventos: performanceProventos,
             proventosAtivo: proventosAtivo,
@@ -771,7 +892,7 @@ function useSmallCapsIntegradas() {
             variacaoPercent: 0,
             volume: 0,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-            dy: dyAPI,
+            dy: dyAPI, // 🚀 DY VIA API (MESMO SEM COTAÇÃO)
             statusApi: 'not_found',
             nomeCompleto: 'N/A'
           };
@@ -783,38 +904,44 @@ function useSmallCapsIntegradas() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro geral:', err);
+      console.error('❌ Erro geral ao buscar cotações:', err);
       
-      // Fallback básico
-      setAtivosAtualizados(smallCapsData.map((ativo, index) => ({
-        ...ativo,
-        id: String(ativo.id || index + 1),
-        precoAtual: ativo.precoEntrada,
-        performance: 0,
-        performanceAcao: 0,
-        performanceProventos: 0,
-        proventosAtivo: 0,
-        variacao: 0,
-        variacaoPercent: 0,
-        volume: 0,
-        vies: 'Aguardar',
-        dy: '0,00%',
-        statusApi: 'error',
-        nomeCompleto: 'Erro'
-      })));
+      // 🔄 FALLBACK: Buscar DY mesmo com erro nas cotações
+      console.log('🔄 Buscando DY para fallback...');
+      const tickers = smallCapsData.map(ativo => ativo.ticker);
+      const dyMapFallback = await buscarDYsComEstrategia(tickers, isMobile);
+      
+      const ativosFallback = smallCapsData.map((ativo, index) => {
+        const proventosAtivo = proventosMap.get(ativo.ticker) || 0;
+        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+        const dyAPI = dyMapFallback.get(ativo.ticker) || '0,00%';
+        
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: ativo.precoEntrada,
+          performance: performanceProventos,
+          performanceAcao: 0,
+          performanceProventos: performanceProventos,
+          proventosAtivo: proventosAtivo,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+          dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
+          statusApi: 'error',
+          nomeCompleto: 'Erro'
+        };
+      });
+      setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
     }
-  }, [smallCapsData, tickers, buscarProventosAtivos, buscarDYsUnificado]); // ✅ DEPENDÊNCIAS CORRETAS
+  }, [smallCapsData, isMobile, buscarProventosAtivos, proventosMap]);
 
-  // ✅ EXECUTAR APENAS QUANDO NECESSÁRIO
   React.useEffect(() => {
-    // ✅ SÓ EXECUTA SE TEM DADOS E DISPOSITIVO FOI DETECTADO
-    if (smallCapsData.length > 0) {
-      console.log('🚀 Executando buscarCotacoesIntegradas...');
-      buscarCotacoesIntegradas();
-    }
-  }, [smallCapsData.length, isMobile]); // ✅ DEPENDÊNCIAS MÍNIMAS
+    buscarCotacoesIntegradas();
+  }, [buscarCotacoesIntegradas]);
 
   const refetch = React.useCallback(() => {
     buscarCotacoesIntegradas();
@@ -827,7 +954,7 @@ function useSmallCapsIntegradas() {
     loading,
     error,
     refetch,
-    isMobile,
+    isMobile, // NOVO: Expor estado mobile
   };
 }
 
