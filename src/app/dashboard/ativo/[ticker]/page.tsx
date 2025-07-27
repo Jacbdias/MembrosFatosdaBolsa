@@ -25,6 +25,119 @@ import {
   Relatorio 
 } from '../../../../hooks/useAtivoDetalhes';
 
+// 🔥 NOVO HOOK ESPECÍFICO PARA BUSCAR EVENTOS POR TICKER
+const useAgendaCorporativaTicker = (ticker: string) => {
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const carregarEventos = useCallback(async () => {
+    if (!ticker) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log(`📅 [AGENDA-API] Buscando eventos para ${ticker}...`);
+
+      // 🌐 BUSCAR VIA API
+      const response = await fetch('/api/agenda/estatisticas', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`📊 [AGENDA-API] Resposta recebida:`, {
+        totalEventos: data.totalEventos,
+        amostra: data.eventos.slice(0, 2)
+      });
+
+      // 🔍 FILTRAR EVENTOS POR TICKER
+      const eventosFiltrados = data.eventos.filter((evento: any) => 
+        evento.ticker && evento.ticker.toUpperCase() === ticker.toUpperCase()
+      );
+
+      console.log(`🎯 [AGENDA-API] Eventos filtrados para ${ticker}:`, eventosFiltrados.length);
+
+      // 📅 PROCESSAR EVENTOS
+      const eventosProcessados = eventosFiltrados.map((evento: any, index: number) => {
+        try {
+          // Processar data do evento
+          let dataEvento: Date;
+          
+          if (evento.data_evento) {
+            // A data vem do Prisma, pode ser string ISO ou Date
+            dataEvento = new Date(evento.data_evento);
+          } else {
+            throw new Error('Campo data_evento não encontrado');
+          }
+
+          if (isNaN(dataEvento.getTime())) {
+            throw new Error(`Data inválida: ${evento.data_evento}`);
+          }
+
+          return {
+            id: evento.id || `${ticker}-api-${index}`,
+            ticker: evento.ticker,
+            tipo: evento.tipo_evento || evento.tipo,
+            titulo: evento.titulo,
+            descricao: evento.descricao,
+            data: evento.data_evento,
+            dataObj: dataEvento,
+            status: evento.status,
+            prioridade: evento.prioridade,
+            categoria: evento.tipo_evento || evento.tipo,
+            estimado: evento.status?.toLowerCase() === 'estimado',
+            observacoes: evento.observacoes,
+            url_externo: evento.url_externo,
+            // Campos de auditoria do Prisma
+            createdAt: evento.createdAt,
+            updatedAt: evento.updatedAt
+          };
+        } catch (error) {
+          console.error(`❌ [AGENDA-API] Erro ao processar evento ${index}:`, error);
+          return null;
+        }
+      }).filter(Boolean); // Remove eventos nulos
+
+      // 🔄 ORDENAR POR DATA (mais próximos primeiro)
+      eventosProcessados.sort((a, b) => a.dataObj.getTime() - b.dataObj.getTime());
+
+      console.log(`✅ [AGENDA-API] ${eventosProcessados.length} eventos processados para ${ticker}`);
+      setEventos(eventosProcessados);
+
+    } catch (err) {
+      console.error(`❌ [AGENDA-API] Erro ao carregar eventos para ${ticker}:`, err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      setEventos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [ticker]);
+
+  useEffect(() => {
+    carregarEventos();
+  }, [carregarEventos]);
+
+  return {
+    eventos,
+    loading,
+    error,
+    refetch: carregarEventos
+  };
+};
+
+
 // 🔥 NOVO: FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA (do arquivo 1)
 async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
@@ -2709,122 +2822,10 @@ const GerenciadorRelatorios = React.memo(({ ticker }: { ticker: string }) => {
   );
 });
 
-// Agenda Corporativa
+// 🔥 COMPONENTE AGENDA CORPORATIVA MIGRADO PARA API
 const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: string; isFII?: boolean }) => {
-  const [eventos, setEventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!ticker) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const agendaCorporativaCentral = localStorage.getItem('agenda_corporativa_central');
-      
-      if (!agendaCorporativaCentral) {
-        setEventos([]);
-        setLoading(false);
-        return;
-      }
-
-      const dadosAgenda = JSON.parse(agendaCorporativaCentral);
-      const eventosTicker = Array.isArray(dadosAgenda) 
-        ? dadosAgenda.filter((evento: any) => evento.ticker === ticker)
-        : [];
-
-      if (eventosTicker.length === 0) {
-        setEventos([]);
-        setLoading(false);
-        return;
-      }
-
-      const eventosProcessados = eventosTicker.map((evento: any, index: number) => {
-        try {
-          let dataEvento: Date;
-          
-          if (evento.data_evento) {
-            const parseDataInteligente = (dataString: string) => {
-              if (!dataString) return null;
-              
-              const data = dataString.trim().replace(/\//g, '-').replace(/\./g, '-');
-              const match = data.match(/^(\d{1,4})-(\d{1,2})-(\d{1,2})$/);
-              if (!match) return null;
-              
-              const [, parte1, parte2, parte3] = match;
-              let ano, mes, dia;
-              
-              if (parte1.length === 4) {
-                ano = parseInt(parte1);
-                
-                if (parseInt(parte2) > 12) {
-                  dia = parseInt(parte2);
-                  mes = parseInt(parte3);
-                } else if (parseInt(parte3) > 12) {
-                  mes = parseInt(parte2);
-                  dia = parseInt(parte3);
-                } else {
-                  mes = parseInt(parte2);
-                  dia = parseInt(parte3);
-                }
-              } else {
-                ano = parseInt(parte3);
-                dia = parseInt(parte1);
-                mes = parseInt(parte2);
-              }
-              
-              if (ano < 1900 || ano > 2100) return null;
-              if (mes < 1 || mes > 12) return null;
-              if (dia < 1 || dia > 31) return null;
-              
-              return new Date(ano, mes - 1, dia, 12, 0, 0);
-            };
-
-            dataEvento = parseDataInteligente(evento.data_evento);
-            if (!dataEvento) {
-              console.error(`Data inválida: ${evento.data_evento}`);
-              return null;
-            }
-          } else if (evento.data) {
-            dataEvento = new Date(evento.data);
-          } else {
-            throw new Error('Campo data_evento não encontrado');
-          }
-
-          if (isNaN(dataEvento.getTime())) {
-            throw new Error(`Data inválida: ${evento.data_evento || evento.data}`);
-          }
-
-          return {
-            id: evento.id || `${ticker}-${index}`,
-            ticker: evento.ticker,
-            tipo: evento.tipo_evento || evento.tipo,
-            titulo: evento.titulo,
-            descricao: evento.descricao,
-            data: evento.data_evento || evento.data,
-            dataObj: dataEvento,
-            status: evento.status,
-            prioridade: evento.prioridade,
-            categoria: evento.tipo_evento || evento.tipo,
-            estimado: evento.status?.toLowerCase() === 'estimado',
-            observacoes: evento.observacoes
-          };
-        } catch (error) {
-          return null;
-        }
-      }).filter(Boolean);
-
-      eventosProcessados.sort((a, b) => a.dataObj.getTime() - b.dataObj.getTime());
-      setEventos(eventosProcessados);
-      
-    } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
-      setEventos([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [ticker, isFII]);
+  // 🌐 USAR HOOK DA API AO INVÉS DO LOCALSTORAGE
+  const { eventos, loading, error, refetch } = useAgendaCorporativaTicker(ticker);
 
   const calcularDiasAteEvento = (dataEvento: Date) => {
     const hoje = new Date();
@@ -2856,23 +2857,85 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       marginBottom: '32px'
     }}>
-      <h3 style={{
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#1e293b',
-        margin: '0 0 20px 0'
+      {/* 🔥 HEADER MELHORADO COM INDICADOR DE FONTE */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
       }}>
-       Agenda Corporativa
-      </h3>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0'
+        }}>
+          📅 Agenda Corporativa
+        </h3>
+        
+        {/* Indicadores de status */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Badge da fonte */}
+          <span style={{
+            backgroundColor: loading ? '#f59e0b' : error ? '#ef4444' : '#22c55e',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '10px',
+            fontWeight: '600'
+          }}>
+            {loading ? '⏳ API' : error ? '❌ API' : '✅ API'}
+          </span>
+          
+          {/* Botão de refresh */}
+          <button
+            onClick={refetch}
+            disabled={loading}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              fontSize: '16px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              opacity: loading ? 0.5 : 1
+            }}
+            title="Atualizar eventos"
+          >
+            🔄
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
-          <div style={{ color: '#64748b' }}>⏳ Carregando eventos...</div>
+          <div style={{ color: '#64748b', textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+            <p>Carregando eventos via API...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#ef4444' }}>
+          <h4 style={{ marginBottom: '16px' }}>❌ Erro ao carregar eventos</h4>
+          <p style={{ marginBottom: '24px', fontSize: '14px' }}>{error}</p>
+          <button
+            onClick={refetch}
+            style={{
+              backgroundColor: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Tentar Novamente
+          </button>
         </div>
       ) : eventos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <h4 style={{ marginBottom: '16px' }}>📭 Nenhum evento encontrado para {ticker}</h4>
-          <p style={{ marginBottom: '24px' }}>ℹ️ Não há eventos cadastrados para este ticker</p>
+          <p style={{ marginBottom: '24px' }}>ℹ️ Não há eventos cadastrados para este ticker na API</p>
           <button
             onClick={() => window.location.href = '/dashboard/central-agenda'}
             style={{
@@ -2890,6 +2953,30 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
         </div>
       ) : (
         <div>
+          {/* 🔥 RESUMO DE EVENTOS */}
+          <div style={{
+            background: '#f0f9ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '20px'
+          }}>
+            <p style={{
+              fontSize: '14px',
+              color: '#1e40af',
+              margin: 0,
+              fontWeight: '600'
+            }}>
+              📊 <strong>{eventos.length}</strong> eventos encontrados para <strong>{ticker}</strong> via API
+              {eventos.some(e => e.estimado) && (
+                <span style={{ marginLeft: '8px', color: '#f59e0b' }}>
+                  • {eventos.filter(e => e.estimado).length} estimados
+                </span>
+              )}
+            </p>
+          </div>
+
+          {/* 🔥 LISTA DE EVENTOS */}
           {eventos.slice(0, 4).map((evento, index) => {
             const diasAteEvento = calcularDiasAteEvento(evento.dataObj);
             const proximidade = formatarProximidade(diasAteEvento);
@@ -2900,7 +2987,10 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                 borderRadius: '8px',
                 backgroundColor: 'white',
                 marginBottom: '12px',
-                padding: '20px'
+                padding: '20px',
+                // Destacar eventos próximos
+                borderLeftWidth: diasAteEvento <= 7 ? '4px' : '1px',
+                borderLeftColor: diasAteEvento <= 7 ? '#f59e0b' : '#e2e8f0'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ flex: 1 }}>
@@ -2922,9 +3012,9 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                       {evento.descricao}
                     </p>
 
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{
-                        backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : '#6b7280',
+                        backgroundColor: diasAteEvento <= 7 ? '#f59e0b' : diasAteEvento < 0 ? '#6b7280' : '#3b82f6',
                         color: 'white',
                         fontSize: '12px',
                         fontWeight: '500',
@@ -2943,9 +3033,66 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                       }}>
                         {evento.tipo}
                       </span>
+
+                      {evento.estimado && (
+                        <span style={{
+                          backgroundColor: '#fef3c7',
+                          color: '#d97706',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}>
+                          ESTIMADO
+                        </span>
+                      )}
+
+                      {evento.prioridade && (
+                        <span style={{
+                          backgroundColor: evento.prioridade === 'alta' ? '#fecaca' : '#e5e7eb',
+                          color: evento.prioridade === 'alta' ? '#dc2626' : '#6b7280',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}>
+                          {evento.prioridade.toUpperCase()}
+                        </span>
+                      )}
                     </div>
+
+                    {/* Observações adicionais */}
+                    {evento.observacoes && (
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#94a3b8',
+                        margin: '8px 0 0 0',
+                        fontStyle: 'italic'
+                      }}>
+                        💭 {evento.observacoes}
+                      </p>
+                    )}
+
+                    {/* Link externo */}
+                    {evento.url_externo && (
+                       <a
+                        href={evento.url_externo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '12px',
+                          color: '#3b82f6',
+                          textDecoration: 'none',
+                          display: 'inline-block',
+                          marginTop: '8px'
+                        }}
+                      >
+                        🔗 Ver mais detalhes
+                      </a>
+                    )}
                   </div>
 
+                  {/* Data grande no lado direito */}
                   <div style={{ 
                     textAlign: 'right',
                     minWidth: '120px',
@@ -2954,7 +3101,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
                     <div style={{ 
                       fontSize: '28px',
                       fontWeight: '700',
-                      color: diasAteEvento <= 7 ? '#f59e0b' : '#3b82f6',
+                      color: diasAteEvento <= 7 ? '#f59e0b' : diasAteEvento < 0 ? '#6b7280' : '#3b82f6',
                       lineHeight: '1'
                     }}>
                       {evento.dataObj.getDate()}
@@ -2986,13 +3133,33 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }: { ticker: strin
             );
           })}
 
-          {eventos.length > 4 && (
-            <div style={{ textAlign: 'center', marginTop: '16px' }}>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>
-                Mostrando os próximos 4 eventos • Total: {eventos.length}
-              </p>
-            </div>
-          )}
+          {/* Footer com estatísticas */}
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>
+              {eventos.length > 4 
+                ? `Mostrando os próximos 4 eventos • Total: ${eventos.length} • Fonte: API Prisma`
+                : `${eventos.length} eventos • Fonte: API Prisma`
+              }
+            </p>
+            
+            {/* Link para ver todos */}
+            {eventos.length > 4 && (
+              <button
+                onClick={() => window.location.href = '/dashboard/central-agenda'}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#3b82f6',
+                  border: 'none',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  marginTop: '8px',
+                  textDecoration: 'underline'
+                }}
+              >
+                Ver todos os {eventos.length} eventos
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

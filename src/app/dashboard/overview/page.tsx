@@ -1063,7 +1063,6 @@ export default function SmallCapsPage() {
           margin: '0',
           lineHeight: '1.5'
         }}>
-          Dados atualizados a cada 15 minutos • {ativosAtualizados.length} ativos • 📱 DY via API BRAPI • {isMobile ? 'Mobile' : 'Desktop'}
         </p>
       </div>
 
@@ -1253,14 +1252,14 @@ export default function SmallCapsPage() {
             color: '#1e293b',
             margin: '0 0 8px 0'
           }}>
-           Small Caps • Performance Individual
+           Small Caps
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',  // ✅ RESPONSIVO
             margin: '0'
           }}>
-            Dados integrados do DataStore com cotações em tempo real • {ativosAtualizados.length} ativos • DY via API BRAPI
+            Dados atualizados a cada 15 minutos
           </p>
         </div>
 
@@ -1664,14 +1663,14 @@ export default function SmallCapsPage() {
             color: '#1e293b',
             margin: '0 0 8px 0'
           }}>
-            📊 Composição por Ativos
+          Composição por Ativos
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',  // ✅ RESPONSIVO
             margin: '0'
           }}>
-            Distribuição percentual da carteira • {ativosAtualizados.length} ativos
+            Distribuição percentual da carteira - {ativosAtualizados.length} ativos
           </p>
         </div>
 
