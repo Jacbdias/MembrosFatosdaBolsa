@@ -518,13 +518,13 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   }
 }
 
-// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (IGUAL AOS MICROCAPS)
+// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP
 async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
   if (isMobile) {
-    // 📱 MOBILE: Estratégia individual (igual às cotações)
+    // 📱 MOBILE: Estratégia individual
     console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
     
     for (const ticker of tickers) {
@@ -556,7 +556,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             } else {
               dyMap.set(ticker, '0,00%');
               console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
-              dyObtido = true; // Considera obtido mesmo se zero
+              dyObtido = true;
             }
           }
         } catch (error) {
@@ -595,35 +595,6 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
         }
       }
       
-      // ESTRATÉGIA 3: URL simplificada
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY] ${ticker}: Tentativa 3 - URL simplificada`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
-            method: 'GET',
-            mode: 'cors'
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
-              dyObtido = true;
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
-        }
-      }
-      
       // Se ainda não obteve, definir como 0%
       if (!dyObtido) {
         dyMap.set(ticker, '0,00%');
@@ -635,7 +606,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
     }
     
   } else {
-    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
+    // 🖥️ DESKTOP: Requisição em lote
     console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
     
     try {
@@ -687,9 +658,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
   return dyMap;
 }
 
-// 🚀 HOOK PADRONIZADO PARA BUSCAR COTAÇÕES DOS SMALL CAPS COM DY VIA API
-// 🔧 SUBSTITUIR NO SEU CÓDIGO - useSmallCapsIntegradas
-
+// 🚀 HOOK COMPLETO CORRIGIDO
 function useSmallCapsIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
@@ -697,9 +666,8 @@ function useSmallCapsIntegradas() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // 🔥 DETECTAR DISPOSITIVO DE FORMA SÍNCRONA (SOLUÇÃO 1)
+  // 🔥 DETECTAR DISPOSITIVO DE FORMA SÍNCRONA
   const [isMobile, setIsMobile] = React.useState(() => {
-    // Detectar mobile IMEDIATAMENTE no estado inicial
     if (typeof window !== 'undefined') {
       const width = window.innerWidth;
       return width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -707,22 +675,67 @@ function useSmallCapsIntegradas() {
     return false;
   });
 
-  // 💰 Hook para proventos
+  // 💰 HOOK PARA BUSCAR PROVENTOS VIA API
   const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
+
+  // 📊 OBTER DADOS DA CARTEIRA SMALL CAPS DO DATASTORE
   const smallCapsData = dados.smallCaps || [];
 
-  // ✅ Função de proventos (mantém igual)
+  // ✅ FUNÇÃO COMPLETA PARA BUSCAR PROVENTOS VIA API
   const buscarProventosAtivos = React.useCallback(async (tickers: string[], ativosData: any[]) => {
-    // ... código igual ao original
+    console.log('💰 Buscando proventos via API para todos os ativos...');
+    const novosProventos = new Map<string, number>();
+    
+    for (const ativo of ativosData) {
+      try {
+        // 📅 Converter data de entrada para formato API
+        const [dia, mes, ano] = ativo.dataEntrada.split('/');
+        const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+        
+        // 🌐 Buscar proventos via API
+        const response = await fetch(`/api/proventos/${ativo.ticker}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const proventosRaw = await response.json();
+          
+          if (Array.isArray(proventosRaw)) {
+            // 📅 Filtrar proventos a partir da data de entrada
+            const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+            
+            const proventosFiltrados = proventosRaw.filter((p: any) => {
+              if (!p.dataObj) return false;
+              const dataProvento = new Date(p.dataObj);
+              return dataProvento >= dataEntradaDate;
+            });
+            
+            // 💰 Calcular total
+            const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
+            novosProventos.set(ativo.ticker, total);
+            
+            console.log(`✅ ${ativo.ticker}: R$ ${total.toFixed(2)} em proventos`);
+          }
+        } else {
+          console.log(`⚠️ API proventos não disponível para ${ativo.ticker}`);
+          novosProventos.set(ativo.ticker, 0);
+        }
+      } catch (error) {
+        console.error(`❌ Erro ao buscar proventos para ${ativo.ticker}:`, error);
+        novosProventos.set(ativo.ticker, 0);
+      }
+    }
+    
+    setProventosMap(novosProventos);
+    return novosProventos;
   }, []);
 
-  // 🔥 NOVA DETECÇÃO DE DISPOSITIVO (SOLUÇÃO 2)
   React.useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
       const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // 🔥 SÓ ATUALIZA SE MUDOU (evita re-renders desnecessários)
       setIsMobile(prev => prev !== mobile ? mobile : prev);
     };
 
@@ -737,23 +750,28 @@ function useSmallCapsIntegradas() {
       setError(null);
 
       console.log('🔥 BUSCANDO COTAÇÕES - MOBILE OTIMIZADO');
-      console.log('📱 Device Info:', { isMobile, width: window.innerWidth });
+      console.log('📱 Device Info:', { isMobile, width: typeof window !== 'undefined' ? window.innerWidth : 0 });
 
       if (smallCapsData.length === 0) {
+        console.log('⚠️ Nenhum ativo encontrado no DataStore');
         setAtivosAtualizados([]);
         setLoading(false);
         return;
       }
 
+      // 🔑 TOKEN BRAPI FUNCIONANDO
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+
+      // 📋 EXTRAIR TODOS OS TICKERS
       const tickers = smallCapsData.map(ativo => ativo.ticker);
-      
+      console.log('🎯 Tickers para buscar:', tickers.join(', '));
+
+      // 🔄 BUSCAR COTAÇÕES COM ESTRATÉGIA MOBILE/DESKTOP
       const cotacoesMap = new Map();
       const novasCotacoes: any = {};
       let sucessos = 0;
 
-      // 🔥 SEMPRE USAR ESTRATÉGIA MOBILE EM DISPOSITIVOS MÓVEIS (SOLUÇÃO 3)
-      const usarEstrategiaMobile = isMobile || window.innerWidth <= 768;
+      const usarEstrategiaMobile = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
 
       if (usarEstrategiaMobile) {
         console.log('📱 ESTRATÉGIA MOBILE: Requests individuais otimizados');
@@ -798,7 +816,7 @@ function useSmallCapsIntegradas() {
             }
           }
           
-          // ESTRATÉGIA 2: Sem User-Agent (se primeira falhou)
+          // ESTRATÉGIA 2: Sem User-Agent
           if (!cotacaoObtida) {
             try {
               const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
@@ -830,8 +848,8 @@ function useSmallCapsIntegradas() {
             }
           }
           
-          // 🔥 DELAY REDUZIDO PARA MOBILE (SOLUÇÃO 4)
-          await new Promise(resolve => setTimeout(resolve, 200)); // Era 300ms
+          // Delay entre requests
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       } else {
         // 🖥️ DESKTOP: Requisição em lote
@@ -861,6 +879,7 @@ function useSmallCapsIntegradas() {
                 });
                 novasCotacoes[quote.symbol] = quote.regularMarketPrice;
                 sucessos++;
+                console.log(`🖥️✅ ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
               }
             });
           }
@@ -869,27 +888,42 @@ function useSmallCapsIntegradas() {
         }
       }
 
-      console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
+      console.log(`📊 RESULTADO COTAÇÕES: ${sucessos}/${tickers.length} sucessos`);
       setCotacoesAtualizadas(novasCotacoes);
 
-      // 💰 BUSCAR PROVENTOS E DY EM PARALELO (SOLUÇÃO 5 - OTIMIZAÇÃO)
-      const [proventosData, dyMap] = await Promise.all([
-        buscarProventosAtivos(tickers, smallCapsData),
-        buscarDYsComEstrategia(tickers, usarEstrategiaMobile)
-      ]);
+      // 💰 BUSCAR PROVENTOS VIA API
+      console.log('💰 Buscando proventos via API...');
+      const proventosData = await buscarProventosAtivos(tickers, smallCapsData);
 
-      // 🔥 PROCESSAR DADOS (SEMPRE MOSTRA statusApi: 'success')
+      // 🚀 BUSCAR DY EM LOTE VIA API
+      console.log('📈 Buscando DY via API BRAPI...');
+      const dyMap = await buscarDYsComEstrategia(tickers, usarEstrategiaMobile);
+
+      console.log(`📊 RESULTADO DY: ${dyMap.size} tickers processados`);
+
+      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES E DY VIA API
       const ativosComCotacoes = smallCapsData.map((ativo, index) => {
         const cotacao = cotacoesMap.get(ativo.ticker);
         const dyAPI = dyMap.get(ativo.ticker) || '0,00%';
+        
+        console.log(`🔍 Processando ${ativo.ticker}:`, {
+          temCotacao: !!cotacao,
+          precoAtual: cotacao?.precoAtual,
+          dy: dyAPI
+        });
         
         if (cotacao && cotacao.precoAtual > 0) {
           const precoAtualNum = cotacao.precoAtual;
           const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
           
+          // 💰 CALCULAR PROVENTOS DO PERÍODO VIA API
           const proventosAtivo = proventosData.get(ativo.ticker) || 0;
+          
+          // 🎯 PERFORMANCE TOTAL (AÇÃO + PROVENTOS)
           const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
           const performanceTotal = performanceAcao + performanceProventos;
+          
+          console.log(`✅ ${ativo.ticker}: Performance ${performanceTotal.toFixed(2)}%, DY ${dyAPI}`);
           
           return {
             ...ativo,
@@ -904,13 +938,15 @@ function useSmallCapsIntegradas() {
             volume: cotacao.volume,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
             dy: dyAPI,
-            statusApi: 'success', // 🔥 SEMPRE SUCCESS (NUNCA MOSTRA "SIM")
+            statusApi: 'success',
             nomeCompleto: cotacao.nome
           };
         } else {
-          // 🔥 FALLBACK SEM "SIM" (SOLUÇÃO 6)
+          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
           const proventosAtivo = proventosData.get(ativo.ticker) || 0;
           const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+          
+          console.log(`⚠️ ${ativo.ticker}: Sem cotação, só proventos ${performanceProventos.toFixed(2)}%`);
           
           return {
             ...ativo,
@@ -925,36 +961,39 @@ function useSmallCapsIntegradas() {
             volume: 0,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
             dy: dyAPI,
-            statusApi: 'success', // 🔥 SEMPRE SUCCESS (NUNCA MOSTRA "SIM")
+            statusApi: 'success',
             nomeCompleto: ativo.ticker
           };
         }
       });
 
+      console.log('🎯 RESULTADO FINAL:', ativosComCotacoes.length, 'ativos processados');
       setAtivosAtualizados(ativosComCotacoes);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro geral:', err);
+      console.error('❌ Erro geral ao buscar cotações:', err);
       
-      // 🔄 FALLBACK TAMBÉM SEM "SIM"
-      const ativosFallback = smallCapsData.map((ativo, index) => ({
-        ...ativo,
-        id: String(ativo.id || index + 1),
-        precoAtual: ativo.precoEntrada,
-        performance: 0,
-        performanceAcao: 0,
-        performanceProventos: 0,
-        proventosAtivo: 0,
-        variacao: 0,
-        variacaoPercent: 0,
-        volume: 0,
-        vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-        dy: '0,00%',
-        statusApi: 'success', // 🔥 SEMPRE SUCCESS
-        nomeCompleto: ativo.ticker
-      }));
+      // 🔄 FALLBACK: Dados básicos
+      const ativosFallback = smallCapsData.map((ativo, index) => {
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: ativo.precoEntrada,
+          performance: 0,
+          performanceAcao: 0,
+          performanceProventos: 0,
+          proventosAtivo: 0,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+          dy: '0,00%',
+          statusApi: 'success',
+          nomeCompleto: ativo.ticker
+        };
+      });
       setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
