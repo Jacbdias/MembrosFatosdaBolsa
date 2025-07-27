@@ -139,142 +139,109 @@ const useAgendaCorporativaTicker = (ticker: string) => {
 
 
 // 🔥 NOVO: FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA (do arquivo 1)
-async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+async function buscarDYsComEstrategia(tickers: string[]): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  if (isMobile) {
-    // 📱 MOBILE: Estratégia individual
-    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
+  console.log('🔄 [DY-UNIFIED] Estratégia unificada para todos os dispositivos');
+  
+  // 🎯 ESTRATÉGIA 1: Busca em lote (prioridade)
+  try {
+    const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
     
-    for (const ticker of tickers) {
-      let dyObtido = false;
+    console.log(`🔄 [DY-UNIFIED] Tentativa 1 - Busca em lote: ${tickers.length} tickers`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SmallCaps-Unified-API',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`📊 [DY-UNIFIED] Lote respondeu: ${data.results?.length || 0} ativos`);
       
-      // ESTRATÉGIA 1: User-Agent Desktop
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
-              dyObtido = true;
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
+      data.results?.forEach((result: any) => {
+        const ticker = result.symbol;
+        const dy = result.defaultKeyStatistics?.dividendYield;
+        
+        if (dy && dy > 0) {
+          dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+          console.log(`✅ [DY-UNIFIED] ${ticker}: ${dy.toFixed(2)}% (lote)`);
+        } else {
+          dyMap.set(ticker, '0,00%');
+          console.log(`❌ [DY-UNIFIED] ${ticker}: DY zero/inválido (lote)`);
         }
-      }
-      
-      // ESTRATÉGIA 2: Sem User-Agent
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
-              dyObtido = true;
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
-        }
-      }
-      
-      // Se ainda não obteve, definir como 0%
-      if (!dyObtido) {
-        dyMap.set(ticker, '0,00%');
-        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
-      }
-      
-      // Delay pequeno entre requests
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-  } else {
-    // 🖥️ DESKTOP: Requisição em lote
-    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
-    
-    try {
-      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'SmallCaps-DY-Batch'
-        },
-        signal: controller.signal
       });
       
-      clearTimeout(timeoutId);
+      // Se obtivemos dados para todos os tickers, retornar
+      if (dyMap.size === tickers.length) {
+        console.log(`✅ [DY-UNIFIED] Busca em lote bem-sucedida: ${dyMap.size}/${tickers.length}`);
+        return dyMap;
+      }
+    }
+    
+    console.log(`⚠️ [DY-UNIFIED] Busca em lote falhou ou incompleta, usando fallback individual`);
+    
+  } catch (error) {
+    console.log(`❌ [DY-UNIFIED] Erro na busca em lote:`, error.message);
+  }
+  
+  // 🎯 ESTRATÉGIA 2: Fallback individual para tickers que falharam
+  console.log(`🔄 [DY-UNIFIED] Tentativa 2 - Busca individual (fallback)`);
+  
+  for (const ticker of tickers) {
+    // Só buscar se ainda não temos o DY deste ticker
+    if (!dyMap.has(ticker)) {
+      await new Promise(resolve => setTimeout(resolve, 300)); // Delay entre requests
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
+      try {
+        console.log(`🔄 [DY-UNIFIED] Buscando individualmente: ${ticker}`);
         
-        data.results?.forEach((result: any) => {
-          const ticker = result.symbol;
-          const dy = result.defaultKeyStatistics?.dividendYield;
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'SmallCaps-Individual-Fallback',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
           
           if (dy && dy > 0) {
             dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+            console.log(`✅ [DY-UNIFIED] ${ticker}: ${dy.toFixed(2)}% (individual)`);
           } else {
             dyMap.set(ticker, '0,00%');
-            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+            console.log(`❌ [DY-UNIFIED] ${ticker}: DY zero/inválido (individual)`);
           }
-        });
+        } else {
+          dyMap.set(ticker, '0,00%');
+          console.log(`❌ [DY-UNIFIED] ${ticker}: Erro HTTP ${response.status} (individual)`);
+        }
         
-      } else {
-        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
-        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+      } catch (error) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`❌ [DY-UNIFIED] ${ticker}: Erro individual -`, error.message);
       }
-      
-    } catch (error) {
-      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
-      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
     }
   }
   
-  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  console.log(`📋 [DY-UNIFIED] Resultado final: ${dyMap.size} tickers processados`);
   return dyMap;
 }
 
@@ -392,7 +359,7 @@ function calcularProventosLocalStorage(ticker: string, dataEntrada: string): num
 }
 
 // 🔥 NOVO: HOOK INTEGRADO PARA DY (substituindo useDividendYield)
-function useDividendYieldIntegrado(ticker: string, isMobile: boolean = false) {
+function useDividendYieldIntegrado(ticker: string) {
   const [dyData, setDyData] = useState<{
     dy12Meses: number;
     dyFormatado: string;
@@ -414,7 +381,7 @@ function useDividendYieldIntegrado(ticker: string, isMobile: boolean = false) {
       setLoading(true);
       console.log(`📈 Buscando DY para ${ticker} usando estratégia integrada...`);
 
-      const dyMap = await buscarDYsComEstrategia([ticker], isMobile);
+const dyMap = await buscarDYsComEstrategia([ticker]);
       const dyFormatado = dyMap.get(ticker) || '0,00%';
       const dyNumerico = parseFloat(dyFormatado.replace('%', '').replace(',', '.'));
 
@@ -4185,7 +4152,7 @@ export default function AtivoPage() {
   const { cotacaoUSD, loading: loadingUSD, ultimaAtualizacao: atualizacaoUSD, refetch: refetchUSD } = useCotacaoUSD();
 
   // ✅ HOOKS INTEGRADOS (substituindo os antigos)
-  const { dy12Meses, dyFormatado, loading: loadingDY, fonte: fonteDY, refetch: refetchDY } = useDividendYieldIntegrado(ticker, isMobile);
+const { dy12Meses, dyFormatado, loading: loadingDY, fonte: fonteDY, refetch: refetchDY } = useDividendYieldIntegrado(ticker);
 const { valorProventos, performanceProventos, loading: loadingProventos, fonte: fonteProventos, refetch: refetchProventos } = useProventosIntegrado(ticker, ativo?.dataEntrada || '', ativo?.precoEntrada);
 
   // Função para calcular percentual automático da carteira
