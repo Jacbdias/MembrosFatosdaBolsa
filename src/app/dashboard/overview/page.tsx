@@ -695,8 +695,9 @@ function useSmallCapsIntegradas() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // 🔥 DETECTAR DISPOSITIVO (ADICIONADO)
+  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA
   const [isMobile, setIsMobile] = React.useState(false);
+  const [deviceDetected, setDeviceDetected] = React.useState(false); // ✅ NOVO ESTADO
 
   // 💰 HOOK PARA BUSCAR PROVENTOS VIA API
   const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
@@ -704,7 +705,7 @@ function useSmallCapsIntegradas() {
   // 📊 OBTER DADOS DA CARTEIRA SMALL CAPS DO DATASTORE
   const smallCapsData = dados.smallCaps || [];
 
-  // ✅ ADICIONAR A FUNÇÃO AQUI (após os states, antes dos useEffect):
+  // ✅ FUNÇÃO PARA BUSCAR PROVENTOS (mantida igual)
   const buscarProventosAtivos = React.useCallback(async (tickers: string[], ativosData: any[]) => {
     console.log('💰 Buscando proventos via API para todos os ativos...');
     const novosProventos = new Map<string, number>();
@@ -751,12 +752,14 @@ function useSmallCapsIntegradas() {
     return novosProventos;
   }, []);
 
+  // 🔥 DETECÇÃO DE DISPOSITIVO CORRIGIDA
   React.useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
       const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       setIsMobile(mobile);
-      console.log('📱 SmallCaps - Dispositivo detectado:', { width, isMobile: mobile });
+      setDeviceDetected(true); // ✅ MARCAR DETECÇÃO COMO COMPLETA
+      console.log('📱 SmallCaps - Dispositivo detectado:', { width, isMobile: mobile, deviceDetected: true });
     };
 
     checkDevice();
@@ -764,198 +767,198 @@ function useSmallCapsIntegradas() {
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
-const buscarCotacoesIntegradas = React.useCallback(async () => {
-  try {
-    setLoading(true);
-    setError(null);
+  const buscarCotacoesIntegradas = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
-    console.log('📱 Device Info:', { isMobile });
+      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA SMALL CAPS');
+      console.log('📱 Device Info:', { isMobile, deviceDetected });
 
-    if (smallCapsData.length === 0) {
-      setAtivosAtualizados([]);
-      setLoading(false);
-      return;
-    }
-
-    const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-    const tickers = smallCapsData.map(ativo => ativo.ticker);
-    
-    const cotacoesMap = new Map();
-    const novasCotacoes: any = {};
-    let sucessos = 0;
-
-    // 🔥 ESTRATÉGIA DIFERENTE PARA MOBILE vs DESKTOP (IGUAL AO CÓDIGO 1)
-    if (isMobile) {
-      // 📱 MOBILE: Estratégia agressiva para forçar API funcionar
-      console.log('📱 ESTRATÉGIA MOBILE: API real com configuração agressiva');
-      
-      for (const ticker of tickers) {
-        let cotacaoObtida = false;
-        
-        // ESTRATÉGIA 1: User-Agent Desktop
-        if (!cotacaoObtida) {
-          try {
-            console.log(`📱🔄 ${ticker}: Tentativa 1 - User-Agent Desktop`);
-            
-            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-              }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              
-              if (data.results?.[0]?.regularMarketPrice > 0) {
-                const quote = data.results[0];
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker,
-                  dadosCompletos: quote
-                });
-                novasCotacoes[ticker] = quote.regularMarketPrice;
-                sucessos++;
-                cotacaoObtida = true;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
-              }
-            }
-          } catch (error) {
-            console.log(`📱❌ ${ticker} (Desktop UA): ${error.message}`);
-          }
-        }
-        
-        // ESTRATÉGIA 2: Sem User-Agent
-        if (!cotacaoObtida) {
-          try {
-            console.log(`📱🔄 ${ticker}: Tentativa 2 - Sem User-Agent`);
-            
-            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              
-              if (data.results?.[0]?.regularMarketPrice > 0) {
-                const quote = data.results[0];
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker,
-                  dadosCompletos: quote
-                });
-                novasCotacoes[ticker] = quote.regularMarketPrice;
-                sucessos++;
-                cotacaoObtida = true;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
-              }
-            }
-          } catch (error) {
-            console.log(`📱❌ ${ticker} (Sem UA): ${error.message}`);
-          }
-        }
-        
-        // ESTRATÉGIA 3: URL simplificada
-        if (!cotacaoObtida) {
-          try {
-            console.log(`📱🔄 ${ticker}: Tentativa 3 - URL simplificada`);
-            
-            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
-              method: 'GET',
-              mode: 'cors'
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              
-              if (data.results?.[0]?.regularMarketPrice > 0) {
-                const quote = data.results[0];
-                cotacoesMap.set(ticker, {
-                  precoAtual: quote.regularMarketPrice,
-                  variacao: quote.regularMarketChange || 0,
-                  variacaoPercent: quote.regularMarketChangePercent || 0,
-                  volume: quote.regularMarketVolume || 0,
-                  nome: quote.shortName || quote.longName || ticker,
-                  dadosCompletos: quote
-                });
-                novasCotacoes[ticker] = quote.regularMarketPrice;
-                sucessos++;
-                cotacaoObtida = true;
-                console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
-              }
-            }
-          } catch (error) {
-            console.log(`📱❌ ${ticker} (URL simples): ${error.message}`);
-          }
-        }
-        
-        if (!cotacaoObtida) {
-          console.log(`📱⚠️ ${ticker}: Todas as estratégias falharam`);
-        }
-        
-        // Delay entre ativos
-        await new Promise(resolve => setTimeout(resolve, 300));
+      if (smallCapsData.length === 0) {
+        setAtivosAtualizados([]);
+        setLoading(false);
+        return;
       }
-    } else {
-      // 🖥️ DESKTOP: Requisição em lote
-      console.log('🖥️ ESTRATÉGIA DESKTOP: Requisição em lote');
-      
-      try {
-        const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'SmallCaps-Desktop-v2'
-          }
-        });
 
-        if (response.ok) {
-          const data = await response.json();
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      const tickers = smallCapsData.map(ativo => ativo.ticker);
+      
+      const cotacoesMap = new Map();
+      const novasCotacoes: any = {};
+      let sucessos = 0;
+
+      // 🔥 ESTRATÉGIA DIFERENTE PARA MOBILE vs DESKTOP
+      if (isMobile) {
+        // 📱 MOBILE: Estratégia agressiva para forçar API funcionar
+        console.log('📱 ESTRATÉGIA MOBILE: API real com configuração agressiva');
+        
+        for (const ticker of tickers) {
+          let cotacaoObtida = false;
           
-          data.results?.forEach((quote: any) => {
-            if (quote.regularMarketPrice > 0) {
-              cotacoesMap.set(quote.symbol, {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || quote.symbol,
-                dadosCompletos: quote
+          // ESTRATÉGIA 1: User-Agent Desktop
+          if (!cotacaoObtida) {
+            try {
+              console.log(`📱🔄 ${ticker}: Tentativa 1 - User-Agent Desktop`);
+              
+              const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                }
               });
-              novasCotacoes[quote.symbol] = quote.regularMarketPrice;
-              sucessos++;
-              console.log(`🖥️✅ ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
+
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results?.[0]?.regularMarketPrice > 0) {
+                  const quote = data.results[0];
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName || ticker,
+                    dadosCompletos: quote
+                  });
+                  novasCotacoes[ticker] = quote.regularMarketPrice;
+                  sucessos++;
+                  cotacaoObtida = true;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+                }
+              }
+            } catch (error) {
+              console.log(`📱❌ ${ticker} (Desktop UA): ${error.message}`);
+            }
+          }
+          
+          // ESTRATÉGIA 2: Sem User-Agent
+          if (!cotacaoObtida) {
+            try {
+              console.log(`📱🔄 ${ticker}: Tentativa 2 - Sem User-Agent`);
+              
+              const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json'
+                }
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results?.[0]?.regularMarketPrice > 0) {
+                  const quote = data.results[0];
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName || ticker,
+                    dadosCompletos: quote
+                  });
+                  novasCotacoes[ticker] = quote.regularMarketPrice;
+                  sucessos++;
+                  cotacaoObtida = true;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+                }
+              }
+            } catch (error) {
+              console.log(`📱❌ ${ticker} (Sem UA): ${error.message}`);
+            }
+          }
+          
+          // ESTRATÉGIA 3: URL simplificada
+          if (!cotacaoObtida) {
+            try {
+              console.log(`📱🔄 ${ticker}: Tentativa 3 - URL simplificada`);
+              
+              const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+                method: 'GET',
+                mode: 'cors'
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results?.[0]?.regularMarketPrice > 0) {
+                  const quote = data.results[0];
+                  cotacoesMap.set(ticker, {
+                    precoAtual: quote.regularMarketPrice,
+                    variacao: quote.regularMarketChange || 0,
+                    variacaoPercent: quote.regularMarketChangePercent || 0,
+                    volume: quote.regularMarketVolume || 0,
+                    nome: quote.shortName || quote.longName || ticker,
+                    dadosCompletos: quote
+                  });
+                  novasCotacoes[ticker] = quote.regularMarketPrice;
+                  sucessos++;
+                  cotacaoObtida = true;
+                  console.log(`📱✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
+                }
+              }
+            } catch (error) {
+              console.log(`📱❌ ${ticker} (URL simples): ${error.message}`);
+            }
+          }
+          
+          if (!cotacaoObtida) {
+            console.log(`📱⚠️ ${ticker}: Todas as estratégias falharam`);
+          }
+          
+          // Delay entre ativos
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      } else {
+        // 🖥️ DESKTOP: Requisição em lote
+        console.log('🖥️ ESTRATÉGIA DESKTOP: Requisição em lote');
+        
+        try {
+          const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'SmallCaps-Desktop-v2'
             }
           });
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            data.results?.forEach((quote: any) => {
+              if (quote.regularMarketPrice > 0) {
+                cotacoesMap.set(quote.symbol, {
+                  precoAtual: quote.regularMarketPrice,
+                  variacao: quote.regularMarketChange || 0,
+                  variacaoPercent: quote.regularMarketChangePercent || 0,
+                  volume: quote.regularMarketVolume || 0,
+                  nome: quote.shortName || quote.longName || quote.symbol,
+                  dadosCompletos: quote
+                });
+                novasCotacoes[quote.symbol] = quote.regularMarketPrice;
+                sucessos++;
+                console.log(`🖥️✅ ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
+              }
+            });
+          }
+        } catch (error) {
+          console.log('🖥️❌ Erro na requisição em lote:', error);
         }
-      } catch (error) {
-        console.log('🖥️❌ Erro na requisição em lote:', error);
       }
-    }
 
-    console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
-    setCotacoesAtualizadas(novasCotacoes);
+      console.log(`📊 RESULTADO: ${sucessos}/${tickers.length} sucessos`);
+      setCotacoesAtualizadas(novasCotacoes);
 
-    // 💰 BUSCAR PROVENTOS VIA API
-    console.log('💰 Buscando proventos via API...');
-    const proventosData = await buscarProventosAtivos(tickers, smallCapsData);
+      // 💰 BUSCAR PROVENTOS VIA API
+      console.log('💰 Buscando proventos via API...');
+      const proventosData = await buscarProventosAtivos(tickers, smallCapsData);
 
-    // 🚀 BUSCAR DY EM LOTE VIA API
-    console.log('📈 Buscando DY via API BRAPI...');
-    const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
+      // 🚀 BUSCAR DY EM LOTE VIA API
+      console.log('📈 Buscando DY via API BRAPI...');
+      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
 
       // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES E DY VIA API
       const ativosComCotacoes = smallCapsData.map((ativo, index) => {
@@ -977,15 +980,15 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
             ...ativo,
             id: String(ativo.id || index + 1),
             precoAtual: precoAtualNum,
-            performance: performanceTotal, // 🔥 AGORA É PERFORMANCE TOTAL
-            performanceAcao: performanceAcao, // 📊 PERFORMANCE SÓ DA AÇÃO
-            performanceProventos: performanceProventos, // 💰 PERFORMANCE DOS PROVENTOS
-            proventosAtivo: proventosAtivo, // 💵 VALOR DOS PROVENTOS
+            performance: performanceTotal,
+            performanceAcao: performanceAcao,
+            performanceProventos: performanceProventos,
+            proventosAtivo: proventosAtivo,
             variacao: cotacao.variacao,
             variacaoPercent: cotacao.variacaoPercent,
             volume: cotacao.volume,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-            dy: dyAPI, // 🚀 DY VIA API (EM VEZ DE calcularDY12Meses)
+            dy: dyAPI,
             statusApi: 'success',
             nomeCompleto: cotacao.nome
           };
@@ -998,7 +1001,7 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
             ...ativo,
             id: String(ativo.id || index + 1),
             precoAtual: ativo.precoEntrada,
-            performance: performanceProventos, // SÓ PROVENTOS SE NÃO TEM COTAÇÃO
+            performance: performanceProventos,
             performanceAcao: 0,
             performanceProventos: performanceProventos,
             proventosAtivo: proventosAtivo,
@@ -1006,7 +1009,7 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
             variacaoPercent: 0,
             volume: 0,
             vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-            dy: dyAPI, // 🚀 DY VIA API (MESMO SEM COTAÇÃO)
+            dy: dyAPI,
             statusApi: 'not_found',
             nomeCompleto: 'N/A'
           };
@@ -1042,7 +1045,7 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
           variacaoPercent: 0,
           volume: 0,
           vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-          dy: dyAPI, // 🚀 DY VIA API NO FALLBACK
+          dy: dyAPI,
           statusApi: 'error',
           nomeCompleto: 'Erro'
         };
@@ -1053,9 +1056,13 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
     }
   }, [smallCapsData, isMobile, buscarProventosAtivos, proventosMap]);
 
+  // ✅ USEEFFECT CORRIGIDO: Aguarda detecção E re-executa quando isMobile muda
   React.useEffect(() => {
-    buscarCotacoesIntegradas();
-  }, [buscarCotacoesIntegradas]);
+    if (deviceDetected) { // ✅ SÓ EXECUTA APÓS DETECÇÃO COMPLETA
+      console.log('🔥 Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
+      buscarCotacoesIntegradas();
+    }
+  }, [buscarCotacoesIntegradas, deviceDetected, isMobile]); // ✅ INCLUI isMobile COMO DEPENDÊNCIA
 
   const refetch = React.useCallback(() => {
     buscarCotacoesIntegradas();
@@ -1068,7 +1075,8 @@ const buscarCotacoesIntegradas = React.useCallback(async () => {
     loading,
     error,
     refetch,
-    isMobile, // NOVO: Expor estado mobile
+    isMobile,
+    deviceDetected // ✅ NOVO: Expor estado de detecção
   };
 }
 
