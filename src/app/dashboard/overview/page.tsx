@@ -11,6 +11,25 @@ function useSmllRealTime() {
   const [smllData, setSmllData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  
+  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [deviceDetected, setDeviceDetected] = React.useState(false);
+
+  // 🔥 DETECÇÃO DE DISPOSITIVO
+  React.useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      setDeviceDetected(true);
+      console.log('📱 SMLL - Dispositivo detectado:', { width, isMobile: mobile });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   const buscarSmllReal = React.useCallback(async () => {
     try {
@@ -18,6 +37,7 @@ function useSmllRealTime() {
       setError(null);
 
       console.log('🔍 BUSCANDO SMLL REAL - VERSÃO TOTALMENTE DINÂMICA...');
+      console.log('📱 Device Info:', { isMobile, deviceDetected });
 
       // 🎯 TENTATIVA 1: BRAPI ETF SMAL11 (DINÂMICO) COM TIMEOUT
       try {
@@ -34,7 +54,9 @@ function useSmllRealTime() {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'SMLL-Real-Time-App'
+            'User-Agent': isMobile 
+              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' 
+              : 'SMLL-Real-Time-App'
           },
           signal: controller.signal
         });
@@ -122,16 +144,20 @@ function useSmllRealTime() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isMobile]);
 
+  // ✅ USEEFFECT CORRIGIDO: Aguarda detecção E re-executa quando isMobile muda
   React.useEffect(() => {
-    buscarSmllReal();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS (TOTALMENTE DINÂMICO)
-    const interval = setInterval(buscarSmllReal, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, []); // 🔥 ARRAY VAZIO PARA EVITAR LOOP INFINITO
+    if (deviceDetected) {
+      console.log('🔥 SMLL: Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
+      buscarSmllReal();
+      
+      // 🔄 ATUALIZAR A CADA 5 MINUTOS (TOTALMENTE DINÂMICO)
+      const interval = setInterval(buscarSmllReal, 5 * 60 * 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [deviceDetected, isMobile, buscarSmllReal]);
 
   return { smllData, loading, error, refetch: buscarSmllReal };
 }
@@ -141,6 +167,25 @@ function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  
+  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [deviceDetected, setDeviceDetected] = React.useState(false);
+
+  // 🔥 DETECÇÃO DE DISPOSITIVO
+  React.useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      setDeviceDetected(true);
+      console.log('📱 Ibovespa - Dispositivo detectado:', { width, isMobile: mobile });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   const buscarIbovespaReal = React.useCallback(async () => {
     try {
@@ -148,6 +193,7 @@ function useIbovespaRealTime() {
       setError(null);
 
       console.log('🔍 BUSCANDO IBOVESPA REAL VIA BRAPI...');
+      console.log('📱 Device Info:', { isMobile, deviceDetected });
 
       // 🔑 TOKEN BRAPI VALIDADO
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
@@ -165,7 +211,9 @@ function useIbovespaRealTime() {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'Ibovespa-Real-Time-App'
+          'User-Agent': isMobile 
+            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            : 'Ibovespa-Real-Time-App'
         },
         signal: controller.signal
       });
@@ -219,16 +267,20 @@ function useIbovespaRealTime() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isMobile]);
 
+  // ✅ USEEFFECT CORRIGIDO: Aguarda detecção E re-executa quando isMobile muda
   React.useEffect(() => {
-    buscarIbovespaReal();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS
-    const interval = setInterval(buscarIbovespaReal, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, []); // 🔥 ARRAY VAZIO PARA EVITAR LOOP INFINITO
+    if (deviceDetected) {
+      console.log('🔥 Ibovespa: Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
+      buscarIbovespaReal();
+      
+      // 🔄 ATUALIZAR A CADA 5 MINUTOS
+      const interval = setInterval(buscarIbovespaReal, 5 * 60 * 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [deviceDetected, isMobile, buscarIbovespaReal]);
 
   return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
 }
@@ -237,11 +289,33 @@ function useIbovespaRealTime() {
 function useIbovespaPeriodo(ativosAtualizados: any[]) {
   const [ibovespaPeriodo, setIbovespaPeriodo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
+  
+  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [deviceDetected, setDeviceDetected] = React.useState(false);
 
+  // 🔥 DETECÇÃO DE DISPOSITIVO
+  React.useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      setDeviceDetected(true);
+      console.log('📱 IbovespaPeriodo - Dispositivo detectado:', { width, isMobile: mobile });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  // ✅ USEEFFECT CORRIGIDO: Aguarda detecção E ativos atualizados
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
       console.log('🔥 DEBUG: useIbovespaPeriodo executando...', ativosAtualizados.length);
-      if (!ativosAtualizados || ativosAtualizados.length === 0) return;
+      console.log('📱 Device Info:', { isMobile, deviceDetected });
+      
+      if (!deviceDetected || !ativosAtualizados || ativosAtualizados.length === 0) return;
 
       try {
         setLoading(true);
@@ -267,7 +341,14 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
         let ibovAtual = 134500; // Fallback atualizado baseado nos dados reais
         try {
           const ibovAtualUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
-          const responseAtual = await fetch(ibovAtualUrl);
+          const responseAtual = await fetch(ibovAtualUrl, {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': isMobile 
+                ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                : 'SmallCaps-Ibov-Current'
+            }
+          });
           if (responseAtual.ok) {
             const dataAtual = await responseAtual.json();
             ibovAtual = dataAtual.results?.[0]?.regularMarketPrice || 134500;
@@ -299,7 +380,9 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
             signal: controller.signal,
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'SmallCaps-Ibov-Historical'
+              'User-Agent': isMobile 
+                ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                : 'SmallCaps-Ibov-Historical'
             }
           });
           
@@ -490,8 +573,11 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
       }
     };
 
-    calcularIbovespaPeriodo();
-  }, [ativosAtualizados]);
+    if (deviceDetected && ativosAtualizados.length > 0) {
+      console.log('🔥 IbovespaPeriodo: Executando cálculo após detecção de dispositivo:', { isMobile, deviceDetected });
+      calcularIbovespaPeriodo();
+    }
+  }, [ativosAtualizados, deviceDetected, isMobile]);
 
   return { ibovespaPeriodo, loading };
 }
