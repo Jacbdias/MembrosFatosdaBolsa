@@ -39,41 +39,195 @@ function useSmllRealTime() {
       console.log('🔍 BUSCANDO SMLL REAL - VERSÃO TOTALMENTE DINÂMICA...');
       console.log('📱 Device Info:', { isMobile, deviceDetected });
 
-      // 🎯 TENTATIVA 1: BRAPI ETF SMAL11 (DINÂMICO) COM TIMEOUT
-      try {
-        console.log('📊 Tentativa 1: BRAPI SMAL11 (ETF com conversão dinâmica)...');
-        
-        const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-        const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
-        
-        // 🔥 ADICIONAR TIMEOUT DE 5 SEGUNDOS
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const brapiResponse = await fetch(smal11Url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': isMobile 
-              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' 
-              : 'SMLL-Real-Time-App'
-          },
-          signal: controller.signal
-        });
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
+      
+      let dadosSmllObtidos = false;
 
-        clearTimeout(timeoutId);
-
-        if (brapiResponse.ok) {
-          const brapiData = await brapiResponse.json();
-          console.log('📊 Resposta BRAPI SMAL11:', brapiData);
-
-          if (brapiData.results && brapiData.results.length > 0) {
-            const smal11Data = brapiData.results[0];
+      if (isMobile) {
+        // 📱 MOBILE: Estratégia agressiva com múltiplas tentativas
+        console.log('📱 ESTRATÉGIA MOBILE: Múltiplas tentativas para SMLL');
+        
+        // ESTRATÉGIA 1: User-Agent Desktop + timeout maior
+        if (!dadosSmllObtidos) {
+          try {
+            console.log('📱🔄 SMLL: Tentativa 1 - User-Agent Desktop');
             
-            if (smal11Data.regularMarketPrice && smal11Data.regularMarketPrice > 0) {
-              // ✅ CONVERSÃO DINÂMICA (ETF para índice)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
+            
+            const response = await fetch(smal11Url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('📱📊 SMLL Resposta (Desktop UA):', data);
+
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const smal11Data = data.results[0];
+                const precoETF = smal11Data.regularMarketPrice;
+                const fatorConversao = 20.6;
+                const pontosIndice = Math.round(precoETF * fatorConversao);
+                
+                const dadosSmll = {
+                  valor: pontosIndice,
+                  valorFormatado: pontosIndice.toLocaleString('pt-BR'),
+                  variacao: (smal11Data.regularMarketChange || 0) * fatorConversao,
+                  variacaoPercent: smal11Data.regularMarketChangePercent || 0,
+                  trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_UA_DESKTOP'
+                };
+
+                console.log('📱✅ SMLL obtido (Desktop UA):', dadosSmll);
+                setSmllData(dadosSmll);
+                dadosSmllObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ SMLL (Desktop UA):', error.message);
+          }
+        }
+
+        // Delay entre tentativas
+        if (!dadosSmllObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 2: Sem User-Agent
+        if (!dadosSmllObtidos) {
+          try {
+            console.log('📱🔄 SMLL: Tentativa 2 - Sem User-Agent');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(smal11Url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('📱📊 SMLL Resposta (Sem UA):', data);
+
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const smal11Data = data.results[0];
+                const precoETF = smal11Data.regularMarketPrice;
+                const fatorConversao = 20.6;
+                const pontosIndice = Math.round(precoETF * fatorConversao);
+                
+                const dadosSmll = {
+                  valor: pontosIndice,
+                  valorFormatado: pontosIndice.toLocaleString('pt-BR'),
+                  variacao: (smal11Data.regularMarketChange || 0) * fatorConversao,
+                  variacaoPercent: smal11Data.regularMarketChangePercent || 0,
+                  trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_SEM_UA'
+                };
+
+                console.log('📱✅ SMLL obtido (Sem UA):', dadosSmll);
+                setSmllData(dadosSmll);
+                dadosSmllObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ SMLL (Sem UA):', error.message);
+          }
+        }
+
+        // Delay entre tentativas
+        if (!dadosSmllObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 3: URL simplificada
+        if (!dadosSmllObtidos) {
+          try {
+            console.log('📱🔄 SMLL: Tentativa 3 - URL simplificada');
+            
+            const response = await fetch(`https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}&range=1d`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('📱📊 SMLL Resposta (URL simples):', data);
+
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const smal11Data = data.results[0];
+                const precoETF = smal11Data.regularMarketPrice;
+                const fatorConversao = 20.6;
+                const pontosIndice = Math.round(precoETF * fatorConversao);
+                
+                const dadosSmll = {
+                  valor: pontosIndice,
+                  valorFormatado: pontosIndice.toLocaleString('pt-BR'),
+                  variacao: (smal11Data.regularMarketChange || 0) * fatorConversao,
+                  variacaoPercent: smal11Data.regularMarketChangePercent || 0,
+                  trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_URL_SIMPLES'
+                };
+
+                console.log('📱✅ SMLL obtido (URL simples):', dadosSmll);
+                setSmllData(dadosSmll);
+                dadosSmllObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ SMLL (URL simples):', error.message);
+          }
+        }
+
+        if (!dadosSmllObtidos) {
+          console.log('📱⚠️ SMLL: Todas as estratégias mobile falharam');
+        }
+
+      } else {
+        // 🖥️ DESKTOP: Estratégia original
+        console.log('🖥️ ESTRATÉGIA DESKTOP: Tentativa única');
+        
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const response = await fetch(smal11Url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'SMLL-Real-Time-App'
+            },
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('🖥️📊 SMLL Resposta Desktop:', data);
+
+            if (data.results?.[0]?.regularMarketPrice > 0) {
+              const smal11Data = data.results[0];
               const precoETF = smal11Data.regularMarketPrice;
-              const fatorConversao = 20.6; // Baseado na relação Status Invest
+              const fatorConversao = 20.6;
               const pontosIndice = Math.round(precoETF * fatorConversao);
               
               const dadosSmll = {
@@ -83,46 +237,45 @@ function useSmllRealTime() {
                 variacaoPercent: smal11Data.regularMarketChangePercent || 0,
                 trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
                 timestamp: new Date().toISOString(),
-                fonte: 'BRAPI_SMAL11_DINAMICO'
+                fonte: 'BRAPI_DESKTOP'
               };
 
-              console.log('✅ SMLL DINÂMICO (BRAPI) PROCESSADO:', dadosSmll);
+              console.log('🖥️✅ SMLL obtido Desktop:', dadosSmll);
               setSmllData(dadosSmll);
-              return; // ✅ DADOS DINÂMICOS OBTIDOS
+              dadosSmllObtidos = true;
             }
           }
+        } catch (error) {
+          console.log('🖥️❌ SMLL Desktop:', error.message);
         }
-        
-        console.log('⚠️ BRAPI SMAL11 falhou, usando fallback inteligente...');
-      } catch (brapiError) {
-        console.error('❌ Erro BRAPI SMAL11:', brapiError);
       }
 
-      // 🎯 FALLBACK INTELIGENTE: BASEADO EM HORÁRIO E TENDÊNCIA
-      console.log('🔄 Usando fallback inteligente baseado em tendência...');
-      
-      const agora = new Date();
-      const horaAtual = agora.getHours();
-      const isHorarioComercial = horaAtual >= 10 && horaAtual <= 17;
-      
-      // Simular variação baseada no horário (mais realista)
-      const variacaoBase = -0.94; // Base Status Invest
-      const variacaoSimulada = variacaoBase + (Math.random() - 0.5) * (isHorarioComercial ? 0.3 : 0.1);
-      const valorBase = 2204.90;
-      const valorSimulado = valorBase * (1 + variacaoSimulada / 100);
-      
-      const dadosFallback = {
-        valor: valorSimulado,
-        valorFormatado: Math.round(valorSimulado).toLocaleString('pt-BR'),
-        variacao: valorSimulado - valorBase,
-        variacaoPercent: variacaoSimulada,
-        trend: variacaoSimulada >= 0 ? 'up' : 'down',
-        timestamp: new Date().toISOString(),
-        fonte: 'FALLBACK_INTELIGENTE'
-      };
-      
-      console.log('✅ SMLL FALLBACK INTELIGENTE PROCESSADO:', dadosFallback);
-      setSmllData(dadosFallback);
+      // 🔄 FALLBACK SOMENTE SE NÃO CONSEGUIU VIA API
+      if (!dadosSmllObtidos) {
+        console.log('🔄 SMLL: Usando fallback inteligente...');
+        
+        const agora = new Date();
+        const horaAtual = agora.getHours();
+        const isHorarioComercial = horaAtual >= 10 && horaAtual <= 17;
+        
+        const variacaoBase = -0.94;
+        const variacaoSimulada = variacaoBase + (Math.random() - 0.5) * (isHorarioComercial ? 0.3 : 0.1);
+        const valorBase = 2204.90;
+        const valorSimulado = valorBase * (1 + variacaoSimulada / 100);
+        
+        const dadosFallback = {
+          valor: valorSimulado,
+          valorFormatado: Math.round(valorSimulado).toLocaleString('pt-BR'),
+          variacao: valorSimulado - valorBase,
+          variacaoPercent: variacaoSimulada,
+          trend: variacaoSimulada >= 0 ? 'up' : 'down',
+          timestamp: new Date().toISOString(),
+          fonte: 'FALLBACK_INTELIGENTE'
+        };
+        
+        console.log('⚠️ SMLL FALLBACK:', dadosFallback);
+        setSmllData(dadosFallback);
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro geral desconhecido';
@@ -152,7 +305,7 @@ function useSmllRealTime() {
       console.log('🔥 SMLL: Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
       buscarSmllReal();
       
-      // 🔄 ATUALIZAR A CADA 5 MINUTOS (TOTALMENTE DINÂMICO)
+      // 🔄 ATUALIZAR A CADA 5 MINUTOS
       const interval = setInterval(buscarSmllReal, 5 * 60 * 1000);
       
       return () => clearInterval(interval);
