@@ -348,65 +348,228 @@ function useIbovespaRealTime() {
       console.log('🔍 BUSCANDO IBOVESPA REAL VIA BRAPI...');
       console.log('📱 Device Info:', { isMobile, deviceDetected });
 
-      // 🔑 TOKEN BRAPI VALIDADO
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-      // 📊 BUSCAR IBOVESPA (^BVSP) VIA BRAPI COM TIMEOUT
       const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
       
-      console.log('🌐 Buscando Ibovespa:', ibovUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
+      let dadosIbovObtidos = false;
 
-      // 🔥 ADICIONAR TIMEOUT DE 5 SEGUNDOS
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      if (isMobile) {
+        // 📱 MOBILE: Estratégia agressiva com múltiplas tentativas
+        console.log('📱 ESTRATÉGIA MOBILE: Múltiplas tentativas para Ibovespa');
+        
+        // ESTRATÉGIA 1: User-Agent Desktop + timeout maior
+        if (!dadosIbovObtidos) {
+          try {
+            console.log('📱🔄 IBOV: Tentativa 1 - User-Agent Desktop');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
+            
+            const response = await fetch(ibovUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              },
+              signal: controller.signal
+            });
 
-      const response = await fetch(ibovUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': isMobile 
-            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            : 'Ibovespa-Real-Time-App'
-        },
-        signal: controller.signal
-      });
+            clearTimeout(timeoutId);
 
-      clearTimeout(timeoutId);
+            if (response.ok) {
+              const data = await response.json();
+              console.log('📱📊 IBOV Resposta (Desktop UA):', data);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Resposta IBOVESPA:', data);
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const ibovData = data.results[0];
+                
+                const dadosIbovespa = {
+                  valor: ibovData.regularMarketPrice,
+                  valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+                  variacao: ibovData.regularMarketChange || 0,
+                  variacaoPercent: ibovData.regularMarketChangePercent || 0,
+                  trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_UA_DESKTOP'
+                };
 
-        if (data.results && data.results.length > 0) {
-          const ibovData = data.results[0];
-          
-          const dadosIbovespa = {
-            valor: ibovData.regularMarketPrice,
-            valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
-            variacao: ibovData.regularMarketChange || 0,
-            variacaoPercent: ibovData.regularMarketChangePercent || 0,
-            trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
-            timestamp: new Date().toISOString(),
-            fonte: 'BRAPI_REAL'
-          };
-
-          console.log('✅ IBOVESPA PROCESSADO:', dadosIbovespa);
-          setIbovespaData(dadosIbovespa);
-          
-        } else {
-          throw new Error('Sem dados do Ibovespa na resposta');
+                console.log('📱✅ IBOV obtido (Desktop UA):', dadosIbovespa);
+                setIbovespaData(dadosIbovespa);
+                dadosIbovObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ IBOV (Desktop UA):', error.message);
+          }
         }
+
+        // Delay entre tentativas
+        if (!dadosIbovObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 2: Sem User-Agent
+        if (!dadosIbovObtidos) {
+          try {
+            console.log('📱🔄 IBOV: Tentativa 2 - Sem User-Agent');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(ibovUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('📱📊 IBOV Resposta (Sem UA):', data);
+
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const ibovData = data.results[0];
+                
+                const dadosIbovespa = {
+                  valor: ibovData.regularMarketPrice,
+                  valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+                  variacao: ibovData.regularMarketChange || 0,
+                  variacaoPercent: ibovData.regularMarketChangePercent || 0,
+                  trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_SEM_UA'
+                };
+
+                console.log('📱✅ IBOV obtido (Sem UA):', dadosIbovespa);
+                setIbovespaData(dadosIbovespa);
+                dadosIbovObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ IBOV (Sem UA):', error.message);
+          }
+        }
+
+        // Delay entre tentativas
+        if (!dadosIbovObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 3: URL simplificada
+        if (!dadosIbovObtidos) {
+          try {
+            console.log('📱🔄 IBOV: Tentativa 3 - URL simplificada');
+            
+            const response = await fetch(`https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}&range=1d`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('📱📊 IBOV Resposta (URL simples):', data);
+
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const ibovData = data.results[0];
+                
+                const dadosIbovespa = {
+                  valor: ibovData.regularMarketPrice,
+                  valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+                  variacao: ibovData.regularMarketChange || 0,
+                  variacaoPercent: ibovData.regularMarketChangePercent || 0,
+                  trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_URL_SIMPLES'
+                };
+
+                console.log('📱✅ IBOV obtido (URL simples):', dadosIbovespa);
+                setIbovespaData(dadosIbovespa);
+                dadosIbovObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ IBOV (URL simples):', error.message);
+          }
+        }
+
+        if (!dadosIbovObtidos) {
+          console.log('📱⚠️ IBOV: Todas as estratégias mobile falharam');
+        }
+
       } else {
-        throw new Error(`Erro HTTP ${response.status}`);
+        // 🖥️ DESKTOP: Estratégia original
+        console.log('🖥️ ESTRATÉGIA DESKTOP: Tentativa única');
+        
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const response = await fetch(ibovUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Ibovespa-Real-Time-App'
+            },
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('🖥️📊 IBOV Resposta Desktop:', data);
+
+            if (data.results?.[0]?.regularMarketPrice > 0) {
+              const ibovData = data.results[0];
+              
+              const dadosIbovespa = {
+                valor: ibovData.regularMarketPrice,
+                valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+                variacao: ibovData.regularMarketChange || 0,
+                variacaoPercent: ibovData.regularMarketChangePercent || 0,
+                trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                timestamp: new Date().toISOString(),
+                fonte: 'BRAPI_DESKTOP'
+              };
+
+              console.log('🖥️✅ IBOV obtido Desktop:', dadosIbovespa);
+              setIbovespaData(dadosIbovespa);
+              dadosIbovObtidos = true;
+            }
+          }
+        } catch (error) {
+          console.log('🖥️❌ IBOV Desktop:', error.message);
+        }
+      }
+
+      // 🔄 FALLBACK SOMENTE SE NÃO CONSEGUIU VIA API
+      if (!dadosIbovObtidos) {
+        console.log('🔄 IBOV: Usando fallback...');
+        const fallbackData = {
+          valor: 134500,
+          valorFormatado: '134.500',
+          variacao: -588.25,
+          variacaoPercent: -0.43,
+          trend: 'down',
+          timestamp: new Date().toISOString(),
+          fonte: 'FALLBACK_B3'
+        };
+        
+        console.log('⚠️ IBOV FALLBACK:', fallbackData);
+        setIbovespaData(fallbackData);
       }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar Ibovespa:', err);
+      console.error('❌ Erro geral ao buscar Ibovespa:', err);
       setError(errorMessage);
       
-      // 🔄 FALLBACK CORRIGIDO: Usar valor atual baseado na pesquisa
-      console.log('🔄 Usando fallback com valor atual do Ibovespa...');
+      // FALLBACK DE EMERGÊNCIA
       const fallbackData = {
         valor: 134500,
         valorFormatado: '134.500',
