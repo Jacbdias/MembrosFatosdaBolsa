@@ -1870,8 +1870,23 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                         }}
                       />
                     </div>
-                    <div style={{ flex: '1' }}>
-                      <div style={{ 
+</div>
+  <div style={{
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
+    border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '12px',
+    color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b'
+  }}>
+    {ativo.posicaoExibicao}
+  </div>
+  <div style={{ flex: '1' }}>
                         fontWeight: '700', 
                         color: '#1e293b', 
                         fontSize: '16px'
@@ -2282,21 +2297,6 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                       }}>
                         {ativo.ticker.slice(0, 2)}
 </div>
-  <div style={{
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
-    border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '700',
-    fontSize: '12px',
-    color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b'
-  }}>
-    {ativo.posicaoExibicao}
-  </div>
   <div style={{ flex: '1' }}>
                         <div style={{ 
                           fontWeight: '700', 
