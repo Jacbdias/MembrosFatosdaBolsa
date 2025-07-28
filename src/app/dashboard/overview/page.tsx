@@ -1493,12 +1493,18 @@ export default function SmallCapsPage() {
   const ativosAtivos = ativosAtualizados.filter((ativo) => !ativo.posicaoEncerrada) || [];
   const ativosEncerrados = ativosAtualizados.filter((ativo) => ativo.posicaoEncerrada) || [];
 
+// 🏆 USAR POSIÇÃO DEFINIDA NO GERENCIAMENTO
+const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
+  ...ativo,
+  posicaoExibicao: index + 1
+}));
+
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
 
   // 🧮 CALCULAR MÉTRICAS DA CARTEIRA (APENAS ATIVOS ATIVOS)
   const calcularMetricas = () => {
-    if (!ativosAtivos || ativosAtivos.length === 0) {
+    if (!ativosComPosicaoGerenciamento || ativosComPosicaoGerenciamento.length === 0) {
       return {
         valorInicial: 0,
         valorAtual: 0,
@@ -1510,14 +1516,14 @@ export default function SmallCapsPage() {
       };
     }
 
-    const valorInicialTotal = ativosAtivos.length * valorPorAtivo;
+    const valorInicialTotal = ativosComPosicaoGerenciamento.length * valorPorAtivo;
     let valorFinalTotal = 0;
     let melhorPerformance = -Infinity;
     let piorPerformance = Infinity;
     let melhorAtivo = null;
     let piorAtivo = null;
 
-    ativosAtivos.forEach((ativo) => {
+   ativosComPosicaoGerenciamento.forEach((ativo) => {
       const valorFinal = valorPorAtivo * (1 + ativo.performance / 100);
       valorFinalTotal += valorFinal;
 
@@ -1536,7 +1542,7 @@ export default function SmallCapsPage() {
       ((valorFinalTotal - valorInicialTotal) / valorInicialTotal) * 100 : 0;
 
     // Calcular DY médio
-    const dyValues = ativosAtivos
+   const dyValues = ativosComPosicaoGerenciamento
       .map(ativo => parseFloat(ativo.dy.replace('%', '').replace(',', '.')))
       .filter(dy => !isNaN(dy) && dy > 0);
     
@@ -1547,7 +1553,7 @@ export default function SmallCapsPage() {
       valorInicial: valorInicialTotal,
       valorAtual: valorFinalTotal,
       rentabilidadeTotal,
-      quantidadeAtivos: ativosAtivos.length,
+      quantidadeAtivos: ativosComPosicaoGerenciamento.length,
       melhorAtivo,
       piorAtivo,
       dyMedio
@@ -1597,7 +1603,7 @@ export default function SmallCapsPage() {
           margin: '0',
           lineHeight: '1.5'
         }}>
-          {ativosAtivos.length} posições ativas • {ativosEncerrados.length} encerradas
+          {ativosComPosicaoGerenciamento.length} posições ativas • {ativosEncerrados.length} encerradas
         </p>
       </div>
 
@@ -1790,7 +1796,7 @@ export default function SmallCapsPage() {
             alignItems: 'center',
             gap: '8px'
           }}>
-            📈 Posições Ativas ({ativosAtivos.length})
+            📈 Posições Ativas ({ativosComPosicaoGerenciamento.length})
           </h3>
           <p style={{
             color: '#64748b',
@@ -1805,7 +1811,7 @@ export default function SmallCapsPage() {
         {isMobile ? (
           // 📱 MOBILE: Cards verticais
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {ativosAtivos.map((ativo, index) => {
+            {ativosComPosicaoGerenciamento.map((ativo, index) => {
               const temCotacaoReal = ativo.statusApi === 'success';
               
               return (
@@ -1954,14 +1960,17 @@ export default function SmallCapsPage() {
             })}
           </div>
         ) : (
-          // 🖥️ DESKTOP: Tabela completa
+// 🖥️ DESKTOP: Tabela completa
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9' }}>
-                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    ATIVO
-                  </th>
+<th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+  #
+</th>
+<th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+  ATIVO
+</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                     ENTRADA
                   </th>
@@ -2050,7 +2059,7 @@ export default function SmallCapsPage() {
                 </tr>
               </thead>
               <tbody>
-                {ativosAtivos.map((ativo, index) => {
+               {ativosComPosicaoGerenciamento.map((ativo, index) => {
                   const temCotacaoReal = ativo.statusApi === 'success';
                   
                   return (
@@ -2071,6 +2080,27 @@ export default function SmallCapsPage() {
                         e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
+                      {/* 🔢 CÉLULA 1: POSIÇÃO (AGORA PRIMEIRO) */}
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
+                          border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '700',
+                          fontSize: '14px',
+                          color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b',
+                          margin: '0 auto'
+                        }}>
+                          {ativo.posicaoExibicao}
+                        </div>
+                      </td>
+
+                      {/* 📈 CÉLULA 2: ATIVO (AGORA SEGUNDO) */}
                       <td style={{ padding: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{
@@ -2132,9 +2162,12 @@ export default function SmallCapsPage() {
                           </div>
                         </div>
                       </td>
+
+                      {/* 📅 CÉLULA 3: DATA ENTRADA */}
                       <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                         {ativo.dataEntrada}
                       </td>
+
                       <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
                         {formatCurrency(ativo.precoEntrada)}
                       </td>
@@ -2248,8 +2281,23 @@ export default function SmallCapsPage() {
                         fontWeight: '700'
                       }}>
                         {ativo.ticker.slice(0, 2)}
-                      </div>
-                      <div style={{ flex: '1' }}>
+</div>
+  <div style={{
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
+    border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '12px',
+    color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b'
+  }}>
+    {ativo.posicaoExibicao}
+  </div>
+  <div style={{ flex: '1' }}>
                         <div style={{ 
                           fontWeight: '700', 
                           color: '#991b1b', 
@@ -2503,7 +2551,7 @@ export default function SmallCapsPage() {
               const innerRadius = isMobile ? 60 : 75;  // ✅ RESPONSIVO
               const centerX = chartSize / 2;
               const centerY = chartSize / 2;
-              const totalAtivos = ativosAtivos.length;
+              const totalAtivos = ativosComPosicaoGerenciamento.length;
               
               if (totalAtivos === 0) {
                 return (
@@ -2568,7 +2616,7 @@ export default function SmallCapsPage() {
                     </style>
                   </defs>
                   
-                  {ativosAtivos.map((ativo, index) => {
+                  {ativosComPosicaoGerenciamento.map((ativo, index) => {
                     const startAngle = index * anglePerSlice - Math.PI / 2;
                     const endAngle = (index + 1) * anglePerSlice - Math.PI / 2;
                     const cor = cores[index % cores.length];
@@ -2667,8 +2715,8 @@ export default function SmallCapsPage() {
               : 'repeat(auto-fit, minmax(120px, 1fr))', 
             gap: isMobile ? '8px' : '12px'  // ✅ RESPONSIVO
           }}>
-            {ativosAtivos.map((ativo, index) => {
-              const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
+            {ativosComPosicaoGerenciamento.map((ativo, index) => {
+              const porcentagem = ativosComPosicaoGerenciamento.length > 0 ? ((1 / ativosComPosicaoGerenciamento.length) * 100).toFixed(1) : '0.0';
               const cores = [
                 '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
                 '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
