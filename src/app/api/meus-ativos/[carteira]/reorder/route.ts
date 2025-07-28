@@ -1,5 +1,3 @@
-// ===== ARQUIVO CORRIGIDO: src/app/api/meus-ativos/[carteira]/reorder/route.ts =====
-
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
@@ -17,38 +15,24 @@ const CARTEIRA_MODELS = {
   exteriorStocks: 'userExteriorStocks'
 } as const;
 
-// 🔥 MESMA FUNÇÃO DE AUTH
 async function getAuthenticatedUser(request: NextRequest) {
   const userEmail = request.headers.get('x-user-email');
   
-  if (!userEmail) {
-    return null;
-  }
-
+  if (!userEmail) return null;
+  
   if (userEmail === 'admin@fatosdobolsa.com') {
-    return {
-      id: 'ADM-001',
-      firstName: 'Admin',
-      lastName: 'Sistema',
-      email: userEmail,
-      plan: 'ADMIN',
-      status: 'ACTIVE'
-    };
+    const adminUser = await prisma.user.findUnique({
+      where: { email: userEmail },
+      select: { id: true, firstName: true, lastName: true, email: true, plan: true, status: true }
+    });
+    return adminUser;
   }
 
   try {
     const user = await prisma.user.findUnique({
       where: { email: userEmail },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        plan: true,
-        status: true
-      }
+      select: { id: true, firstName: true, lastName: true, email: true, plan: true, status: true }
     });
-
     return user;
   } catch (error) {
     console.error('❌ Erro ao buscar usuário:', error);
@@ -59,6 +43,8 @@ async function getAuthenticatedUser(request: NextRequest) {
 // POST - Reordenar ativos
 export async function POST(request: NextRequest, { params }: { params: { carteira: string } }) {
   try {
+    console.log('🔄 INICIO REORDENAÇÃO - Carteira:', params.carteira);
+    
     const user = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -67,33 +53,72 @@ export async function POST(request: NextRequest, { params }: { params: { carteir
     const { carteira } = params;
     const { novosAtivos } = await request.json();
     
+    console.log('🔄 Nova ordem recebida:', novosAtivos.map((a: any) => a.ticker));
+    
     const modelName = CARTEIRA_MODELS[carteira as keyof typeof CARTEIRA_MODELS];
     if (!modelName) {
       return NextResponse.json({ error: 'Carteira inválida' }, { status: 400 });
     }
 
     const model = (prisma as any)[modelName];
-
-    console.log(`🔄 Reordenando ${novosAtivos.length} ativos da carteira ${carteira}`);
-
-    // Atualizar em transação
-    await prisma.$transaction(
-      novosAtivos.map((ativo: any) => 
-        model.update({
-          where: { 
-            id: ativo.id,
-            userId: user.id 
-          },
-          data: { 
-            editadoEm: new Date().toISOString()
-          }
-        })
-      )
-    );
-
-    console.log(`✅ Reordenação da carteira ${carteira} concluída`);
     
-    return NextResponse.json({ success: true });
+    // 🔥 BUSCAR ATIVOS REAIS DO BANCO
+    console.log('🔍 Buscando ativos reais do banco...');
+    const ativosReais = await model.findMany({
+      where: { userId: user.id },
+      select: { id: true, ticker: true }
+    });
+    
+    // 🔥 MAPEAR TICKERS PARA IDs REAIS
+    const tickerParaId = new Map();
+    ativosReais.forEach((ativo: any) => {
+      tickerParaId.set(ativo.ticker, ativo.id);
+    });
+    
+    console.log('📊 Mapeamento ticker → ID:', Object.fromEntries(tickerParaId.entries()));
+    
+    // 🔥 ATUALIZAR EM SEQUÊNCIA PARA MANTER ORDEM
+    console.log('🔄 Atualizando ordem sequencial...');
+    
+    const baseTime = new Date();
+    const atualizacoes = [];
+    
+    for (let i = 0; i < novosAtivos.length; i++) {
+      const ativo = novosAtivos[i];
+      const idReal = tickerParaId.get(ativo.ticker);
+      
+      if (idReal) {
+        // Criar timestamps sequenciais (com diferença de 1 segundo)
+        const timestampOrdem = new Date(baseTime.getTime() + (i * 1000));
+        
+        console.log(`📍 Posição ${i + 1}: ${ativo.ticker} (${idReal}) → ${timestampOrdem.toISOString()}`);
+        
+        atualizacoes.push(
+          model.update({
+            where: { 
+              id: idReal,
+              userId: user.id 
+            },
+            data: { 
+              editadoEm: timestampOrdem
+            }
+          })
+        );
+      } else {
+        console.warn(`⚠️ Ativo ${ativo.ticker} não encontrado no banco`);
+      }
+    }
+    
+    // Executar todas as atualizações
+    await prisma.$transaction(atualizacoes);
+    
+    console.log(`✅ Reordenação da carteira ${carteira} concluída com ${atualizacoes.length} ativos`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: `${atualizacoes.length} ativos reordenados`,
+      novaOrdem: novosAtivos.map((a: any) => a.ticker)
+    });
     
   } catch (error) {
     console.error('❌ Erro na reordenação:', error);

@@ -118,49 +118,49 @@ export async function GET(
         case 'microCaps':
           ativos = await prisma.userMicroCaps.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'smallCaps':
           ativos = await prisma.userSmallCaps.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'dividendos':
           ativos = await prisma.userDividendos.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'fiis':
           ativos = await prisma.userFiis.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'dividendosInternacional':
           ativos = await prisma.userDividendosInternacional.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'etfs':
           ativos = await prisma.userEtfs.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'projetoAmerica':
           ativos = await prisma.userProjetoAmerica.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         case 'exteriorStocks':
           ativos = await prisma.userExteriorStocks.findMany({
             where: { userId: user.id },
-            orderBy: { editadoEm: 'desc' }
+            orderBy: { editadoEm: 'asc' }
           });
           break;
         default:
@@ -295,6 +295,249 @@ export async function POST(
   } catch (error) {
     debugLog('❌ Erro POST:', error);
     console.error(`❌ Erro POST carteira ${params.carteira}:`, error);
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+  }
+}
+
+// 🔍 PUT - EDITAR ATIVO
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { carteira: string } }
+) {
+  try {
+    debugLog('✏️ INICIO PUT - Carteira:', params.carteira);
+    
+    // Autenticação
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+    
+    // Parse do body
+    const body = await request.json();
+    debugLog('✏️ Body recebido:', body);
+    
+    const { id, ...dadosAtualizacao } = body;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+    }
+    
+    // Preparar dados para atualização
+    const dadosUpdate: any = {
+      ticker: dadosAtualizacao.ticker?.toUpperCase(),
+      setor: dadosAtualizacao.setor,
+      dataEntrada: dadosAtualizacao.dataEntrada,
+      precoEntrada: parseFloat(dadosAtualizacao.precoEntrada),
+      editadoEm: new Date()
+    };
+    
+    // Campos opcionais
+    if (dadosAtualizacao.precoTeto) dadosUpdate.precoTeto = parseFloat(dadosAtualizacao.precoTeto);
+    if (dadosAtualizacao.precoTetoBDR) dadosUpdate.precoTetoBDR = parseFloat(dadosAtualizacao.precoTetoBDR);
+    if (dadosAtualizacao.posicaoEncerrada !== undefined) dadosUpdate.posicaoEncerrada = dadosAtualizacao.posicaoEncerrada;
+    if (dadosAtualizacao.dataSaida) dadosUpdate.dataSaida = dadosAtualizacao.dataSaida;
+    if (dadosAtualizacao.precoSaida) dadosUpdate.precoSaida = parseFloat(dadosAtualizacao.precoSaida);
+    if (dadosAtualizacao.motivoEncerramento) dadosUpdate.motivoEncerramento = dadosAtualizacao.motivoEncerramento;
+    
+    debugLog('✏️ Dados para atualizar:', dadosUpdate);
+    
+    let ativoAtualizado;
+    
+    switch (params.carteira) {
+      case 'smallCaps':
+        ativoAtualizado = await prisma.userSmallCaps.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'microCaps':
+        ativoAtualizado = await prisma.userMicroCaps.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'dividendos':
+        ativoAtualizado = await prisma.userDividendos.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'fiis':
+        ativoAtualizado = await prisma.userFiis.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'dividendosInternacional':
+        ativoAtualizado = await prisma.userDividendosInternacional.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'etfs':
+        ativoAtualizado = await prisma.userEtfs.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'projetoAmerica':
+        ativoAtualizado = await prisma.userProjetoAmerica.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      case 'exteriorStocks':
+        ativoAtualizado = await prisma.userExteriorStocks.update({
+          where: { 
+            id: id,
+            userId: user.id 
+          },
+          data: dadosUpdate
+        });
+        break;
+      default:
+        return NextResponse.json({ error: 'Carteira não implementada' }, { status: 400 });
+    }
+    
+    debugLog('✅ Ativo atualizado:', ativoAtualizado.id);
+    console.log(`✅ Ativo ${dadosUpdate.ticker} atualizado na carteira ${params.carteira}`);
+    
+    return NextResponse.json(ativoAtualizado);
+    
+  } catch (error) {
+    debugLog('❌ Erro PUT:', error);
+    console.error(`❌ Erro PUT carteira ${params.carteira}:`, error);
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+  }
+}
+
+// 🔍 DELETE - REMOVER ATIVO
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { carteira: string } }
+) {
+  try {
+    debugLog('🗑️ INICIO DELETE - Carteira:', params.carteira);
+    
+    // Autenticação
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+    
+    // Parse do body
+    const body = await request.json();
+    debugLog('🗑️ Body recebido:', body);
+    
+    const { id } = body;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+    }
+    
+    debugLog('🗑️ Removendo ativo ID:', id);
+    
+    let ativoRemovido;
+    
+    switch (params.carteira) {
+      case 'smallCaps':
+        ativoRemovido = await prisma.userSmallCaps.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'microCaps':
+        ativoRemovido = await prisma.userMicroCaps.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'dividendos':
+        ativoRemovido = await prisma.userDividendos.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'fiis':
+        ativoRemovido = await prisma.userFiis.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'dividendosInternacional':
+        ativoRemovido = await prisma.userDividendosInternacional.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'etfs':
+        ativoRemovido = await prisma.userEtfs.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'projetoAmerica':
+        ativoRemovido = await prisma.userProjetoAmerica.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      case 'exteriorStocks':
+        ativoRemovido = await prisma.userExteriorStocks.delete({
+          where: { 
+            id: id,
+            userId: user.id 
+          }
+        });
+        break;
+      default:
+        return NextResponse.json({ error: 'Carteira não implementada' }, { status: 400 });
+    }
+    
+    debugLog('✅ Ativo removido:', ativoRemovido.id);
+    console.log(`✅ Ativo ${ativoRemovido.ticker} removido da carteira ${params.carteira}`);
+    
+    return NextResponse.json({ success: true, ativo: ativoRemovido });
+    
+  } catch (error) {
+    debugLog('❌ Erro DELETE:', error);
+    console.error(`❌ Erro DELETE carteira ${params.carteira}:`, error);
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
