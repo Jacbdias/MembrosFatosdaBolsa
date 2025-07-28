@@ -1835,8 +1835,26 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                     e.currentTarget.style.backgroundColor = '#f8fafc';
                   }}
                 >
-                  {/* Header do Card */}
+{/* Header do Card */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    {/* 🔢 POSIÇÃO (AGORA PRIMEIRO) */}
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
+                      border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '700',
+                      fontSize: '12px',
+                      color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b'
+                    }}>
+                      {ativo.posicaoExibicao}
+                    </div>
+
+                    {/* 📈 LOGO DO ATIVO (AGORA SEGUNDO) */}
                     <div style={{
                       width: '36px',
                       height: '36px',
@@ -1869,23 +1887,10 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                           }
                         }}
                       />
-</div>
-<div style={{
-  width: '28px',
-  height: '28px',
-  borderRadius: '50%',
-  backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
-  border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontWeight: '700',
-  fontSize: '12px',
-  color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b'
-}}>
-  {ativo.posicaoExibicao}
-</div>
-<div style={{ flex: '1' }}>
+                    </div>
+
+                    {/* 📝 NOME E SETOR (CONTINUA IGUAL) */}
+                    <div style={{ flex: '1' }}>
                       <div style={{ 
                         fontWeight: '700', 
                         color: '#1e293b', 
@@ -1909,6 +1914,8 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                         {ativo.setor}
                       </div>
                     </div>
+
+                    {/* 🎯 VIÉS (CONTINUA NO FINAL) */}
                     <div style={{
                       padding: '4px 8px',
                       borderRadius: '8px',
