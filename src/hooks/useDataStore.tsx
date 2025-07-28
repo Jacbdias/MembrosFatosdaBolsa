@@ -529,20 +529,6 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     return dadosCombinados;
   }, [dados, carteirasQueries, modoSincronizacao, user?.id]);
 
-// 🔥 SINCRONIZAR ESTADO LOCAL COM DADOS DO BANCO
-useEffect(() => {
-  if (modoSincronizacao === 'hibrido' && user?.id) {
-    const temDadosBanco = Object.values(carteirasQueries).some((query: any) => 
-      query.data && query.data.length > 0
-    );
-    
-    if (temDadosBanco) {
-      console.log('🔄 Sincronizando estado local com dados do banco...');
-      setDados(dadosFinais);
-    }
-  }
-}, [dadosFinais, modoSincronizacao, user?.id, carteirasQueries]);
-
   // 🔥 FUNÇÕES ORIGINAIS MANTIDAS (interface compatível)
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
     try {
