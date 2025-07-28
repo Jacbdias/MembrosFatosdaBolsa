@@ -4,7 +4,17 @@ import React, { useState } from 'react';
 import { useDataStore } from '../../../hooks/useDataStore';
 
 export default function GerenciamentoPage() {
-  const { dados, CARTEIRAS_CONFIG, adicionarAtivo, editarAtivo, obterEstatisticas, setDados } = useDataStore();
+
+const { 
+  dados, 
+  CARTEIRAS_CONFIG, 
+  adicionarAtivo, 
+  editarAtivo, 
+  removerAtivo,        // 👈 ADICIONAR ESTA
+  reordenarAtivos,     // 👈 ADICIONAR ESTA
+  obterEstatisticas, 
+  setDados 
+} = useDataStore();
   
   const [carteiraAtiva, setCarteiraAtiva] = useState('smallCaps');
   const [modoEdicao, setModoEdicao] = useState(null);
@@ -42,55 +52,7 @@ export default function GerenciamentoPage() {
   const mostraPrecoTeto = carteiraAtiva === 'projetoAmerica' 
     ? formData.setor !== 'ETF' && formData.setor !== ''
     : temPrecoTeto;
-
-  // 🔥 FUNÇÃO CORRIGIDA PARA REMOVER ATIVO - USA DATASTORE
-  const removerAtivo = (carteira, id) => {
-    console.log('🗑️ REMOVENDO ATIVO VIA DATASTORE:', { carteira, id });
-    
-    setDados((prev) => {
-      const novosDados = {
-        ...prev,
-        [carteira]: prev[carteira].filter((item) => item.id !== id)
-      };
       
-      console.log('📊 DADOS ATUALIZADOS:', novosDados[carteira]);
-      
-      // 🔥 DISPARAR EVENTO DE ATUALIZAÇÃO
-      setTimeout(() => {
-        window.dispatchEvent(new Event('localStorageUpdate'));
-        console.log('🔔 EVENTO DE ATUALIZAÇÃO DISPARADO');
-      }, 100);
-      
-      return novosDados;
-    });
-  };
-  
-  // 🔥 FUNÇÃO CORRIGIDA PARA REORDENAR - USA DATASTORE  
-  const reordenarAtivos = (carteira, novosAtivos) => {
-    console.log('🔄 REORDENANDO ATIVOS VIA DATASTORE:', { carteira, quantidade: novosAtivos.length });
-    
-    setDados((prev) => {
-      const ativosAtualizados = novosAtivos.map((ativo) => ({
-        ...ativo,
-        editadoEm: new Date().toISOString()
-      }));
-      
-      const novosDados = {
-        ...prev,
-        [carteira]: ativosAtualizados
-      };
-      
-      console.log('📊 ATIVOS REORDENADOS:', ativosAtualizados.map(a => a.ticker));
-      
-      // 🔥 DISPARAR EVENTO DE ATUALIZAÇÃO
-      setTimeout(() => {
-        window.dispatchEvent(new Event('localStorageUpdate'));
-        console.log('🔔 EVENTO DE REORDENAÇÃO DISPARADO');
-      }, 100);
-      
-      return novosDados;
-    });
-  };
 
   // 🔥 FUNÇÃO PARA ATUALIZAR PREÇO TETO BDR EM LOTE
   const atualizarPrecoTetoBDRLote = async () => {
@@ -260,12 +222,6 @@ export default function GerenciamentoPage() {
       editarAtivo(carteiraAtiva, modoEdicao.ativo.id, dadosAtivo);
       console.log('✏️ ATIVO EDITADO:', modoEdicao.ativo.id, dadosAtivo);
     }
-
-    // 🔥 DISPARAR EVENTO DE ATUALIZAÇÃO APÓS SALVAR
-    setTimeout(() => {
-      window.dispatchEvent(new Event('localStorageUpdate'));
-      console.log('🔔 EVENTO DE SALVAMENTO DISPARADO');
-    }, 100);
 
     cancelarEdicao();
   };
