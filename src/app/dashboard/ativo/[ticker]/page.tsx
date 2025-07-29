@@ -6023,12 +6023,22 @@ if (deviceDetected) {
 <MetricCard 
   title="P/L" 
   value={(() => {
-    // 🇧🇷 Para ações brasileiras: HG Brasil primeiro (funciona melhor no mobile)
-    if (ticker.match(/\d$/) && !ticker.includes('11')) {
-      // 1º: HG Brasil (melhor para ações brasileiras no mobile)
-      if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
-        return dadosHGBrasil.pl.toFixed(2);
-      }
+// 🇧🇷 Para ações brasileiras: Priorizar por dispositivo
+if (ticker.match(/\d$/) && !ticker.includes('11')) {
+  if (isMobile) {
+    // MOBILE: HG Brasil primeiro
+    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+      return dadosHGBrasil.pl.toFixed(2);
+    }
+  } else {
+    // DESKTOP: BRAPI primeiro (mais estável)
+    if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+      return dadosFinanceiros.pl.toFixed(2);
+    }
+    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+      return dadosHGBrasil.pl.toFixed(2);
+    }
+  }
       // 2º: BRAPI (backup confiável)
       if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
         return dadosFinanceiros.pl.toFixed(2);
@@ -6135,17 +6145,27 @@ if (deviceDetected) {
     />
     
     {/* 📈 P/VP MELHORADO - MÚLTIPLAS FONTES */}
-    <MetricCard 
-      title="P/VP" 
-      value={(() => {
-        // Prioridade: Yahoo Internacional > HG Brasil
-        if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
-          return dadosYahoo.pvp.toFixed(2);
-        }
-        if (dadosHGBrasil?.pvp) {
-          return dadosHGBrasil.pvp.toFixed(2);
-        }
-        return 'N/A';
+<MetricCard 
+  title="P/VP" 
+  value={(() => {
+    // 🔥 MOBILE: Priorizar HG Brasil (que está funcionando)
+    if (isMobile) {
+      if (dadosHGBrasil?.pvp && dadosHGBrasil.pvp > 0) {
+        return dadosHGBrasil.pvp.toFixed(2);
+      }
+      if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
+        return dadosYahoo.pvp.toFixed(2);
+      }
+    } else {
+      // 🖥️ DESKTOP: Priorizar Yahoo
+      if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
+        return dadosYahoo.pvp.toFixed(2);
+      }
+      if (dadosHGBrasil?.pvp && dadosHGBrasil.pvp > 0) {
+        return dadosHGBrasil.pvp.toFixed(2);
+      }
+    }
+    return 'N/A';
       })()}
       subtitle={(() => {
         if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
