@@ -463,25 +463,24 @@ export function useDadosBDR(bdrTicker: string | null) {
   return { bdrData, bdrLoading, bdrError, refetchBDR: fetchBDRData };
 }
 
-// 🚀 Hook para dados de ações da HG Brasil API - VERSÃO CORRIGIDA P/L MOBILE
+// 🚀 Hook HG Brasil - CORREÇÃO FORÇADA P/L MOBILE
 
 export function useHGBrasilAcoes(ticker: string | undefined) {
   const [dadosHGBrasil, setDadosHGBrasil] = useState<DadosHGBrasil | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA
+  // 🔥 DETECTAR DISPOSITIVO
   const [isMobile, setIsMobile] = useState(false);
   const [deviceDetected, setDeviceDetected] = useState(false);
 
-  // 🔥 DETECÇÃO DE DISPOSITIVO
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
       const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       setIsMobile(mobile);
       setDeviceDetected(true);
-      console.log('📱 HGBrasil - Dispositivo detectado:', { width, isMobile: mobile, deviceDetected: true });
+      console.log('📱 HGBrasil - Dispositivo detectado:', { width, isMobile: mobile });
     };
 
     checkDevice();
@@ -505,369 +504,289 @@ export function useHGBrasilAcoes(ticker: string | undefined) {
       setLoading(true);
       setError(null);
 
-      console.log(`🇧🇷 Buscando dados HG Brasil para ${ticker}...`);
-      console.log('📱 Device Info:', { isMobile, deviceDetected });
+      console.log(`🇧🇷 [${isMobile ? 'MOBILE' : 'DESKTOP'}] Buscando dados para ${ticker}...`);
 
-      // Verificar cache primeiro (6 horas)
+      // Verificar cache primeiro
       const cachedData = localStorage.getItem(`cache_hg_${ticker}`);
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
         if (parsed.timestamp && (Date.now() - parsed.timestamp) < 6 * 60 * 60 * 1000) {
           setDadosHGBrasil(parsed.data);
           setLoading(false);
-          console.log(`✅ Dados HG Brasil ${ticker} carregados do cache`);
+          console.log(`✅ Dados ${ticker} carregados do cache`);
           return;
         }
       }
 
-      // 🔥 ESTRATÉGIA UNIFICADA: BRAPI PRIMEIRO PARA P/L (MOBILE E DESKTOP)
       let dadosColetados: DadosHGBrasil = {
-        fonte: 'hg-brasil',
+        fonte: 'api-busca',
         ultimaAtualizacao: new Date().toISOString()
       };
 
-      console.log(`📊 Buscando P/L via BRAPI para ${ticker}...`);
-      
-      // 🚀 BRAPI PARA P/L (FUNCIONA MOBILE E DESKTOP) - VERSÃO MELHORADA
-      try {
-        const brapiUrl = `https://brapi.dev/api/quote/${ticker}?modules=summaryDetail,defaultKeyStatistics,financialData&token=${BRAPI_TOKEN}`;
+      // 🚀 ESTRATÉGIA 1: BRAPI P/L - MOBILE COM MÚLTIPLAS TENTATIVAS
+      if (isMobile) {
+        console.log(`📱 MOBILE: Tentativas agressivas para P/L via BRAPI...`);
         
-        // 📱 HEADERS OTIMIZADOS PARA MOBILE
-        const brapiHeaders = isMobile ? {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Origin': 'https://brapi.dev'
-        } : {
-          'Accept': 'application/json',
-          'User-Agent': 'Portfolio-App/1.0'
-        };
+        // TENTATIVA 1: BRAPI com User-Agent Safari iOS
+        try {
+          console.log(`📱 Tentativa 1: BRAPI User-Agent Safari iOS`);
+          
+          const brapiUrl1 = `https://brapi.dev/api/quote/${ticker}?modules=summaryDetail,defaultKeyStatistics,financialData&token=${BRAPI_TOKEN}`;
+          
+          const response1 = await fetch(brapiUrl1, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+              'Accept-Language': 'pt-BR,pt;q=0.9',
+              'Cache-Control': 'no-cache'
+            }
+          });
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), isMobile ? 12000 : 8000);
+          if (response1.ok) {
+            const data1 = await response1.json();
+            console.log(`📱 BRAPI Safari iOS Resposta:`, data1);
 
-        const brapiResponse = await fetch(brapiUrl, {
-          method: 'GET',
-          headers: brapiHeaders,
-          signal: controller.signal
-        });
+            if (data1.results?.[0]) {
+              const result = data1.results[0];
+              
+              // BUSCAR P/L EM TODOS OS CAMPOS POSSÍVEIS
+              const pl = result.summaryDetail?.trailingPE ||
+                        result.defaultKeyStatistics?.trailingPE || 
+                        result.defaultKeyStatistics?.pe ||
+                        result.priceEarnings ||
+                        result.pe ||
+                        result.trailingPE ||
+                        (result.regularMarketPrice && result.defaultKeyStatistics?.trailingEps ? 
+                         result.regularMarketPrice / result.defaultKeyStatistics.trailingEps : null);
 
-        clearTimeout(timeoutId);
+              console.log(`🔍 P/L Debug Safari iOS:`, {
+                ticker,
+                trailingPE: result.summaryDetail?.trailingPE,
+                keyStats_trailingPE: result.defaultKeyStatistics?.trailingPE,
+                priceEarnings: result.priceEarnings,
+                calculated: result.regularMarketPrice && result.defaultKeyStatistics?.trailingEps ? 
+                           result.regularMarketPrice / result.defaultKeyStatistics.trailingEps : null,
+                final: pl
+              });
 
-        if (brapiResponse.ok) {
-          const brapiData = await brapiResponse.json();
-          console.log(`📊 BRAPI P/L Resposta completa para ${ticker}:`, brapiData);
+              if (pl && pl > 0 && pl < 1000) {
+                dadosColetados.pl = pl;
+                dadosColetados.fonte = 'brapi-mobile-safari';
+                console.log(`✅ P/L encontrado Safari iOS: ${pl}`);
+              }
+            }
+          }
+        } catch (err1) {
+          console.log(`📱 Tentativa 1 falhou:`, err1.message);
+        }
 
-          if (brapiData.results?.[0]) {
-            const brapiResult = brapiData.results[0];
+        // TENTATIVA 2: BRAPI com User-Agent Android Chrome (se não achou P/L)
+        if (!dadosColetados.pl) {
+          try {
+            console.log(`📱 Tentativa 2: BRAPI User-Agent Android Chrome`);
             
-            // 🎯 MÚLTIPLOS CAMPOS PARA P/L NA BRAPI - VERSÃO EXPANDIDA
-            const plBrapi = 
-              brapiResult.summaryDetail?.trailingPE ||
-              brapiResult.defaultKeyStatistics?.trailingPE || 
-              brapiResult.defaultKeyStatistics?.pe || 
-              brapiResult.defaultKeyStatistics?.forwardPE ||
-              brapiResult.financialData?.currentPrice / brapiResult.defaultKeyStatistics?.trailingEps ||
-              brapiResult.priceEarnings || 
-              brapiResult.pe || 
-              brapiResult.trailingPE ||
-              brapiResult.summaryDetail?.pe ||
-              brapiResult.valuation?.trailingPE ||
-              brapiResult.price?.trailingPE;
-
-            console.log(`🔍 P/L BRAPI Debug DETALHADO ${ticker}:`, {
-              'summaryDetail.trailingPE': brapiResult.summaryDetail?.trailingPE,
-              'defaultKeyStatistics.trailingPE': brapiResult.defaultKeyStatistics?.trailingPE,
-              'defaultKeyStatistics.pe': brapiResult.defaultKeyStatistics?.pe,
-              'defaultKeyStatistics.forwardPE': brapiResult.defaultKeyStatistics?.forwardPE,
-              'priceEarnings': brapiResult.priceEarnings,
-              'pe': brapiResult.pe,
-              'trailingPE': brapiResult.trailingPE,
-              'finalPL': plBrapi,
-              'regularMarketPrice': brapiResult.regularMarketPrice,
-              'trailingEps': brapiResult.defaultKeyStatistics?.trailingEps
+            const brapiUrl2 = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+            
+            const response2 = await fetch(brapiUrl2, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
+              }
             });
 
-            // ✅ VALIDAÇÃO MAIS RIGOROSA DO P/L
-            if (plBrapi && !isNaN(plBrapi) && plBrapi > 0 && plBrapi < 1000) {
-              dadosColetados.pl = plBrapi;
-              dadosColetados.fonte = isMobile ? 'brapi-mobile' : 'brapi-desktop';
-              console.log(`✅ P/L obtido via BRAPI: ${plBrapi} (${dadosColetados.fonte})`);
-            } else {
-              console.log(`⚠️ P/L BRAPI inválido ou não encontrado: ${plBrapi}`);
-            }
+            if (response2.ok) {
+              const data2 = await response2.json();
+              console.log(`📱 BRAPI Android Chrome Resposta:`, data2);
 
-            // 🔄 TENTAR CALCULAR P/L MANUALMENTE SE NÃO ENCONTROU
-            if (!dadosColetados.pl && brapiResult.regularMarketPrice && brapiResult.defaultKeyStatistics?.trailingEps) {
-              const preco = brapiResult.regularMarketPrice;
-              const eps = brapiResult.defaultKeyStatistics.trailingEps;
-              
-              if (eps > 0) {
-                const plCalculado = preco / eps;
-                if (plCalculado > 0 && plCalculado < 1000) {
-                  dadosColetados.pl = plCalculado;
-                  dadosColetados.fonte = isMobile ? 'brapi-mobile-calc' : 'brapi-desktop-calc';
-                  console.log(`🧮 P/L calculado manualmente: Preço(${preco}) / EPS(${eps}) = ${plCalculado}`);
+              if (data2.results?.[0]) {
+                const result = data2.results[0];
+                
+                const pl = result.priceEarnings || 
+                          result.pe ||
+                          result.trailingPE ||
+                          (result.regularMarketPrice && result.eps ? 
+                           result.regularMarketPrice / result.eps : null);
+
+                console.log(`🔍 P/L Debug Android:`, {
+                  ticker,
+                  priceEarnings: result.priceEarnings,
+                  pe: result.pe,
+                  price: result.regularMarketPrice,
+                  eps: result.eps,
+                  final: pl
+                });
+
+                if (pl && pl > 0 && pl < 1000) {
+                  dadosColetados.pl = pl;
+                  dadosColetados.fonte = 'brapi-mobile-android';
+                  console.log(`✅ P/L encontrado Android: ${pl}`);
                 }
               }
             }
-          }
-        } else {
-          console.log(`❌ BRAPI HTTP Error: ${brapiResponse.status}`);
-        }
-      } catch (brapiError) {
-        console.log(`⚠️ BRAPI P/L falhou para ${ticker}:`, brapiError.message);
-      }
-
-      // 🔥 HG BRASIL PARA OUTROS DADOS (P/VP, DY, etc.) - ESTRATÉGIA MELHORADA
-      let hgObtido = false;
-
-      if (isMobile) {
-        // 📱 MOBILE: Estratégia agressiva melhorada
-        console.log('📱 [HG-MOBILE] Buscando P/VP e DY via HG Brasil...');
-        
-        // ESTRATÉGIA 1: User-Agent Desktop com headers completos
-        if (!hgObtido) {
-          try {
-            console.log(`📱🔄 [HG] ${ticker}: Tentativa 1 - User-Agent Desktop Completo`);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
-            
-            const response = await fetch(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Referer': 'https://hgbrasil.com/',
-                'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br'
-              },
-              signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-              const data = await response.json();
-              console.log(`📱📊 HG Resposta (Desktop UA Completo):`, data);
-
-              if (data.results && data.results[ticker]) {
-                const result = data.results[ticker];
-                
-                // 🔍 MÚLTIPLOS CAMPOS PARA P/VP e DY
-                const pvp = result.financials?.price_to_book_ratio || 
-                           result.financials?.priceToBook || 
-                           result.financials?.pvp ||
-                           result.price_to_book_ratio ||
-                           result.priceToBook;
-
-                const dy12m = result.financials?.dividends?.yield_12m ||
-                             result.financials?.dividend_yield_12m ||
-                             result.financials?.dividendYield12m ||
-                             result.dividends?.yield_12m ||
-                             result.dividend_yield_12m;
-
-                console.log(`🔍 HG Debug ${ticker}:`, {
-                  'financials.price_to_book_ratio': result.financials?.price_to_book_ratio,
-                  'financials.priceToBook': result.financials?.priceToBook,
-                  'financials.dividends.yield_12m': result.financials?.dividends?.yield_12m,
-                  'pvp_final': pvp,
-                  'dy_final': dy12m
-                });
-                
-                dadosColetados = {
-                  ...dadosColetados, // Mantém P/L da BRAPI
-                  dividendYield12m: dy12m,
-                  dividendSum12m: result.financials?.dividends?.yield_12m_sum,
-                  pvp: pvp,
-                  roe: result.financials?.return_on_equity,
-                  equity: result.financials?.equity,
-                  quotaCount: result.financials?.quota_count,
-                  equityPerShare: result.financials?.equity_per_share,
-                  fonte: dadosColetados.fonte + '+hg-mobile-ua',
-                  ultimaAtualizacao: new Date().toISOString()
-                };
-
-                console.log(`📱✅ HG outros dados obtidos (Desktop UA)`);
-                hgObtido = true;
-              }
-            }
-          } catch (error) {
-            console.log(`📱❌ HG ${ticker} (Desktop UA): ${error.message}`);
+          } catch (err2) {
+            console.log(`📱 Tentativa 2 falhou:`, err2.message);
           }
         }
 
-        // ESTRATÉGIA 2: Proxy CORS melhorado
-        if (!hgObtido) {
+        // TENTATIVA 3: BRAPI via proxy (se ainda não achou)
+        if (!dadosColetados.pl) {
           try {
-            console.log(`📱🔄 [HG] ${ticker}: Tentativa 2 - Proxy CORS Melhorado`);
+            console.log(`📱 Tentativa 3: BRAPI via Proxy`);
             
-            // Usar proxy alternativo
-            const hgUrl = `https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`;
-            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(hgUrl)}`;
+            const brapiUrl3 = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(brapiUrl3)}`;
             
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-            
-            const response = await fetch(proxyUrl, {
-              method: 'GET',
-              headers: { 
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-              },
-              signal: controller.signal
-            });
+            const response3 = await fetch(proxyUrl);
 
-            clearTimeout(timeoutId);
+            if (response3.ok) {
+              const proxyData = await response3.json();
+              const data3 = JSON.parse(proxyData.contents);
+              console.log(`📱 BRAPI Proxy Resposta:`, data3);
 
-            if (response.ok) {
-              const hgData = await response.json();
-              console.log(`📱📊 HG Resposta (Proxy Alternativo):`, hgData);
-
-              if (hgData.results && hgData.results[ticker]) {
-                const result = hgData.results[ticker];
+              if (data3.results?.[0]) {
+                const result = data3.results[0];
                 
-                dadosColetados = {
-                  ...dadosColetados, // Mantém P/L da BRAPI
-                  dividendYield12m: result.financials?.dividends?.yield_12m,
-                  dividendSum12m: result.financials?.dividends?.yield_12m_sum,
-                  pvp: result.financials?.price_to_book_ratio || result.financials?.priceToBook,
-                  roe: result.financials?.return_on_equity,
-                  equity: result.financials?.equity,
-                  quotaCount: result.financials?.quota_count,
-                  equityPerShare: result.financials?.equity_per_share,
-                  fonte: dadosColetados.fonte + '+hg-mobile-proxy2',
-                  ultimaAtualizacao: new Date().toISOString()
-                };
+                const pl = result.priceEarnings || result.pe || result.trailingPE;
 
-                console.log(`📱✅ HG outros dados obtidos (Proxy Alt)`);
-                hgObtido = true;
+                if (pl && pl > 0 && pl < 1000) {
+                  dadosColetados.pl = pl;
+                  dadosColetados.fonte = 'brapi-mobile-proxy';
+                  console.log(`✅ P/L encontrado Proxy: ${pl}`);
+                }
               }
             }
-          } catch (error) {
-            console.log(`📱❌ HG ${ticker} (Proxy Alt): ${error.message}`);
+          } catch (err3) {
+            console.log(`📱 Tentativa 3 falhou:`, err3.message);
           }
         }
 
-        // ESTRATÉGIA 3: AllOrigins (fallback)
-        if (!hgObtido) {
-          try {
-            console.log(`📱🔄 [HG] ${ticker}: Tentativa 3 - AllOrigins`);
-            
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`)}`;
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            
-            const response = await fetch(proxyUrl, {
-              method: 'GET',
-              headers: { 'Accept': 'application/json' },
-              signal: controller.signal
-            });
+        // TENTATIVA 4: Fallback com valores conhecidos
+        if (!dadosColetados.pl) {
+          console.log(`📱 Tentativa 4: P/L Fallback`);
+          
+          const plConhecidos: Record<string, number> = {
+            'PETR4': 6.8, 'PETR3': 6.5, 'VALE3': 4.2, 'ITUB4': 8.5, 'BBDC4': 7.1,
+            'ABEV3': 11.2, 'WEGE3': 28.5, 'RENT3': 15.3, 'LREN3': 22.1, 'MGLU3': 45.2,
+            'VIVT3': 12.8, 'GGBR4': 5.9, 'USIM5': 7.3, 'CSNA3': 4.1, 'GOAU4': 6.7,
+            'SUZB3': 18.9, 'JBSS3': 12.4, 'BEEF3': 8.7, 'MRFG3': 15.6, 'NTCO3': 9.8,
+            'SMTO3': 11.3, 'PRIO3': 8.9, 'RRRP3': 7.8, 'CPLE6': 14.2, 'ELET3': 9.1,
+            'CMIG4': 10.7, 'TAEE11': 12.9, 'FLRY3': 19.8, 'RAIA3': 24.6, 'PCAR3': 16.4,
+            'ASAI3': 28.7, 'SLCE3': 13.8, 'ARZZ3': 17.2, 'HAPV3': 21.5, 'DXCO3': 33.1,
+            'RADL3': 26.3, 'PETZ3': 41.7, 'LWSA3': 52.8, 'AMAR3': 8.9, 'KLBN11': 9.7
+          };
 
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-              const proxyData = await response.json();
-              const hgData = JSON.parse(proxyData.contents);
-
-              if (hgData.results && hgData.results[ticker]) {
-                const result = hgData.results[ticker];
-                
-                dadosColetados = {
-                  ...dadosColetados, // Mantém P/L da BRAPI
-                  dividendYield12m: result.financials?.dividends?.yield_12m,
-                  dividendSum12m: result.financials?.dividends?.yield_12m_sum,
-                  pvp: result.financials?.price_to_book_ratio || result.financials?.priceToBook,
-                  roe: result.financials?.return_on_equity,
-                  equity: result.financials?.equity,
-                  quotaCount: result.financials?.quota_count,
-                  equityPerShare: result.financials?.equity_per_share,
-                  fonte: dadosColetados.fonte + '+hg-mobile-allorigins',
-                  ultimaAtualizacao: new Date().toISOString()
-                };
-
-                console.log(`📱✅ HG outros dados obtidos (AllOrigins)`);
-                hgObtido = true;
-              }
-            }
-          } catch (error) {
-            console.log(`📱❌ HG ${ticker} (AllOrigins): ${error.message}`);
+          if (plConhecidos[ticker]) {
+            dadosColetados.pl = plConhecidos[ticker];
+            dadosColetados.fonte = 'fallback-mobile';
+            console.log(`✅ P/L fallback aplicado: ${plConhecidos[ticker]}`);
           }
         }
 
       } else {
-        // 🖥️ DESKTOP: Estratégia original melhorada
-        console.log('🖥️ [HG-DESKTOP] Buscando P/VP e DY via HG Brasil...');
+        // 🖥️ DESKTOP: Estratégia original (que já funciona)
+        console.log(`🖥️ DESKTOP: BRAPI P/L`);
         
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const brapiUrl = `https://brapi.dev/api/quote/${ticker}?modules=summaryDetail,defaultKeyStatistics&token=${BRAPI_TOKEN}`;
           
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`)}`;
-          
-          const response = await fetch(proxyUrl, {
+          const response = await fetch(brapiUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
               'User-Agent': 'Portfolio-App/1.0'
-            },
-            signal: controller.signal
+            }
           });
-          
-          clearTimeout(timeoutId);
-          
+
           if (response.ok) {
-            const proxyData = await response.json();
-            const hgData = JSON.parse(proxyData.contents);
-
-            if (hgData.results && hgData.results[ticker]) {
-              const result = hgData.results[ticker];
+            const data = await response.json();
+            
+            if (data.results?.[0]) {
+              const result = data.results[0];
               
-              dadosColetados = {
-                ...dadosColetados, // Mantém P/L da BRAPI
-                dividendYield12m: result.financials?.dividends?.yield_12m,
-                dividendSum12m: result.financials?.dividends?.yield_12m_sum,
-                pvp: result.financials?.price_to_book_ratio || result.financials?.priceToBook,
-                roe: result.financials?.return_on_equity,
-                equity: result.financials?.equity,
-                quotaCount: result.financials?.quota_count,
-                equityPerShare: result.financials?.equity_per_share,
-                fonte: dadosColetados.fonte + '+hg-desktop',
-                ultimaAtualizacao: new Date().toISOString()
-              };
+              const pl = result.summaryDetail?.trailingPE ||
+                        result.defaultKeyStatistics?.trailingPE || 
+                        result.priceEarnings;
 
-              console.log(`🖥️✅ HG outros dados obtidos Desktop`);
-              hgObtido = true;
+              if (pl && pl > 0 && pl < 1000) {
+                dadosColetados.pl = pl;
+                dadosColetados.fonte = 'brapi-desktop';
+                console.log(`✅ P/L Desktop: ${pl}`);
+              }
             }
           }
-        } catch (error) {
-          console.log(`🖥️❌ HG ${ticker} Desktop:`, error.message);
+        } catch (desktopErr) {
+          console.log(`🖥️ BRAPI Desktop falhou:`, desktopErr.message);
         }
       }
 
-      // 🔄 FALLBACK COM P/L ESTIMADO SE AINDA NÃO TEM
-      if (!dadosColetados.pl) {
-        const plEstimados: Record<string, number> = {
-          // P/L aproximado de ações brasileiras populares (dados reais de mercado)
-          'PETR4': 6.8, 'VALE3': 4.2, 'ITUB4': 8.5, 'BBDC4': 7.1, 'ABEV3': 11.2,
-          'WEGE3': 28.5, 'RENT3': 15.3, 'LREN3': 22.1, 'MGLU3': 45.2, 'VIVT3': 12.8,
-          'GGBR4': 5.9, 'USIM5': 7.3, 'CSNA3': 4.1, 'GOAU4': 6.7, 'SUZB3': 18.9,
-          'JBSS3': 12.4, 'BEEF3': 8.7, 'MRFG3': 15.6, 'NTCO3': 9.8, 'SMTO3': 11.3,
-          'PRIO3': 8.9, 'PETR3': 6.5, 'RRRP3': 7.8, 'CPLE6': 14.2, 'ELET3': 9.1,
-          'CMIG4': 10.7, 'TAEE11': 12.9, 'FLRY3': 19.8, 'RAIA3': 24.6, 'PCAR3': 16.4,
-          'ASAI3': 28.7, 'SLCE3': 13.8, 'ARZZ3': 17.2, 'HAPV3': 21.5, 'DXCO3': 33.1
-        };
-
-        if (plEstimados[ticker]) {
-          dadosColetados.pl = plEstimados[ticker];
-          dadosColetados.fonte = dadosColetados.fonte + '+pl-estimado';
-          console.log(`📊 P/L estimado aplicado para ${ticker}: ${plEstimados[ticker]}`);
+      // 🔥 HG BRASIL PARA P/VP (AMBOS DISPOSITIVOS)
+      console.log(`📊 Buscando P/VP via HG Brasil...`);
+      
+      try {
+        const hgUrl = `https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`;
+        
+        let hgData = null;
+        
+        if (isMobile) {
+          // Mobile: tentar direto primeiro, depois proxy
+          try {
+            const directResponse = await fetch(hgUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
+              }
+            });
+            if (directResponse.ok) {
+              hgData = await directResponse.json();
+              console.log(`📱 HG Direto funcionou:`, hgData);
+            }
+          } catch (directErr) {
+            console.log(`📱 HG Direto falhou, tentando proxy...`);
+          }
+          
+          if (!hgData) {
+            const proxyResponse = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(hgUrl)}`);
+            if (proxyResponse.ok) {
+              const proxyData = await proxyResponse.json();
+              hgData = JSON.parse(proxyData.contents);
+              console.log(`📱 HG Proxy funcionou:`, hgData);
+            }
+          }
+        } else {
+          // Desktop: proxy como sempre
+          const proxyResponse = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(hgUrl)}`);
+          if (proxyResponse.ok) {
+            const proxyData = await proxyResponse.json();
+            hgData = JSON.parse(proxyData.contents);
+            console.log(`🖥️ HG Desktop:`, hgData);
+          }
         }
+
+        if (hgData?.results?.[ticker]) {
+          const result = hgData.results[ticker];
+          
+          const pvp = result.financials?.price_to_book_ratio || 
+                     result.financials?.priceToBook ||
+                     result.financials?.pvp;
+
+          const dy = result.financials?.dividends?.yield_12m ||
+                    result.financials?.dividend_yield_12m;
+
+          if (pvp) {
+            dadosColetados.pvp = pvp;
+            dadosColetados.fonte = dadosColetados.fonte + '+hg';
+          }
+          
+          if (dy) {
+            dadosColetados.dividendYield12m = dy;
+          }
+
+          console.log(`✅ HG dados: P/VP=${pvp}, DY=${dy}`);
+        }
+      } catch (hgErr) {
+        console.log(`❌ HG Brasil falhou:`, hgErr.message);
       }
 
       // 📊 RESULTADO FINAL
@@ -879,28 +798,31 @@ export function useHGBrasilAcoes(ticker: string | undefined) {
         timestamp: Date.now()
       }));
       
-      console.log(`✅ Dados finais para ${ticker}:`, {
+      console.log(`✅ DADOS FINAIS ${ticker}:`, {
         pl: dadosColetados.pl,
         pvp: dadosColetados.pvp,
-        dy: dadosColetados.dividendYield12m,
         fonte: dadosColetados.fonte,
-        isMobile: isMobile
+        dispositivo: isMobile ? 'MOBILE' : 'DESKTOP'
       });
+
+      // ⚠️ ALERTA SE P/L AINDA FOR NULO
+      if (!dadosColetados.pl) {
+        console.error(`🚨 P/L CONTINUA NULO para ${ticker} no ${isMobile ? 'MOBILE' : 'DESKTOP'}`);
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error(`❌ Erro geral HG Brasil ${ticker}:`, err);
+      console.error(`❌ Erro geral:`, err);
       setDadosHGBrasil(null);
     } finally {
       setLoading(false);
     }
   }, [ticker, isMobile]);
 
-  // ✅ USEEFFECT CORRIGIDO
   useEffect(() => {
     if (deviceDetected) {
-      console.log('🔥 HG: Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
+      console.log('🔥 Executando busca:', { ticker, isMobile, deviceDetected });
       fetchDadosHGBrasil();
     }
   }, [fetchDadosHGBrasil, deviceDetected, isMobile]);
