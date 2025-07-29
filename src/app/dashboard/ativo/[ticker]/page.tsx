@@ -2051,7 +2051,7 @@ const MetricCard = React.memo(({
   </div>
 ));
 
-// 🔥 HISTÓRICO DE DIVIDENDOS COM DETECÇÃO MOBILE CORRIGIDA
+// 🔥 HISTÓRICO DE DIVIDENDOS COM TABELA SWIPE MÓVEL (ESTILO STATUS INVEST)
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: { ticker: string; dataEntrada: string; isFII?: boolean }) => {
   const [proventos, setProventos] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
@@ -2059,59 +2059,25 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
   const [fonte, setFonte] = useState<string>('');
   const [totalOriginal, setTotalOriginal] = useState(0);
   
-  // 🔥 DETECÇÃO MOBILE MAIS ROBUSTA - FORÇAR DETECÇÃO
+  // 🔥 DETECÇÃO MOBILE SIMPLES E DIRETA
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window !== 'undefined') {
-      const width = window.innerWidth;
-      const userAgent = navigator.userAgent;
-      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-      console.log('📱 HISTORICO - Detecção inicial:', { width, mobile, userAgent: userAgent.substring(0, 50) });
-      return mobile;
+      return window.innerWidth <= 768;
     }
     return false;
   });
-  
-  const [deviceDetected, setDeviceDetected] = useState(false);
 
-  // 🔥 DETECÇÃO DE DISPOSITIVO MELHORADA
+  // 🔥 DETECÇÃO DE DISPOSITIVO
   useEffect(() => {
     const checkDevice = () => {
-      const width = window.innerWidth;
-      const userAgent = navigator.userAgent;
-      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-      
-      console.log('📱 HISTORICO - Verificação dispositivo:', { 
-        width, 
-        mobile, 
-        userAgent: userAgent.substring(0, 50),
-        isMobilePrevious: isMobile 
-      });
-      
+      const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
-      setDeviceDetected(true);
     };
 
     checkDevice();
     window.addEventListener('resize', checkDevice);
-    
-    // ✅ FORÇAR DETECÇÃO APÓS 100ms PARA GARANTIR
-    const forceCheck = setTimeout(checkDevice, 100);
-    
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-      clearTimeout(forceCheck);
-    };
+    return () => window.removeEventListener('resize', checkDevice);
   }, []);
-
-  // 📱 DEBUG: Log para verificar estado
-  useEffect(() => {
-    console.log('📱 HISTORICO - Estado atual:', { 
-      isMobile, 
-      deviceDetected, 
-      windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'undefined',
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 50) : 'undefined'
-    });
-  }, [isMobile, deviceDetected]);
 
   useEffect(() => {
     const carregarProventos = async () => {
@@ -2120,7 +2086,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
         return;
       }
 
-      // ✅ REMOVER DEPENDÊNCIA DE deviceDetected PARA ACELERAR
       try {
         setLoading(true);
         console.log(`📊 [HISTORICO] Carregando proventos para ${ticker}...`);
@@ -2163,8 +2128,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                 const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
                 dataEntradaObj.setHours(0, 0, 0, 0);
                 
-                console.log(`📅 [HISTORICO] Filtrando desde: ${dataEntrada}`);
-                
                 proventosConvertidos = proventosConvertidos.filter((item: any) => {
                   if (!item.dataObj || isNaN(item.dataObj.getTime())) {
                     return false;
@@ -2175,16 +2138,11 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                   
                   return dataItem >= dataEntradaObj;
                 });
-                
-                console.log(`📊 [HISTORICO] Após filtro por data: ${totalAntesFiltro} → ${proventosConvertidos.length} proventos`);
               }
               
               proventosEncontrados = proventosConvertidos;
               fonteAtual = 'API';
-              console.log(`✅ [HISTORICO] ${proventosEncontrados.length} proventos processados da API`);
             }
-          } else {
-            console.warn(`⚠️ [HISTORICO] API retornou status ${response.status}`);
           }
         } catch (apiError) {
           console.warn(`⚠️ [HISTORICO] Erro na API:`, apiError);
@@ -2259,14 +2217,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
         
         // Ordenar por data (mais recente primeiro)
         proventosValidos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
-        
-        console.log(`🎯 [HISTORICO] RESULTADO FINAL:`, {
-          ticker,
-          fonte: fonteAtual,
-          totalOriginal: totalAntesFiltro,
-          totalValidos: proventosValidos.length,
-          periodo: dataEntrada ? `desde ${dataEntrada}` : 'todos'
-        });
 
         setProventos(proventosValidos);
         setFonte(fonteAtual || 'sem dados');
@@ -2283,7 +2233,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
     };
 
     carregarProventos();
-  }, [ticker, isFII, dataEntrada]); // ✅ REMOVER deviceDetected
+  }, [ticker, isFII, dataEntrada]);
 
   // Cálculos para os cards de resumo
   const { totalProventos, mediaProvento, ultimoProvento } = useMemo(() => {
@@ -2298,19 +2248,10 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
     };
   }, [proventos]);
 
-  // 🔥 LÓGICA MELHORADA PARA O BOTÃO "MOSTRAR TODOS"
-  const temMaisProventos = proventos.length > (isMobile ? 5 : 10);
-  const limitePadrao = isMobile ? 5 : 10;
+  // 🔥 LÓGICA PARA QUANTIDADE EXIBIDA
+  const temMaisProventos = proventos.length > (isMobile ? 8 : 10);
+  const limitePadrao = isMobile ? 8 : 10; // Mais no mobile pois a tabela é compacta
   const proventosExibidos = mostrarTodos ? proventos : proventos.slice(0, limitePadrao);
-
-  // 📱 LOG FINAL PARA DEBUG
-  console.log('🎯 HISTORICO - Renderização:', { 
-    isMobile, 
-    proventosLength: proventos.length, 
-    limitePadrao,
-    temMaisProventos,
-    mostrarTodos
-  });
 
   return (
     <div style={{
@@ -2321,21 +2262,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       marginBottom: '32px'
     }}>
-      {/* 📱 DEBUG VISUAL - REMOVER DEPOIS DE CONFIRMAR */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        backgroundColor: isMobile ? '#22c55e' : '#ef4444',
-        color: 'white',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        fontSize: '10px',
-        fontWeight: '600',
-        zIndex: 1000
-      }}>
-        {isMobile ? '📱 MOBILE' : '🖥️ DESKTOP'}
-      </div>
       
       <div style={{ 
         display: 'flex', 
@@ -2388,7 +2314,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
         </div>
       ) : (
         <>
-          {/* Cards de resumo - Responsivo */}
+          {/* Cards de resumo - Grid responsivo */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: isMobile 
@@ -2492,7 +2418,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             </div>
           </div>
           
-          {/* 🔥 BOTÃO MOSTRAR TODOS - RESPONSIVO */}
+          {/* 🔥 BOTÃO MOSTRAR TODOS */}
           {temMaisProventos && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
               <button
@@ -2502,12 +2428,12 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                   color: mostrarTodos ? '#d97706' : '#64748b',
                   border: `1px solid ${mostrarTodos ? '#fde68a' : '#cbd5e1'}`,
                   borderRadius: '8px',
-                  padding: isMobile ? '12px 20px' : '8px 16px', // Maior no mobile
-                  fontSize: isMobile ? '16px' : '14px', // Maior no mobile
+                  padding: isMobile ? '12px 20px' : '8px 16px',
+                  fontSize: isMobile ? '15px' : '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  minHeight: isMobile ? '44px' : 'auto' // Altura mínima para touch
+                  minHeight: isMobile ? '44px' : 'auto'
                 }}
               >
                 {mostrarTodos 
@@ -2518,214 +2444,202 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             </div>
           )}
 
-          {/* ✅ RENDERIZAÇÃO CONDICIONAL FORÇADA - MOBILE vs DESKTOP */}
-          {isMobile ? (
-            // 📱 MOBILE: Cards verticais FORÇADOS
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '16px',
-              maxHeight: mostrarTodos ? '400px' : 'auto',
-              overflowY: mostrarTodos ? 'auto' : 'visible'
-            }}>
+          {/* 🔥 TABELA ÚNICA - SWIPE HORIZONTAL NO MOBILE */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0',
+            // ✅ CONFIGURAÇÃO SWIPE MOBILE (Status Invest Style)
+            overflowX: isMobile ? 'auto' : 'visible',
+            overflowY: 'visible',
+            maxHeight: mostrarTodos ? '400px' : 'auto',
+            // ✅ REMOVER BARRA DE SCROLL NO MOBILE
+            ...(isMobile && {
+              scrollbarWidth: 'none', // Firefox
+              msOverflowStyle: 'none', // IE/Edge
+              WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
+            })
+          }}>
+            {/* ✅ CSS INLINE PARA ESCONDER SCROLLBAR NO WEBKIT */}
+            <style>
+              {isMobile ? `
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              ` : ''}
+            </style>
+            
+            {/* 💡 DICA VISUAL NO MOBILE */}
+            {isMobile && (
               <div style={{
-                backgroundColor: '#e0f2fe',
-                padding: '12px',
-                borderRadius: '8px',
+                backgroundColor: '#f0f9ff',
+                padding: '8px 16px',
                 textAlign: 'center',
-                fontWeight: '600',
-                color: '#0277bd'
+                fontSize: '12px',
+                color: '#1e40af',
+                fontWeight: '500',
+                borderBottom: '1px solid #e2e8f0'
               }}>
-                📱 MODO MOBILE - CARDS ATIVADOS
+                👆 Deslize para ver mais colunas
               </div>
-              
-              {proventosExibidos.map((provento, index) => (
-                <div 
-                  key={`mobile-${provento.id || provento.data || provento.dataCom}-${index}`}
-                  style={{
+            )}
+            
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse',
+              // ✅ LARGURA MÍNIMA NO MOBILE PARA FORÇAR SCROLL HORIZONTAL
+              minWidth: isMobile ? '600px' : '100%'
+            }}>
+              <thead style={{ 
+                position: 'sticky', 
+                top: 0, 
+                backgroundColor: '#f8fafc',
+                zIndex: 1
+              }}>
+                <tr>
+                  <th style={{ 
+                    padding: isMobile ? '10px 8px' : '12px',
+                    textAlign: 'left', 
+                    fontWeight: '700', 
+                    fontSize: isMobile ? '12px' : '14px',
+                    minWidth: isMobile ? '80px' : 'auto',
+                    position: 'sticky',
+                    left: 0,
                     backgroundColor: '#f8fafc',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    border: '2px solid #e2e8f0',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.07)'
-                  }}
-                >
-                  {/* Header do Card com ativo e valor */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: '16px'
+                    zIndex: 2
                   }}>
-                    <div>
-                      <h4 style={{
-                        fontSize: '18px',
-                        fontWeight: '700',
-                        color: '#1e293b',
-                        margin: '0 0 8px 0'
-                      }}>
-                        {ticker}
-                      </h4>
+                    Ativo
+                  </th>
+                  <th style={{ 
+                    padding: isMobile ? '10px 8px' : '12px',
+                    textAlign: 'right', 
+                    fontWeight: '700', 
+                    fontSize: isMobile ? '12px' : '14px',
+                    minWidth: isMobile ? '100px' : 'auto'
+                  }}>
+                    Valor
+                  </th>
+                  <th style={{ 
+                    padding: isMobile ? '10px 8px' : '12px',
+                    textAlign: 'center', 
+                    fontWeight: '700', 
+                    fontSize: isMobile ? '12px' : '14px',
+                    minWidth: isMobile ? '90px' : 'auto'
+                  }}>
+                    Data Com
+                  </th>
+                  <th style={{ 
+                    padding: isMobile ? '10px 8px' : '12px',
+                    textAlign: 'center', 
+                    fontWeight: '700', 
+                    fontSize: isMobile ? '12px' : '14px',
+                    minWidth: isMobile ? '90px' : 'auto'
+                  }}>
+                    Pagamento
+                  </th>
+                  <th style={{ 
+                    padding: isMobile ? '10px 8px' : '12px',
+                    textAlign: 'center', 
+                    fontWeight: '700', 
+                    fontSize: isMobile ? '12px' : '14px',
+                    minWidth: isMobile ? '100px' : 'auto'
+                  }}>
+                    Tipo
+                  </th>
+                  <th style={{ 
+                    padding: isMobile ? '10px 8px' : '12px',
+                    textAlign: 'right', 
+                    fontWeight: '700', 
+                    fontSize: isMobile ? '12px' : '14px',
+                    minWidth: isMobile ? '70px' : 'auto'
+                  }}>
+                    DY
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {proventosExibidos.map((provento, index) => (
+                  <tr 
+                    key={`${provento.id || provento.data || provento.dataCom}-${index}`} 
+                    style={{ 
+                      borderBottom: '1px solid #f1f5f9'
+                    }}
+                  >
+                    <td style={{ 
+                      padding: isMobile ? '10px 8px' : '12px',
+                      fontWeight: '500',
+                      fontSize: isMobile ? '13px' : '14px',
+                      // ✅ COLUNA FIXA NO MOBILE
+                      position: isMobile ? 'sticky' : 'static',
+                      left: 0,
+                      backgroundColor: 'white',
+                      zIndex: 1
+                    }}>
+                      {ticker}
+                    </td>
+                    <td style={{ 
+                      padding: isMobile ? '10px 8px' : '12px',
+                      textAlign: 'right', 
+                      fontWeight: '700', 
+                      color: '#22c55e',
+                      fontSize: isMobile ? '13px' : '14px'
+                    }}>
+                      {provento.valorFormatado || `R$ ${(provento.valor || 0).toFixed(2).replace('.', ',')}`}
+                    </td>
+                    <td style={{ 
+                      padding: isMobile ? '10px 8px' : '12px',
+                      textAlign: 'center', 
+                      fontWeight: '500',
+                      fontSize: isMobile ? '12px' : '14px'
+                    }}>
+                      {provento.dataComFormatada || 
+                       provento.dataFormatada || 
+                       provento.dataObj?.toLocaleDateString('pt-BR') || 
+                       'N/A'}
+                    </td>
+                    <td style={{ 
+                      padding: isMobile ? '10px 8px' : '12px',
+                      textAlign: 'center', 
+                      fontWeight: '500',
+                      fontSize: isMobile ? '12px' : '14px'
+                    }}>
+                      {provento.dataPagamentoFormatada || 
+                       provento.dataPagamento || 
+                       'N/A'}
+                    </td>
+                    <td style={{ 
+                      padding: isMobile ? '10px 8px' : '12px',
+                      textAlign: 'center'
+                    }}>
                       <span style={{
                         backgroundColor: '#f0f9ff',
                         color: '#1e40af',
-                        borderRadius: '6px',
-                        padding: '4px 12px',
-                        fontSize: '12px',
+                        borderRadius: '4px',
+                        padding: isMobile ? '2px 6px' : '4px 8px',
+                        fontSize: isMobile ? '10px' : '12px',
                         fontWeight: '600',
                         border: '1px solid #bfdbfe'
                       }}>
-                        {provento.tipo || (isFII ? 'Rendimento' : 'Dividendo')}
+                        {isMobile 
+                          ? (provento.tipo || (isFII ? 'Rend' : 'Div')).substring(0, 4)
+                          : (provento.tipo || (isFII ? 'Rendimento' : 'Dividendo'))
+                        }
                       </span>
-                    </div>
-                    
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{
-                        fontSize: '20px',
-                        fontWeight: '800',
-                        color: '#22c55e',
-                        margin: '0 0 4px 0'
-                      }}>
-                        {provento.valorFormatado || `R$ ${(provento.valor || 0).toFixed(2).replace('.', ',')}`}
-                      </div>
-                      {provento.dividendYield && (
-                        <div style={{
-                          fontSize: '13px',
-                          color: '#1976d2',
-                          fontWeight: '600'
-                        }}>
-                          DY: {(provento.dividendYield * 100).toFixed(2)}%
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Datas em Grid */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '16px',
-                    backgroundColor: '#ffffff',
-                    padding: '16px',
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <div>
-                      <div style={{
-                        fontSize: '12px',
-                        color: '#64748b',
-                        fontWeight: '500',
-                        marginBottom: '6px'
-                      }}>
-                        Data Com
-                      </div>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        color: '#1e293b'
-                      }}>
-                        {provento.dataComFormatada || 
-                         provento.dataFormatada || 
-                         provento.dataObj?.toLocaleDateString('pt-BR') || 
-                         'N/A'}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div style={{
-                        fontSize: '12px',
-                        color: '#64748b',
-                        fontWeight: '500',
-                        marginBottom: '6px'
-                      }}>
-                        Pagamento
-                      </div>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        color: '#1e293b'
-                      }}>
-                        {provento.dataPagamentoFormatada || 
-                         provento.dataPagamento || 
-                         'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // 🖥️ DESKTOP: Tabela completa
-            <div style={{ 
-              backgroundColor: 'white', 
-              borderRadius: '8px',
-              maxHeight: mostrarTodos ? '400px' : 'auto',
-              overflowY: mostrarTodos ? 'auto' : 'visible',
-              border: '1px solid #e2e8f0'
-            }}>
-              <div style={{
-                backgroundColor: '#f3e8ff',
-                padding: '8px',
-                textAlign: 'center',
-                fontWeight: '600',
-                color: '#7c3aed'
-              }}>
-                🖥️ MODO DESKTOP - TABELA ATIVADA
-              </div>
-              
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc' }}>
-                  <tr>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '700', fontSize: '14px' }}>Ativo</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: '700', fontSize: '14px' }}>Valor</th>
-                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '700', fontSize: '14px' }}>Data Com</th>
-                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '700', fontSize: '14px' }}>Pagamento</th>
-                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '700', fontSize: '14px' }}>Tipo</th>
-                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: '700', fontSize: '14px' }}>DY</th>
+                    </td>
+                    <td style={{ 
+                      padding: isMobile ? '10px 8px' : '12px',
+                      textAlign: 'right', 
+                      fontWeight: '700', 
+                      color: '#1976d2',
+                      fontSize: isMobile ? '12px' : '14px'
+                    }}>
+                      {provento.dividendYield ? `${(provento.dividendYield * 100).toFixed(2)}%` : '-'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {proventosExibidos.map((provento, index) => (
-                    <tr key={`desktop-${provento.id || provento.data || provento.dataCom}-${index}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px', fontWeight: '500' }}>
-                        {ticker}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>
-                        {provento.valorFormatado || `R$ ${(provento.valor || 0).toFixed(2).replace('.', ',')}`}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: '500' }}>
-                        {provento.dataComFormatada || 
-                         provento.dataFormatada || 
-                         provento.dataObj?.toLocaleDateString('pt-BR') || 
-                         'N/A'}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: '500' }}>
-                        {provento.dataPagamentoFormatada || 
-                         provento.dataPagamento || 
-                         'N/A'}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <span style={{
-                          backgroundColor: '#f0f9ff',
-                          color: '#1e40af',
-                          borderRadius: '4px',
-                          padding: '4px 8px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          border: '1px solid #bfdbfe'
-                        }}>
-                          {provento.tipo || (isFII ? 'Rendimento' : 'Dividendo')}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '700', color: '#1976d2' }}>
-                        {provento.dividendYield ? `${(provento.dividendYield * 100).toFixed(2)}%` : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))}
+              </tbody>
+            </table>
+          </div>
           
           {/* Footer com informações */}
           <div style={{ textAlign: 'center', marginTop: '16px' }}>
