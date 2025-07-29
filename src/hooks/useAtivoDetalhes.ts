@@ -581,55 +581,196 @@ export function useHGBrasilAcoes(ticker: string | undefined) {
           }
         }
 
-        // 🎯 PROCESSAR DADOS HG BRASIL (MOBILE E DESKTOP)
+// 🎯 PROCESSAR DADOS HG BRASIL (MOBILE E DESKTOP) - VERSÃO EXPANDIDA
         if (hgData?.results?.[ticker]) {
           const result = hgData.results[ticker];
           
-          // 📊 EXTRAIR TODOS OS DADOS (incluindo P/L)
-          const pl = result.financials?.price_earnings_ratio || 
-                    result.financials?.pe_ratio || 
-                    result.financials?.priceEarnings || 
-                    result.financials?.pe ||
-                    result.pe_ratio ||
-                    result.price_earnings_ratio;
-
+          console.log(`🔍 ESTRUTURA COMPLETA HG BRASIL para ${ticker}:`, result);
+          console.log(`🔍 FINANCIALS COMPLETO:`, result.financials);
+          
+          // 🎯 P/VP ESTÁ FUNCIONANDO (0.82) - MESMA ESTRATÉGIA PARA P/L
           const pvp = result.financials?.price_to_book_ratio || 
                      result.financials?.priceToBook ||
                      result.financials?.pvp;
 
+          // 🔍 BUSCAR P/L EM TODOS OS CAMPOS POSSÍVEIS (incluindo níveis diferentes)
+          const pl = 
+            // Nível 1: financials (onde está o P/VP)
+            result.financials?.price_earnings_ratio || 
+            result.financials?.pe_ratio || 
+            result.financials?.priceEarnings || 
+            result.financials?.pe ||
+            result.financials?.trailing_pe ||
+            result.financials?.trailingPE ||
+            result.financials?.forward_pe ||
+            result.financials?.forwardPE ||
+            result.financials?.price_earnings ||
+            result.financials?.earnings_ratio ||
+            
+            // Nível 2: raiz do result (mesmo nível que financials)
+            result.price_earnings_ratio ||
+            result.pe_ratio ||
+            result.priceEarnings ||
+            result.pe ||
+            result.trailing_pe ||
+            result.trailingPE ||
+            result.forward_pe ||
+            result.forwardPE ||
+            
+            // Nível 3: outros objetos possíveis
+            result.valuation?.pe ||
+            result.valuation?.price_earnings ||
+            result.stats?.pe ||
+            result.stats?.price_earnings_ratio ||
+            result.metrics?.pe ||
+            result.metrics?.price_earnings ||
+            
+            // Nível 4: variações de nomenclatura
+            result.pe_ttm ||
+            result.price_earnings_ttm ||
+            result.trailing_price_earnings ||
+            result.current_pe ||
+            result.pe_current;
+
           const dy = result.financials?.dividends?.yield_12m ||
                     result.financials?.dividend_yield_12m;
 
-          console.log(`🔍 HG Brasil Debug para ${ticker}:`, {
-            'financials.price_earnings_ratio': result.financials?.price_earnings_ratio,
-            'financials.pe_ratio': result.financials?.pe_ratio,
-            'financials.priceEarnings': result.financials?.priceEarnings,
-            'pl_final': pl,
+          console.log(`🔍 DEBUG DETALHADO ${ticker}:`, {
+            'device': isMobile ? 'MOBILE' : 'DESKTOP',
+            
+            // P/VP (que funciona)
+            'pvp_price_to_book_ratio': result.financials?.price_to_book_ratio,
+            'pvp_priceToBook': result.financials?.priceToBook,
             'pvp_final': pvp,
-            'dy_final': dy,
-            'dispositivo': isMobile ? 'MOBILE' : 'DESKTOP'
+            
+            // P/L (todos os campos testados)
+            'pl_financials_price_earnings_ratio': result.financials?.price_earnings_ratio,
+            'pl_financials_pe_ratio': result.financials?.pe_ratio,
+            'pl_financials_priceEarnings': result.financials?.priceEarnings,
+            'pl_financials_pe': result.financials?.pe,
+            'pl_root_price_earnings_ratio': result.price_earnings_ratio,
+            'pl_root_pe': result.pe,
+            'pl_final': pl,
+            
+            // Estrutura para análise
+            'tem_financials': !!result.financials,
+            'keys_financials': result.financials ? Object.keys(result.financials) : [],
+            'keys_root': Object.keys(result)
           });
-          
-          // ✅ APLICAR TODOS OS DADOS
-          dadosColetados = {
-            pl: pl, // 🎯 P/L da HG Brasil
-            dividendYield12m: dy,
-            dividendSum12m: result.financials?.dividends?.yield_12m_sum,
-            pvp: pvp,
-            roe: result.financials?.return_on_equity,
-            equity: result.financials?.equity,
-            quotaCount: result.financials?.quota_count,
-            equityPerShare: result.financials?.equity_per_share,
-            fonte: isMobile ? 'hg-brasil-mobile' : 'hg-brasil-desktop',
-            ultimaAtualizacao: new Date().toISOString()
-          };
 
-          console.log(`✅ HG Brasil dados obtidos:`, {
-            pl: pl,
+          // 🔍 INVESTIGAÇÃO MANUAL DOS DADOS
+          console.log(`🔍 [INVESTIGAÇÃO] Dados completos HG Brasil para ${ticker}:`, {
+            hgData,
+            results: hgData?.results,
+            ticker_data: hgData?.results?.[ticker],
+            financials_keys: hgData?.results?.[ticker]?.financials ? Object.keys(hgData.results[ticker].financials) : 'não existe',
+            financials_values: hgData?.results?.[ticker]?.financials
+          });
+
+          // Buscar TODOS os campos que contenham números que poderiam ser P/L
+          if (hgData?.results?.[ticker]) {
+            const possiveisPL = [];
+            
+            // Função para buscar campos numéricos que poderiam ser P/L (entre 1 e 100)
+            const buscarPossiveisPL = (obj, prefix = '') => {
+              if (typeof obj === 'object' && obj !== null) {
+                Object.entries(obj).forEach(([key, value]) => {
+                  const fullKey = prefix ? `${prefix}.${key}` : key;
+                  
+                  if (typeof value === 'number' && value > 1 && value < 100) {
+                    // Pode ser P/L se estiver na faixa razoável
+                    possiveisPL.push({ campo: fullKey, valor: value });
+                  } else if (typeof value === 'object') {
+                    buscarPossiveisPL(value, fullKey);
+                  }
+                });
+              }
+            };
+            
+            buscarPossiveisPL(result);
+            
+            console.log(`🔍 [POSSÍVEIS P/L] Campos numéricos entre 1-100 para ${ticker}:`, possiveisPL);
+            
+            // Filtrar campos que contenham 'pe', 'earnings', ou 'ratio'
+            const candidatosPL = possiveisPL.filter(item => 
+              item.campo.toLowerCase().includes('pe') || 
+              item.campo.toLowerCase().includes('earnings') || 
+              item.campo.toLowerCase().includes('ratio')
+            );
+            
+            console.log(`🎯 [CANDIDATOS P/L] Campos suspeitos:`, candidatosPL);
+
+            // 🎯 SE ENCONTROU CANDIDATOS, TENTAR USAR O PRIMEIRO
+            if (!pl && candidatosPL.length > 0) {
+              const melhorCandidato = candidatosPL[0];
+              console.log(`🎯 Usando melhor candidato para P/L: ${melhorCandidato.campo} = ${melhorCandidato.valor}`);
+              
+              // Extrair valor do candidato usando notação de ponto
+              const getValue = (obj, path) => {
+                return path.split('.').reduce((current, key) => current?.[key], obj);
+              };
+              
+              const plCandidato = getValue(result, melhorCandidato.campo);
+              
+              if (plCandidato && plCandidato > 0 && plCandidato < 100) {
+                console.log(`✅ P/L candidato aplicado: ${plCandidato}`);
+                dadosColetados.pl = plCandidato;
+                dadosColetados.fonte = (isMobile ? 'hg-brasil-mobile' : 'hg-brasil-desktop') + '-candidato';
+              }
+            }
+          }
+
+          // ✅ APLICAR DADOS (mesma lógica do P/VP)
+          if (!dadosColetados.pl) {
+            dadosColetados = {
+              pl: pl, // 🎯 P/L com estratégia expandida
+              dividendYield12m: dy,
+              dividendSum12m: result.financials?.dividends?.yield_12m_sum,
+              pvp: pvp, // P/VP que já funciona
+              roe: result.financials?.return_on_equity,
+              equity: result.financials?.equity,
+              quotaCount: result.financials?.quota_count,
+              equityPerShare: result.financials?.equity_per_share,
+              fonte: isMobile ? 'hg-brasil-mobile-expandido' : 'hg-brasil-desktop',
+              ultimaAtualizacao: new Date().toISOString()
+            };
+          } else {
+            // Se já aplicou um candidato, só completar os outros dados
+            dadosColetados = {
+              ...dadosColetados,
+              dividendYield12m: dy,
+              dividendSum12m: result.financials?.dividends?.yield_12m_sum,
+              pvp: pvp,
+              roe: result.financials?.return_on_equity,
+              equity: result.financials?.equity,
+              quotaCount: result.financials?.quota_count,
+              equityPerShare: result.financials?.equity_per_share,
+              ultimaAtualizacao: new Date().toISOString()
+            };
+          }
+
+          console.log(`✅ HG Brasil dados extraídos:`, {
+            pl: dadosColetados.pl,
             pvp: pvp,
             dy: dy,
             fonte: dadosColetados.fonte
           });
+          
+          // 🔍 DIAGNÓSTICO ESPECIAL SE P/L AINDA FOR UNDEFINED
+          if (!dadosColetados.pl && pvp) {
+            console.log(`🚨 DIAGNÓSTICO: P/VP funciona (${pvp}) mas P/L não encontrado`);
+            console.log(`🔍 Campos disponíveis em financials:`, Object.keys(result.financials || {}));
+            console.log(`🔍 Campos disponíveis na raiz:`, Object.keys(result));
+            
+            // Buscar qualquer campo com 'pe' ou 'earnings' no nome
+            const todosOsCampos = JSON.stringify(result).toLowerCase();
+            const temPE = todosOsCampos.includes('pe') || todosOsCampos.includes('earnings');
+            console.log(`🔍 Tem algum campo com 'pe' ou 'earnings'?`, temPE);
+            
+            if (temPE) {
+              console.log(`⚠️ Existe campo P/L nos dados, mas não foi mapeado corretamente`);
+            }
+          }
           
         } else {
           console.log(`❌ HG Brasil: estrutura de dados inválida para ${ticker}`);
