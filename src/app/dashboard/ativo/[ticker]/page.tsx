@@ -2503,10 +2503,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                     fontWeight: '700', 
                     fontSize: isMobile ? '12px' : '14px',
                     minWidth: isMobile ? '80px' : 'auto',
-                    position: 'sticky',
-                    left: 0,
-                    backgroundColor: '#f8fafc',
-                    zIndex: 2
+
                   }}>
                     Ativo
                   </th>
@@ -2569,11 +2566,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                       padding: isMobile ? '10px 8px' : '12px',
                       fontWeight: '500',
                       fontSize: isMobile ? '13px' : '14px',
-                      // ✅ COLUNA FIXA NO MOBILE
-                      position: isMobile ? 'sticky' : 'static',
-                      left: 0,
-                      backgroundColor: 'white',
-                      zIndex: 1
                     }}>
                       {ticker}
                     </td>
@@ -2640,27 +2632,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
               </tbody>
             </table>
           </div>
-          
-          {/* Footer com informações */}
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>
-              {mostrarTodos 
-                ? `Mostrando todos os ${proventos.length} proventos • Fonte: ${fonte}`
-                : `Mostrando os ${Math.min(limitePadrao, proventos.length)} mais recentes • Total: ${proventos.length} • Fonte: ${fonte}`
-              }
-            </p>
-            {dataEntrada && (
-              <p style={{ fontSize: '11px', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                📅 Período: desde {dataEntrada}
-                {totalOriginal > proventos.length && (
-                  <span style={{ color: '#f59e0b', fontWeight: '600' }}>
-                    {' '}• {totalOriginal - proventos.length} proventos anteriores à data de entrada
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
-        </>
+                  </>
       )}
     </div>
   );
@@ -5259,70 +5231,70 @@ const { valorProventos, performanceProventos, loading: loadingProventos, fonte: 
                     {precoAtualFormatado}
                   </div>
                   
-                  {/* Variação */}
-                  <div style={{ 
-                    color: (() => {
-                      if (ativo.posicaoEncerrada) {
-                        return performance >= 0 ? '#22c55e' : '#ef4444';
-                      }
-                      
-                      if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
-                        return cotacaoCompleta.regularMarketChangePercent >= 0 ? '#22c55e' : '#ef4444';
-                      }
-                      
-                      const cotacaoGlobal = cotacoes[ticker];
-                      if (cotacaoGlobal && typeof cotacaoGlobal === 'object' && cotacaoGlobal.regularMarketChangePercent !== undefined) {
-                        return cotacaoGlobal.regularMarketChangePercent >= 0 ? '#22c55e' : '#ef4444';
-                      }
-                      
-                      return performance >= 0 ? '#22c55e' : '#ef4444';
-                    })(), 
-                    fontWeight: 700, 
-                    fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
-                    gap: '8px'
-                  }}>
-                    <span style={{ fontSize: '1.5rem' }}>
-                      {(() => {
-                        if (ativo.posicaoEncerrada) {
-                          return performance >= 0 ? '▲' : '▼';
-                        }
-                        
-                        if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
-                          return cotacaoCompleta.regularMarketChangePercent >= 0 ? '▲' : '▼';
-                        }
-                        
-                        const cotacaoGlobal = cotacoes[ticker];
-                        if (cotacaoGlobal && typeof cotacaoGlobal === 'object' && cotacaoGlobal.regularMarketChangePercent !== undefined) {
-                          return cotacaoGlobal.regularMarketChangePercent >= 0 ? '▲' : '▼';
-                        }
-                        
-                        return performance >= 0 ? '↗' : '↘';
-                      })()}
-                    </span>
-                    <span>
-                      {(() => {
-                        if (ativo.posicaoEncerrada) {
-                          return `${performance >= 0 ? '+' : ''}${performance.toFixed(2)}%`;
-                        }
-                        
-                        if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
-                          const variacaoPercent = cotacaoCompleta.regularMarketChangePercent;
-                          return `${variacaoPercent >= 0 ? '+' : ''}${variacaoPercent.toFixed(2)}%`;
-                        }
-                        
-                        const cotacaoGlobal = cotacoes[ticker];
-                        if (cotacaoGlobal && typeof cotacaoGlobal === 'object' && cotacaoGlobal.regularMarketChangePercent !== undefined) {
-                          const variacaoPercent = cotacaoGlobal.regularMarketChangePercent;
-                          return `${variacaoPercent >= 0 ? '+' : ''}${variacaoPercent.toFixed(2)}%`;
-                        }
-                        
-                        return 'Variação indisponível';
-                      })()}
-                    </span>
-                  </div>                  
+{/* Variação */}
+<div style={{ 
+  color: (() => {
+    if (ativo.posicaoEncerrada) {
+      return performance >= 0 ? '#22c55e' : '#ef4444';
+    }
+    
+    if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
+      return cotacaoCompleta.regularMarketChangePercent >= 0 ? '#22c55e' : '#ef4444';
+    }
+    
+    const cotacaoGlobal = cotacoes[ticker];
+    if (cotacaoGlobal && typeof cotacaoGlobal === 'object' && cotacaoGlobal.regularMarketChangePercent !== undefined) {
+      return cotacaoGlobal.regularMarketChangePercent >= 0 ? '#22c55e' : '#ef4444';
+    }
+    
+    return performance >= 0 ? '#22c55e' : '#ef4444';
+  })(), 
+  fontWeight: 700, 
+  fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
+  gap: '8px'
+}}>
+  <span style={{ fontSize: '1.5rem' }}>
+    {(() => {
+      if (ativo.posicaoEncerrada) {
+        return performance >= 0 ? '▲' : '▼';
+      }
+      
+      if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
+        return cotacaoCompleta.regularMarketChangePercent >= 0 ? '▲' : '▼';
+      }
+      
+      const cotacaoGlobal = cotacoes[ticker];
+      if (cotacaoGlobal && typeof cotacaoGlobal === 'object' && cotacaoGlobal.regularMarketChangePercent !== undefined) {
+        return cotacaoGlobal.regularMarketChangePercent >= 0 ? '▲' : '▼';
+      }
+      
+      return performance >= 0 ? '↗' : '↘';
+    })()}
+  </span>
+  <span>
+    {(() => {
+      if (ativo.posicaoEncerrada) {
+        return `${Math.abs(performance).toFixed(2)}%`;
+      }
+      
+      if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
+        const variacaoPercent = cotacaoCompleta.regularMarketChangePercent;
+        return `${Math.abs(variacaoPercent).toFixed(2)}%`;
+      }
+      
+      const cotacaoGlobal = cotacoes[ticker];
+      if (cotacaoGlobal && typeof cotacaoGlobal === 'object' && cotacaoGlobal.regularMarketChangePercent !== undefined) {
+        const variacaoPercent = cotacaoGlobal.regularMarketChangePercent;
+        return `${Math.abs(variacaoPercent).toFixed(2)}%`;
+      }
+      
+      return 'Variação indisponível';
+    })()}
+  </span>
+</div>
                 </>
               )}
             </div>
