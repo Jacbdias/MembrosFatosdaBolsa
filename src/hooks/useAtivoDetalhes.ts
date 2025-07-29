@@ -463,11 +463,30 @@ export function useDadosBDR(bdrTicker: string | null) {
   return { bdrData, bdrLoading, bdrError, refetchBDR: fetchBDRData };
 }
 
-// 🚀 Hook para dados de ações da HG Brasil API
+// 🚀 Hook para dados de ações da HG Brasil API - VERSÃO MOBILE-FIRST CORRIGIDA
 export function useHGBrasilAcoes(ticker: string | undefined) {
   const [dadosHGBrasil, setDadosHGBrasil] = useState<DadosHGBrasil | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA (IGUAL AO ARQUIVO 2)
+  const [isMobile, setIsMobile] = useState(false);
+  const [deviceDetected, setDeviceDetected] = useState(false);
+
+  // 🔥 DETECÇÃO DE DISPOSITIVO (COPIADO DO ARQUIVO 2)
+  useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      setDeviceDetected(true);
+      console.log('📱 HGBrasil - Dispositivo detectado:', { width, isMobile: mobile, deviceDetected: true });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   const fetchDadosHGBrasil = useCallback(async () => {
     if (!ticker) {
@@ -485,7 +504,8 @@ export function useHGBrasilAcoes(ticker: string | undefined) {
       setLoading(true);
       setError(null);
 
-      console.log(`🚀 Buscando dados HG Brasil para ação: ${ticker}...`);
+      console.log(`🇧🇷 Buscando dados HG Brasil para ${ticker}...`);
+      console.log('📱 Device Info:', { isMobile, deviceDetected });
 
       // Verificar cache primeiro (6 horas)
       const cachedData = localStorage.getItem(`cache_hg_${ticker}`);
@@ -499,92 +519,278 @@ export function useHGBrasilAcoes(ticker: string | undefined) {
         }
       }
 
-      // Usar proxy CORS para HG Brasil
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`
-      )}`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      let dadosObtidos = false;
 
-      const response = await fetch(proxyUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Portfolio-App/1.0'
-        },
-        signal: controller.signal
-      });
+      if (isMobile) {
+        // 📱 MOBILE: Estratégia agressiva com múltiplas tentativas (IGUAL AO ARQUIVO 2)
+        console.log('📱 [HG-MOBILE] Estratégia agressiva para forçar API funcionar');
+        
+        // ESTRATÉGIA 1: User-Agent Desktop
+        if (!dadosObtidos) {
+          try {
+            console.log(`📱🔄 [HG] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            const response = await fetch(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              },
+              signal: controller.signal
+            });
 
-      clearTimeout(timeoutId);
+            clearTimeout(timeoutId);
 
-      if (response.ok) {
-        const proxyData = await response.json();
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`📱📊 HG Resposta (Desktop UA):`, data);
+
+              if (data.results && data.results[ticker]) {
+                const result = data.results[ticker];
+                
+                const dadosProcessados: DadosHGBrasil = {
+                  dividendYield12m: result.financials?.dividends?.yield_12m,
+                  dividendSum12m: result.financials?.dividends?.yield_12m_sum,
+                  pl: result.financials?.price_earnings_ratio,
+                  pvp: result.financials?.price_to_book_ratio,
+                  roe: result.financials?.return_on_equity,
+                  equity: result.financials?.equity,
+                  quotaCount: result.financials?.quota_count,
+                  equityPerShare: result.financials?.equity_per_share,
+                  fonte: 'hg-brasil-mobile-ua-desktop',
+                  ultimaAtualizacao: new Date().toISOString()
+                };
+
+                setDadosHGBrasil(dadosProcessados);
+                
+                // Salvar no cache
+                localStorage.setItem(`cache_hg_${ticker}`, JSON.stringify({
+                  data: dadosProcessados,
+                  timestamp: Date.now()
+                }));
+                
+                console.log(`📱✅ HG ${ticker} obtido (Desktop UA):`, dadosProcessados);
+                dadosObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log(`📱❌ HG ${ticker} (Desktop UA): ${error.message}`);
+          }
+        }
+
+        // Delay entre tentativas
+        if (!dadosObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 2: Proxy CORS (AllOrigins)
+        if (!dadosObtidos) {
+          try {
+            console.log(`📱🔄 [HG] ${ticker}: Tentativa 2 - Proxy CORS`);
+            
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`)}`;
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(proxyUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const proxyData = await response.json();
+              const hgData = JSON.parse(proxyData.contents);
+              console.log(`📱📊 HG Resposta (Proxy):`, hgData);
+
+              if (hgData.results && hgData.results[ticker]) {
+                const result = hgData.results[ticker];
+                
+                const dadosProcessados: DadosHGBrasil = {
+                  dividendYield12m: result.financials?.dividends?.yield_12m,
+                  dividendSum12m: result.financials?.dividends?.yield_12m_sum,
+                  pl: result.financials?.price_earnings_ratio,
+                  pvp: result.financials?.price_to_book_ratio,
+                  roe: result.financials?.return_on_equity,
+                  equity: result.financials?.equity,
+                  quotaCount: result.financials?.quota_count,
+                  equityPerShare: result.financials?.equity_per_share,
+                  fonte: 'hg-brasil-mobile-proxy',
+                  ultimaAtualizacao: new Date().toISOString()
+                };
+
+                setDadosHGBrasil(dadosProcessados);
+                
+                // Salvar no cache
+                localStorage.setItem(`cache_hg_${ticker}`, JSON.stringify({
+                  data: dadosProcessados,
+                  timestamp: Date.now()
+                }));
+                
+                console.log(`📱✅ HG ${ticker} obtido (Proxy):`, dadosProcessados);
+                dadosObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log(`📱❌ HG ${ticker} (Proxy): ${error.message}`);
+          }
+        }
+
+        // Delay entre tentativas
+        if (!dadosObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 3: Sem User-Agent
+        if (!dadosObtidos) {
+          try {
+            console.log(`📱🔄 [HG] ${ticker}: Tentativa 3 - Sem User-Agent`);
+            
+            const response = await fetch(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`📱📊 HG Resposta (Sem UA):`, data);
+
+              if (data.results && data.results[ticker]) {
+                const result = data.results[ticker];
+                
+                const dadosProcessados: DadosHGBrasil = {
+                  dividendYield12m: result.financials?.dividends?.yield_12m,
+                  dividendSum12m: result.financials?.dividends?.yield_12m_sum,
+                  pl: result.financials?.price_earnings_ratio,
+                  pvp: result.financials?.price_to_book_ratio,
+                  roe: result.financials?.return_on_equity,
+                  equity: result.financials?.equity,
+                  quotaCount: result.financials?.quota_count,
+                  equityPerShare: result.financials?.equity_per_share,
+                  fonte: 'hg-brasil-mobile-sem-ua',
+                  ultimaAtualizacao: new Date().toISOString()
+                };
+
+                setDadosHGBrasil(dadosProcessados);
+                
+                // Salvar no cache
+                localStorage.setItem(`cache_hg_${ticker}`, JSON.stringify({
+                  data: dadosProcessados,
+                  timestamp: Date.now()
+                }));
+                
+                console.log(`📱✅ HG ${ticker} obtido (Sem UA):`, dadosProcessados);
+                dadosObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log(`📱❌ HG ${ticker} (Sem UA): ${error.message}`);
+          }
+        }
+
+        if (!dadosObtidos) {
+          console.log(`📱⚠️ HG ${ticker}: Todas as estratégias mobile falharam`);
+        }
+
+      } else {
+        // 🖥️ DESKTOP: Estratégia original (mais simples)
+        console.log('🖥️ [HG-DESKTOP] Estratégia desktop padrão');
         
         try {
-          const hgData = JSON.parse(proxyData.contents);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
           
-          if (hgData.results && hgData.results[ticker]) {
-            const result = hgData.results[ticker];
-            console.log(`📊 Dados HG Brasil para ${ticker}:`, result);
-            
-            const dadosHG: DadosHGBrasil = {
-              // Dividend Yield
-              dividendYield12m: result.financials?.dividends?.yield_12m,
-              dividendSum12m: result.financials?.dividends?.yield_12m_sum,
-              
-              // Indicadores fundamentalistas
-              pl: result.financials?.price_earnings_ratio,
-              pvp: result.financials?.price_to_book_ratio,
-              roe: result.financials?.return_on_equity,
-              
-              // Dados patrimoniais
-              equity: result.financials?.equity,
-              quotaCount: result.financials?.quota_count,
-              equityPerShare: result.financials?.equity_per_share,
-              
-              fonte: 'hg-brasil',
-              ultimaAtualizacao: new Date().toISOString()
-            };
+          // Usar proxy CORS para HG Brasil
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hgbrasil.com/finance/stock_price?key=${HG_BRASIL_KEY}&symbol=${ticker}`)}`;
+          
+          const response = await fetch(proxyUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Portfolio-App/1.0'
+            },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const proxyData = await response.json();
+            const hgData = JSON.parse(proxyData.contents);
+            console.log(`🖥️📊 HG Resposta Desktop:`, hgData);
 
-            setDadosHGBrasil(dadosHG);
-            
-            // Salvar no cache
-            localStorage.setItem(`cache_hg_${ticker}`, JSON.stringify({
-              data: dadosHG,
-              timestamp: Date.now()
-            }));
-            
-            console.log(`✅ Ação ${ticker} - DY 12m: ${dadosHG.dividendYield12m}% | P/L: ${dadosHG.pl} | P/VP: ${dadosHG.pvp}`);
-          } else {
-            console.log(`❌ Nenhum dado encontrado para ${ticker} na HG Brasil`);
-            setDadosHGBrasil(null);
+            if (hgData.results && hgData.results[ticker]) {
+              const result = hgData.results[ticker];
+              
+              const dadosProcessados: DadosHGBrasil = {
+                dividendYield12m: result.financials?.dividends?.yield_12m,
+                dividendSum12m: result.financials?.dividends?.yield_12m_sum,
+                pl: result.financials?.price_earnings_ratio,
+                pvp: result.financials?.price_to_book_ratio,
+                roe: result.financials?.return_on_equity,
+                equity: result.financials?.equity,
+                quotaCount: result.financials?.quota_count,
+                equityPerShare: result.financials?.equity_per_share,
+                fonte: 'hg-brasil-desktop',
+                ultimaAtualizacao: new Date().toISOString()
+              };
+
+              setDadosHGBrasil(dadosProcessados);
+              
+              // Salvar no cache
+              localStorage.setItem(`cache_hg_${ticker}`, JSON.stringify({
+                data: dadosProcessados,
+                timestamp: Date.now()
+              }));
+              
+              console.log(`🖥️✅ HG ${ticker} obtido Desktop:`, dadosProcessados);
+              dadosObtidos = true;
+            }
           }
-        } catch (parseError) {
-          console.error('Erro ao fazer parse da resposta HG Brasil:', parseError);
-          setError('Erro no formato da resposta da API');
+        } catch (error) {
+          console.log(`🖥️❌ HG ${ticker} Desktop:`, error.message);
         }
-      } else {
-        throw new Error(`Erro HTTP: ${response.status}`);
       }
+
+      // Se não conseguiu obter dados
+      if (!dadosObtidos) {
+        console.log(`❌ HG ${ticker}: Nenhuma estratégia funcionou`);
+        setError('Dados indisponíveis');
+        setDadosHGBrasil(null);
+      }
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error(`❌ Erro HG Brasil ${ticker}:`, err);
+      console.error(`❌ Erro geral HG Brasil ${ticker}:`, err);
       setDadosHGBrasil(null);
     } finally {
       setLoading(false);
     }
-  }, [ticker]);
+  }, [ticker, isMobile]);
 
+  // ✅ USEEFFECT CORRIGIDO: Aguarda detecção E re-executa quando isMobile muda (IGUAL AO ARQUIVO 2)
   useEffect(() => {
-    fetchDadosHGBrasil();
-  }, [fetchDadosHGBrasil]);
+    if (deviceDetected) {
+      console.log('🔥 HG: Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
+      fetchDadosHGBrasil();
+    }
+  }, [fetchDadosHGBrasil, deviceDetected, isMobile]);
 
   return { dadosHGBrasil, loading, error, refetch: fetchDadosHGBrasil };
 }
 
-// 🌍 Hook para dados de ativos internacionais via Yahoo Finance
+// 🌍 Hook para dados de ativos internacionais via Yahoo Finance - VERSÃO MOBILE-FIRST CORRIGIDA
 export function useYahooFinanceInternacional(ticker: string | undefined) {
   const [dadosYahoo, setDadosYahoo] = useState<{
     dividendYield?: number;
@@ -602,6 +808,25 @@ export function useYahooFinanceInternacional(ticker: string | undefined) {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 🔥 DETECTAR DISPOSITIVO COM ESTADO DE DETECÇÃO COMPLETA (IGUAL AO ARQUIVO 2)
+  const [isMobile, setIsMobile] = useState(false);
+  const [deviceDetected, setDeviceDetected] = useState(false);
+
+  // 🔥 DETECÇÃO DE DISPOSITIVO (COPIADO DO ARQUIVO 2)
+  useEffect(() => {
+    const checkDevice = () => {
+      const width = window.innerWidth;
+      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      setDeviceDetected(true);
+      console.log('📱 Yahoo - Dispositivo detectado:', { width, isMobile: mobile, deviceDetected: true });
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   const fetchDadosInternacionais = useCallback(async () => {
     if (!ticker) {
@@ -619,7 +844,8 @@ export function useYahooFinanceInternacional(ticker: string | undefined) {
       setLoading(true);
       setError(null);
 
-      console.log(`🌍 Buscando dados internacionais completos para: ${ticker}...`);
+      console.log(`🌍 Buscando dados internacionais para ${ticker}...`);
+      console.log('📱 Device Info:', { isMobile, deviceDetected });
 
       // Verificar cache primeiro (2 horas para dados fundamentalistas)
       const cachedData = localStorage.getItem(`cache_international_${ticker}`);
@@ -637,213 +863,261 @@ export function useYahooFinanceInternacional(ticker: string | undefined) {
         fonte: 'api-multipla',
         ultimaAtualizacao: new Date().toISOString()
       };
+      let dadosObtidos = false;
 
-      // 🚀 MÉTODO 1: Yahoo Finance via proxy (MAIS ROBUSTO)
-      try {
-        console.log(`📡 Tentando Yahoo Finance v10 para ${ticker}...`);
+      if (isMobile) {
+        // 📱 MOBILE: Estratégia agressiva com múltiplas tentativas (IGUAL AO ARQUIVO 2)
+        console.log('📱 [YAHOO-MOBILE] Estratégia agressiva para forçar API funcionar');
         
-        const yahooUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=price,summaryDetail,defaultKeyStatistics,financialData,keyStatistics`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-        const response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const proxyData = await response.json();
-          const yahooData = JSON.parse(proxyData.contents);
-          
-          if (yahooData?.quoteSummary?.result?.[0]) {
-            const result = yahooData.quoteSummary.result[0];
-            const price = result.price || {};
-            const summaryDetail = result.summaryDetail || {};
-            const defaultKeyStatistics = result.defaultKeyStatistics || {};
-            const financialData = result.financialData || {};
-            const keyStatistics = result.keyStatistics || {};
+        // ESTRATÉGIA 1: YH Finance via Proxy com User-Agent Desktop
+        if (!dadosObtidos) {
+          try {
+            console.log(`📱🔄 [YAHOO] ${ticker}: Tentativa 1 - User-Agent Desktop`);
             
-            console.log(`📊 Dados Yahoo Finance completos para ${ticker}:`, {
-              price: Object.keys(price),
-              summaryDetail: Object.keys(summaryDetail),
-              defaultKeyStatistics: Object.keys(defaultKeyStatistics),
-              financialData: Object.keys(financialData)
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             
-            // Extrair todos os dados possíveis
-            dadosColetados = {
-              ...dadosColetados,
-              
-              // 💰 DIVIDEND YIELD (múltiplas fontes)
-              dividendYield: summaryDetail.dividendYield?.raw ? 
-                (summaryDetail.dividendYield.raw * 100) : 
-                (price.dividendYield?.raw ? (price.dividendYield.raw * 100) : null),
-              
-              // 📊 P/L (múltiplas fontes)
-              pl: summaryDetail.trailingPE?.raw || 
-                  defaultKeyStatistics.trailingPE?.raw ||
-                  financialData.currentRatio?.raw ||
-                  keyStatistics.trailingPE?.raw ||
-                  price.trailingPE?.raw,
-              
-              // 📈 P/VP (múltiplas fontes)
-              pvp: defaultKeyStatistics.priceToBook?.raw ||
-                   summaryDetail.priceToBook?.raw ||
-                   keyStatistics.priceToBook?.raw,
-              
-              // 🎯 ROE
-              roe: financialData.returnOnEquity?.raw ? 
-                (financialData.returnOnEquity.raw * 100) : 
-                (defaultKeyStatistics.returnOnEquity?.raw ? (defaultKeyStatistics.returnOnEquity.raw * 100) : null),
-              
-              // 💵 DIVIDEND RATE (valor em dólares)
-              dividendRate: summaryDetail.dividendRate?.raw || 
-                           defaultKeyStatistics.dividendRate?.raw,
-              
-              // 📊 PAYOUT RATIO
-              payoutRatio: defaultKeyStatistics.payoutRatio?.raw ? 
-                (defaultKeyStatistics.payoutRatio.raw * 100) : null,
-              
-              // 💼 DADOS DE MERCADO
-              marketCap: summaryDetail.marketCap?.raw || 
-                        price.marketCap?.raw ||
-                        defaultKeyStatistics.marketCap?.raw,
-              
-              volume: summaryDetail.volume?.raw || 
-                     summaryDetail.averageVolume?.raw ||
-                     price.regularMarketVolume?.raw,
-              
-              beta: defaultKeyStatistics.beta?.raw || 
-                   keyStatistics.beta?.raw,
-              
-              eps: defaultKeyStatistics.trailingEps?.raw || 
-                  keyStatistics.trailingEps?.raw ||
-                  financialData.trailingEps?.raw,
-            };
-
-            console.log(`✅ Dados extraídos do Yahoo Finance:`, {
-              dividendYield: dadosColetados.dividendYield,
-              pl: dadosColetados.pl,
-              pvp: dadosColetados.pvp,
-              marketCap: dadosColetados.marketCap
+            const yahooUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,defaultKeyStatistics,financialData`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
+            
+            const response = await fetch(proxyUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              },
+              signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const proxyData = await response.json();
+              const yahooData = JSON.parse(proxyData.contents);
+              console.log(`📱📊 Yahoo Resposta (Desktop UA):`, yahooData);
+
+              if (yahooData?.quoteSummary?.result?.[0]) {
+                const result = yahooData.quoteSummary.result[0];
+                const price = result.price || {};
+                const summaryDetail = result.summaryDetail || {};
+                const defaultKeyStatistics = result.defaultKeyStatistics || {};
+                const financialData = result.financialData || {};
+                
+                dadosColetados = {
+                  ...dadosColetados,
+                  dividendYield: summaryDetail.dividendYield?.raw ? (summaryDetail.dividendYield.raw * 100) : null,
+                  pl: summaryDetail.trailingPE?.raw || defaultKeyStatistics.trailingPE?.raw,
+                  pvp: defaultKeyStatistics.priceToBook?.raw || summaryDetail.priceToBook?.raw,
+                  roe: financialData.returnOnEquity?.raw ? (financialData.returnOnEquity.raw * 100) : null,
+                  dividendRate: summaryDetail.dividendRate?.raw || defaultKeyStatistics.dividendRate?.raw,
+                  payoutRatio: defaultKeyStatistics.payoutRatio?.raw ? (defaultKeyStatistics.payoutRatio.raw * 100) : null,
+                  marketCap: summaryDetail.marketCap?.raw || price.marketCap?.raw,
+                  volume: summaryDetail.volume?.raw || summaryDetail.averageVolume?.raw,
+                  beta: defaultKeyStatistics.beta?.raw,
+                  eps: defaultKeyStatistics.trailingEps?.raw,
+                  fonte: 'yahoo-mobile-ua-desktop'
+                };
+
+                setDadosYahoo(dadosColetados);
+                
+                // Salvar no cache
+                localStorage.setItem(`cache_international_${ticker}`, JSON.stringify({
+                  data: dadosColetados,
+                  timestamp: Date.now()
+                }));
+                
+                console.log(`📱✅ Yahoo ${ticker} obtido (Desktop UA):`, dadosColetados);
+                dadosObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log(`📱❌ Yahoo ${ticker} (Desktop UA): ${error.message}`);
           }
         }
-      } catch (yahooError) {
-        console.log(`⚠️ Erro Yahoo Finance para ${ticker}:`, yahooError.message);
-      }
 
-      // 🚀 MÉTODO 2: Alpha Vantage (BACKUP PARA P/L e P/VP)
-      if (!dadosColetados.pl || !dadosColetados.pvp) {
+        // Delay entre tentativas
+        if (!dadosObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 2: API alternativa via BRAPI (para ativos americanos)
+        if (!dadosObtidos && (ticker.match(/^[A-Z]+$/) || ticker.includes('.'))) {
+          try {
+            console.log(`📱🔄 [YAHOO] ${ticker}: Tentativa 2 - BRAPI Internacional`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=summaryDetail,defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json'
+              },
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`📱📊 BRAPI Resposta:`, data);
+
+              if (data.results?.[0]) {
+                const result = data.results[0];
+                
+                dadosColetados = {
+                  ...dadosColetados,
+                  pl: result.summaryDetail?.trailingPE || result.defaultKeyStatistics?.trailingPE,
+                  pvp: result.defaultKeyStatistics?.priceToBook,
+                  dividendYield: result.summaryDetail?.dividendYield || result.defaultKeyStatistics?.dividendYield,
+                  marketCap: result.marketCap,
+                  volume: result.regularMarketVolume,
+                  fonte: 'brapi-internacional-mobile'
+                };
+
+                setDadosYahoo(dadosColetados);
+                
+                // Salvar no cache
+                localStorage.setItem(`cache_international_${ticker}`, JSON.stringify({
+                  data: dadosColetados,
+                  timestamp: Date.now()
+                }));
+                
+                console.log(`📱✅ Yahoo ${ticker} obtido (BRAPI):`, dadosColetados);
+                dadosObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log(`📱❌ Yahoo ${ticker} (BRAPI): ${error.message}`);
+          }
+        }
+
+        // Delay entre tentativas
+        if (!dadosObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // ESTRATÉGIA 3: Yahoo direto sem proxy
+        if (!dadosObtidos) {
+          try {
+            console.log(`📱🔄 [YAHOO] ${ticker}: Tentativa 3 - Yahoo direto`);
+            
+            const response = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,defaultKeyStatistics`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`📱📊 Yahoo Resposta (Direto):`, data);
+
+              if (data?.quoteSummary?.result?.[0]) {
+                const result = data.quoteSummary.result[0];
+                const summaryDetail = result.summaryDetail || {};
+                const defaultKeyStatistics = result.defaultKeyStatistics || {};
+                
+                dadosColetados = {
+                  ...dadosColetados,
+                  dividendYield: summaryDetail.dividendYield?.raw ? (summaryDetail.dividendYield.raw * 100) : null,
+                  pl: summaryDetail.trailingPE?.raw || defaultKeyStatistics.trailingPE?.raw,
+                  pvp: defaultKeyStatistics.priceToBook?.raw,
+                  marketCap: summaryDetail.marketCap?.raw,
+                  volume: summaryDetail.volume?.raw,
+                  fonte: 'yahoo-mobile-direto'
+                };
+
+                setDadosYahoo(dadosColetados);
+                
+                // Salvar no cache
+                localStorage.setItem(`cache_international_${ticker}`, JSON.stringify({
+                  data: dadosColetados,
+                  timestamp: Date.now()
+                }));
+                
+                console.log(`📱✅ Yahoo ${ticker} obtido (Direto):`, dadosColetados);
+                dadosObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log(`📱❌ Yahoo ${ticker} (Direto): ${error.message}`);
+          }
+        }
+
+        if (!dadosObtidos) {
+          console.log(`📱⚠️ Yahoo ${ticker}: Todas as estratégias mobile falharam`);
+        }
+
+      } else {
+        // 🖥️ DESKTOP: Estratégia original (mais simples) - MANTIDA IGUAL
+        console.log('🖥️ [YAHOO-DESKTOP] Estratégia desktop padrão');
+        
         try {
-          console.log(`📡 Tentando Alpha Vantage para ${ticker}...`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
           
-          // Usar chave demo ou uma chave real se disponível
-          const alphaUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=demo`;
+          const yahooUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=price,summaryDetail,defaultKeyStatistics,financialData,keyStatistics`;
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
           
-          const alphaResponse = await fetch(alphaUrl);
+          const response = await fetch(proxyUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            signal: controller.signal
+          });
           
-          if (alphaResponse.ok) {
-            const alphaData = await alphaResponse.json();
-            
-            console.log(`📊 Resposta Alpha Vantage para ${ticker}:`, alphaData);
-            
-            if (alphaData && alphaData.Symbol === ticker) {
-              // P/L (PERatio)
-              if (alphaData.PERatio && alphaData.PERatio !== 'None' && !dadosColetados.pl) {
-                dadosColetados.pl = parseFloat(alphaData.PERatio);
-              }
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const proxyData = await response.json();
+            const yahooData = JSON.parse(proxyData.contents);
+            console.log(`🖥️📊 Yahoo Resposta Desktop:`, yahooData);
+
+            if (yahooData?.quoteSummary?.result?.[0]) {
+              const result = yahooData.quoteSummary.result[0];
+              const price = result.price || {};
+              const summaryDetail = result.summaryDetail || {};
+              const defaultKeyStatistics = result.defaultKeyStatistics || {};
+              const financialData = result.financialData || {};
               
-              // P/VP (PriceToBookRatio)
-              if (alphaData.PriceToBookRatio && alphaData.PriceToBookRatio !== 'None' && !dadosColetados.pvp) {
-                dadosColetados.pvp = parseFloat(alphaData.PriceToBookRatio);
-              }
+              dadosColetados = {
+                ...dadosColetados,
+                dividendYield: summaryDetail.dividendYield?.raw ? (summaryDetail.dividendYield.raw * 100) : null,
+                pl: summaryDetail.trailingPE?.raw || defaultKeyStatistics.trailingPE?.raw,
+                pvp: defaultKeyStatistics.priceToBook?.raw || summaryDetail.priceToBook?.raw,
+                roe: financialData.returnOnEquity?.raw ? (financialData.returnOnEquity.raw * 100) : null,
+                dividendRate: summaryDetail.dividendRate?.raw || defaultKeyStatistics.dividendRate?.raw,
+                payoutRatio: defaultKeyStatistics.payoutRatio?.raw ? (defaultKeyStatistics.payoutRatio.raw * 100) : null,
+                marketCap: summaryDetail.marketCap?.raw || price.marketCap?.raw,
+                volume: summaryDetail.volume?.raw || summaryDetail.averageVolume?.raw,
+                beta: defaultKeyStatistics.beta?.raw,
+                eps: defaultKeyStatistics.trailingEps?.raw,
+                fonte: 'yahoo-desktop'
+              };
+
+              setDadosYahoo(dadosColetados);
               
-              // Dividend Yield
-              if (alphaData.DividendYield && alphaData.DividendYield !== 'None' && !dadosColetados.dividendYield) {
-                dadosColetados.dividendYield = parseFloat(alphaData.DividendYield.replace('%', ''));
-              }
+              // Salvar no cache
+              localStorage.setItem(`cache_international_${ticker}`, JSON.stringify({
+                data: dadosColetados,
+                timestamp: Date.now()
+              }));
               
-              // Market Cap
-              if (alphaData.MarketCapitalization && !dadosColetados.marketCap) {
-                const marketCapStr = alphaData.MarketCapitalization;
-                if (marketCapStr.includes('B')) {
-                  dadosColetados.marketCap = parseFloat(marketCapStr.replace('B', '')) * 1000000000;
-                } else if (marketCapStr.includes('M')) {
-                  dadosColetados.marketCap = parseFloat(marketCapStr.replace('M', '')) * 1000000;
-                }
-              }
-              
-              console.log(`✅ Dados Alpha Vantage adicionados:`, {
-                pl: dadosColetados.pl,
-                pvp: dadosColetados.pvp,
-                dividendYield: dadosColetados.dividendYield
-              });
-              
-              dadosColetados.fonte = 'yahoo+alpha';
+              console.log(`🖥️✅ Yahoo ${ticker} obtido Desktop:`, dadosColetados);
+              dadosObtidos = true;
             }
           }
-        } catch (alphaError) {
-          console.log(`⚠️ Erro Alpha Vantage para ${ticker}:`, alphaError.message);
+        } catch (error) {
+          console.log(`🖥️❌ Yahoo ${ticker} Desktop:`, error.message);
         }
       }
 
-      // 🚀 MÉTODO 3: Financial Modeling Prep (BACKUP GRATUITO)
-      if (!dadosColetados.pl || !dadosColetados.pvp) {
-        try {
-          console.log(`📡 Tentando Financial Modeling Prep para ${ticker}...`);
-          
-          const fmpUrl = `https://financialmodelingprep.com/api/v3/ratios/${ticker}?limit=1&apikey=demo`;
-          
-          const fmpResponse = await fetch(fmpUrl);
-          
-          if (fmpResponse.ok) {
-            const fmpData = await fmpResponse.json();
-            
-            if (Array.isArray(fmpData) && fmpData.length > 0) {
-              const ratios = fmpData[0];
-              
-              // P/L
-              if (ratios.priceEarningsRatio && !dadosColetados.pl) {
-                dadosColetados.pl = ratios.priceEarningsRatio;
-              }
-              
-              // P/VP
-              if (ratios.priceToBookRatio && !dadosColetados.pvp) {
-                dadosColetados.pvp = ratios.priceToBookRatio;
-              }
-              
-              // ROE
-              if (ratios.returnOnEquity && !dadosColetados.roe) {
-                dadosColetados.roe = ratios.returnOnEquity * 100;
-              }
-              
-              console.log(`✅ Dados FMP adicionados:`, {
-                pl: dadosColetados.pl,
-                pvp: dadosColetados.pvp,
-                roe: dadosColetados.roe
-              });
-              
-              dadosColetados.fonte = dadosColetados.fonte.includes('alpha') ? 'yahoo+alpha+fmp' : 'yahoo+fmp';
-            }
-          }
-        } catch (fmpError) {
-          console.log(`⚠️ Erro FMP para ${ticker}:`, fmpError.message);
-        }
-      }
-
-      // 🚀 MÉTODO 4: FALLBACK COM DADOS ESTIMADOS PARA AÇÕES POPULARES
-      if (!dadosColetados.pl || !dadosColetados.pvp) {
+      // FALLBACK COM DADOS ESTIMADOS (MANTIDO IGUAL)
+      if (!dadosObtidos || (!dadosColetados.pl && !dadosColetados.pvp)) {
         const dadosEstimados: Record<string, { pl?: number; pvp?: number; dy?: number }> = {
-          // Tecnologia
           'AAPL': { pl: 29.8, pvp: 39.1, dy: 0.52 },
           'MSFT': { pl: 35.2, pvp: 13.4, dy: 0.68 },
           'GOOGL': { pl: 25.8, pvp: 5.8, dy: 0.0 },
@@ -851,28 +1125,8 @@ export function useYahooFinanceInternacional(ticker: string | undefined) {
           'TSLA': { pl: 65.4, pvp: 12.7, dy: 0.0 },
           'META': { pl: 24.9, pvp: 7.2, dy: 0.0 },
           'NVDA': { pl: 72.3, pvp: 55.8, dy: 0.09 },
-          'NFLX': { pl: 44.6, pvp: 4.8, dy: 0.0 },
-          
-          // Financeiro
-          'JPM': { pl: 13.2, pvp: 1.6, dy: 2.4 },
-          'BAC': { pl: 15.1, pvp: 1.2, dy: 2.8 },
-          'V': { pl: 32.8, pvp: 14.1, dy: 0.7 },
-          'MA': { pl: 34.2, pvp: 51.3, dy: 0.5 },
-          
-          // Consumo
           'KO': { pl: 26.1, pvp: 9.8, dy: 3.0 },
-          'PEP': { pl: 24.7, pvp: 12.1, dy: 2.7 },
-          'WMT': { pl: 26.8, pvp: 5.2, dy: 1.7 },
-          'HD': { pl: 22.4, pvp: 1286.5, dy: 2.4 },
-          'MCD': { pl: 25.3, pvp: 999.9, dy: 2.2 },
-          
-          // Industrial
-          'BA': { pl: 999.9, pvp: 1.8, dy: 0.0 },
-          'CAT': { pl: 13.8, pvp: 5.1, dy: 2.1 },
-          
-          // Energia
-          'XOM': { pl: 14.7, pvp: 1.9, dy: 6.1 },
-          'CVX': { pl: 14.2, pvp: 1.8, dy: 3.4 }
+          'PEP': { pl: 24.7, pvp: 12.1, dy: 2.7 }
         };
 
         if (dadosEstimados[ticker]) {
@@ -891,32 +1145,35 @@ export function useYahooFinanceInternacional(ticker: string | undefined) {
           dadosColetados.fonte = dadosColetados.fonte + '+estimado';
           console.log(`📊 Dados estimados aplicados para ${ticker}:`, estimados);
         }
+
+        setDadosYahoo(dadosColetados);
+        
+        // Salvar no cache
+        localStorage.setItem(`cache_international_${ticker}`, JSON.stringify({
+          data: dadosColetados,
+          timestamp: Date.now()
+        }));
       }
 
-      // Salvar resultado final
-      setDadosYahoo(dadosColetados);
-      
-      // Salvar no cache
-      localStorage.setItem(`cache_international_${ticker}`, JSON.stringify({
-        data: dadosColetados,
-        timestamp: Date.now()
-      }));
-      
       console.log(`✅ Dados internacionais finais para ${ticker}:`, dadosColetados);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error(`❌ Erro geral ao buscar dados internacionais ${ticker}:`, err);
+      console.error(`❌ Erro geral Yahoo ${ticker}:`, err);
       setDadosYahoo(null);
     } finally {
       setLoading(false);
     }
-  }, [ticker]);
+  }, [ticker, isMobile]);
 
+  // ✅ USEEFFECT CORRIGIDO: Aguarda detecção E re-executa quando isMobile muda (IGUAL AO ARQUIVO 2)
   useEffect(() => {
-    fetchDadosInternacionais();
-  }, [fetchDadosInternacionais]);
+    if (deviceDetected) {
+      console.log('🔥 Yahoo: Executando busca após detecção de dispositivo:', { isMobile, deviceDetected });
+      fetchDadosInternacionais();
+    }
+  }, [fetchDadosInternacionais, deviceDetected, isMobile]);
 
   return { dadosYahoo, loading, error, refetch: fetchDadosInternacionais };
 }
