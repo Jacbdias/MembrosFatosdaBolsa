@@ -2051,15 +2051,18 @@ const MetricCard = React.memo(({
   </div>
 ));
 
-// 🔥 HISTÓRICO DE DIVIDENDOS COM TABELA SWIPE MÓVEL (ESTILO STATUS INVEST)
+// 🔥 HISTÓRICO DE DIVIDENDOS COM PAGINAÇÃO (ESTILO STATUS INVEST)
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: { ticker: string; dataEntrada: string; isFII?: boolean }) => {
   const [proventos, setProventos] = useState<any[]>([]);
-  const [mostrarTodos, setMostrarTodos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fonte, setFonte] = useState<string>('');
   const [totalOriginal, setTotalOriginal] = useState(0);
   
-  // 🔥 DETECÇÃO MOBILE SIMPLES E DIRETA
+  // 🔥 ESTADOS DE PAGINAÇÃO
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 10; // Padrão para ambos mobile e desktop
+  
+  // 🔥 DETECÇÃO MOBILE
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth <= 768;
@@ -2067,7 +2070,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
     return false;
   });
 
-  // 🔥 DETECÇÃO DE DISPOSITIVO
   useEffect(() => {
     const checkDevice = () => {
       const mobile = window.innerWidth <= 768;
@@ -2096,8 +2098,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
 
         // 🌐 MÉTODO 1: Buscar via API primeiro
         try {
-          console.log(`🌐 [HISTORICO] Tentando API para ${ticker}...`);
-          
           const response = await fetch(`/api/proventos/${ticker}`, {
             method: 'GET',
             headers: { 
@@ -2109,7 +2109,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
           if (response.ok) {
             const dadosAPI = await response.json();
             totalAntesFiltro = dadosAPI.length;
-            console.log(`📊 [HISTORICO] API retornou ${dadosAPI.length} proventos para ${ticker}`);
             
             if (Array.isArray(dadosAPI) && dadosAPI.length > 0) {
               let proventosConvertidos = dadosAPI.map((item: any) => ({
@@ -2150,8 +2149,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
 
         // 📁 MÉTODO 2: Fallback para localStorage se API falhar
         if (proventosEncontrados.length === 0) {
-          console.log(`📁 [HISTORICO] Buscando no localStorage para ${ticker}...`);
-          
           let dadosSalvos = null;
           const chavesPossiveis = [
             `proventos_${ticker}`,
@@ -2222,6 +2219,9 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
         setFonte(fonteAtual || 'sem dados');
         setTotalOriginal(totalAntesFiltro);
         
+        // ✅ RESETAR PÁGINA QUANDO CARREGA NOVOS DADOS
+        setPaginaAtual(1);
+        
       } catch (error) {
         console.error('❌ [HISTORICO] Erro geral:', error);
         setProventos([]);
@@ -2248,10 +2248,48 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
     };
   }, [proventos]);
 
-  // 🔥 LÓGICA PARA QUANTIDADE EXIBIDA
-  const temMaisProventos = proventos.length > (isMobile ? 8 : 10);
-  const limitePadrao = isMobile ? 8 : 10; // Mais no mobile pois a tabela é compacta
-  const proventosExibidos = mostrarTodos ? proventos : proventos.slice(0, limitePadrao);
+  // 🔥 CÁLCULOS DE PAGINAÇÃO
+  const totalPaginas = Math.ceil(proventos.length / itensPorPagina);
+  const indiceInicio = (paginaAtual - 1) * itensPorPagina;
+  const indiceFim = indiceInicio + itensPorPagina;
+  const proventosExibidos = proventos.slice(indiceInicio, indiceFim);
+
+  // 🔥 FUNÇÕES DE NAVEGAÇÃO
+  const irParaPagina = (pagina: number) => {
+    setPaginaAtual(pagina);
+  };
+
+  const paginaAnterior = () => {
+    if (paginaAtual > 1) {
+      setPaginaAtual(paginaAtual - 1);
+    }
+  };
+
+  const proximaPagina = () => {
+    if (paginaAtual < totalPaginas) {
+      setPaginaAtual(paginaAtual + 1);
+    }
+  };
+
+  // 🔥 GERAR NÚMEROS DAS PÁGINAS (STATUS INVEST STYLE)
+  const gerarNumerosPaginas = () => {
+    const paginas = [];
+    const maxPaginasVisiveis = isMobile ? 3 : 5;
+    
+    let inicio = Math.max(1, paginaAtual - Math.floor(maxPaginasVisiveis / 2));
+    let fim = Math.min(totalPaginas, inicio + maxPaginasVisiveis - 1);
+    
+    // Ajustar início se estamos no final
+    if (fim - inicio + 1 < maxPaginasVisiveis) {
+      inicio = Math.max(1, fim - maxPaginasVisiveis + 1);
+    }
+    
+    for (let i = inicio; i <= fim; i++) {
+      paginas.push(i);
+    }
+    
+    return paginas;
+  };
 
   return (
     <div style={{
@@ -2308,18 +2346,15 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
           <p style={{ fontSize: '14px', marginTop: '8px' }}>
             📅 Data de entrada: {dataEntrada}
           </p>
-          <p style={{ fontSize: '12px', marginTop: '8px', color: '#94a3b8' }}>
-            Fonte consultada: {fonte} • Total original: {totalOriginal}
-          </p>
         </div>
       ) : (
         <>
-          {/* Cards de resumo - Grid responsivo */}
+          {/* Cards de resumo */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: isMobile 
-              ? 'repeat(2, 1fr)' // Mobile: 2 colunas
-              : 'repeat(4, 1fr)', // Desktop: 4 colunas
+              ? 'repeat(2, 1fr)' 
+              : 'repeat(4, 1fr)', 
             gap: isMobile ? '12px' : '16px', 
             marginBottom: '24px' 
           }}>
@@ -2417,50 +2452,20 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
               </p>
             </div>
           </div>
-          
-          {/* 🔥 BOTÃO MOSTRAR TODOS */}
-          {temMaisProventos && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <button
-                onClick={() => setMostrarTodos(!mostrarTodos)}
-                style={{
-                  backgroundColor: mostrarTodos ? '#fef3c7' : '#f1f5f9',
-                  color: mostrarTodos ? '#d97706' : '#64748b',
-                  border: `1px solid ${mostrarTodos ? '#fde68a' : '#cbd5e1'}`,
-                  borderRadius: '8px',
-                  padding: isMobile ? '12px 20px' : '8px 16px',
-                  fontSize: isMobile ? '15px' : '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  minHeight: isMobile ? '44px' : 'auto'
-                }}
-              >
-                {mostrarTodos 
-                  ? `📋 Mostrar apenas ${limitePadrao} recentes` 
-                  : `📋 Mostrar todos os ${proventos.length} proventos`
-                }
-              </button>
-            </div>
-          )}
 
-          {/* 🔥 TABELA ÚNICA - SWIPE HORIZONTAL NO MOBILE */}
+          {/* 🔥 TABELA COM SWIPE HORIZONTAL */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '8px',
             border: '1px solid #e2e8f0',
-            // ✅ CONFIGURAÇÃO SWIPE MOBILE (Status Invest Style)
             overflowX: isMobile ? 'auto' : 'visible',
             overflowY: 'visible',
-            maxHeight: mostrarTodos ? '400px' : 'auto',
-            // ✅ REMOVER BARRA DE SCROLL NO MOBILE
             ...(isMobile && {
-              scrollbarWidth: 'none', // Firefox
-              msOverflowStyle: 'none', // IE/Edge
-              WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
             })
           }}>
-            {/* ✅ CSS INLINE PARA ESCONDER SCROLLBAR NO WEBKIT */}
             <style>
               {isMobile ? `
                 div::-webkit-scrollbar {
@@ -2469,7 +2474,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
               ` : ''}
             </style>
             
-            {/* 💡 DICA VISUAL NO MOBILE */}
             {isMobile && (
               <div style={{
                 backgroundColor: '#f0f9ff',
@@ -2487,7 +2491,6 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
             <table style={{ 
               width: '100%', 
               borderCollapse: 'collapse',
-              // ✅ LARGURA MÍNIMA NO MOBILE PARA FORÇAR SCROLL HORIZONTAL
               minWidth: isMobile ? '600px' : '100%'
             }}>
               <thead style={{ 
@@ -2502,8 +2505,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                     textAlign: 'left', 
                     fontWeight: '700', 
                     fontSize: isMobile ? '12px' : '14px',
-                    minWidth: isMobile ? '80px' : 'auto',
-
+                    minWidth: isMobile ? '80px' : 'auto'
                   }}>
                     Ativo
                   </th>
@@ -2565,7 +2567,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
                     <td style={{ 
                       padding: isMobile ? '10px 8px' : '12px',
                       fontWeight: '500',
-                      fontSize: isMobile ? '13px' : '14px',
+                      fontSize: isMobile ? '13px' : '14px'
                     }}>
                       {ticker}
                     </td>
@@ -2632,7 +2634,137 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }: 
               </tbody>
             </table>
           </div>
-                  </>
+
+          {/* 🔥 PAGINAÇÃO (STATUS INVEST STYLE) */}
+          {totalPaginas > 1 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: '24px',
+              gap: '8px',
+              flexWrap: 'wrap'
+            }}>
+              
+              {/* Botão Anterior */}
+              <button
+                onClick={paginaAnterior}
+                disabled={paginaAtual === 1}
+                style={{
+                  padding: isMobile ? '8px 12px' : '8px 16px',
+                  backgroundColor: paginaAtual === 1 ? '#f8fafc' : '#ffffff',
+                  color: paginaAtual === 1 ? '#9ca3af' : '#374151',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: isMobile ? '13px' : '14px',
+                  fontWeight: '500',
+                  cursor: paginaAtual === 1 ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                ← {isMobile ? 'Ant' : 'Anterior'}
+              </button>
+
+              {/* Primeira página se não estiver visível */}
+              {gerarNumerosPaginas()[0] > 1 && (
+                <>
+                  <button
+                    onClick={() => irParaPagina(1)}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#ffffff',
+                      color: '#374151',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      minWidth: '40px'
+                    }}
+                  >
+                    1
+                  </button>
+                  {gerarNumerosPaginas()[0] > 2 && (
+                    <span style={{ color: '#9ca3af', fontSize: '14px' }}>...</span>
+                  )}
+                </>
+              )}
+
+              {/* Números das páginas */}
+              {gerarNumerosPaginas().map((numeroPagina) => (
+                <button
+                  key={numeroPagina}
+                  onClick={() => irParaPagina(numeroPagina)}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: numeroPagina === paginaAtual ? '#3b82f6' : '#ffffff',
+                    color: numeroPagina === paginaAtual ? '#ffffff' : '#374151',
+                    border: `1px solid ${numeroPagina === paginaAtual ? '#3b82f6' : '#e2e8f0'}`,
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: numeroPagina === paginaAtual ? '600' : '500',
+                    cursor: 'pointer',
+                    minWidth: '40px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {numeroPagina}
+                </button>
+              ))}
+
+              {/* Última página se não estiver visível */}
+              {gerarNumerosPaginas()[gerarNumerosPaginas().length - 1] < totalPaginas && (
+                <>
+                  {gerarNumerosPaginas()[gerarNumerosPaginas().length - 1] < totalPaginas - 1 && (
+                    <span style={{ color: '#9ca3af', fontSize: '14px' }}>...</span>
+                  )}
+                  <button
+                    onClick={() => irParaPagina(totalPaginas)}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#ffffff',
+                      color: '#374151',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      minWidth: '40px'
+                    }}
+                  >
+                    {totalPaginas}
+                  </button>
+                </>
+              )}
+
+              {/* Botão Próximo */}
+              <button
+                onClick={proximaPagina}
+                disabled={paginaAtual === totalPaginas}
+                style={{
+                  padding: isMobile ? '8px 12px' : '8px 16px',
+                  backgroundColor: paginaAtual === totalPaginas ? '#f8fafc' : '#ffffff',
+                  color: paginaAtual === totalPaginas ? '#9ca3af' : '#374151',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: isMobile ? '13px' : '14px',
+                  fontWeight: '500',
+                  cursor: paginaAtual === totalPaginas ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isMobile ? 'Prox' : 'Próximo'} →
+              </button>
+            </div>
+          )}
+
+          {/* Info da paginação */}
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>
+              Mostrando {indiceInicio + 1}-{Math.min(indiceFim, proventos.length)} de {proventos.length} {isFII ? 'rendimentos' : 'proventos'}
+            </p>
+          </div>
+        </>
       )}
     </div>
   );
