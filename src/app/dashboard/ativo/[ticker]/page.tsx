@@ -5917,36 +5917,92 @@ const { valorProventos, performanceProventos, loading: loadingProventos, fonte: 
     </>
   )}
 </div>    
-    {/* 📊 P/L MELHORADO - MÚLTIPLAS FONTES */}
-    <MetricCard 
-      title="P/L" 
-      value={(() => {
-        // Prioridade: Yahoo Internacional > HG Brasil > BRAPI > Estimado
-        if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
-          return dadosYahoo.pl.toFixed(2);
-        }
-        if (dadosHGBrasil?.pl) {
-          return dadosHGBrasil.pl.toFixed(2);
-        }
-        if (dadosFinanceiros?.pl) {
-          return formatarValor(dadosFinanceiros.pl, 'number');
-        }
-        return 'N/A';
-      })()}
-      subtitle={(() => {
-        if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
-          return dadosYahoo.fonte || "International";
-        }
-        if (dadosHGBrasil?.pl) {
-          return "HG Brasil";
-        }
-        if (dadosFinanceiros?.pl) {
-          return "BRAPI";
-        }
-        return "indisponível";
-      })()}
-      loading={dadosLoading || loadingHGBrasil || loadingYahoo}
-    />
+// 🎯 SUBSTITUIR APENAS ESTE CARD P/L NA SUA PÁGINA
+
+{/* 📊 P/L CORRIGIDO - PRIORIDADE AJUSTADA */}
+<MetricCard 
+  title="P/L" 
+  value={(() => {
+    // 🇧🇷 Para ações brasileiras: HG Brasil primeiro (funciona melhor no mobile)
+    if (ticker.match(/\d$/) && !ticker.includes('11')) {
+      // 1º: HG Brasil (melhor para ações brasileiras no mobile)
+      if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+        return dadosHGBrasil.pl.toFixed(2);
+      }
+      // 2º: BRAPI (backup confiável)
+      if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+        return dadosFinanceiros.pl.toFixed(2);
+      }
+      // 3º: Yahoo (última opção para ações brasileiras)
+      if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+        return dadosYahoo.pl.toFixed(2);
+      }
+      return 'N/A';
+    }
+    
+    // 🌍 Para ativos internacionais: Yahoo primeiro
+    else if (!ticker.match(/\d$/)) {
+      // 1º: Yahoo Finance (melhor para internacionais)
+      if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+        return dadosYahoo.pl.toFixed(2);
+      }
+      // 2º: HG Brasil (backup)
+      if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+        return dadosHGBrasil.pl.toFixed(2);
+      }
+      // 3º: BRAPI (último recurso)
+      if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+        return dadosFinanceiros.pl.toFixed(2);
+      }
+      return 'N/A';
+    }
+    
+    // 🔄 Outros tipos (FIIs, BDRs): ordem original
+    else {
+      if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0) {
+        return dadosHGBrasil.pl.toFixed(2);
+      }
+      if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0) {
+        return dadosFinanceiros.pl.toFixed(2);
+      }
+      if (dadosYahoo?.pl && dadosYahoo.pl > 0) {
+        return dadosYahoo.pl.toFixed(2);
+      }
+      return 'N/A';
+    }
+  })()}
+  
+  subtitle={(() => {
+    // Mostrar qual fonte foi realmente usada
+    if (ticker.match(/\d$/) && !ticker.includes('11')) {
+      // Ações brasileiras
+      if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+        return "HG Brasil";
+      }
+      if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+        return "BRAPI";
+      }
+      if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+        return "Yahoo";
+      }
+    } else if (!ticker.match(/\d$/)) {
+      // Ativos internacionais
+      if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+        return dadosYahoo.fonte || "International";
+      }
+      if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+        return "HG Brasil";
+      }
+      if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+        return "BRAPI";
+      }
+    }
+    
+    return "indisponível";
+  })()}
+  
+  loading={dadosLoading || loadingHGBrasil || loadingYahoo}
+/>
     
     {/* 💰 DIVIDEND YIELD INTEGRADO */}
     <MetricCard 
