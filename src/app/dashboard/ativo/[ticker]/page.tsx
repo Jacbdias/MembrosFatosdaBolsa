@@ -1,6 +1,3 @@
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
