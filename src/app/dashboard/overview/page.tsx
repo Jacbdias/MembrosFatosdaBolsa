@@ -1796,7 +1796,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
             alignItems: 'center',
             gap: '8px'
           }}>
-            📈 Posições Ativas ({ativosComPosicaoGerenciamento.length})
+           Posições Ativas ({ativosComPosicaoGerenciamento.length})
           </h3>
           <p style={{
             color: '#64748b',
@@ -1838,19 +1838,19 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
 {/* Header do Card */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     {/* 🔢 POSIÇÃO (AGORA PRIMEIRO) */}
-                    <div style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
-                      border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: '700',
-                      fontSize: '12px',
-                      color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b'
-                    }}>
+<div style={{
+  width: '28px',
+  height: '28px',
+  borderRadius: '50%',
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontWeight: '700',
+  fontSize: '12px',
+  color: '#64748b'
+}}>
                       {ativo.posicaoExibicao}
                     </div>
 
@@ -1880,7 +1880,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                           const parent = target.parentElement;
                           if (parent) {
                             parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                            parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                            parent.style.color = ativo.performance >= 0 ? '#065f46' : '#64748b';
                             parent.style.fontWeight = '700';
                             parent.style.fontSize = '12px';
                             parent.textContent = ativo.ticker.slice(0, 2);
@@ -2104,20 +2104,20 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                     >
                       {/* 🔢 CÉLULA 1: POSIÇÃO (AGORA PRIMEIRO) */}
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          backgroundColor: ativo.posicaoExibicao <= 3 ? '#f0fdf4' : '#f8fafc',
-                          border: ativo.posicaoExibicao <= 3 ? '2px solid #10b981' : '1px solid #e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '700',
-                          fontSize: '14px',
-                          color: ativo.posicaoExibicao <= 3 ? '#059669' : '#64748b',
-                          margin: '0 auto'
-                        }}>
+<div style={{
+  width: '32px',
+  height: '32px',
+  borderRadius: '50%',
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontWeight: '700',
+  fontSize: '14px',
+  color: '#64748b',
+  margin: '0 auto'
+}}>
                           {ativo.posicaoExibicao}
                         </div>
                       </td>
@@ -2150,7 +2150,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                                 const parent = target.parentElement;
                                 if (parent) {
                                   parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                                  parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                  parent.style.color = ativo.performance >= 0 ? '#065f46' : '#64748b';
                                   parent.style.fontWeight = '700';
                                   parent.style.fontSize = '14px';
                                   parent.textContent = ativo.ticker.slice(0, 2);
@@ -2240,34 +2240,32 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
       {/* 🔥 SEÇÃO DE POSIÇÕES ENCERRADAS */}
       {ativosEncerrados.length > 0 && (
         <div style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: '#f8fafc',
           borderRadius: '16px',
-          border: '1px solid #fecaca',
+          border: '1px solid #e2e8f0',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
           overflow: 'hidden',
           marginBottom: '32px'
         }}>
-          <div style={{
-            padding: isMobile ? '16px' : '24px',
-            borderBottom: '1px solid #fecaca',
-            backgroundColor: '#fef2f2'
-          }}>
-            <h3 style={{
-              fontSize: isMobile ? '20px' : '24px',
-              fontWeight: '700',
-              color: '#991b1b',
-              margin: '0 0 8px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              🔒 Posições Encerradas ({ativosEncerrados.length})
-            </h3>
-            <p style={{
-              color: '#b91c1c',
-              fontSize: isMobile ? '14px' : '16px',
-              margin: '0'
-            }}>
+<div style={{
+  padding: isMobile ? '16px' : '24px',
+  borderBottom: '1px solid #e2e8f0',
+  backgroundColor: '#f8fafc'
+}}>
+<h3 style={{
+  fontSize: isMobile ? '20px' : '24px',
+  fontWeight: '700',
+  color: '#1e293b',
+  margin: '0 0 8px 0',
+  // ...
+}}>
+ Posições Encerradas ({ativosEncerrados.length})
+</h3>
+<p style={{
+  color: '#64748b',
+  fontSize: isMobile ? '14px' : '16px',
+  margin: '0'
+}}>
               Histórico de operações finalizadas
             </p>
           </div>
@@ -2282,27 +2280,46 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                   <div 
                     key={ativo.id || index}
                     style={{
-                      backgroundColor: '#fef2f2',
+                      backgroundColor: '#64748b',
                       borderRadius: '8px',
                       padding: '16px',
-                      border: '1px solid #fecaca'
+                      border: '1px solid #f8fafc'
                     }}
                   >
                     {/* Header do Card Encerrado */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '6px',
-                        backgroundColor: '#dc2626',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '12px',
-                        fontWeight: '700'
-                      }}>
-                        {ativo.ticker.slice(0, 2)}
+<div style={{
+  width: '36px',
+  height: '36px',
+  borderRadius: '6px',
+  overflow: 'hidden',
+  backgroundColor: '#f8fafc',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: '1px solid #e2e8f0'
+}}>
+  <img 
+    src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+    alt={`Logo ${ativo.ticker}`}
+    style={{
+      width: '28px',
+      height: '28px',
+      objectFit: 'contain'
+    }}
+    onError={(e) => {
+      const target = e.target as HTMLImageElement;
+      target.style.display = 'none';
+      const parent = target.parentElement;
+      if (parent) {
+        parent.style.backgroundColor = '#dc2626';
+        parent.style.color = 'white';
+        parent.style.fontWeight = '700';
+        parent.style.fontSize = '12px';
+        parent.textContent = ativo.ticker.slice(0, 2);
+      }
+    }}
+  />
 </div>
   <div style={{ flex: '1' }}>
                         <div style={{ 
@@ -2322,7 +2339,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                         fontSize: '10px',
                         fontWeight: '700',
                         backgroundColor: performance >= 0 ? '#dcfce7' : '#fee2e2',
-                        color: performance >= 0 ? '#065f46' : '#991b1b'
+                        color: performance >= 0 ? '#065f46' : '#64748b'
                       }}>
                         ENCERRADO
                       </div>
@@ -2336,23 +2353,23 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                       fontSize: '14px',
                       marginBottom: '12px'
                     }}>
-                      <div style={{ color: '#991b1b' }}>
+                      <div style={{ color: '#64748b' }}>
                         <span style={{ fontWeight: '500' }}>Entrada:</span><br />
-                        <span style={{ fontWeight: '600', color: '#991b1b' }}>{ativo.dataEntrada}</span>
+                        <span style={{ fontWeight: '600', color: '#c' }}>{ativo.dataEntrada}</span>
                       </div>
-                      <div style={{ color: '#991b1b' }}>
+                      <div style={{ color: '#64748b' }}>
                         <span style={{ fontWeight: '500' }}>Saída:</span><br />
-                        <span style={{ fontWeight: '600', color: '#991b1b' }}>{ativo.dataSaida}</span>
+                        <span style={{ fontWeight: '600', color: '#64748b' }}>{ativo.dataSaida}</span>
                       </div>
-                      <div style={{ color: '#991b1b' }}>
+                      <div style={{ color: '#64748b' }}>
                         <span style={{ fontWeight: '500' }}>Preço Entrada:</span><br />
-                        <span style={{ fontWeight: '700', color: '#991b1b' }}>
+                        <span style={{ fontWeight: '700', color: '#64748b' }}>
                           {formatCurrency(ativo.precoEntrada)}
                         </span>
                       </div>
-                      <div style={{ color: '#991b1b' }}>
+                      <div style={{ color: '#64748b' }}>
                         <span style={{ fontWeight: '500' }}>Preço Saída:</span><br />
-                        <span style={{ fontWeight: '700', color: '#991b1b' }}>
+                        <span style={{ fontWeight: '700', color: '#64748b' }}>
                           {formatCurrency(ativo.precoSaida)}
                         </span>
                       </div>
@@ -2367,7 +2384,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                       border: '1px solid #fecaca',
                       marginBottom: '8px'
                     }}>
-                      <div style={{ fontSize: '12px', color: '#991b1b', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
                         Performance Final
                       </div>
                       <div style={{ 
@@ -2382,7 +2399,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                     {/* Motivo */}
                     <div style={{ 
                       fontSize: '12px', 
-                      color: '#991b1b', 
+                      color: '##64748b', 
                       textAlign: 'center',
                       fontWeight: '500'
                     }}>
@@ -2397,26 +2414,26 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#fee2e2' }}>
-                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                  <tr style={{ backgroundColor: '#f1f5f9' }}>
+                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       ATIVO
                     </th>
-                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       ENTRADA
                     </th>
-                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       SAÍDA
                     </th>
-                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       PREÇO ENTRADA
                     </th>
-                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       PREÇO SAÍDA
                     </th>
-                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       PERFORMANCE FINAL
                     </th>
-                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                       MOTIVO
                     </th>
                   </tr>
@@ -2429,50 +2446,69 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                       <tr 
                         key={ativo.id || index} 
                         style={{ 
-                          borderBottom: '1px solid #fecaca',
-                          backgroundColor: '#fef2f2'
+                          borderBottom: '1px solid #e2e8f0',
+                          backgroundColor: '#f8fafc'
                         }}
                       >
                         <td style={{ padding: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '8px',
-                              backgroundColor: '#dc2626',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'white',
-                              fontSize: '14px',
-                              fontWeight: '700'
-                            }}>
-                              {ativo.ticker.slice(0, 2)}
-                            </div>
+<div style={{
+  width: '40px',
+  height: '40px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  backgroundColor: '#f8fafc',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: '1px solid #e2e8f0'
+}}>
+  <img 
+    src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+    alt={`Logo ${ativo.ticker}`}
+    style={{
+      width: '32px',
+      height: '32px',
+      objectFit: 'contain'
+    }}
+    onError={(e) => {
+      const target = e.target as HTMLImageElement;
+      target.style.display = 'none';
+      const parent = target.parentElement;
+      if (parent) {
+        parent.style.backgroundColor = '#dc2626';
+        parent.style.color = 'white';
+        parent.style.fontWeight = '700';
+        parent.style.fontSize = '14px';
+        parent.textContent = ativo.ticker.slice(0, 2);
+      }
+    }}
+  />
+</div>
                             <div>
                               <div style={{ 
                                 fontWeight: '700', 
-                                color: '#991b1b', 
+                                color: '#64748b', 
                                 fontSize: '16px'
                               }}>
                                 {ativo.ticker}
                               </div>
-                              <div style={{ color: '#b91c1c', fontSize: '14px' }}>
+                              <div style={{ color: '#64748b', fontSize: '14px' }}>
                                 {ativo.setor}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td style={{ padding: '16px', textAlign: 'center', color: '#991b1b' }}>
+                        <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                           {ativo.dataEntrada}
                         </td>
-                        <td style={{ padding: '16px', textAlign: 'center', color: '#991b1b' }}>
+                        <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                           {ativo.dataSaida}
                         </td>
-                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#991b1b' }}>
+                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
                           {formatCurrency(ativo.precoEntrada)}
                         </td>
-                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#991b1b' }}>
+                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
                           {formatCurrency(ativo.precoSaida)}
                         </td>
                         <td style={{ 
@@ -2488,7 +2524,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                           padding: '16px', 
                           textAlign: 'center', 
                           fontSize: '12px', 
-                          color: '#991b1b' 
+                          color: '#64748b' 
                         }}>
                           {ativo.motivoEncerramento}
                         </td>
