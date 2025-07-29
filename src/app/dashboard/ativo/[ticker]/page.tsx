@@ -4669,20 +4669,24 @@ export default function AtivoPage() {
   const [carteira, setCarteira] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+const [deviceDetected, setDeviceDetected] = useState(false);
 
-  // ✅ DETECTAR DISPOSITIVO
-  useEffect(() => {
-    const checkDevice = () => {
-      const width = window.innerWidth;
-      const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      setIsMobile(mobile);
-      console.log('📱 Dispositivo detectado:', { width, isMobile: mobile });
-    };
 
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []);
+
+// ✅ DETECTAR DISPOSITIVO
+useEffect(() => {
+  const checkDevice = () => {
+    const width = window.innerWidth;
+    const mobile = width <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    setDeviceDetected(true);
+    console.log('📱 Ativo - Dispositivo detectado:', { width, isMobile: mobile, deviceDetected: true });
+  };
+
+  checkDevice();
+  window.addEventListener('resize', checkDevice);
+  return () => window.removeEventListener('resize', checkDevice);
+}, []);
 
   // ✅ HOOK USD ESPECÍFICO (agora deve funcionar)
   const { cotacaoUSD, loading: loadingUSD, ultimaAtualizacao: atualizacaoUSD, refetch: refetchUSD } = useCotacaoUSD();
@@ -4981,6 +4985,144 @@ const { valorProventos, performanceProventos, loading: loadingProventos, fonte: 
     return `Empresa do setor de ${setor.toLowerCase()}.`;
   };
 
+// 🔥 FUNÇÃO PARA BUSCAR COTAÇÃO (MOVIDA PARA FORA DO useEffect)
+const buscarCotacaoCompleta = useCallback(async () => {
+  try {
+    const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+    let cotacaoObtida = false;
+    let cotacaoData = null;
+    
+    console.log(`🔍 Buscando cotação para ${ticker}:`, { isMobile, deviceDetected });
+
+    if (isMobile) {
+      // 📱 MOBILE: Estratégia agressiva
+      console.log('📱 ESTRATÉGIA MOBILE: Múltiplas tentativas');
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!cotacaoObtida) {
+        try {
+          console.log(`📱🔄 ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results?.[0]?.regularMarketPrice > 0) {
+              cotacaoData = data.results[0];
+              cotacaoObtida = true;
+              console.log(`📱✅ ${ticker}: Obtido via Desktop UA`);
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ ${ticker} (Desktop UA):`, error.message);
+        }
+      }
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!cotacaoObtida) {
+        try {
+          console.log(`📱🔄 ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results?.[0]?.regularMarketPrice > 0) {
+              cotacaoData = data.results[0];
+              cotacaoObtida = true;
+              console.log(`📱✅ ${ticker}: Obtido sem UA`);
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ ${ticker} (Sem UA):`, error.message);
+        }
+      }
+      
+      // ESTRATÉGIA 3: URL simplificada
+      if (!cotacaoObtida) {
+        try {
+          console.log(`📱🔄 ${ticker}: Tentativa 3 - URL simplificada`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results?.[0]?.regularMarketPrice > 0) {
+              cotacaoData = data.results[0];
+              cotacaoObtida = true;
+              console.log(`📱✅ ${ticker}: Obtido via URL simples`);
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ ${ticker} (URL simples):`, error.message);
+        }
+      }
+      
+    } else {
+      // 🖥️ DESKTOP: Estratégia original
+      console.log('🖥️ ESTRATÉGIA DESKTOP');
+      
+      try {
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Ativo-Individual-App'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            cotacaoData = data.results[0];
+            cotacaoObtida = true;
+            console.log(`🖥️✅ ${ticker}: Obtido desktop`);
+          }
+        }
+      } catch (error) {
+        console.error(`🖥️❌ ${ticker} Desktop:`, error);
+      }
+    }
+
+    // ✅ PROCESSAR RESULTADO
+    if (cotacaoObtida && cotacaoData) {
+      const cotacaoAtivo = {
+        regularMarketPrice: cotacaoData.regularMarketPrice,
+        regularMarketChange: cotacaoData.regularMarketChange || 0,
+        regularMarketChangePercent: cotacaoData.regularMarketChangePercent || 0,
+        regularMarketVolume: cotacaoData.regularMarketVolume || 0,
+        shortName: cotacaoData.shortName || cotacaoData.longName,
+        dadosCompletos: cotacaoData,
+        isBDREstrangeiro: ehBDREstrangeiro
+      };
+      
+      setCotacaoCompleta(cotacaoAtivo);
+      console.log(`✅ Cotação ${ticker} salva:`, cotacaoAtivo.regularMarketPrice);
+    } else {
+      console.log(`❌ Falha ao obter cotação para ${ticker}`);
+    }
+    
+  } catch (error) {
+    console.error(`❌ Erro geral ao buscar cotação para ${ticker}:`, error);
+  }
+}, [ticker, isMobile, deviceDetected, ehBDREstrangeiro]);
+
   // BUSCA EM MÚLTIPLAS CARTEIRAS - IMPLEMENTAÇÃO INTEGRADA
   useEffect(() => {
     if (!ticker) {
@@ -5084,58 +5226,17 @@ const { valorProventos, performanceProventos, loading: loadingProventos, fonte: 
         console.log(`🇺🇸 Ativo americano detectado: ${ticker}`);
         console.log(`🇧🇷 BDR correspondente: ${bdrCorrespondente}`);
       }
-      
-      // Buscar cotação diretamente da API BRAPI
-      const buscarCotacaoCompleta = async () => {
-        try {
-          const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-          const apiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
-          
-          console.log(`🔍 Buscando cotação completa para ${ticker}:`, apiUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
-          
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Ativo-Individual-App'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`📊 Resposta da API para ${ticker}:`, data);
             
-            if (data.results && data.results.length > 0) {
-              const quote = data.results[0];
-              
-              const cotacaoAtivo = {
-                regularMarketPrice: quote.regularMarketPrice,
-                regularMarketChange: quote.regularMarketChange || 0,
-                regularMarketChangePercent: quote.regularMarketChangePercent || 0,
-                regularMarketVolume: quote.regularMarketVolume || 0,
-                shortName: quote.shortName || quote.longName,
-                dadosCompletos: quote,
-                isBDREstrangeiro: ehBDREstrangeiro
-              };
-              
-              setCotacaoCompleta(cotacaoAtivo);
-              console.log(`✅ Cotação ${ticker} salva no estado local:`, cotacaoAtivo);
-            }
-          } else {
-            console.error(`❌ Erro HTTP ${response.status} para ${ticker}`);
-          }
-        } catch (error) {
-          console.error(`❌ Erro ao buscar cotação para ${ticker}:`, error);
-        }
-      };
-      
-      buscarCotacaoCompleta();
+if (deviceDetected) {
+  console.log('🔥 Buscando cotação após detecção de dispositivo:', { isMobile, deviceDetected });
+  buscarCotacaoCompleta();
+}
     } else {
       console.log(`❌ ${ticker} não encontrado em nenhuma carteira`);
     }
 
     setLoading(false);
-  }, [ticker, dados, buscarCotacoes, cotacoes, ehBDREstrangeiro, tickerEstrangeiro]);
+}, [ticker, dados, buscarCotacoes, cotacoes, ehBDREstrangeiro, tickerEstrangeiro, deviceDetected]);
 
   // ADICIONAR ESTA FUNÇÃO AQUI - ANTES DO Hook para DY
   const obterPrecoTetoBDR = useCallback(() => {
