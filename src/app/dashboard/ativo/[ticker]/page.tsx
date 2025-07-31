@@ -1293,37 +1293,75 @@ const DadosPosicaoExpandidos = React.memo(({
   percentualCarteira, 
   carteiraConfig
 }) => {
+  const { isMobile, isMobileOrTablet } = useResponsive();
   const precoAtual = dadosFinanceiros?.precoAtual || null;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))', 
+      gap: isMobile ? '16px' : '24px', 
+      marginBottom: '32px' 
+    }}>
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        padding: '32px',
+        padding: isMobile ? '20px' : '32px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
       }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '24px', fontWeight: '600' }}>
+        <h3 style={{ 
+          fontSize: isMobile ? '16px' : '18px', 
+          marginBottom: isMobile ? '16px' : '24px', 
+          fontWeight: '600' 
+        }}>
           📊 Dados da Posição
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>Data de Entrada</span>
-            <span style={{ fontSize: '14px', fontWeight: '600' }}>{empresa.dataEntrada}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            padding: isMobile ? '8px 12px' : '12px', 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '8px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '4px' : '0'
+          }}>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Data de Entrada</span>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600' }}>{empresa.dataEntrada}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>Preço de Entrada</span>
-            <span style={{ fontSize: '14px', fontWeight: '600' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            padding: isMobile ? '8px 12px' : '12px', 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '8px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '4px' : '0'
+          }}>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço de Entrada</span>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600' }}>
               {typeof empresa.precoEntrada === 'number' 
                 ? formatCurrency(empresa.precoEntrada, carteiraConfig.moeda)
                 : empresa.precoEntrada || 'N/A'
               }
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: dadosFinanceiros?.precoAtual ? '#e8f5e8' : '#f8fafc', borderRadius: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>Preço Atual</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: dadosFinanceiros?.precoAtual ? '#22c55e' : 'inherit' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            padding: isMobile ? '8px 12px' : '12px', 
+            backgroundColor: dadosFinanceiros?.precoAtual ? '#e8f5e8' : '#f8fafc', 
+            borderRadius: '8px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '4px' : '0'
+          }}>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço Atual</span>
+            <span style={{ 
+              fontSize: isMobile ? '12px' : '14px', 
+              fontWeight: '600', 
+              color: dadosFinanceiros?.precoAtual ? '#22c55e' : 'inherit' 
+            }}>
               {precoAtualFormatado}
             </span>
           </div>
@@ -1333,25 +1371,46 @@ const DadosPosicaoExpandidos = React.memo(({
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        padding: '32px',
+        padding: isMobile ? '20px' : '32px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
       }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '24px', fontWeight: '600' }}>
+        <h3 style={{ 
+          fontSize: isMobile ? '16px' : '18px', 
+          marginBottom: isMobile ? '16px' : '24px', 
+          fontWeight: '600' 
+        }}>
           🎯 Análise de Viés
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>Preço Teto</span>
-            <span style={{ fontSize: '14px', fontWeight: '600' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            padding: isMobile ? '8px 12px' : '12px', 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '8px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '4px' : '0'
+          }}>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço Teto</span>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600' }}>
               {typeof empresa.precoTeto === 'number' 
                 ? formatCurrency(empresa.precoTeto, carteiraConfig.moeda)
                 : empresa.precoTeto || 'N/A'
               }
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>Viés Calculado</span>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            padding: isMobile ? '8px 12px' : '12px', 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '8px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '4px' : '0',
+            alignItems: isMobile ? 'flex-start' : 'center'
+          }}>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Viés Calculado</span>
             <span style={{
               backgroundColor: (() => {
                 const { cor } = calcularVies(empresa.precoTeto, precoAtual, empresa.precoEntrada);
@@ -1360,8 +1419,9 @@ const DadosPosicaoExpandidos = React.memo(({
               color: 'white',
               padding: '4px 8px',
               borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: '600'
+              fontSize: isMobile ? '10px' : '12px',
+              fontWeight: '600',
+              alignSelf: isMobile ? 'flex-start' : 'auto'
             }}>
               {(() => {
                 const { vies } = calcularVies(empresa.precoTeto, precoAtual, empresa.precoEntrada);
@@ -1369,24 +1429,38 @@ const DadosPosicaoExpandidos = React.memo(({
               })()}
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>% da Carteira</span>
-            <span style={{ fontSize: '14px', fontWeight: '600' }}>{percentualCarteira || 'N/A'}</span>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            padding: isMobile ? '8px 12px' : '12px', 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '8px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '4px' : '0'
+          }}>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>% da Carteira</span>
+            <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600' }}>{percentualCarteira || 'N/A'}</span>
           </div>
           
           {distanciaPrecoTeto !== null && distanciaPrecoTeto !== undefined && (
             <div style={{ 
-              padding: '12px', 
+              padding: isMobile ? '10px 12px' : '12px', 
               backgroundColor: distanciaPrecoTeto > 0 ? '#f0f9ff' : '#fef2f2', 
               borderRadius: '8px',
               border: `1px solid ${distanciaPrecoTeto > 0 ? '#bfdbfe' : '#fecaca'}`
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: isMobile ? 'flex-start' : 'center',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: isMobile ? '4px' : '0'
+              }}>
+                <span style={{ fontSize: isMobile ? '11px' : '12px', color: '#64748b' }}>
                   Distância do Teto:
                 </span>
                 <span style={{ 
-                  fontSize: '14px', 
+                  fontSize: isMobile ? '12px' : '14px', 
                   fontWeight: '600',
                   color: distanciaPrecoTeto > 0 ? '#1d4ed8' : '#dc2626'
                 }}>
@@ -1394,10 +1468,11 @@ const DadosPosicaoExpandidos = React.memo(({
                 </span>
               </div>
               <p style={{ 
-                fontSize: '11px', 
+                fontSize: isMobile ? '10px' : '11px', 
                 color: '#64748b', 
                 margin: '4px 0 0 0',
-                fontStyle: 'italic'
+                fontStyle: 'italic',
+                lineHeight: '1.3'
               }}>
                 {distanciaPrecoTeto > 0 
                   ? '📈 Preço atual está abaixo do teto - espaço para valorização'
