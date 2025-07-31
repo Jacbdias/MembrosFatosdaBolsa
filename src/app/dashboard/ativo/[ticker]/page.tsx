@@ -646,6 +646,7 @@ const calcularViesBDR = (precoTetoBDR, precoBDR, cotacaoUSD) => {
 
 // 🏢 COMPONENTE DE CARDS ESPECÍFICOS PARA FII
 const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
+  const { isMobile, isMobileOrTablet } = useResponsive();
   const ehFII = isFII || ticker.includes('11') || ticker.endsWith('11');
   
   if (!ehFII) {
@@ -675,19 +676,20 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
     <div style={{
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '24px',
+      padding: isMobile ? '16px' : '24px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       marginBottom: '32px'
     }}>
       <h3 style={{
-        fontSize: '20px',
+        fontSize: isMobile ? '18px' : '20px',
         fontWeight: '700',
         color: '#1e293b',
         margin: '0 0 20px 0',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        gap: '8px',
+        flexWrap: 'wrap'
       }}>
         🏢 Informações sobre o FII
       </h3>
@@ -695,13 +697,13 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
       {loading ? (
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '16px'
+          gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(3, 1fr)', 
+          gap: isMobile ? '12px' : '16px'
         }}>          
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} style={{
               backgroundColor: 'white',
-              padding: '20px',
+              padding: isMobile ? '16px' : '20px',
               borderRadius: '8px',
               border: '1px solid #e2e8f0',
               textAlign: 'center'
@@ -718,19 +720,19 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
       ) : dadosFII ? (
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '16px' 
+          gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(3, 1fr)', 
+          gap: isMobile ? '12px' : '16px'
         }}>
           <div style={{ 
             backgroundColor: 'white', 
-            padding: '20px', 
+            padding: isMobile ? '16px' : '20px', 
             borderRadius: '8px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             textAlign: 'center'
           }}>
             <h4 style={{ 
-              fontSize: '24px', 
+              fontSize: isMobile ? '20px' : '24px', 
               fontWeight: '700', 
               color: '#1e293b', 
               margin: '0',
@@ -740,7 +742,7 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
                 formatarValor(dadosFII.dividendYield12m, 'percentage') : 'N/A'}
             </h4>
             <p style={{ 
-              fontSize: '12px', 
+              fontSize: isMobile ? '10px' : '12px', 
               color: '#64748b', 
               margin: '4px 0 0 0',
               fontWeight: '600',
@@ -752,14 +754,14 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
 
           <div style={{ 
             backgroundColor: 'white', 
-            padding: '20px', 
+            padding: isMobile ? '16px' : '20px', 
             borderRadius: '8px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             textAlign: 'center'
           }}>
             <h4 style={{ 
-              fontSize: '24px', 
+              fontSize: isMobile ? '20px' : '24px', 
               fontWeight: '700', 
               color: '#1e293b', 
               margin: '0',
@@ -769,7 +771,7 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
                 formatarValor(dadosFII.ultimoRendimento) : 'N/A'}
             </h4>
             <p style={{ 
-              fontSize: '12px', 
+              fontSize: isMobile ? '10px' : '12px', 
               color: '#64748b', 
               margin: '4px 0 0 0',
               fontWeight: '600',
@@ -781,14 +783,14 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
 
           <div style={{ 
             backgroundColor: 'white', 
-            padding: '20px', 
+            padding: isMobile ? '16px' : '20px', 
             borderRadius: '8px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             textAlign: 'center'
           }}>
             <h4 style={{ 
-              fontSize: '24px', 
+              fontSize: isMobile ? '20px' : '24px', 
               fontWeight: '700', 
               color: '#1e293b', 
               margin: '0',
@@ -798,7 +800,7 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
                 formatarValor(dadosFII.patrimonioLiquido, 'billions') : 'N/A'}
             </h4>
             <p style={{ 
-              fontSize: '12px', 
+              fontSize: isMobile ? '10px' : '12px', 
               color: '#64748b', 
               margin: '4px 0 0 0',
               fontWeight: '600',
@@ -811,20 +813,20 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
       ) : (
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)',  
-          gap: '16px' 
+          gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(3, 1fr)',  
+          gap: isMobile ? '12px' : '16px'
         }}>
           {[1, 2, 3].map(i => (
             <div key={i} style={{ 
               backgroundColor: 'white', 
-              padding: '20px', 
+              padding: isMobile ? '16px' : '20px', 
               borderRadius: '8px',
               border: '1px solid #e2e8f0',
               boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
               textAlign: 'center'
             }}>
               <h4 style={{ 
-                fontSize: '24px', 
+                fontSize: isMobile ? '20px' : '24px', 
                 fontWeight: '700', 
                 color: '#6b7280', 
                 margin: '0',
@@ -833,7 +835,7 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
                 N/A
               </h4>
               <p style={{ 
-                fontSize: '12px', 
+                fontSize: isMobile ? '10px' : '12px', 
                 color: '#64748b', 
                 margin: '4px 0 0 0',
                 fontWeight: '600',
