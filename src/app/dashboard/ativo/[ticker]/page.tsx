@@ -185,7 +185,8 @@ const ResponsiveGrid = ({ children, minCardWidth = 250, gap = 20, className = ''
       display: 'grid',
       gridTemplateColumns: `repeat(auto-fit, minmax(${adjustedMinWidth}px, 1fr))`,
       gap: `${gap}px`,
-      width: '100%'
+      width: '100%',
+      marginBottom: '32px'
     };
   }, [width, isMobile, minCardWidth, gap]);
 
@@ -196,58 +197,180 @@ const ResponsiveGrid = ({ children, minCardWidth = 250, gap = 20, className = ''
   );
 };
 
-// 🌍 FUNÇÃO PARA MAPEAR TICKER AMERICANO PARA BDR BRASILEIRO
-function getBDRFromAmericano(tickerAmericano) {
-  const mapeamento = {
-    'NVDA': 'NVDC34',
-    'AAPL': 'AAPL34', 
-    'AMZN': 'AMZO34',
-    'GOOGL': 'GOGL34',
-    'GOOG': 'GOGL34',
-    'META': 'M1TA34',
-    'TSLA': 'TSLA34',
-    'MSFT': 'MSFT34',
-    'AMD': 'A1MD34',
-    'NFLX': 'NFLX34',
-    'UBER': 'UBER34',
-    'PYPL': 'PYPL34',
-    'CRM': 'SSFO34',
-    'ADBE': 'ADBE34',
-    'INTC': 'I1NT34',
-    'ORCL': 'ORCL34',
-    'PEP': 'PEPB34',
-    'KO': 'COCA34',
-    'JNJ': 'JNJB34',
-    'V': 'VISA34',
-    'MA': 'MAST34',
-    'JPM': 'JPMC34',
-    'BAC': 'BOAC34',
-    'WMT': 'WALM34',
-    'DIS': 'DISB34',
-    'HD': 'HOME34',
-    'COST': 'COWC34',
-    'XOM': 'EXXO34',
-    'CVX': 'CHVX34',
-    'PFE': 'PFIZ34',
-    'MRK': 'MERK34',
-    'ABT': 'ABTT34',
-    'TMO': 'TMOG34',
-    'UNH': 'UNHH34',
-    'NKE': 'NIKE34',
-    'MCD': 'MCDC34',
-    'VZ': 'VERZ34',
-    'T': 'ATTB34',
-    'IBM': 'IBMB34',
-    'GE': 'GEOO34',
-    'F': 'FORD34',
-    'GM': 'GMCO34',
-    'CAT': 'CATC34',
-    'BA': 'BOEI34',
-    'MMM': 'MMMC34'
-  };
+// 🔥 UTILITÁRIOS CENTRALIZADOS
+const formatUtils = {
+  currency: (value, currency = 'BRL') => {
+    if (!value || isNaN(value)) return 'N/A';
+    return formatCurrency(value, currency);
+  },
   
-  return mapeamento[tickerAmericano] || null;
-}
+  percentage: (value, decimals = 2) => {
+    if (!value || isNaN(value)) return 'N/A';
+    return `${value.toFixed(decimals)}%`;
+  },
+  
+  number: (value, decimals = 2) => {
+    if (!value || isNaN(value)) return 'N/A';
+    return value.toFixed(decimals).replace('.', ',');
+  },
+  
+  compactNumber: (value, suffix = '') => {
+    if (!value || isNaN(value)) return 'N/A';
+    
+    if (value >= 1000000000) {
+      return `${(value / 1000000000).toFixed(1)}B${suffix}`;
+    }
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M${suffix}`;
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K${suffix}`;
+    }
+    
+    return `${value.toFixed(0)}${suffix}`;
+  },
+  
+  date: (dateInput, format = 'short') => {
+    if (!dateInput) return 'N/A';
+    
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return 'N/A';
+    
+    const options = {
+      short: { day: '2-digit', month: '2-digit' },
+      medium: { day: '2-digit', month: '2-digit', year: '2-digit' },
+      long: { day: '2-digit', month: '2-digit', year: 'numeric' },
+      monthYear: { month: 'short', year: 'numeric' }
+    };
+    
+    return date.toLocaleDateString('pt-BR', options[format] || options.medium);
+  }
+};
+
+// 🔥 HOOK DE MÉTRICAS FINANCEIRAS CENTRALIZADO
+const useFinancialMetrics = (ticker, dadosFinanceiros, dadosHGBrasil, dadosYahoo) => {
+  return useMemo(() => {
+    const isInternational = !ticker?.match(/\d$/);
+    const isBrazilian = ticker?.match(/\d$/) && !ticker.includes('11');
+    
+    // Lógica P/L otimizada
+    const getPL = () => {
+      if (isBrazilian) {
+        return dadosHGBrasil?.pl || dadosFinanceiros?.pl || dadosYahoo?.pl || null;
+      }
+      if (isInternational) {
+        return dadosYahoo?.pl || dadosHGBrasil?.pl || dadosFinanceiros?.pl || null;
+      }
+      return dadosHGBrasil?.pl || dadosFinanceiros?.pl || dadosYahoo?.pl || null;
+    };
+    
+    // Lógica P/VP otimizada
+    const getPVP = () => {
+      return dadosYahoo?.pvp || dadosHGBrasil?.pvp || null;
+    };
+    
+    // Fonte das métricas
+    const getSource = (metric) => {
+      if (metric === 'pl') {
+        if (isBrazilian && dadosHGBrasil?.pl) return 'HG Brasil';
+        if (isInternational && dadosYahoo?.pl) return 'Yahoo Finance';
+        if (dadosFinanceiros?.pl) return 'BRAPI';
+        return 'N/A';
+      }
+      
+      if (metric === 'pvp') {
+        if (dadosYahoo?.pvp) return 'Yahoo Finance';
+        if (dadosHGBrasil?.pvp) return 'HG Brasil';
+        return 'N/A';
+      }
+      
+      return 'N/A';
+    };
+    
+    return {
+      pl: getPL(),
+      pvp: getPVP(),
+      getSource,
+      isValid: (value) => value && value > 0 && value < 999
+    };
+  }, [ticker, dadosFinanceiros, dadosHGBrasil, dadosYahoo]);
+};
+
+// 🔥 COMPONENTE CARD MÉTRICA OTIMIZADO E RESPONSIVO
+const MetricCard = React.memo(({ 
+  title, 
+  value, 
+  subtitle, 
+  loading = false,
+  trend,
+  icon,
+  color = '#1e293b'
+}) => {
+  const { isMobile } = useResponsive();
+  
+  if (loading) {
+    return <SkeletonLoader variant="metric" />;
+  }
+
+  return (
+    <div style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '12px',
+      padding: isMobile ? '16px' : '20px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      textAlign: 'center',
+      height: '100%',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      cursor: 'default',
+      ':hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+      }
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        marginBottom: '8px'
+      }}>
+        {icon && <span style={{ fontSize: '16px' }}>{icon}</span>}
+        <h4 style={{
+          fontSize: isMobile ? '11px' : '12px',
+          fontWeight: '700',
+          color: '#64748b',
+          margin: '0',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          {title}
+        </h4>
+      </div>
+      
+      <p style={{
+        fontSize: isMobile ? '20px' : '24px',
+        fontWeight: '800',
+        color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : color,
+        margin: '0 0 4px 0',
+        lineHeight: '1.2'
+      }}>
+        {value}
+      </p>
+      
+      {subtitle && (
+        <p style={{
+          fontSize: isMobile ? '10px' : '12px',
+          color: '#64748b',
+          margin: '0',
+          fontWeight: '500'
+        }}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+});
 
 // Função auxiliar para obter nome da empresa
 const getNomeEmpresa = (ticker, setor) => {
@@ -414,6 +537,59 @@ const CompanyAvatar = ({ symbol, companyName, size = 120 }) => {
     </div>
   );
 };
+
+// Função para mapear ticker americano para BDR brasileiro
+function getBDRFromAmericano(tickerAmericano) {
+  const mapeamento = {
+    'NVDA': 'NVDC34',
+    'AAPL': 'AAPL34', 
+    'AMZN': 'AMZO34',
+    'GOOGL': 'GOGL34',
+    'GOOG': 'GOGL34',
+    'META': 'M1TA34',
+    'TSLA': 'TSLA34',
+    'MSFT': 'MSFT34',
+    'AMD': 'A1MD34',
+    'NFLX': 'NFLX34',
+    'UBER': 'UBER34',
+    'PYPL': 'PYPL34',
+    'CRM': 'SSFO34',
+    'ADBE': 'ADBE34',
+    'INTC': 'I1NT34',
+    'ORCL': 'ORCL34',
+    'PEP': 'PEPB34',
+    'KO': 'COCA34',
+    'JNJ': 'JNJB34',
+    'V': 'VISA34',
+    'MA': 'MAST34',
+    'JPM': 'JPMC34',
+    'BAC': 'BOAC34',
+    'WMT': 'WALM34',
+    'DIS': 'DISB34',
+    'HD': 'HOME34',
+    'COST': 'COWC34',
+    'XOM': 'EXXO34',
+    'CVX': 'CHVX34',
+    'PFE': 'PFIZ34',
+    'MRK': 'MERK34',
+    'ABT': 'ABTT34',
+    'TMO': 'TMOG34',
+    'UNH': 'UNHH34',
+    'NKE': 'NIKE34',
+    'MCD': 'MCDC34',
+    'VZ': 'VERZ34',
+    'T': 'ATTB34',
+    'IBM': 'IBMB34',
+    'GE': 'GEOO34',
+    'F': 'FORD34',
+    'GM': 'GMCO34',
+    'CAT': 'CATC34',
+    'BA': 'BOEI34',
+    'MMM': 'MMMC34'
+  };
+  
+  return mapeamento[tickerAmericano] || null;
+}
 
 // Função para calcular o viés baseado no preço teto vs preço atual
 const calcularVies = (precoTeto, precoAtual, precoEntrada) => {
@@ -672,60 +848,6 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
     </div>
   );
 });
-
-// Componente de Métrica
-const MetricCard = React.memo(({ 
-  title, 
-  value, 
-  subtitle, 
-  loading = false,
-  trend
-}) => (
-  <div style={{
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    padding: '20px',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-    textAlign: 'center',
-    height: '100%'
-  }}>
-    <h4 style={{
-      fontSize: '12px',
-      fontWeight: '700',
-      color: '#64748b',
-      margin: '0 0 8px 0',
-      textTransform: 'uppercase'
-    }}>
-      {title}
-    </h4>
-    
-    {loading ? (
-      <div style={{ color: '#64748b', fontSize: '18px' }}>⏳</div>
-    ) : (
-      <>
-        <p style={{
-          fontSize: '24px',
-          fontWeight: '800',
-          color: trend === 'up' ? '#22c55e' : trend === 'down' ? '#ef4444' : '#1e293b',
-          margin: '0 0 4px 0'
-        }}>
-          {value}
-        </p>
-        
-        {subtitle && (
-          <p style={{
-            fontSize: '12px',
-            color: '#64748b',
-            margin: '0'
-          }}>
-            {subtitle}
-          </p>
-        )}
-      </>
-    )}
-  </div>
-));
 
 // GerenciadorRelatorios com funcionalidades de visualização e download
 const GerenciadorRelatorios = React.memo(({ ticker }) => {
@@ -1289,6 +1411,7 @@ const DadosPosicaoExpandidos = React.memo(({
     </div>
   );
 });
+
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) => {
   const [proventos, setProventos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1890,40 +2013,44 @@ export default function AtivoPage() {
   } = useDataStore();
   
   const ticker = params?.ticker?.toString().toUpperCase();
+  const { isMobile, isMobileOrTablet } = useResponsive();
   
   // ✅ 1. ESTADOS BÁSICOS PRIMEIRO
   const [ativo, setAtivo] = useState(null);
   const [carteira, setCarteira] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ 2. HOOK USD ESPECÍFICO (independente)
+  // ✅ 2. HOOKS BÁSICOS (independentes)
   const { cotacaoUSD, loading: loadingUSD, ultimaAtualizacao: atualizacaoUSD, refetch: refetchUSD } = useCotacaoUSD();
-
-  // ✅ 3. HOOKS DE DADOS BÁSICOS (independentes)
   const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
   const { dadosFII: dadosFIIHGBrasil, loading: loadingFIIHGBrasil } = useHGBrasilFII(ticker);
   const { dadosHGBrasil, loading: loadingHGBrasil, error: errorHGBrasil } = useHGBrasilAcoes(ticker);
   const { dadosYahoo, loading: loadingYahoo, error: errorYahoo } = useYahooFinanceInternacional(ticker);
 
-  // ✅ 4. VARIÁVEIS BDR (dependem das funções importadas)
+  // ✅ 3. VARIÁVEIS BDR (dependem das funções importadas)
   const ehBDREstrangeiro = ticker ? isBDREstrangeiro(ticker) : false;
   const tickerEstrangeiro = ehBDREstrangeiro ? getEstrangeiroFromBDR(ticker) : null;
   const { bdrData, bdrLoading, bdrError, refetchBDR } = useDadosBDR(ehBDREstrangeiro ? ticker : null);
-
-  // NOVA LÓGICA: Se é ticker americano, buscar BDR correspondente
+  
   const bdrCorrespondente = ticker ? getBDRFromAmericano(ticker) : null;
   const temBDR = !!bdrCorrespondente;
-  
-  // HOOK PARA DADOS DO BDR CORRESPONDENTE
   const { bdrData: bdrDataAPI, bdrLoading: bdrLoadingAPI } = useBDRDataAPI(bdrCorrespondente);
 
-  // ✅ 5. HOOKS INTEGRADOS (após definições BDR)
+  // ✅ 4. HOOKS INTEGRADOS (após definições BDR)
   const { dy12Meses, dyFormatado, loading: loadingDY, fonte: fonteDY, refetch: refetchDY } = useDividendYieldIntegrado(ticker);
   const { valorProventos, performanceProventos, loading: loadingProventos, fonte: fonteProventos, refetch: refetchProventos } = useProventosIntegrado(ticker, ativo?.dataEntrada || '', ativo?.precoEntrada);
-  const { cotacaoCompleta, loading: loadingCotacao, error: errorCotacao, isMobile, deviceDetected } = useCotacaoCompleta(ticker, ehBDREstrangeiro);
+  const { cotacaoCompleta, loading: loadingCotacao, error: errorCotacao, deviceDetected } = useCotacaoCompleta(ticker, ehBDREstrangeiro);
 
-  // ✅ 6. FUNÇÕES E OUTRAS LÓGICAS
-  const calcularPercentualCarteira = (nomeCarteira) => {
+  // ✅ 5. LOADING STATE UNIFICADO
+  const isGlobalLoading = useLoadingState([
+    loading, 
+    dadosLoading && !dadosFinanceiros, 
+    loadingFIIHGBrasil && !dadosFIIHGBrasil,
+    loadingCotacao && !cotacaoCompleta
+  ], 800);
+
+  // ✅ 6. FUNÇÕES OTIMIZADAS
+  const calcularPercentualCarteira = useCallback((nomeCarteira) => {
     if (!dados || !dados[nomeCarteira]) return 'N/A';
     
     const ativosCarteira = dados[nomeCarteira];
@@ -1933,22 +2060,8 @@ export default function AtivoPage() {
     
     const percentual = (100 / numeroAtivos).toFixed(1);
     return `${percentual}%`;
-  };
+  }, [dados]);
 
-  const calcularPercentuaisTodasCarteiras = () => {
-    if (!ativo?.multiplePortfolios || !ativo?.portfoliosList) {
-      return { [carteira]: calcularPercentualCarteira(carteira) };
-    }
-    
-    const percentuais = {};
-    ativo.portfoliosList.forEach(nomeCarteira => {
-      percentuais[nomeCarteira] = calcularPercentualCarteira(nomeCarteira);
-    });
-    
-    return percentuais;
-  };
-
-  // OBTER PREÇO TETO BDR
   const obterPrecoTetoBDR = useCallback(() => {
     if (!ativo || !carteira) return null;
 
@@ -2077,6 +2190,19 @@ export default function AtivoPage() {
     };
   };
 
+  const calcularPercentuaisTodasCarteiras = () => {
+    if (!ativo?.multiplePortfolios || !ativo?.portfoliosList) {
+      return { [carteira]: calcularPercentualCarteira(carteira) };
+    }
+    
+    const percentuais = {};
+    ativo.portfoliosList.forEach(nomeCarteira => {
+      percentuais[nomeCarteira] = calcularPercentualCarteira(nomeCarteira);
+    });
+    
+    return percentuais;
+  };
+
   // Estados de carregamento e erro
   if (loading) {
     return (
@@ -2181,11 +2307,55 @@ export default function AtivoPage() {
     return calcularPercentualCarteira(carteira);
   })();
 
+  const getBackgroundGradient = () => {
+    if (isFII) return 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+    if (ehBDREstrangeiro) return 'linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%)';
+    if (carteira === 'acoes') return 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)';
+    return 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
+  };
+
+  const getVariationData = () => {
+    if (ativo.posicaoEncerrada) {
+      return {
+        value: Math.abs(performance).toFixed(2),
+        isPositive: performance >= 0,
+        icon: performance >= 0 ? '▲' : '▼'
+      };
+    }
+    
+    if (cotacaoCompleta?.regularMarketChangePercent !== undefined) {
+      const variation = cotacaoCompleta.regularMarketChangePercent;
+      return {
+        value: Math.abs(variation).toFixed(2),
+        isPositive: variation >= 0,
+        icon: variation >= 0 ? '▲' : '▼'
+      };
+    }
+    
+    const cotacaoGlobal = cotacoes[ticker];
+    if (cotacaoGlobal?.regularMarketChangePercent !== undefined) {
+      const variation = cotacaoGlobal.regularMarketChangePercent;
+      return {
+        value: Math.abs(variation).toFixed(2),
+        isPositive: variation >= 0,
+        icon: variation >= 0 ? '▲' : '▼'
+      };
+    }
+    
+    return {
+      value: 'N/A',
+      isPositive: true,
+      icon: '•'
+    };
+  };
+
+  const variationData = getVariationData();
+
   return (
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f8fafc', 
-      padding: '24px' 
+      padding: isMobile ? '16px' : '24px' 
     }}>
       {/* Navegação */}
       <div style={{ marginBottom: '24px' }}>
@@ -2212,65 +2382,64 @@ export default function AtivoPage() {
       {/* Header Principal */}
       <div style={{
         marginBottom: '32px',
-        background: (() => {
-          if (isFII) {
-            return 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
-          }
-          if (ehBDREstrangeiro) {
-            return 'linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%)';
-          }
-          if (carteira === 'acoes') {
-            return 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)';
-          }
-          return 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
-        })(),
+        background: getBackgroundGradient(),
         borderRadius: '12px',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         overflow: 'hidden'
       }}>
-        <div style={{ padding: '32px' }}>
+        <div style={{ padding: isMobile ? '20px' : '32px' }}>
           <div style={{
             display: 'flex',
-            flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
-            gap: '24px',
-            alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start'
+            flexDirection: isMobileOrTablet ? 'column' : 'row',
+            gap: isMobile ? '16px' : '24px',
+            alignItems: isMobileOrTablet ? 'center' : 'flex-start'
           }}>
             
+            {/* AVATAR DA EMPRESA */}
             <CompanyAvatar 
               symbol={ticker}
               companyName={getNomeEmpresa(ticker, ativo?.setor || '')}
-              size={window.innerWidth <= 768 ? 100 : 120}
-            />            
+              size={isMobile ? 80 : isMobileOrTablet ? 100 : 120}
+            />
             
+            {/* INFORMAÇÕES CENTRAIS */}
             <div style={{ 
               flex: 1, 
-              textAlign: window.innerWidth <= 768 ? 'center' : 'left',
+              textAlign: isMobileOrTablet ? 'center' : 'left',
               minWidth: 0
             }}>
+              {/* Título e badges */}
               <div style={{
                 display: 'flex',
-                flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+                flexDirection: isMobileOrTablet ? 'column' : 'row',
                 gap: '12px',
-                alignItems: window.innerWidth <= 768 ? 'center' : 'flex-start',
+                alignItems: isMobileOrTablet ? 'center' : 'flex-start',
                 marginBottom: '8px',
                 flexWrap: 'wrap'
               }}>
                 <h1 style={{ 
-                  fontSize: window.innerWidth <= 768 ? '2rem' : '2.5rem', 
+                  fontSize: isMobile ? '1.8rem' : isMobileOrTablet ? '2.2rem' : '2.5rem', 
                   fontWeight: 700, 
                   margin: 0,
-                  color: '#1f2937'
+                  color: '#1f2937',
+                  letterSpacing: '-0.025em'
                 }}>
                   {ticker}
                 </h1>
                 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {/* Badges responsivos */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: isMobile ? '6px' : '8px', 
+                  flexWrap: 'wrap',
+                  justifyContent: isMobileOrTablet ? 'center' : 'flex-start'
+                }}>
                   <div style={{
                     background: carteiraConfig?.color || '#6b7280',
                     color: 'white',
-                    padding: '4px 12px',
+                    padding: isMobile ? '3px 8px' : '4px 12px',
                     borderRadius: '6px',
-                    fontSize: '12px',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: 'bold',
                     textTransform: 'uppercase'
                   }}>
@@ -2281,9 +2450,9 @@ export default function AtivoPage() {
                     <div style={{
                       background: '#fefce8',
                       color: '#d97706',
-                      padding: '4px 12px',
+                      padding: isMobile ? '3px 8px' : '4px 12px',
                       borderRadius: '6px',
-                      fontSize: '12px',
+                      fontSize: isMobile ? '10px' : '12px',
                       fontWeight: 'bold',
                       textTransform: 'uppercase'
                     }}>
@@ -2295,9 +2464,9 @@ export default function AtivoPage() {
                     <div style={{
                       background: '#ef4444',
                       color: 'white',
-                      padding: '4px 12px',
+                      padding: isMobile ? '3px 8px' : '4px 12px',
                       borderRadius: '6px',
-                      fontSize: '12px',
+                      fontSize: isMobile ? '10px' : '12px',
                       fontWeight: 'bold'
                     }}>
                       ENCERRADA
@@ -2306,129 +2475,92 @@ export default function AtivoPage() {
                 </div>
               </div>
               
+              {/* Nome da empresa */}
               <h2 style={{ 
-                fontSize: window.innerWidth <= 768 ? '1.1rem' : '1.25rem', 
+                fontSize: isMobile ? '1rem' : isMobileOrTablet ? '1.1rem' : '1.25rem', 
                 fontWeight: 600, 
-                margin: '0 0 16px 0',
-                color: '#374151'
+                margin: '0 0 12px 0',
+                color: '#374151',
+                lineHeight: '1.4'
               }}>
                 {getNomeEmpresa(ticker, ativo.setor)}
               </h2>
               
+              {/* Info do setor */}
               <div style={{
                 background: '#e2e8f0',
                 color: '#475569',
-                padding: '4px 12px',
+                padding: isMobile ? '3px 10px' : '4px 12px',
                 borderRadius: '6px',
-                fontSize: '13px',
+                fontSize: isMobile ? '11px' : '13px',
                 fontWeight: 500,
                 display: 'inline-block',
-                marginBottom: '16px'
+                marginBottom: '12px'
               }}>
                 {carteiraConfig?.moeda || 'BRL'} • {ativo.setor}
                 {isFII && ' • Fundo Imobiliário'}
                 {ehBDREstrangeiro && ` • Mercado: ${getMercadoOrigem(tickerEstrangeiro)}`}
               </div>
               
+              {/* Descrição da empresa */}
               <p style={{ 
-                fontSize: '16px',
+                fontSize: isMobile ? '14px' : '16px',
                 lineHeight: 1.6,
                 color: '#4b5563',
                 margin: 0,
-                maxWidth: '600px'
+                maxWidth: isMobileOrTablet ? '100%' : '600px'
               }}>
                 {getDescricaoEmpresa(ticker, ativo.setor)}
               </p>
               
+              {/* Alerta de posição encerrada */}
               {ativo.posicaoEncerrada && (
                 <div style={{
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
-                  padding: '12px 16px',
+                  padding: isMobile ? '10px 12px' : '12px 16px',
                   borderRadius: '8px',
                   color: '#b91c1c',
                   fontWeight: 600,
-                  marginTop: '16px',
-                  fontSize: '14px'
+                  marginTop: '12px',
+                  fontSize: isMobile ? '12px' : '14px'
                 }}>
                   🔒 Posição encerrada em {ativo.dataSaida}
                 </div>
               )}
             </div>
             
+            {/* PREÇO E VARIAÇÃO */}
             <div style={{ 
-              textAlign: window.innerWidth <= 768 ? 'center' : 'right',
-              minWidth: window.innerWidth <= 768 ? 'auto' : '200px'
+              textAlign: isMobileOrTablet ? 'center' : 'right',
+              minWidth: isMobileOrTablet ? 'auto' : '200px'
             }}>
-              {dadosLoading ? (
-                <div style={{ 
-                  width: '150px', 
-                  height: '60px', 
-                  background: '#e2e8f0', 
-                  borderRadius: '8px',
-                  animation: 'pulse 2s infinite'
-                }} />
-              ) : (
-                <>
-                  <div style={{ 
-                    fontSize: window.innerWidth <= 768 ? '2.5rem' : '3rem', 
-                    fontWeight: 700,
-                    color: '#1f2937',
-                    lineHeight: 1,
-                    marginBottom: '8px'
-                  }}>
-                    {precoAtualFormatado}
-                  </div>
-                  
-                  <div style={{ 
-                    color: (() => {
-                      if (ativo.posicaoEncerrada) {
-                        return performance >= 0 ? '#22c55e' : '#ef4444';
-                      }
-                      
-                      if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
-                        return cotacaoCompleta.regularMarketChangePercent >= 0 ? '#22c55e' : '#ef4444';
-                      }
-                      
-                      return performance >= 0 ? '#22c55e' : '#ef4444';
-                    })(), 
-                    fontWeight: 700, 
-                    fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
-                    gap: '8px'
-                  }}>
-                    <span style={{ fontSize: '1.5rem' }}>
-                      {(() => {
-                        if (ativo.posicaoEncerrada) {
-                          return performance >= 0 ? '▲' : '▼';
-                        }
-                        
-                        if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
-                          return cotacaoCompleta.regularMarketChangePercent >= 0 ? '▲' : '▼';
-                        }
-                        
-                        return performance >= 0 ? '↗' : '↘';
-                      })()}
-                    </span>
-                    <span>
-                      {(() => {
-                        if (ativo.posicaoEncerrada) {
-                          return `${Math.abs(performance).toFixed(2)}%`;
-                        }
-                        
-                        if (cotacaoCompleta && cotacaoCompleta.regularMarketChangePercent !== undefined) {
-                          const variacaoPercent = cotacaoCompleta.regularMarketChangePercent;
-                          return `${Math.abs(variacaoPercent).toFixed(2)}%`;
-                        }
-                        
-                        return 'Variação indisponível';
-                      })()}
-                    </span>
-                  </div>
-                </>
-              )}
+              <div style={{ 
+                fontSize: isMobile ? '2rem' : isMobileOrTablet ? '2.5rem' : '3rem', 
+                fontWeight: 700,
+                color: '#1f2937',
+                lineHeight: 1,
+                marginBottom: '8px'
+              }}>
+                {precoAtualFormatado}
+              </div>
+              
+              <div style={{ 
+                color: variationData.isPositive ? '#22c55e' : '#ef4444', 
+                fontWeight: 700, 
+                fontSize: isMobile ? '0.9rem' : isMobileOrTablet ? '1.1rem' : '1.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isMobileOrTablet ? 'center' : 'flex-end',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
+                  {variationData.icon}
+                </span>
+                <span>
+                  {variationData.value}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -2465,20 +2597,20 @@ export default function AtivoPage() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '20px',
+          gap: isMobile ? '16px' : '20px',
           marginBottom: '32px'
         }}>
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '12px',
-            padding: '20px',
+            padding: isMobile ? '16px' : '20px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
             textAlign: 'center',
             height: '100%'
           }}>
             <h4 style={{
-              fontSize: '12px',
+              fontSize: isMobile ? '11px' : '12px',
               fontWeight: '700',
               color: '#64748b',
               margin: '0 0 8px 0',
@@ -2492,7 +2624,7 @@ export default function AtivoPage() {
             ) : (
               <>
                 <p style={{
-                  fontSize: '24px',
+                  fontSize: isMobile ? '20px' : '24px',
                   fontWeight: '800',
                   color: (performanceData.acao + performanceProventos) >= 0 ? '#22c55e' : '#ef4444',
                   margin: '0 0 4px 0'
@@ -2501,7 +2633,7 @@ export default function AtivoPage() {
                 </p>
                 
                 <p style={{
-                  fontSize: '12px',
+                  fontSize: isMobile ? '10px' : '12px',
                   color: '#64748b',
                   margin: '0',
                   lineHeight: '1.4'
@@ -2509,7 +2641,7 @@ export default function AtivoPage() {
                   Ação: {performanceData.acao.toFixed(1)}% • Proventos: {performanceProventos.toFixed(1)}%
                   <br/>
                   <span style={{ 
-                    fontSize: '10px',
+                    fontSize: isMobile ? '9px' : '10px',
                     backgroundColor: fonteProventos === 'API' ? '#22c55e' : fonteProventos === 'localStorage' ? '#f59e0b' : '#6b7280',
                     color: 'white',
                     padding: '1px 4px',
