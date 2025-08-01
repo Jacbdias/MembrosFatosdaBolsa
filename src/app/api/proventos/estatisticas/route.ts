@@ -4,38 +4,78 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // 📊 BUSCAR ESTATÍSTICAS GERAIS (SUBSTITUI localStorage stats)
+    console.log('📊 Buscando estatísticas de proventos...');
+
+    // 📊 BUSCAR ESTATÍSTICAS USANDO OS MODELOS CORRETOS
     const [
       totalProventos,
-      totalEmpresas,
+      empresasUnicas,
       valorTotal,
       ultimoUpload
     ] = await Promise.all([
+      // Total de proventos
       prisma.provento.count(),
+      
+      // Empresas únicas (usando distinct corretamente)
       prisma.provento.findMany({
         select: { ticker: true },
         distinct: ['ticker']
-      }).then(result => result.length),
+      }),
+      
+      // Valor total
       prisma.provento.aggregate({
         _sum: { valor: true }
-      }).then(result => result._sum.valor || 0),
+      }),
+      
+      // Último upload (usando ProventoUpload com P maiúsculo)
       prisma.proventoUpload.findFirst({
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true }
-      }).then(result => result?.createdAt.toISOString() || '')
+      })
     ]);
+
+    const estatisticas = {
+      totalEmpresas: empresasUnicas.length,
+      totalProventos: totalProventos,
+      valorTotal: valorTotal._sum.valor || 0,
+      dataUltimoUpload: ultimoUpload?.createdAt?.toISOString() || ''
+    };
+
+    console.log('✅ Estatísticas calculadas:', estatisticas);
+
+    return NextResponse.json(estatisticas);
     
-    return NextResponse.json({
-      totalEmpresas,
-      totalProventos,
-      valorTotal,
-      dataUltimoUpload: ultimoUpload
-    });
   } catch (error) {
-    console.error('Erro ao buscar estatísticas:', error);
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    );
+    console.error('❌ Erro ao buscar estatísticas:', error);
+    
+    // Em caso de erro, retornar estatísticas básicas sem usar ProventoUpload
+    try {
+      const [totalProventos, empresasUnicas, valorTotal] = await Promise.all([
+        prisma.provento.count(),
+        prisma.provento.findMany({
+          select: { ticker: true },
+          distinct: ['ticker']
+        }),
+        prisma.provento.aggregate({
+          _sum: { valor: true }
+        })
+      ]);
+
+      return NextResponse.json({
+        totalEmpresas: empresasUnicas.length,
+        totalProventos: totalProventos,
+        valorTotal: valorTotal._sum.valor || 0,
+        dataUltimoUpload: ''
+      });
+    } catch (fallbackError) {
+      console.error('❌ Erro no fallback:', fallbackError);
+      return NextResponse.json(
+        { 
+          error: 'Erro interno do servidor',
+          details: error.message 
+        },
+        { status: 500 }
+      );
+    }
   }
 }
