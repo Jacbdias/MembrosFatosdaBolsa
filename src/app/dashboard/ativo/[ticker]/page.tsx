@@ -1942,7 +1942,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
     }
   };
 
-// 🆕 FUNÇÃO PARA DOWNLOAD DE PDF (MOBILE + DESKTOP)
+// 🆕 FUNÇÃO PARA DOWNLOAD DE PDF (iOS + ANDROID + DESKTOP)
 const downloadPDF = (relatorio) => {
   if (!relatorio.arquivoPdf || relatorio.tipoPdf !== 'base64') {
     if (relatorio.tipoPdf === 'referencia') {
@@ -1956,19 +1956,51 @@ const downloadPDF = (relatorio) => {
   try {
     console.log('📱 Iniciando download PDF para:', relatorio.nome);
     
-    // Detectar se é mobile
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    console.log('📱 Dispositivo mobile:', isMobile);
+    // Detectar dispositivo específico
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid;
+    
+    console.log('📱 Dispositivo:', { isIOS, isAndroid, isMobile });
     
     // Nome do arquivo
     const nomeArquivo = relatorio.nomeArquivoPdf || `${relatorio.ticker}_${relatorio.nome}.pdf`;
     
-    if (isMobile) {
-      // MÉTODO MOBILE: Múltiplas tentativas
-      console.log('📱 Usando estratégia mobile...');
+    if (isIOS) {
+      // MÉTODO ESPECÍFICO PARA iOS
+      console.log('🍎 Usando método iOS...');
       
       try {
-        // TENTATIVA 1: Download direto (funciona no Android Chrome)
+        // Para iOS, a melhor abordagem é abrir diretamente
+        // O Safari vai mostrar o PDF e o usuário pode salvá-lo usando o botão de compartilhamento
+        const newWindow = window.open(relatorio.arquivoPdf, '_blank');
+        
+        if (newWindow) {
+          // Sucesso - nova aba aberta
+          console.log('✅ PDF aberto em nova aba no iOS');
+          
+          // Mostrar instruções para o usuário
+          setTimeout(() => {
+            alert('📄 PDF aberto em nova aba!\n\n📱 Para salvar:\n1. Toque no ícone de compartilhar (📤)\n2. Escolha "Salvar em Arquivos" ou outro app');
+          }, 500);
+          
+        } else {
+          // Popup bloqueado
+          console.log('❌ Popup bloqueado no iOS');
+          alert('🚫 Popup bloqueado!\n\nPara ver o PDF:\n1. Permita popups para este site\n2. Ou toque no botão PDF novamente');
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro no método iOS:', error);
+        alert('❌ Erro ao abrir PDF. Tente permitir popups nas configurações do Safari.');
+      }
+      
+    } else if (isAndroid) {
+      // MÉTODO ESPECÍFICO PARA ANDROID
+      console.log('🤖 Usando método Android...');
+      
+      try {
+        // Primeiro tentar download direto
         const link = document.createElement('a');
         link.href = relatorio.arquivoPdf;
         link.download = nomeArquivo;
@@ -1978,30 +2010,28 @@ const downloadPDF = (relatorio) => {
         link.click();
         document.body.removeChild(link);
         
-        // Feedback para o usuário
+        console.log('✅ Download iniciado no Android');
+        
+        // Verificar se funcionou após um tempo
         setTimeout(() => {
-          // TENTATIVA 2: Se o download não funcionou, abrir em nova aba
-          if (confirm('📱 Se o download não iniciou automaticamente, deseja abrir o PDF em nova aba?')) {
+          if (confirm('📱 Se o download não apareceu na barra de notificações, deseja abrir o PDF em nova aba?')) {
             window.open(relatorio.arquivoPdf, '_blank');
           }
-        }, 1000);
+        }, 2000);
         
       } catch (error) {
-        console.error('❌ Erro no método mobile, tentando fallback:', error);
-        
-        // FALLBACK: Abrir em nova aba
+        console.error('❌ Erro no método Android:', error);
+        // Fallback: abrir em nova aba
         window.open(relatorio.arquivoPdf, '_blank');
       }
       
     } else {
-      // MÉTODO DESKTOP: Tradicional com blob
+      // MÉTODO DESKTOP
       console.log('🖥️ Usando método desktop...');
       
       try {
-        // Limpar prefixo data URL se existir
+        // Converter base64 para blob (método mais confiável no desktop)
         const base64Clean = relatorio.arquivoPdf.replace(/^data:application\/pdf;base64,/, '');
-        
-        // Converter para blob
         const binaryString = atob(base64Clean);
         const bytes = new Uint8Array(binaryString.length);
         
@@ -2012,19 +2042,17 @@ const downloadPDF = (relatorio) => {
         const blob = new Blob([bytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         
-        // Criar link de download
         const link = document.createElement('a');
         link.href = url;
         link.download = nomeArquivo;
         link.click();
         
-        // Limpar URL
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+        console.log('✅ Download iniciado no desktop');
         
       } catch (error) {
-        console.error('❌ Erro no método desktop, usando data URL:', error);
-        
-        // Fallback: usar data URL diretamente
+        console.error('❌ Erro no método desktop:', error);
+        // Fallback: usar data URL
         const link = document.createElement('a');
         link.href = relatorio.arquivoPdf;
         link.download = nomeArquivo;
@@ -2032,18 +2060,9 @@ const downloadPDF = (relatorio) => {
       }
     }
     
-    console.log('✅ Download iniciado com sucesso');
-    
   } catch (error) {
     console.error('❌ Erro geral no download:', error);
-    alert('❌ Erro ao baixar PDF. Tente novamente ou abra em nova aba.');
-    
-    // Último recurso: abrir em nova aba
-    try {
-      window.open(relatorio.arquivoPdf, '_blank');
-    } catch (finalError) {
-      console.error('❌ Falha total no download:', finalError);
-    }
+    alert('❌ Erro ao processar PDF. Tente novamente.');
   }
 };
 
