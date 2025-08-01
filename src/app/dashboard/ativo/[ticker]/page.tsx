@@ -1942,25 +1942,110 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
     }
   };
 
-  // 🆕 FUNÇÃO PARA DOWNLOAD DE PDF (se for Base64)
-  const downloadPDF = (relatorio) => {
-    if (relatorio.arquivoPdf && relatorio.tipoPdf === 'base64') {
-      try {
-        // Criar link de download do Base64
-        const link = document.createElement('a');
-        link.href = relatorio.arquivoPdf;
-        link.download = relatorio.nomeArquivoPdf || `${relatorio.nome}.pdf`;
-        link.click();
-      } catch (error) {
-        console.error('Erro ao baixar PDF:', error);
-        alert('❌ Erro ao baixar PDF');
-      }
-    } else if (relatorio.tipoPdf === 'referencia') {
+// 🆕 FUNÇÃO PARA DOWNLOAD DE PDF (MOBILE + DESKTOP)
+const downloadPDF = (relatorio) => {
+  if (!relatorio.arquivoPdf || relatorio.tipoPdf !== 'base64') {
+    if (relatorio.tipoPdf === 'referencia') {
       alert('📋 PDF grande - solicite re-upload na Central de Relatórios');
     } else {
       alert('📋 PDF não disponível para este relatório');
     }
-  };
+    return;
+  }
+
+  try {
+    console.log('📱 Iniciando download PDF para:', relatorio.nome);
+    
+    // Detectar se é mobile
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('📱 Dispositivo mobile:', isMobile);
+    
+    // Nome do arquivo
+    const nomeArquivo = relatorio.nomeArquivoPdf || `${relatorio.ticker}_${relatorio.nome}.pdf`;
+    
+    if (isMobile) {
+      // MÉTODO MOBILE: Múltiplas tentativas
+      console.log('📱 Usando estratégia mobile...');
+      
+      try {
+        // TENTATIVA 1: Download direto (funciona no Android Chrome)
+        const link = document.createElement('a');
+        link.href = relatorio.arquivoPdf;
+        link.download = nomeArquivo;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Feedback para o usuário
+        setTimeout(() => {
+          // TENTATIVA 2: Se o download não funcionou, abrir em nova aba
+          if (confirm('📱 Se o download não iniciou automaticamente, deseja abrir o PDF em nova aba?')) {
+            window.open(relatorio.arquivoPdf, '_blank');
+          }
+        }, 1000);
+        
+      } catch (error) {
+        console.error('❌ Erro no método mobile, tentando fallback:', error);
+        
+        // FALLBACK: Abrir em nova aba
+        window.open(relatorio.arquivoPdf, '_blank');
+      }
+      
+    } else {
+      // MÉTODO DESKTOP: Tradicional com blob
+      console.log('🖥️ Usando método desktop...');
+      
+      try {
+        // Limpar prefixo data URL se existir
+        const base64Clean = relatorio.arquivoPdf.replace(/^data:application\/pdf;base64,/, '');
+        
+        // Converter para blob
+        const binaryString = atob(base64Clean);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        // Criar link de download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = nomeArquivo;
+        link.click();
+        
+        // Limpar URL
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        
+      } catch (error) {
+        console.error('❌ Erro no método desktop, usando data URL:', error);
+        
+        // Fallback: usar data URL diretamente
+        const link = document.createElement('a');
+        link.href = relatorio.arquivoPdf;
+        link.download = nomeArquivo;
+        link.click();
+      }
+    }
+    
+    console.log('✅ Download iniciado com sucesso');
+    
+  } catch (error) {
+    console.error('❌ Erro geral no download:', error);
+    alert('❌ Erro ao baixar PDF. Tente novamente ou abra em nova aba.');
+    
+    // Último recurso: abrir em nova aba
+    try {
+      window.open(relatorio.arquivoPdf, '_blank');
+    } catch (finalError) {
+      console.error('❌ Falha total no download:', finalError);
+    }
+  }
+};
 
   // 🔄 LOADING STATE
   if (loading) {
