@@ -479,4 +479,43 @@ model EventoCorporativo {
   updatedAt    DateTime @updatedAt
 
   @@map("eventos_corporativos")
+
+}
+
+model Relatorio {
+  id                  String    @id @default(cuid())
+  
+  // 📊 Dados básicos do relatório
+  ticker              String                        // VALE3, PETR4, etc.
+  nome                String                        // Nome do relatório
+  tipo                String                        // "trimestral", "anual", "apresentacao", "outros"
+  dataReferencia      String                        // "Q1 2024", "2023", etc.
+  
+  // 🔗 Links e visualização
+  linkCanva           String?                       // Link do Canva
+  linkExterno         String?                       // Link externo genérico
+  tipoVisualizacao    String    @default("iframe")  // "iframe", "canva", "link", "pdf"
+  
+  // 📄 Sistema híbrido de PDFs
+  arquivoPdf          String?   @db.Text            // Base64 para PDFs pequenos
+  nomeArquivoPdf      String?                       // Nome do arquivo original
+  tamanhoArquivo      Int?                          // Tamanho em bytes
+  tipoPdf             String?                       // "base64" ou "referencia"
+  hashArquivo         String?                       // Hash SHA-256 para verificação
+  solicitarReupload   Boolean   @default(false)     // Flag para PDFs grandes
+  
+  // ⏰ Timestamps
+  dataUpload          DateTime  @default(now())     // Data do upload
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  // 📊 Indexes para performance
+  @@index([ticker])                                 // Busca por ticker
+  @@index([tipo])                                   // Busca por tipo
+  @@index([dataUpload])                            // Ordenação por upload
+  @@index([ticker, tipo])                          // Busca combinada
+  @@index([ticker, dataReferencia])                // Busca ticker + período
+  
+  @@map("relatorios")
+
 }

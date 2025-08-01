@@ -32,7 +32,11 @@ import {
   IconButton,
   Tabs,
   Tab,
-  Divider
+  Divider,
+  Checkbox,
+  Toolbar,
+  Menu,
+  Tooltip
 } from '@mui/material';
 
 // Ícones simples seguindo o padrão
@@ -49,27 +53,16 @@ const BackupIcon = () => <span style={{ fontSize: '16px' }}>💿</span>;
 const RestoreIcon = () => <span style={{ fontSize: '16px' }}>🔄</span>;
 const CheckIcon = () => <span style={{ fontSize: '16px' }}>✅</span>;
 const DatabaseIcon = () => <span style={{ fontSize: '16px' }}>🗃️</span>;
+const MoreVertIcon = () => <span style={{ fontSize: '16px' }}>⋮</span>;
+const RefreshIcon = () => <span style={{ fontSize: '16px' }}>🔄</span>;
 
-// Importar sistema IndexedDB real
-import { useRelatoriosDB } from '../../../utils/relatoriosDB';
-
-interface RelatorioAdmin {
-  id: string;
-  ticker: string;
-  nome: string;
-  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
-  dataReferencia: string;
-  dataUpload: string;
-  linkCanva?: string;
-  linkExterno?: string;
-  tipoVisualizacao: 'iframe' | 'canva' | 'link' | 'pdf';
-  arquivoPdf?: string;
-  nomeArquivoPdf?: string;
-  tamanhoArquivo?: number;
-  tipoPdf?: 'base64' | 'referencia';
-  hashArquivo?: string;
-  solicitarReupload?: boolean;
-}
+// 🆕 IMPORTAR NOVOS HOOKS DA API (em vez do IndexedDB)
+import { 
+  useRelatoriosEstatisticas, 
+  useRelatoriosUpload, 
+  useRelatoriosExport,
+  type RelatorioAPI 
+} from '../../../hooks/useRelatoriosAPI';
 
 interface NovoRelatorio {
   ticker: string;
@@ -128,24 +121,46 @@ const processarPdfHibrido = async (arquivo: File): Promise<any> => {
 export default function CentralRelatorios() {
   const router = useRouter();
   
-  // Usar o hook do IndexedDB
+  // 🔄 USAR NOVOS HOOKS DA API (similar à agenda)
   const { 
-    loading: dbLoading, 
-    error: dbError, 
-    salvarRelatorios, 
-    carregarRelatorios, 
-    exportarBackup, 
-    importarBackup 
-  } = useRelatoriosDB();
+    estatisticas, 
+    loading: statsLoading, 
+    error: statsError,
+    carregarEstatisticas 
+  } = useRelatoriosEstatisticas();
+  
+  const { 
+    uploadRelatorio,
+    uploadRelatoriosLote,
+    excluirRelatorio,
+    excluirRelatorios,
+    excluirPorTicker,
+    limparTodos, 
+    loading: uploadLoading, 
+    progresso,
+    error: uploadError
+  } = useRelatoriosUpload();
+  
+  const { 
+    exportarDados,
+    importarDados, 
+    loading: exportLoading,
+    error: exportError
+  } = useRelatoriosExport();
 
-  const [relatorios, setRelatorios] = useState<RelatorioAdmin[]>([]);
-  const [loading, setLoading] = useState(false);
   const [tabAtiva, setTabAtiva] = useState(0);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [dialogBackup, setDialogBackup] = useState(false);
-  const [migracaoFeita, setMigracaoFeita] = useState(false);
+  const [dialogMigracao, setDialogMigracao] = useState(false);
+  const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
   
-  const [uploadsLote, setUploadsLote] = useState<NovoRelatorio[]>([]);
+  // 🗑️ Estados para exclusão (similar à agenda)
+  const [relatorioParaExcluir, setRelatorioParaExcluir] = useState<string | null>(null);
+  const [tickerParaExcluir, setTickerParaExcluir] = useState<string | null>(null);
+  const [relatoriosSelecionados, setRelatoriosSelecionados] = useState<string[]>([]);
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [menuRelatorioId, setMenuRelatorioId] = useState<string | null>(null);
   
   const [novoRelatorio, setNovoRelatorio] = useState<NovoRelatorio>({
     ticker: '',
@@ -158,90 +173,88 @@ export default function CentralRelatorios() {
     arquivoPdf: null
   });
 
-  // Carregar dados na inicialização
+  // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
   useEffect(() => {
-    inicializarDados();
-  }, []);
+    carregarEstatisticas();
+    verificarMigracaoIndexedDB();
+  }, [carregarEstatisticas]);
 
-  const inicializarDados = useCallback(async () => {
-    try {
-      // Verificar se existe dados no localStorage para migrar
-      const dadosLocalStorage = localStorage.getItem('relatorios_central');
-      if (dadosLocalStorage && !migracaoFeita) {
-        const confirmarMigracao = window.confirm(
-          '🔄 Detectamos dados no localStorage.\n\n' +
-          'Deseja migrar para o novo sistema IndexedDB?\n' +
-          '(Recomendado para melhor performance e capacidade)'
-        );
-        
-        if (confirmarMigracao) {
-          await migrarDados(dadosLocalStorage);
-        }
-        setMigracaoFeita(true);
-      }
-      
-      // Carregar dados do IndexedDB
-      const dadosCarregados = await carregarRelatorios();
-      setRelatorios(dadosCarregados);
-      
-    } catch (error) {
-      console.error('Erro ao inicializar dados:', error);
+// 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
+const verificarMigracaoIndexedDB = useCallback(async () => {
+  try {
+    // Verificar apenas localStorage (mais simples e seguro)
+    const dadosLocalStorage = localStorage.getItem('relatorios_central');
+    
+    if (dadosLocalStorage) {
+      setDialogMigracao(true);
     }
-  }, [carregarRelatorios, migracaoFeita]);
+  } catch (error) {
+    console.log('Nenhum dado local encontrado para migração');
+  }
+}, []);
 
-  const migrarDados = useCallback(async (dadosLocalStorage: string) => {
-    try {
-      setLoading(true);
-      
-      // Converter estrutura localStorage para lista flat
+// 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
+const migrarDadosParaAPI = useCallback(async () => {
+  try {
+    setEtapaProcessamento('Coletando dados do localStorage...');
+    
+    let relatoriosParaMigrar: any[] = [];
+    
+    // Coletar apenas do localStorage
+    const dadosLocalStorage = localStorage.getItem('relatorios_central');
+    if (dadosLocalStorage) {
       const dados = JSON.parse(dadosLocalStorage);
-      const listaRelatorios: RelatorioAdmin[] = [];
-      
       Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
         relatoriosTicker.forEach(relatorio => {
-          listaRelatorios.push({
+          relatoriosParaMigrar.push({
             ...relatorio,
-            ticker
+            ticker: relatorio.ticker || ticker
           });
         });
       });
-      
-      // Salvar no IndexedDB
-      const sucesso = await salvarRelatorios(listaRelatorios);
-      
-      if (sucesso) {
-        // Fazer backup do localStorage
-        const blob = new Blob([dadosLocalStorage], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `backup_localStorage_${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-        
-        // Remover do localStorage
-        localStorage.removeItem('relatorios_central');
-        
-        alert('✅ Migração concluída!\nBackup do localStorage foi baixado automaticamente.');
-      }
-      
-    } catch (error) {
-      console.error('Erro na migração:', error);
-      alert('❌ Erro na migração. Dados preservados no localStorage.');
-    } finally {
-      setLoading(false);
     }
-  }, [salvarRelatorios]);
-
-  const salvarDadosCentralizados = useCallback(async (novaLista: RelatorioAdmin[]) => {
-    const sucesso = await salvarRelatorios(novaLista);
-    if (sucesso) {
-      setRelatorios(novaLista);
+    
+    if (relatoriosParaMigrar.length > 0) {
+      setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
+      
+      // Upload em lote para API
+      await uploadRelatoriosLote(relatoriosParaMigrar, {
+        nomeArquivo: 'migracao_localStorage',
+        totalItens: relatoriosParaMigrar.length,
+        itensProcessados: relatoriosParaMigrar.length
+      });
+      
+      // Fazer backup antes de limpar
+      const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      // Limpar dados antigos
+      localStorage.removeItem('relatorios_central');
+      
+      // Recarregar dados
+      await carregarEstatisticas();
+      
+      alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
     } else {
-      alert('❌ Erro ao salvar dados. Tente novamente.');
+      alert('Nenhum dado encontrado para migrar.');
     }
-  }, [salvarRelatorios]);
+    
+    setDialogMigracao(false);
+    
+  } catch (error) {
+    console.error('Erro na migração:', error);
+    alert('❌ Erro na migração. Dados preservados no localStorage.');
+  } finally {
+    setEtapaProcessamento('');
+  }
+}, [uploadRelatoriosLote, carregarEstatisticas]);
 
+  // 📤 SALVAR RELATÓRIO VIA API
   const salvarRelatorioIndividual = useCallback(async () => {
     if (!novoRelatorio.ticker || !novoRelatorio.nome) {
       alert('Preencha ticker e nome do relatório');
@@ -249,29 +262,32 @@ export default function CentralRelatorios() {
     }
 
     try {
-      setLoading(true);
+      setEtapaProcessamento('Processando relatório...');
       
       let dadosPdf = {};
       if (novoRelatorio.arquivoPdf) {
         dadosPdf = await processarPdfHibrido(novoRelatorio.arquivoPdf);
       }
 
-      const novoId = `${novoRelatorio.ticker}_${Date.now()}`;
-      const relatorioCompleto: RelatorioAdmin = {
-        id: novoId,
+      const relatorioCompleto = {
         ticker: novoRelatorio.ticker,
         nome: novoRelatorio.nome,
         tipo: novoRelatorio.tipo,
         dataReferencia: novoRelatorio.dataReferencia,
-        dataUpload: new Date().toISOString(),
         linkCanva: novoRelatorio.linkCanva || undefined,
         linkExterno: novoRelatorio.linkExterno || undefined,
         tipoVisualizacao: novoRelatorio.tipoVisualizacao,
         ...dadosPdf
       };
 
-      const novaLista = [...relatorios, relatorioCompleto];
-      await salvarDadosCentralizados(novaLista);
+      await uploadRelatorio(relatorioCompleto, {
+        nomeArquivo: 'upload_individual',
+        totalItens: 1,
+        itensProcessados: 1
+      });
+      
+      // ✅ RECARREGAR ESTATÍSTICAS
+      await carregarEstatisticas();
       
       setNovoRelatorio({
         ticker: '',
@@ -285,39 +301,28 @@ export default function CentralRelatorios() {
       });
       
       setDialogAberto(false);
+      alert('✅ Relatório salvo com sucesso!');
       
     } catch (error) {
       console.error('Erro ao salvar relatório:', error);
-      alert('Erro ao processar relatório');
+      alert('❌ Erro ao processar relatório');
     } finally {
-      setLoading(false);
+      setEtapaProcessamento('');
     }
-  }, [novoRelatorio, relatorios, salvarDadosCentralizados]);
+  }, [novoRelatorio, uploadRelatorio, carregarEstatisticas]);
 
-  const excluirRelatorio = useCallback((id: string) => {
-    if (confirm('Excluir este relatório?')) {
-      const novaLista = relatorios.filter(r => r.id !== id);
-      salvarDadosCentralizados(novaLista);
+  // ✅ EXPORTAR VIA API
+  const handleExportarDados = useCallback(async () => {
+    try {
+      await exportarDados();
+      alert('✅ Dados exportados com sucesso!');
+    } catch (error) {
+      alert('❌ Erro ao exportar dados');
     }
-  }, [relatorios, salvarDadosCentralizados]);
+  }, [exportarDados]);
 
-  const exportarDados = useCallback(async () => {
-    const dados = await exportarBackup();
-    if (!dados) {
-      alert('Nenhum dado para exportar');
-      return;
-    }
-
-    const blob = new Blob([dados], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `relatorios_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [exportarBackup]);
-
-  const importarDados = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ IMPORTAR VIA API
+  const handleImportarDados = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -325,39 +330,129 @@ export default function CentralRelatorios() {
     reader.onload = async (e) => {
       try {
         const dados = e.target?.result as string;
-        const sucesso = await importarBackup(dados);
-        
-        if (sucesso) {
-          const dadosCarregados = await carregarRelatorios();
-          setRelatorios(dadosCarregados);
-          alert('✅ Dados importados com sucesso!');
-          setDialogBackup(false);
-        }
+        await importarDados(dados);
+        await carregarEstatisticas();
+        alert('✅ Dados importados com sucesso!');
+        setDialogBackup(false);
       } catch (error) {
         alert('❌ Erro ao importar arquivo');
       }
     };
     reader.readAsText(file);
     event.target.value = '';
-  }, [importarBackup, carregarRelatorios]);
+  }, [importarDados, carregarEstatisticas]);
 
-  const estatisticas = useMemo(() => {
-    const totalRelatorios = relatorios.length;
-    const relatoriosPorTicker = Object.groupBy?.(relatorios, r => r.ticker) || {};
-    const tickersComRelatorios = Object.keys(relatoriosPorTicker).length;
+  // ✅ LIMPAR VIA API
+  const handleLimparTudo = useCallback(async () => {
+    if (!confirm('Tem certeza que deseja apagar todos os dados?')) return;
     
-    const relatoriosComPdf = relatorios.filter(r => r.arquivoPdf || r.nomeArquivoPdf).length;
-    const tamanhoTotal = relatorios.reduce((sum, r) => sum + (r.tamanhoArquivo || 0), 0);
-    
-    return {
-      totalRelatorios,
-      tickersComRelatorios,
-      relatoriosComPdf,
-      tamanhoTotalMB: (tamanhoTotal / 1024 / 1024).toFixed(1)
-    };
-  }, [relatorios]);
+    try {
+      await limparTodos();
+      await carregarEstatisticas();
+      alert('✅ Dados removidos com sucesso.');
+    } catch (error) {
+      alert('❌ Erro ao remover dados');
+    }
+  }, [limparTodos, carregarEstatisticas]);
 
-  const isCarregando = loading || dbLoading;
+  // 🗑️ Funções de exclusão VIA API (similar à agenda)
+  const handleMenuClick = useCallback((event: React.MouseEvent<HTMLElement>, id: string) => {
+    setMenuAnchor(event.currentTarget);
+    setMenuRelatorioId(id);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuAnchor(null);
+    setMenuRelatorioId(null);
+  }, []);
+
+  const handleExcluirRelatorio = useCallback((id: string) => {
+    setRelatorioParaExcluir(id);
+    handleMenuClose();
+  }, [handleMenuClose]);
+
+  const confirmarExclusaoRelatorio = useCallback(async () => {
+    if (relatorioParaExcluir) {
+      try {
+        await excluirRelatorio(relatorioParaExcluir);
+        await carregarEstatisticas();
+        setRelatorioParaExcluir(null);
+        alert('✅ Relatório excluído com sucesso!');
+      } catch (error) {
+        alert('❌ Erro ao excluir relatório');
+      }
+    }
+  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas]);
+
+  const handleExcluirTicker = useCallback((ticker: string) => {
+    setTickerParaExcluir(ticker);
+  }, []);
+
+  const confirmarExclusaoTicker = useCallback(async () => {
+    if (tickerParaExcluir) {
+      try {
+        const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length;
+        await excluirPorTicker(tickerParaExcluir);
+        await carregarEstatisticas();
+        setTickerParaExcluir(null);
+        alert(`✅ ${relatoriosDoTicker} relatórios do ticker ${tickerParaExcluir} excluídos!`);
+      } catch (error) {
+        alert('❌ Erro ao excluir relatórios do ticker');
+      }
+    }
+  }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios]);
+
+  const handleSelecionar = useCallback((id: string) => {
+    setRelatoriosSelecionados(prev => 
+      prev.includes(id) 
+        ? prev.filter(i => i !== id)
+        : [...prev, id]
+    );
+  }, []);
+
+  const handleSelecionarTodos = useCallback(() => {
+    if (relatoriosSelecionados.length === estatisticas.relatorios.length) {
+      setRelatoriosSelecionados([]);
+    } else {
+      setRelatoriosSelecionados(estatisticas.relatorios.map(r => r.id));
+    }
+  }, [relatoriosSelecionados.length, estatisticas.relatorios]);
+
+  const excluirSelecionados = useCallback(async () => {
+    if (relatoriosSelecionados.length > 0) {
+      try {
+        await excluirRelatorios(relatoriosSelecionados);
+        await carregarEstatisticas();
+        setRelatoriosSelecionados([]);
+        setModoSelecao(false);
+        alert(`✅ ${relatoriosSelecionados.length} relatórios excluídos!`);
+      } catch (error) {
+        alert('❌ Erro ao excluir relatórios selecionados');
+      }
+    }
+  }, [relatoriosSelecionados, excluirRelatorios, carregarEstatisticas]);
+
+  // Estatísticas por ticker VIA API
+  const estatisticasPorTicker = useMemo(() => {
+    const stats: { [ticker: string]: { total: number; comPdf: number } } = {};
+    
+    estatisticas.relatorios.forEach(relatorio => {
+      if (!stats[relatorio.ticker]) {
+        stats[relatorio.ticker] = { total: 0, comPdf: 0 };
+      }
+      stats[relatorio.ticker].total++;
+      
+      if (relatorio.arquivoPdf || relatorio.nomeArquivoPdf) {
+        stats[relatorio.ticker].comPdf++;
+      }
+    });
+
+    return Object.entries(stats)
+      .map(([ticker, data]) => ({ ticker, ...data }))
+      .sort((a, b) => b.total - a.total);
+  }, [estatisticas.relatorios]);
+
+  const isCarregando = uploadLoading || statsLoading || exportLoading;
 
   return (
     <Box sx={{ 
@@ -368,183 +463,246 @@ export default function CentralRelatorios() {
       minHeight: '100vh',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     }}>
-      {/* Header com botão voltar */}
+      {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-        <Button 
-          onClick={() => router.back()} 
-          startIcon={<ArrowLeftIcon />} 
-          sx={{
-            color: '#64748b',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '8px 16px',
-            textTransform: 'none',
-            fontWeight: 500,
-            '&:hover': {
-              backgroundColor: '#f1f5f9',
-              borderColor: '#cbd5e1'
-            }
-          }}
-        >
-          Voltar
-        </Button>
+        <Box>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 700, 
+              color: '#1e293b',
+              mb: 1,
+              fontSize: '2rem'
+            }}
+          >
+            🗃️ Central de Relatórios (API/Prisma)
+          </Typography>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: '#64748b', 
+              fontWeight: 400,
+              fontSize: '1.125rem'
+            }}
+          >
+            Sistema unificado sincronizado entre todos os dispositivos
+          </Typography>
+        </Box>
+        
+        <Stack direction="row" spacing={2}>
+          <Button
+            startIcon={<ArrowLeftIcon />}
+            onClick={() => router.back()}
+            variant="outlined"
+            sx={{
+              color: '#64748b',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '8px 16px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Voltar
+          </Button>
+
+          {/* ✅ INDICADOR DE STATUS DA API */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div style={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: '50%', 
+              backgroundColor: '#10b981' 
+            }} />
+            <Typography sx={{ fontSize: '12px', color: '#64748b' }}>
+              API Conectada
+            </Typography>
+          </Box>
+          
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={carregarEstatisticas}
+            disabled={statsLoading}
+            sx={{
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '12px',
+              padding: '8px 16px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            {statsLoading ? 'Atualizando...' : 'Atualizar'}
+          </Button>
+          
+          {estatisticas.totalRelatorios > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleLimparTudo}
+              sx={{
+                borderColor: '#fecaca',
+                color: '#dc2626',
+                '&:hover': {
+                  backgroundColor: '#fef2f2',
+                  borderColor: '#fca5a5'
+                }
+              }}
+            >
+              Limpar Tudo
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
-      {/* Card principal com título e estatísticas */}
-      <Card sx={{ 
-        mb: 4, 
-        background: '#ffffff',
-        borderRadius: '16px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
-      }}>
-        <CardContent sx={{ p: 4 }}>
-          <Box mb={3}>
+      {/* Exibir erros se houver */}
+      {(statsError || uploadError || exportError) && (
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: 4,
+            borderRadius: '12px',
+            border: '1px solid #fecaca',
+            backgroundColor: '#fef2f2'
+          }}
+        >
+          <Typography sx={{ fontSize: '0.875rem' }}>
+            <strong>⚠️ Erro na API:</strong><br/>
+            {statsError || uploadError || exportError}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Cards de Estatísticas - AGORA VIA API */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={3}>
+          <Box 
+            sx={{
+              textAlign: 'center',
+              p: 3,
+              borderRadius: '16px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+            }}
+          >
             <Typography 
-              variant="h4" 
+              variant="h3" 
               sx={{ 
                 fontWeight: 700, 
-                color: '#1e293b',
-                mb: 1,
-                fontSize: '2rem'
+                color: '#3b82f6',
+                mb: 0.5
               }}
             >
-              🗃️ Central de Relatórios (IndexedDB)
+              {statsLoading ? '...' : estatisticas.totalRelatorios}
             </Typography>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: '#64748b', 
-                fontWeight: 400,
-                fontSize: '1.125rem'
-              }}
-            >
-              Sistema aprimorado com IndexedDB - Sem limitações de espaço
+            <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+              Total de Relatórios
             </Typography>
-            {dbError && (
-              <Alert 
-                severity="error" 
-                sx={{ 
-                  mt: 2,
-                  borderRadius: '12px',
-                  border: '1px solid #fecaca',
-                  backgroundColor: '#fef2f2'
-                }}
-              >
-                ⚠️ {dbError}
-              </Alert>
-            )}
           </Box>
-
-          {/* Estatísticas */}
-          <Grid container spacing={3}>
-            <Grid item xs={6} md={3}>
-              <Box 
-                sx={{
-                  textAlign: 'center',
-                  p: 2,
-                  borderRadius: '12px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    color: '#3b82f6',
-                    mb: 0.5
-                  }}
-                >
-                  {estatisticas.totalRelatorios}
-                </Typography>
-                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
-                  Total de Relatórios
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box 
-                sx={{
-                  textAlign: 'center',
-                  p: 2,
-                  borderRadius: '12px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    color: '#22c55e',
-                    mb: 0.5
-                  }}
-                >
-                  {estatisticas.tickersComRelatorios}
-                </Typography>
-                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
-                  Tickers com Relatórios
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box 
-                sx={{
-                  textAlign: 'center',
-                  p: 2,
-                  borderRadius: '12px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    color: '#f59e0b',
-                    mb: 0.5
-                  }}
-                >
-                  {estatisticas.relatoriosComPdf}
-                </Typography>
-                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
-                  Relatórios com PDF
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box 
-                sx={{
-                  textAlign: 'center',
-                  p: 2,
-                  borderRadius: '12px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    color: '#8b5cf6',
-                    mb: 0.5
-                  }}
-                >
-                  {estatisticas.tamanhoTotalMB}
-                </Typography>
-                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
-                  MB Armazenados
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Box 
+            sx={{
+              textAlign: 'center',
+              p: 3,
+              borderRadius: '16px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+            }}
+          >
+            <Typography 
+              variant="h3" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#22c55e',
+                mb: 0.5
+              }}
+            >
+              {statsLoading ? '...' : estatisticas.totalTickers}
+            </Typography>
+            <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+              Tickers com Relatórios
+            </Typography>
+          </Box>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Box 
+            sx={{
+              textAlign: 'center',
+              p: 3,
+              borderRadius: '16px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+            }}
+          >
+            <Typography 
+              variant="h3" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#f59e0b',
+                mb: 0.5
+              }}
+            >
+              {statsLoading ? '...' : estatisticas.relatoriosComPdf}
+            </Typography>
+            <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+              Relatórios com PDF
+            </Typography>
+          </Box>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Box 
+            sx={{
+              textAlign: 'center',
+              p: 3,
+              borderRadius: '16px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+            }}
+          >
+            <Typography 
+              variant="h3" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#8b5cf6',
+                mb: 0.5
+              }}
+            >
+              {statsLoading ? '...' : estatisticas.tamanhoTotalMB}
+            </Typography>
+            <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>
+              MB Armazenados
+            </Typography>
+            <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mt: 0.5 }}>
+              Última atualização: {statsLoading ? '...' : (estatisticas.dataUltimoUpload 
+                ? new Date(estatisticas.dataUltimoUpload).toLocaleDateString('pt-BR') 
+                : 'Nunca'
+              )}
+            </Typography>
+          </Box>
+        </Grid>
+      </Grid>
 
       {/* Botões de ação */}
       <Grid container spacing={2} mb={4}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Button 
             fullWidth 
             onClick={() => setDialogAberto(true)} 
@@ -566,7 +724,7 @@ export default function CentralRelatorios() {
             Novo Relatório
           </Button>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Button 
             fullWidth 
             onClick={() => setDialogBackup(true)} 
@@ -588,11 +746,12 @@ export default function CentralRelatorios() {
             Backup/Restore
           </Button>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Button 
             fullWidth 
-            onClick={inicializarDados} 
-            startIcon={<RestoreIcon />}
+            onClick={handleExportarDados} 
+            startIcon={<DownloadIcon />}
+            disabled={exportLoading}
             sx={{
               border: '1px solid #e2e8f0',
               color: '#64748b',
@@ -607,265 +766,397 @@ export default function CentralRelatorios() {
               }
             }}
           >
-            Atualizar
+            {exportLoading ? 'Exportando...' : 'Exportar Dados'}
+          </Button>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Button 
+            fullWidth 
+            onClick={carregarEstatisticas} 
+            startIcon={<RestoreIcon />}
+            disabled={statsLoading}
+            sx={{
+              border: '1px solid #e2e8f0',
+              color: '#64748b',
+              borderRadius: '12px',
+              padding: '12px 20px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              '&:hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#cbd5e1'
+              }
+            }}
+          >
+            Atualizar Dados
           </Button>
         </Grid>
       </Grid>
 
-      {/* Tabs */}
-      <Card sx={{ 
-        mb: 4,
-        background: '#ffffff',
-        borderRadius: '16px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
-      }}>
-        <Tabs 
-          value={tabAtiva} 
-          onChange={(_, newValue) => setTabAtiva(newValue)}
-          sx={{
-            borderBottom: '1px solid #e2e8f0',
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontWeight: 500,
-              fontSize: '0.95rem',
-              color: '#64748b',
-              '&.Mui-selected': {
-                color: '#3b82f6',
-                backgroundColor: '#f0f9ff'
-              }
-            }
-          }}
-        >
-          <Tab label="📋 Lista de Relatórios" />
-          <Tab label="📤 Upload em Lote" />
-        </Tabs>
-
-        {/* Loading indicator */}
-        {isCarregando && (
-          <LinearProgress 
-            sx={{
-              height: 2,
-              backgroundColor: '#e2e8f0',
-              '& .MuiLinearProgress-bar': {
-                backgroundColor: '#3b82f6'
-              }
-            }}
-          />
-        )}
-
-        {/* Tab 0: Lista de Relatórios */}
-        {tabAtiva === 0 && (
-          <CardContent sx={{ p: 4 }}>
-            {relatorios.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <DatabaseIcon />
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: '#1e293b', 
-                    fontWeight: 600, 
-                    mb: 1, 
-                    mt: 2 
-                  }}
-                >
-                  🗃️ Nenhum relatório cadastrado
-                </Typography>
-                <Typography 
-                  sx={{ 
-                    color: '#64748b', 
-                    mb: 4,
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  Comece adicionando um novo relatório no sistema IndexedDB
-                </Typography>
-                <Button
-                  onClick={() => setDialogAberto(true)}
-                  startIcon={<AddIcon />}
-                  sx={{
-                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    color: 'white',
-                    borderRadius: '12px',
-                    padding: '12px 24px',
-                    textTransform: 'none',
-                    fontWeight: 500,
-                    fontSize: '0.95rem',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                    '&:hover': {
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                    }
-                  }}
-                >
-                  Adicionar Primeiro Relatório
-                </Button>
-              </Box>
-            ) : (
-              <TableContainer sx={{ borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <Table>
-                  <TableHead sx={{ backgroundColor: '#f8fafc' }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Ticker</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Nome</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Tipo</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Referência</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Visualização</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>PDF</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>Ações</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {relatorios.map((relatorio) => (
-                      <TableRow 
-                        key={relatorio.id} 
-                        sx={{ 
-                          '&:hover': { backgroundColor: '#f8fafc' },
-                          borderBottom: '1px solid #f1f5f9'
-                        }}
-                      >
-                        <TableCell>
-                          <Chip 
-                            label={relatorio.ticker} 
-                            size="small" 
-                            sx={{
-                              backgroundColor: '#dbeafe',
-                              color: '#1e40af',
-                              fontWeight: 500,
-                              borderRadius: '8px'
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
-                          {relatorio.nome}
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={relatorio.tipo} 
-                            size="small" 
-                            variant="outlined"
-                            sx={{
-                              borderColor: '#e2e8f0',
-                              color: '#64748b',
-                              borderRadius: '8px'
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell sx={{ color: '#64748b' }}>
-                          {relatorio.dataReferencia}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {relatorio.tipoVisualizacao === 'canva' && '🎨'}
-                            {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
-                            {relatorio.tipoVisualizacao === 'link' && '🔗'}
-                            {relatorio.tipoVisualizacao === 'pdf' && '📄'}
-                            <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
-                              {relatorio.tipoVisualizacao}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {relatorio.nomeArquivoPdf ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Chip
-                                label={`${(relatorio.tamanhoArquivo! / 1024 / 1024).toFixed(1)}MB`}
-                                size="small"
-                                sx={{
-                                  backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
-                                  color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
-                                  borderRadius: '6px',
-                                  fontSize: '0.75rem'
-                                }}
-                              />
-                              {relatorio.tipoPdf === 'referencia' && (
-                                <span style={{ fontSize: '14px' }}>⚠️</span>
-                              )}
-                            </Box>
-                          ) : (
-                            <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                              Sem PDF
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => excluirRelatorio(relatorio.id)}
-                            sx={{
-                              color: '#dc2626',
-                              '&:hover': {
-                                backgroundColor: '#fef2f2'
-                              }
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
+      {/* Indicador de progresso */}
+      {isCarregando && (
+        <Card sx={{ mb: 4, borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={{ mb: 1, color: '#64748b', fontSize: '0.875rem' }}>
+              {etapaProcessamento || 'Processando...'}
+            </Typography>
+            <LinearProgress 
+              value={progresso} 
+              variant="determinate" 
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: '#e2e8f0',
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: '#3b82f6',
+                  borderRadius: 4
+                }
+              }}
+            />
           </CardContent>
-        )}
+        </Card>
+      )}
 
-        {/* Tab 1: Upload em Lote */}
-        {tabAtiva === 1 && (
-          <CardContent sx={{ p: 4 }}>
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Box sx={{ color: '#3b82f6', mb: 2, fontSize: '3rem' }}>
-                <DatabaseIcon />
-              </Box>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: '#1e293b', 
-                  fontWeight: 600, 
-                  mb: 1 
-                }}
-              >
-                Sistema IndexedDB Ativo
-              </Typography>
-              <Typography 
-                sx={{ 
-                  color: '#64748b', 
-                  mb: 4,
-                  fontSize: '0.95rem',
-                  maxWidth: '500px',
-                  mx: 'auto'
-                }}
-              >
-                • Capacidade muito maior que localStorage<br/>
-                • Performance aprimorada para grandes volumes<br/>
-                • Suporte a transações e consultas avançadas<br/>
-                • Sistema híbrido Base64/Referência funcional
-              </Typography>
-              <Button
-                onClick={() => setDialogAberto(true)}
-                startIcon={<AddIcon />}
-                sx={{
-                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                  color: 'white',
-                  borderRadius: '12px',
-                  padding: '12px 24px',
+      {/* Tabs de Visualização */}
+      {estatisticas.totalRelatorios > 0 && (
+        <Card sx={{ 
+          mb: 4,
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+        }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs 
+              value={tabAtiva} 
+              onChange={(_, newValue) => setTabAtiva(newValue)}
+              sx={{
+                '& .MuiTab-root': {
                   textTransform: 'none',
                   fontWeight: 500,
                   fontSize: '0.95rem',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                  '&:hover': {
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                  color: '#64748b',
+                  '&.Mui-selected': {
+                    color: '#3b82f6',
+                    backgroundColor: '#f0f9ff'
                   }
-                }}
-              >
-                Começar com Novo Relatório
-              </Button>
-            </Box>
-          </CardContent>
-        )}
-      </Card>
+                }
+              }}
+            >
+              <Tab label={`📋 Relatórios (${estatisticas.totalRelatorios})`} />
+              <Tab label={`🏢 Por Ticker (${estatisticas.totalTickers})`} />
+            </Tabs>
+          </Box>
 
-      {/* Dialog - Novo Relatório Individual */}
+          <CardContent sx={{ p: 0 }}>
+            {/* Tab 1: Lista de Relatórios */}
+            {tabAtiva === 0 && (
+              <>
+                {/* 🗑️ Toolbar de ações */}
+                <Toolbar sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
+                    <Button
+                      size="small"
+                      variant={modoSelecao ? "contained" : "outlined"}
+                      onClick={() => {
+                        setModoSelecao(!modoSelecao);
+                        setRelatoriosSelecionados([]);
+                      }}
+                    >
+                      {modoSelecao ? 'Cancelar Seleção' : 'Selecionar Múltiplos'}
+                    </Button>
+
+                    {modoSelecao && (
+                      <>
+                        <Button
+                          size="small"
+                          onClick={handleSelecionarTodos}
+                        >
+                          {relatoriosSelecionados.length === estatisticas.relatorios.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                        </Button>
+
+                        {relatoriosSelecionados.length > 0 && (
+                          <Button
+                            size="small"
+                            color="error"
+                            variant="contained"
+                            startIcon={<DeleteIcon />}
+                            onClick={excluirSelecionados}
+                          >
+                            Excluir Selecionados ({relatoriosSelecionados.length})
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                </Toolbar>
+
+                <TableContainer sx={{ maxHeight: 600 }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        {modoSelecao && <TableCell padding="checkbox">Sel.</TableCell>}
+                        <TableCell>Ticker</TableCell>
+                        <TableCell>Nome</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell>Referência</TableCell>
+                        <TableCell>Visualização</TableCell>
+                        <TableCell>PDF</TableCell>
+                        <TableCell align="center">Ações</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {estatisticas.relatorios
+                        .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
+                        .map((relatorio) => (
+                          <TableRow key={relatorio.id} hover>
+                            {modoSelecao && (
+                              <TableCell padding="checkbox">
+                                <Checkbox
+                                  checked={relatoriosSelecionados.includes(relatorio.id)}
+                                  onChange={() => handleSelecionar(relatorio.id)}
+                                />
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <Chip 
+                                label={relatorio.ticker} 
+                                size="small" 
+                                sx={{
+                                  backgroundColor: '#dbeafe',
+                                  color: '#1e40af',
+                                  fontWeight: 500,
+                                  borderRadius: '8px'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
+                              {relatorio.nome}
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={relatorio.tipo} 
+                                size="small" 
+                                variant="outlined"
+                                sx={{
+                                  borderColor: '#e2e8f0',
+                                  color: '#64748b',
+                                  borderRadius: '8px'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ color: '#64748b' }}>
+                              {relatorio.dataReferencia}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {relatorio.tipoVisualizacao === 'canva' && '🎨'}
+                                {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
+                                {relatorio.tipoVisualizacao === 'link' && '🔗'}
+                                {relatorio.tipoVisualizacao === 'pdf' && '📄'}
+                                <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                  {relatorio.tipoVisualizacao}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              {relatorio.nomeArquivoPdf ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip
+                                    label={`${((relatorio.tamanhoArquivo || 0) / 1024 / 1024).toFixed(1)}MB`}
+                                    size="small"
+                                    sx={{
+                                      backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
+                                      color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
+                                      borderRadius: '6px',
+                                      fontSize: '0.75rem'
+                                    }}
+                                  />
+                                  {relatorio.tipoPdf === 'referencia' && (
+                                    <span style={{ fontSize: '14px' }}>⚠️</span>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
+                                  Sem PDF
+                                </Typography>
+                              )}
+                            </TableCell>
+
+                            <TableCell align="center">
+                              <Tooltip title="Mais opções">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => handleMenuClick(e, relatorio.id)}
+                                >
+                                  <MoreVertIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            )}
+
+            {/* Tab 2: Estatísticas por Ticker */}
+            {tabAtiva === 1 && (
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={2}>
+                  {estatisticasPorTicker.map(({ ticker, total, comPdf }) => (
+                    <Grid item xs={12} sm={6} md={4} key={ticker}>
+                      <Card variant="outlined" sx={{ borderRadius: '12px' }}>
+                        <CardContent>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                              {ticker}
+                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip
+                                label={`${total} total`}
+                                size="small"
+                                color="primary"
+                              />
+                              {comPdf > 0 && (
+                                <Chip
+                                  label={`${comPdf} c/ PDF`}
+                                  size="small"
+                                  color="success"
+                                />
+                              )}
+                              <Tooltip title="Excluir todos relatórios deste ticker">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleExcluirTicker(ticker)}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Menu de contexto para ações do relatório */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => menuRelatorioId && handleExcluirRelatorio(menuRelatorioId)}>
+          <DeleteIcon /> &nbsp; Excluir Relatório
+        </MenuItem>
+      </Menu>
+
+      {/* Dialogs de Confirmação */}
+      <Dialog 
+        open={relatorioParaExcluir !== null} 
+        onClose={() => setRelatorioParaExcluir(null)}
+      >
+        <DialogTitle>🗑️ Excluir Relatório</DialogTitle>
+        <DialogContent>
+          {relatorioParaExcluir && (
+            <Typography>
+              Tem certeza que deseja excluir este relatório?
+              <br/><br/>
+              Esta ação não pode ser desfeita.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRelatorioParaExcluir(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="error"
+            onClick={confirmarExclusaoRelatorio}
+          >
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={tickerParaExcluir !== null} 
+        onClose={() => setTickerParaExcluir(null)}
+      >
+        <DialogTitle>🗑️ Excluir Todos Relatórios do Ticker</DialogTitle>
+        <DialogContent>
+          {tickerParaExcluir && (
+            <Typography>
+              Tem certeza que deseja excluir todos os{' '}
+              <strong>{estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length} relatórios</strong>{' '}
+              do ticker <strong>{tickerParaExcluir}</strong>?
+              <br/><br/>
+              Esta ação não pode ser desfeita.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTickerParaExcluir(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="error"
+            onClick={confirmarExclusaoTicker}
+          >
+            Excluir Todos
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Migração */}
+      <Dialog 
+        open={dialogMigracao} 
+        onClose={() => setDialogMigracao(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>🔄 Migração para API/Prisma</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography sx={{ fontSize: '0.875rem' }}>
+              <strong>🚀 Sistema Aprimorado Detectado!</strong><br/>
+              Encontramos dados no sistema anterior (IndexedDB/localStorage).<br/><br/>
+              <strong>Vantagens da migração:</strong><br/>
+              • ✅ Sincronização entre dispositivos<br/>
+              • ✅ Backup automático<br/>
+              • ✅ Performance superior<br/>
+              • ✅ Disponível nas páginas dos ativos
+            </Typography>
+          </Alert>
+          <Typography>
+            Deseja migrar seus dados para o novo sistema API/Prisma?<br/><br/>
+            <strong>✅ Seus dados serão preservados</strong> - um backup será baixado automaticamente.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogMigracao(false)}>
+            Manter Sistema Antigo
+          </Button>
+          <Button
+            color="primary"
+            variant="contained"
+            onClick={migrarDadosParaAPI}
+          >
+            Migrar para API
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog - Novo Relatório Individual - (MANTIDO IGUAL) */}
       <Dialog 
         open={dialogAberto} 
         onClose={() => !isCarregando && setDialogAberto(false)} 
@@ -884,7 +1175,7 @@ export default function CentralRelatorios() {
           color: '#1e293b',
           borderBottom: '1px solid #e2e8f0'
         }}>
-          ➕ Adicionar Novo Relatório
+          ➕ Adicionar Novo Relatório (API)
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -1009,7 +1300,7 @@ export default function CentralRelatorios() {
                   fontSize: '1rem'
                 }}
               >
-                📄 Upload de PDF (Sistema Híbrido IndexedDB)
+                📄 Upload de PDF (Sistema Híbrido API/Prisma)
               </Typography>
               
               <Alert 
@@ -1022,10 +1313,10 @@ export default function CentralRelatorios() {
                 }}
               >
                 <Typography sx={{ fontSize: '0.875rem' }}>
-                  <strong>🗃️ Sistema IndexedDB:</strong><br/>
+                  <strong>🚀 Sistema API/Prisma:</strong><br/>
                   • <strong>≤3MB:</strong> Base64 (acesso instantâneo)<br/>
                   • <strong>&gt;3MB:</strong> Referência (re-upload quando necessário)<br/>
-                  • <strong>Vantagem:</strong> Muito mais espaço disponível que localStorage
+                  • <strong>Vantagem:</strong> Sincronizado entre todos os dispositivos
                 </Typography>
               </Alert>
               
@@ -1082,7 +1373,8 @@ export default function CentralRelatorios() {
                   <Typography sx={{ fontSize: '0.875rem' }}>
                     <strong>📄 Arquivo:</strong> {novoRelatorio.arquivoPdf.name}<br/>
                     <strong>📊 Tamanho:</strong> {(novoRelatorio.arquivoPdf.size / 1024 / 1024).toFixed(2)} MB<br/>
-                    <strong>💾 Estratégia:</strong> {novoRelatorio.arquivoPdf.size <= LIMITE_BASE64 ? 'Base64 (Instantâneo)' : 'Referência (Re-upload)'}
+                    <strong>💾 Estratégia:</strong> {novoRelatorio.arquivoPdf.size <= LIMITE_BASE64 ? 'Base64 (Instantâneo)' : 'Referência (Re-upload)'}<br/>
+                    <strong>🚀 Destino:</strong> API/Prisma (Sincronizado)
                   </Typography>
                 </Alert>
               )}
@@ -1117,12 +1409,12 @@ export default function CentralRelatorios() {
               }
             }}
           >
-            {isCarregando ? 'Salvando...' : 'Salvar Relatório'}
+            {isCarregando ? 'Salvando na API...' : 'Salvar na API'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog - Backup/Restore */}
+      {/* Dialog - Backup/Restore (ATUALIZADO PARA API) */}
       <Dialog 
         open={dialogBackup} 
         onClose={() => setDialogBackup(false)} 
@@ -1141,7 +1433,7 @@ export default function CentralRelatorios() {
           color: '#1e293b',
           borderBottom: '1px solid #e2e8f0'
         }}>
-          💿 Backup & Restore (IndexedDB)
+          💿 Backup & Restore (API/Prisma)
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Stack spacing={3} sx={{ mt: 2 }}>
@@ -1154,10 +1446,11 @@ export default function CentralRelatorios() {
               }}
             >
               <Typography sx={{ fontSize: '0.875rem' }}>
-                <strong>💡 Sistema IndexedDB:</strong><br/>
+                <strong>🚀 Sistema API/Prisma:</strong><br/>
                 • Backup inclui dados binários (PDFs em Base64)<br/>
-                • Compatível com formato localStorage anterior<br/>
-                • Restauração automática de estruturas
+                • Dados persistentes no servidor<br/>
+                • Compatível com sistemas anteriores<br/>
+                • Sincronização automática entre dispositivos
               </Typography>
             </Alert>
             
@@ -1173,8 +1466,9 @@ export default function CentralRelatorios() {
               </Typography>
               <Button
                 fullWidth
-                onClick={exportarDados}
+                onClick={handleExportarDados}
                 startIcon={<DownloadIcon />}
+                disabled={exportLoading}
                 sx={{
                   background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: 'white',
@@ -1189,7 +1483,7 @@ export default function CentralRelatorios() {
                   }
                 }}
               >
-                Baixar Backup Completo
+                {exportLoading ? 'Exportando da API...' : 'Baixar Backup da API'}
               </Button>
             </Box>
             
@@ -1210,7 +1504,7 @@ export default function CentralRelatorios() {
                 style={{ display: 'none' }}
                 id="import-backup"
                 type="file"
-                onChange={importarDados}
+                onChange={handleImportarDados}
               />
               <label htmlFor="import-backup">
                 <Button
@@ -1231,7 +1525,7 @@ export default function CentralRelatorios() {
                     }
                   }}
                 >
-                  Restaurar do Backup
+                  Restaurar para API
                 </Button>
               </label>
             </Box>
@@ -1245,7 +1539,7 @@ export default function CentralRelatorios() {
               }}
             >
               <Typography sx={{ fontSize: '0.875rem' }}>
-                <strong>⚠️ Atenção:</strong> Importar dados irá <strong>substituir</strong> todos os relatórios existentes no IndexedDB!
+                <strong>⚠️ Atenção:</strong> Importar dados irá <strong>substituir</strong> todos os relatórios existentes na API!
               </Typography>
             </Alert>
           </Stack>
@@ -1263,6 +1557,64 @@ export default function CentralRelatorios() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Estado vazio */}
+      {estatisticas.totalRelatorios === 0 && !statsLoading && (
+        <Card sx={{ 
+          p: 6, 
+          textAlign: 'center', 
+          mt: 4,
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          background: '#ffffff',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)'
+        }}>
+          <Box sx={{ color: '#3b82f6', mb: 2, fontSize: '4rem' }}>
+            🗃️
+          </Box>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: '#1e293b', 
+              fontWeight: 600, 
+              mb: 1 
+            }}
+          >
+            📭 Nenhum relatório na API
+          </Typography>
+          <Typography 
+            sx={{ 
+              color: '#64748b', 
+              mb: 4,
+              fontSize: '0.95rem',
+              maxWidth: '500px',
+              mx: 'auto'
+            }}
+          >
+            Sistema API/Prisma ativo e funcionando!<br/>
+            Comece adicionando um novo relatório sincronizado.
+          </Typography>
+          <Button
+            onClick={() => setDialogAberto(true)}
+            startIcon={<AddIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: 'white',
+              borderRadius: '12px',
+              padding: '12px 24px',
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              '&:hover': {
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }
+            }}
+          >
+            Adicionar Primeiro Relatório
+          </Button>
+        </Card>
+      )}
 
       {/* Loading Global */}
       {isCarregando && (
