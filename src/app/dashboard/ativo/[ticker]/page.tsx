@@ -12,6 +12,8 @@ import { useProventosIntegrado } from '../../../../hooks/ativo/useProventosInteg
 import { useBDRDataAPI } from '../../../../hooks/ativo/useBDRDataAPI';
 import { useHGBrasilFII } from '../../../../hooks/ativo/useHGBrasilFII';
 import { useCotacaoCompleta } from '../../../../hooks/ativo/useCotacaoCompleta';
+import { useBRAPIETF } from '@/hooks/useBRAPIETF';
+import ETFMetricCards from '@/components/ETFMetricCards';
 
 // ✅ IMPORT ÚNICO CORRIGIDO
 import { 
@@ -30,6 +32,23 @@ import {
   DadosFII,
   Relatorio 
 } from '../../../../hooks/useAtivoDetalhes';
+
+
+// 🏢 FUNÇÃO PARA DETECTAR ETFs (ADICIONAR AQUI)
+const isETF = (ticker: string): boolean => {
+  if (!ticker) return false;
+  
+  const etfsConhecidos: string[] = [
+    'QQQ', 'SPY', 'VTI', 'VEA', 'VWO', 'QUAL', 'SOXX', 'XLF', 'XLK', 'XLV', 'XLE',
+    'HERO', 'MCHI', 'TFLO', 'TLT', 'IEF', 'SHY', 'NOBL', 'VNQ', 'SCHP', 'VTEB',
+    'VOO', 'IVV', 'VXUS', 'BND', 'AGG', 'LQD', 'HYG', 'EMB', 'VB', 'VTV', 'VUG',
+    'IWM', 'IWN', 'IWO', 'IJH', 'IJR', 'IJK', 'IJJ', 'IJS', 'IWV', 'ITOT',
+    'XLC', 'XLI', 'XLB', 'XLRE', 'XLP', 'XLY', 'XLU', 'GLD', 'SLV', 'IAU',
+    'PDBC', 'DBA', 'USO', 'UNG', 'ARKK', 'ARKQ', 'ARKW', 'ARKG', 'ARKF'
+  ];
+  
+  return etfsConhecidos.includes(ticker.toUpperCase());
+};
 
 // 🔥 HOOK RESPONSIVO CENTRALIZADO
 const useResponsive = () => {
@@ -2097,6 +2116,15 @@ export default function AtivoPage() {
   const [carteira, setCarteira] = useState(null);
   const [loading, setLoading] = useState(true);
 
+// ✅ HOOK BRAPI ETF com conditional call
+const {
+  etfData: etfBRAPIData,
+  loading: loadingETFBRAPI,
+  error: errorETFBRAPI,
+  refetch: refetchETFBRAPI,
+  isETFSupported
+} = useBRAPIETF(ticker && typeof ticker === 'string' ? ticker : '');
+
   // ✅ 2. HOOKS BÁSICOS (independentes)
   const { cotacaoUSD, loading: loadingUSD, ultimaAtualizacao: atualizacaoUSD, refetch: refetchUSD } = useCotacaoUSD();
   const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
@@ -2669,8 +2697,16 @@ export default function AtivoPage() {
         />
       )}
 
-      {/* Grid de Cards de Métricas */}
-      {!isFII && !ticker.includes('11') && (
+{/* Grid de Cards de Métricas - ATUALIZADO PARA ETFs */}
+      {isETF(ticker) ? (
+        // Cards específicos para ETFs com dados da BRAPI
+        <ETFMetricCards 
+          ticker={ticker}
+          etfData={etfBRAPIData}
+          loading={loadingETFBRAPI}
+        />
+      ) : !isFII && !ticker.includes('11') ? (
+        // Cards existentes para ações normais
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -2857,13 +2893,14 @@ export default function AtivoPage() {
             loading={loadingHGBrasil || loadingYahoo}
           />
         </div>
-      )}
+      ) : null}
 
-      <ETFHoldings 
-        ticker={ticker}
-        dadosYahoo={dadosYahoo}
-        loading={loadingYahoo}
-      />
+<ETFHoldings 
+  ticker={ticker}
+  dadosYahoo={dadosYahoo}
+  dadosBRAPI={etfBRAPIData} // ← NOVA PROP (opcional)
+  loading={loadingYahoo || loadingETFBRAPI}
+/>
 
       {/* Histórico de Dividendos */}
       <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={isFII} />
