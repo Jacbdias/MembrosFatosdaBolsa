@@ -1,11 +1,11 @@
-// src/hooks/useDataStore.tsx - SISTEMA HÍBRIDO: MANTÉM TUDO + ADICIONA BANCO
+// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@/hooks/use-user'; // ← PATH CORRETO COM HÍFEN
+import { useUser } from '@/hooks/use-user';
 
-// 🎯 DADOS INICIAIS DAS CARTEIRAS - MANTIDOS IGUAIS
+// 🎯 DADOS INICIAIS DAS CARTEIRAS
 const DADOS_INICIAIS = {
   smallCaps: [
     { id: 'sc1', ticker: "ALOS3", dataEntrada: "15/01/2021", precoEntrada: 26.68, precoTeto: 23.76, setor: "Shoppings" },
@@ -85,7 +85,6 @@ const DADOS_INICIAIS = {
     { id: 'fii22', ticker: "IRDM11", dataEntrada: "05/01/2022", precoEntrada: 107.04, precoTeto: 73.20, setor: "Papel" },
     { id: 'fii23', ticker: "MXRF11", dataEntrada: "12/07/2022", precoEntrada: 9.69, precoTeto: 9.40, setor: "Papel" }
   ],
-  // 🔥 CARTEIRAS INTERNACIONAIS COM EXEMPLOS DE PREÇO TETO BDR
   dividendosInternacional: [
     { 
       id: 'dint1', 
@@ -93,7 +92,7 @@ const DADOS_INICIAIS = {
       dataEntrada: "14/04/2023", 
       precoEntrada: 37.92, 
       precoTeto: 60.10, 
-      precoTetoBDR: 351.58, // 🔥 EXEMPLO: Preço teto em BRL
+      precoTetoBDR: 351.58,
       setor: "Petroleum" 
     },
     { id: 'dint2', ticker: "ADC", dataEntrada: "19/01/2023", precoEntrada: 73.74, precoTeto: 99.01, setor: "REIT - Retail" },
@@ -103,7 +102,7 @@ const DADOS_INICIAIS = {
       ticker: "O", 
       dataEntrada: "01/02/2024", 
       precoEntrada: 54.39, 
-      precoTetoBDR: 344.60, // 🔥 EXEMPLO: Preço teto em BRL (sem USD)
+      precoTetoBDR: 344.60,
       setor: "REIT - Net Lease" 
     },
     { id: 'dint5', ticker: "AVB", dataEntrada: "10/02/2022", precoEntrada: 242.00, precoTeto: 340.00, setor: "REIT - Apartamentos" },
@@ -129,7 +128,7 @@ const DADOS_INICIAIS = {
       dataEntrada: "09/04/2025", 
       precoEntrada: 98.88, 
       precoTeto: 110.00,
-      precoTetoBDR: 643.50, // 🔥 EXEMPLO: Preço teto em BRL
+      precoTetoBDR: 643.50,
       setor: "Tecnologia" 
     },
     { id: 'pa2', ticker: "AMZN", dataEntrada: "16/04/2025", precoEntrada: 176.29, precoTeto: 203.00, setor: "Varejo" },
@@ -150,7 +149,7 @@ const DADOS_INICIAIS = {
       dataEntrada: "29/05/2025", 
       precoEntrada: 112.86, 
       precoTeto: 135.20,
-      precoTetoBDR: 791.42, // 🔥 EXEMPLO: Preço teto em BRL
+      precoTetoBDR: 791.42,
       setor: "Tecnologia" 
     },
     { id: 'es2', ticker: "XP", dataEntrada: "26/05/2023", precoEntrada: 18.41, precoTeto: 24.34, setor: "Financial Services" },
@@ -164,7 +163,7 @@ const DADOS_INICIAIS = {
       ticker: "GOOGL", 
       dataEntrada: "06/03/2022", 
       precoEntrada: 131.83, 
-      precoTetoBDR: 896.83, // 🔥 EXEMPLO: Preço teto em BRL (sem USD)
+      precoTetoBDR: 896.83,
       setor: "Tecnologia" 
     },
     { id: 'es9', ticker: "META", dataEntrada: "17/02/2022", precoEntrada: 213.92, precoTeto: 322.00, setor: "Tecnologia" },
@@ -172,7 +171,7 @@ const DADOS_INICIAIS = {
   ]
 };
 
-// 🎯 CONFIGURAÇÕES DAS CARTEIRAS - MANTIDAS IGUAIS + MAPEAMENTO PARA BANCO
+// 🎯 CONFIGURAÇÕES DAS CARTEIRAS
 const CARTEIRAS_CONFIG = {
   smallCaps: { 
     nome: 'Small Caps', 
@@ -206,7 +205,6 @@ const CARTEIRAS_CONFIG = {
     campos: ['ticker', 'setor', 'dataEntrada', 'precoEntrada', 'precoTeto'],
     suportaBDR: false
   },
-  // 🔥 CARTEIRAS INTERNACIONAIS COM SUPORTE BDR
   dividendosInternacional: { 
     nome: 'Div. Internacional', 
     icon: '🌎', 
@@ -221,7 +219,7 @@ const CARTEIRAS_CONFIG = {
     color: '#06b6d4',
     moeda: 'USD',
     campos: ['ticker', 'setor', 'dataEntrada', 'precoEntrada'],
-    suportaBDR: false // ETFs não têm preço teto
+    suportaBDR: false
   },
   projetoAmerica: { 
     nome: 'Projeto América', 
@@ -243,140 +241,275 @@ const CARTEIRAS_CONFIG = {
 
 const STORAGE_KEY = 'carteiras-dados';
 
-// 🔥 FUNÇÕES DA API (com headers de autenticação)
+// 🔥 FUNÇÕES DA API PARA PRISMA (com error handling robusto)
 const api = {
   getCarteira: async (carteira: string) => {
-    const userEmail = localStorage.getItem('user-email');
-    const token = localStorage.getItem('custom-auth-token');
-    
-    const response = await fetch(`/api/meus-ativos/${carteira}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Email': userEmail || '',
-        'Authorization': `Bearer ${token || ''}`
+    try {
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
+      
+      if (!userEmail || !token) {
+        return [];
       }
-    });
-    if (!response.ok) throw new Error('Erro ao buscar carteira');
-    return response.json();
+      
+      const response = await fetch(`/api/meus-ativos/${carteira}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn(`API Prisma - Erro ao buscar ${carteira}: ${response.status}`);
+        return [];
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.warn(`API Prisma - Erro na requisição ${carteira}:`, error);
+      return [];
+    }
   },
 
   adicionarAtivo: async (carteira: string, dados: any) => {
-    const userEmail = localStorage.getItem('user-email');
-    const token = localStorage.getItem('custom-auth-token');
-    
-    const response = await fetch(`/api/meus-ativos/${carteira}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Email': userEmail || '',
-        'Authorization': `Bearer ${token || ''}`
-      },
-      body: JSON.stringify(dados)
-    });
-    if (!response.ok) throw new Error('Erro ao adicionar ativo');
-    return response.json();
+    try {
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
+      
+      const response = await fetch(`/api/meus-ativos/${carteira}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail || '',
+          'Authorization': `Bearer ${token || ''}`
+        },
+        body: JSON.stringify(dados)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('API Prisma - Erro ao adicionar:', error);
+      throw error;
+    }
   },
 
   editarAtivo: async (carteira: string, id: string, dados: any) => {
-    const userEmail = localStorage.getItem('user-email');
-    const token = localStorage.getItem('custom-auth-token');
-    
-    const response = await fetch(`/api/meus-ativos/${carteira}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Email': userEmail || '',
-        'Authorization': `Bearer ${token || ''}`
-      },
-      body: JSON.stringify({ id, ...dados })
-    });
-    if (!response.ok) throw new Error('Erro ao editar ativo');
-    return response.json();
+    try {
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
+      
+      const response = await fetch(`/api/meus-ativos/${carteira}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail || '',
+          'Authorization': `Bearer ${token || ''}`
+        },
+        body: JSON.stringify({ id, ...dados })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('API Prisma - Erro ao editar:', error);
+      throw error;
+    }
   },
 
   removerAtivo: async (carteira: string, id: string) => {
-    const userEmail = localStorage.getItem('user-email');
-    const token = localStorage.getItem('custom-auth-token');
-    
-    const response = await fetch(`/api/meus-ativos/${carteira}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Email': userEmail || '',
-        'Authorization': `Bearer ${token || ''}`
-      },
-      body: JSON.stringify({ id })
-    });
-    if (!response.ok) throw new Error('Erro ao remover ativo');
-    return response.json();
+    try {
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
+      
+      const response = await fetch(`/api/meus-ativos/${carteira}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail || '',
+          'Authorization': `Bearer ${token || ''}`
+        },
+        body: JSON.stringify({ id })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('API Prisma - Erro ao remover:', error);
+      throw error;
+    }
   },
 
   reordenarAtivos: async (carteira: string, novosAtivos: any[]) => {
-    const userEmail = localStorage.getItem('user-email');
-    const token = localStorage.getItem('custom-auth-token');
-    
-    const response = await fetch(`/api/meus-ativos/${carteira}/reorder`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Email': userEmail || '',
-        'Authorization': `Bearer ${token || ''}`
-      },
-      body: JSON.stringify({ novosAtivos })
-    });
-    if (!response.ok) throw new Error('Erro ao reordenar');
-    return response.json();
+    try {
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
+      
+      const response = await fetch(`/api/meus-ativos/${carteira}/reorder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail || '',
+          'Authorization': `Bearer ${token || ''}`
+        },
+        body: JSON.stringify({ novosAtivos })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('API Prisma - Erro ao reordenar:', error);
+      throw error;
+    }
   }
 };
 
 // 🎯 CONTEXT DO STORE
 const DataStoreContext = createContext<any>(null);
 
-// 🎯 HOOK PRINCIPAL PARA USAR O STORE - MANTIDO IGUAL
+// 🎯 HOOK PRINCIPAL
 export const useDataStore = () => {
   const context = useContext(DataStoreContext);
   
   if (!context) {
-    console.error(`❌ useDataStore chamado fora do DataStoreProvider!`);
     throw new Error('useDataStore deve ser usado dentro do DataStoreProvider');
   }
   
   return context;
 };
 
-// 🎯 PROVIDER HÍBRIDO - MANTÉM TUDO + ADICIONA REACT QUERY
+// 🎯 PROVIDER HÍBRIDO CORRIGIDO
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
-  // 🔥 USAR SEU HOOK COM PATH CORRETO
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  // 🔥 STATES ORIGINAIS (mantidos)
+  // 🔥 STATES ESTÁVEIS
   const [dados, setDados] = useState(DADOS_INICIAIS);
-  const [cotacoes, setCotacoes] = useState({});
+  const [cotacoes, setCotacoes] = useState<Record<string, number>>({});
   const [cotacaoUSD, setCotacaoUSD] = useState(5.85);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [modoSincronizacao, setModoSincronizacao] = useState<'localStorage' | 'banco' | 'hibrido'>('localStorage');
+  
+  // 🔥 REFS PARA CONTROLE
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingRef = useRef(false);
 
-  // 🔥 REACT QUERY - BUSCAR DADOS DO BANCO PARA USUÁRIOS LOGADOS
-  const carteirasQueries = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
-    acc[carteira] = useQuery({
-      queryKey: ['meus-ativos', carteira, user?.id],
-      queryFn: () => api.getCarteira(carteira),
-      enabled: !!user?.id && modoSincronizacao !== 'localStorage',
-      refetchOnWindowFocus: true,
-      refetchInterval: 60000,
-      staleTime: 30000,
-    });
-    return acc;
-  }, {} as any);
+  // 🔥 REACT QUERY ESTÁTICO (SEM LOOPS) - SEMPRE DECLARAR TODOS OS HOOKS
+  const smallCapsQuery = useQuery({
+    queryKey: ['carteira', 'smallCaps', user?.id],
+    queryFn: () => api.getCarteira('smallCaps'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
 
-  // 🔥 MUTATIONS PARA SYNC COM BANCO
+  const microCapsQuery = useQuery({
+    queryKey: ['carteira', 'microCaps', user?.id],
+    queryFn: () => api.getCarteira('microCaps'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  const dividendosQuery = useQuery({
+    queryKey: ['carteira', 'dividendos', user?.id],
+    queryFn: () => api.getCarteira('dividendos'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  const fiisQuery = useQuery({
+    queryKey: ['carteira', 'fiis', user?.id],
+    queryFn: () => api.getCarteira('fiis'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  const dividendosInternacionalQuery = useQuery({
+    queryKey: ['carteira', 'dividendosInternacional', user?.id],
+    queryFn: () => api.getCarteira('dividendosInternacional'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  const etfsQuery = useQuery({
+    queryKey: ['carteira', 'etfs', user?.id],
+    queryFn: () => api.getCarteira('etfs'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  const projetoAmericaQuery = useQuery({
+    queryKey: ['carteira', 'projetoAmerica', user?.id],
+    queryFn: () => api.getCarteira('projetoAmerica'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  const exteriorStocksQuery = useQuery({
+    queryKey: ['carteira', 'exteriorStocks', user?.id],
+    queryFn: () => api.getCarteira('exteriorStocks'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
+
+  // 🔥 OBJECT COM TODAS AS QUERIES
+  const carteirasQueries = {
+    smallCaps: smallCapsQuery,
+    microCaps: microCapsQuery,
+    dividendos: dividendosQuery,
+    fiis: fiisQuery,
+    dividendosInternacional: dividendosInternacionalQuery,
+    etfs: etfsQuery,
+    projetoAmerica: projetoAmericaQuery,
+    exteriorStocks: exteriorStocksQuery
+  };
+
+  // 🔥 MUTATIONS OTIMIZADAS
   const adicionarMutation = useMutation({
     mutationFn: ({ carteira, dados }: { carteira: string, dados: any }) => 
       api.adicionarAtivo(carteira, dados),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ queryKey: ['meus-ativos', carteira, user?.id] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
@@ -384,7 +517,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
       api.editarAtivo(carteira, id, dados),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ queryKey: ['meus-ativos', carteira, user?.id] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
@@ -392,7 +528,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, id }: { carteira: string, id: string }) => 
       api.removerAtivo(carteira, id),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ queryKey: ['meus-ativos', carteira, user?.id] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
@@ -400,24 +539,25 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
       api.reordenarAtivos(carteira, novosAtivos),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ queryKey: ['meus-ativos', carteira, user?.id] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
-  // 🔥 TODAS AS FUNÇÕES ORIGINAIS MANTIDAS
+  // 🔥 FUNÇÕES BÁSICAS ESTÁVEIS
   const lerDados = useCallback(() => {
     try {
       if (typeof window === 'undefined') return DADOS_INICIAIS;
       
       const dadosStorage = localStorage.getItem(STORAGE_KEY);
       if (dadosStorage) {
-        const dadosParsed = JSON.parse(dadosStorage);
-        console.log('📖 Dados lidos do localStorage:', dadosParsed);
-        return dadosParsed;
+        return JSON.parse(dadosStorage);
       }
       return DADOS_INICIAIS;
     } catch (error) {
-      console.error('❌ Erro ao ler dados do localStorage:', error);
+      console.error('Erro ao ler localStorage:', error);
       return DADOS_INICIAIS;
     }
   }, []);
@@ -427,124 +567,63 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       if (typeof window === 'undefined') return false;
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
-      console.log('💾 Dados salvos no localStorage:', novosDados);
-      
-      setTimeout(() => {
-        window.dispatchEvent(new Event('storage'));
-        window.dispatchEvent(new Event('localStorageUpdate'));
-        window.dispatchEvent(new CustomEvent('dataStoreUpdate', { 
-          detail: novosDados 
-        }));
-        console.log('🔔 Eventos de sincronização disparados');
-      }, 100);
-      
       return true;
     } catch (error) {
-      console.error('❌ Erro ao salvar dados no localStorage:', error);
+      console.error('Erro ao salvar localStorage:', error);
       return false;
     }
   }, []);
 
-  // 🔄 LÓGICA DE SINCRONIZAÇÃO HÍBRIDA
+  // 🔥 INICIALIZAÇÃO CONTROLADA
   useEffect(() => {
-    console.log('🚀 DataStore: Iniciando modo híbrido...');
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
+    console.log('🚀 DataStore: Inicializando modo híbrido...');
     
     if (user?.id) {
-      console.log('👤 Usuário logado - habilitando sincronização com banco');
+      console.log('👤 Usuário logado - modo híbrido');
       setModoSincronizacao('hibrido');
-      
-      // Verificar se há dados no localStorage para migrar
-      const dadosLocal = localStorage.getItem(STORAGE_KEY);
-      if (dadosLocal) {
-        console.log('📦 Dados encontrados no localStorage - iniciando migração automática...');
-        
-        setTimeout(() => {
-          migrarDadosAutomaticamente();
-        }, 2000); // Aguardar queries carregarem
-      }
     } else {
-      console.log('❓ Usuário não logado - usando apenas localStorage');
+      console.log('❓ Usuário não logado - localStorage');
       setModoSincronizacao('localStorage');
       const dadosIniciais = lerDados();
       setDados(dadosIniciais);
     }
     
     setIsInitialized(true);
+    isLoadingRef.current = false;
   }, [user?.id, lerDados]);
 
-  // 🔥 MIGRAÇÃO AUTOMÁTICA DOS DADOS
-  const migrarDadosAutomaticamente = useCallback(async () => {
-    const dadosLocal = localStorage.getItem(STORAGE_KEY);
-    if (!dadosLocal || !user?.id) return;
-
-    try {
-      const dados = JSON.parse(dadosLocal);
-      console.log('🔄 Iniciando migração automática dos dados para o banco...');
-
-      let totalMigrados = 0;
-      for (const [carteira, ativos] of Object.entries(dados)) {
-        if (CARTEIRAS_CONFIG[carteira as keyof typeof CARTEIRAS_CONFIG] && Array.isArray(ativos)) {
-          console.log(`📁 Migrando ${(ativos as any[]).length} ativos da carteira ${carteira}`);
-          
-          for (const ativo of (ativos as any[])) {
-            try {
-              await api.adicionarAtivo(carteira, ativo);
-              totalMigrados++;
-            } catch (error) {
-              console.error(`❌ Erro ao migrar ativo ${ativo.ticker}:`, error);
-            }
-          }
-        }
-      }
-
-      if (totalMigrados > 0) {
-        localStorage.removeItem(STORAGE_KEY);
-        console.log(`✅ Migração concluída! ${totalMigrados} ativos migrados.`);
-        queryClient.invalidateQueries({ queryKey: ['meus-ativos'] });
-        
-        alert(`🎉 Seus dados foram sincronizados!\n\n${totalMigrados} ativos foram migrados para o banco de dados.\n\nAgora estão disponíveis em todos os seus dispositivos!`);
-      }
-      
-    } catch (error) {
-      console.error('❌ Erro na migração automática:', error);
-    }
-  }, [user?.id, queryClient]);
-
-  // 🔥 COMBINAR DADOS DO BANCO COM DADOS LOCAIS (MODO HÍBRIDO)
+  // 🔥 COMBINAR DADOS HÍBRIDOS
   const dadosFinais = useMemo(() => {
     if (modoSincronizacao === 'localStorage' || !user?.id) {
       return dados;
     }
     
-    // Combinar dados do banco (React Query) com estrutura local
+    // Modo híbrido: banco + localStorage
     const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
-      const dadosBanco = carteirasQueries[carteira]?.data || [];
+      const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+      const dadosBanco = query?.data || [];
       const dadosLocal = dados[carteira] || [];
       
-      // Se há dados no banco, usar eles. Senão, usar local.
-      acc[carteira] = dadosBanco.length > 0 ? dadosBanco : dadosLocal;
+      // Priorizar dados do banco quando disponível
+      if (query?.isSuccess && dadosBanco.length > 0) {
+        acc[carteira] = dadosBanco;
+      } else {
+        acc[carteira] = dadosLocal;
+      }
+      
       return acc;
     }, {} as any);
     
     return dadosCombinados;
   }, [dados, carteirasQueries, modoSincronizacao, user?.id]);
 
-// 🔥 SINCRONIZAR ESTADO LOCAL COM DADOS DO BANCO
-useEffect(() => {
-  if (modoSincronizacao === 'hibrido' && user?.id) {
-    const temDadosBanco = Object.values(carteirasQueries).some((query: any) => 
-      query.data && query.data.length > 0
-    );
-    
-    if (temDadosBanco) {
-      console.log('🔄 Sincronizando estado local com dados do banco...');
-      setDados(dadosFinais);
-    }
-  }
-}, [dadosFinais, modoSincronizacao, user?.id, carteirasQueries]);
-
-  // 🔥 FUNÇÕES ORIGINAIS MANTIDAS (interface compatível)
+  // 🔥 FUNÇÕES DE COTAÇÃO
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
+    if (!tickers || tickers.length === 0) return {};
+    
     try {
       setLoading(true);
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
@@ -553,7 +632,7 @@ useEffect(() => {
       if (!response.ok) throw new Error('Erro na API');
       
       const data = await response.json();
-      const novasCotacoes: any = {};
+      const novasCotacoes: Record<string, number> = {};
       
       data.results?.forEach((item: any) => {
         novasCotacoes[item.symbol] = item.regularMarketPrice;
@@ -571,8 +650,6 @@ useEffect(() => {
 
   const buscarCotacaoUSD = useCallback(async () => {
     try {
-      console.log('🔄 Buscando cotação USD/BRL...');
-      
       const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
       
       if (!response.ok) {
@@ -582,20 +659,19 @@ useEffect(() => {
       const data = await response.json();
       
       if (!data.rates || !data.rates.BRL) {
-        throw new Error('Taxa BRL não encontrada na resposta da API');
+        throw new Error('Taxa BRL não encontrada');
       }
       
       const cotacao = parseFloat(data.rates.BRL);
-      console.log('💱 Cotação USD/BRL obtida:', cotacao);
-      
       setCotacaoUSD(cotacao);
       return cotacao;
     } catch (error) {
-      console.error('❌ Erro ao buscar cotação USD/BRL:', error);
+      console.error('Erro ao buscar USD/BRL:', error);
       return cotacaoUSD;
     }
   }, [cotacaoUSD]);
 
+  // 🔥 FUNÇÃO obterCarteira
   const obterCarteira = useCallback((nomeCarteira: string) => {
     const dadosCarteira = dadosFinais[nomeCarteira] || [];
     return dadosCarteira.map((item: any) => ({
@@ -605,7 +681,7 @@ useEffect(() => {
     }));
   }, [dadosFinais, cotacoes]);
 
-  // 🔥 FUNÇÕES CRUD HÍBRIDAS (salvam local + banco)
+  // 🔥 FUNÇÕES CRUD HÍBRIDAS
   const adicionarAtivo = useCallback((carteira: string, novoAtivo: any) => {
     const id = `${carteira.slice(0,3)}${Date.now()}`;
     const ativoComId = {
@@ -615,7 +691,7 @@ useEffect(() => {
       editadoEm: new Date().toISOString()
     };
 
-    // Salvar local
+    // Salvar local imediatamente
     const novosDados = {
       ...dados,
       [carteira]: [...(dados[carteira] || []), ativoComId]
@@ -626,12 +702,14 @@ useEffect(() => {
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
     } else if (user?.id) {
-      // Salvar no banco
+      // Sync com Prisma
       adicionarMutation.mutate({ carteira, dados: ativoComId });
     }
 
-    buscarCotacoes([novoAtivo.ticker]);
-    console.log(`➕ Ativo adicionado em ${carteira}:`, ativoComId);
+    if (novoAtivo.ticker) {
+      buscarCotacoes([novoAtivo.ticker]);
+    }
+    
     return ativoComId;
   }, [dados, salvarDados, adicionarMutation, buscarCotacoes, modoSincronizacao, user?.id]);
 
@@ -653,7 +731,6 @@ useEffect(() => {
       editarMutation.mutate({ carteira, id, dados: dadosAtualizados });
     }
     
-    console.log(`✏️ Ativo editado em ${carteira}:`, id, dadosAtualizados);
     return novosDados[carteira].find((a: any) => a.id === id);
   }, [dados, salvarDados, editarMutation, modoSincronizacao, user?.id]);
 
@@ -671,14 +748,13 @@ useEffect(() => {
       removerMutation.mutate({ carteira, id: ativoId });
     }
     
-    console.log(`🗑️ Ativo removido de ${carteira}:`, ativoId);
     return true;
   }, [dados, salvarDados, removerMutation, modoSincronizacao, user?.id]);
 
   const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
     const novosDados = {
       ...dados,
-      [carteira]: novosAtivos.map((ativo, index) => ({
+      [carteira]: novosAtivos.map((ativo) => ({
         ...ativo,
         editadoEm: new Date().toISOString()
       }))
@@ -691,53 +767,25 @@ useEffect(() => {
     } else if (user?.id) {
       reordenarMutation.mutate({ carteira, novosAtivos });
     }
-    
-    console.log(`🔄 Ativos reordenados em ${carteira}`);
   }, [dados, salvarDados, reordenarMutation, modoSincronizacao, user?.id]);
 
-  // 🔥 SETTER CUSTOMIZADO MANTIDO PARA COMPATIBILIDADE
-  const atualizarDados = useCallback((novosDados: any) => {
-    console.log('🔄 DataStore: Atualizando dados via setter:', novosDados);
-    
-    let dadosFinaisLocal;
-    
-    if (typeof novosDados === 'function') {
-      dadosFinaisLocal = novosDados(dados);
-    } else {
-      dadosFinaisLocal = novosDados;
-    }
-    
-    setDados(dadosFinaisLocal);
-    
-    if (modoSincronizacao === 'localStorage') {
-      salvarDados(dadosFinaisLocal);
-    }
-  }, [dados, salvarDados, modoSincronizacao]);
-
-  // 🔥 TODAS AS OUTRAS FUNÇÕES MANTIDAS IGUAIS
+  // 🔥 OUTRAS FUNÇÕES MANTIDAS
   const atualizarTodasCotacoes = useCallback(async () => {
-    console.log('🔄 Iniciando atualização de todas as cotações...');
-    
     const todosTickers = Object.values(dadosFinais)
       .flat()
       .map((item: any) => item.ticker)
-      .filter((ticker, index, arr) => arr.indexOf(ticker) === index);
+      .filter((ticker, index, arr) => arr.indexOf(ticker) === index && ticker);
 
     if (todosTickers.length > 0) {
-      console.log('📈 Buscando cotações de', todosTickers.length, 'ativos...');
       await buscarCotacoes(todosTickers);
     }
     
-    console.log('💱 Buscando cotação USD/BRL...');
     await buscarCotacaoUSD();
-    
-    console.log('✅ Todas as cotações atualizadas!');
   }, [dadosFinais, buscarCotacoes, buscarCotacaoUSD]);
 
   const converterUSDparaBRL = useCallback((carteira: string, cotacaoCustomizada = null) => {
-    const carteiraConfig = CARTEIRAS_CONFIG[carteira];
+    const carteiraConfig = CARTEIRAS_CONFIG[carteira as keyof typeof CARTEIRAS_CONFIG];
     if (!carteiraConfig || !carteiraConfig.suportaBDR) {
-      console.warn(`Carteira ${carteira} não suporta conversão BDR`);
       return false;
     }
     
@@ -748,7 +796,6 @@ useEffect(() => {
     );
     
     if (ativosParaConverter.length === 0) {
-      console.log(`Nenhum ativo para converter em ${carteira}`);
       return false;
     }
     
@@ -771,144 +818,74 @@ useEffect(() => {
     setDados(novosDados);
     salvarDados(novosDados);
     
-    console.log(`💱 ${ativosParaConverter.length} ativos convertidos em ${carteira} (cotação: ${cotacaoUsada})`);
     return ativosParaConverter.length;
   }, [dados, cotacaoUSD, salvarDados]);
 
   const obterEstatisticas = useCallback(() => {
-    const totalAtivos = Object.values(dadosFinais).reduce((acc: number, carteira: any) => acc + (Array.isArray(carteira) ? carteira.length : 0), 0);
+    const totalAtivos = Object.values(dadosFinais).reduce((acc: number, carteira: any) => 
+      acc + (Array.isArray(carteira) ? carteira.length : 0), 0);
+    
     const carteirasPorTamanho = Object.entries(dadosFinais)
-      .map(([nome, carteira]: [string, any]) => ({ nome, count: Array.isArray(carteira) ? carteira.length : 0 }))
+      .map(([nome, carteira]: [string, any]) => ({ 
+        nome, 
+        count: Array.isArray(carteira) ? carteira.length : 0 
+      }))
       .sort((a, b) => b.count - a.count);
-
-    const carteirasInternacionais = Object.keys(CARTEIRAS_CONFIG).filter(
-      key => CARTEIRAS_CONFIG[key as keyof typeof CARTEIRAS_CONFIG].suportaBDR
-    );
-    
-    let ativosComBDR = 0;
-    let ativosComUSD = 0;
-    let ativosSemPrecoTeto = 0;
-    
-    carteirasInternacionais.forEach(carteira => {
-      const ativos = dadosFinais[carteira] || [];
-      ativos.forEach((ativo: any) => {
-        if (ativo.precoTetoBDR) ativosComBDR++;
-        else if (ativo.precoTeto) ativosComUSD++;
-        else ativosSemPrecoTeto++;
-      });
-    });
 
     return {
       totalAtivos,
       totalCarteiras: Object.keys(dadosFinais).length,
       carteirasPorTamanho,
-      bdr: {
-        ativosComBDR,
-        ativosComUSD,
-        ativosSemPrecoTeto,
-        cotacaoUSDAtual: cotacaoUSD
-      },
       modoSincronizacao,
       ultimaAtualizacao: new Date().toISOString()
     };
-  }, [dadosFinais, cotacaoUSD, modoSincronizacao]);
+  }, [dadosFinais, modoSincronizacao]);
 
-  // 🔥 SETUP INICIAL E LISTENERS (mantidos)
-  useEffect(() => {
-    if (isInitialized) {
-      buscarCotacaoUSD();
-    }
-  }, [isInitialized, buscarCotacaoUSD]);
+  const debug = useCallback(() => {
+    const stats = obterEstatisticas();
+    console.log('🔍 DataStore Debug:', {
+      dados: dadosFinais,
+      stats,
+      modoSincronizacao,
+      user: user?.id,
+      cotacaoUSD
+    });
+    return { dados: dadosFinais, stats, modoSincronizacao, user: user?.id, cotacaoUSD };
+  }, [dadosFinais, obterEstatisticas, modoSincronizacao, user?.id, cotacaoUSD]);
 
+  // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
     if (!isInitialized) return;
     
-    const interval = setInterval(() => {
-      console.log('⏰ Atualizando cotação USD/BRL automaticamente...');
+    buscarCotacaoUSD();
+    
+    // Timer controlado
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    intervalRef.current = setInterval(() => {
       buscarCotacaoUSD();
     }, 5 * 60 * 1000);
     
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [isInitialized, buscarCotacaoUSD]);
 
+  // 🔥 DEBUG GLOBAL
   useEffect(() => {
-    if (typeof window === 'undefined' || modoSincronizacao !== 'localStorage') return;
-    
-    console.log('👂 DataStore: Configurando listeners de sincronização...');
-    
-    const handleStorageChange = (event: any) => {
-      console.log('🔄 DataStore: Mudança detectada no localStorage');
-      
-      if (event?.key === STORAGE_KEY || !event?.key) {
-        const novosDados = lerDados();
-        console.log('📊 DataStore: Atualizando dados para:', novosDados);
-        setDados(novosDados);
-      }
-    };
-
-    const handleCustomUpdate = () => {
-      console.log('🔄 DataStore: Evento customizado detectado');
-      const novosDados = lerDados();
-      setDados(novosDados);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('localStorageUpdate', handleCustomUpdate);
-    window.addEventListener('dataStoreUpdate', handleCustomUpdate);
-
-    const pollingInterval = setInterval(() => {
-      const dadosAtuais = lerDados();
-      const dadosString = JSON.stringify(dadosAtuais);
-      const dadosAtuaisString = JSON.stringify(dados);
-      
-      if (dadosString !== dadosAtuaisString) {
-        console.log('🔄 DataStore: Mudança detectada via polling');
-        setDados(dadosAtuais);
-      }
-    }, 3000);
-
-    return () => {
-      console.log('🗑️ DataStore: Removendo listeners...');
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('localStorageUpdate', handleCustomUpdate);
-      window.removeEventListener('dataStoreUpdate', handleCustomUpdate);
-      clearInterval(pollingInterval);
-    };
-  }, [lerDados, dados, modoSincronizacao, isInitialized]);
-
-  const debug = useCallback(() => {
-    console.log('🔍 === DEBUG DataStore Híbrido ===');
-    console.log('📊 Dados finais:', dadosFinais);
-    console.log('💾 localStorage:', typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : 'N/A');
-    console.log('📈 Estatísticas:', obterEstatisticas());
-    console.log('🔄 Modo sincronização:', modoSincronizacao);
-    console.log('👤 Usuário:', user?.id);
-    console.log('🏁 Inicializado:', isInitialized);
-    console.log('💱 Cotação USD/BRL:', cotacaoUSD);
-    
-    return {
-      dados: dadosFinais,
-      localStorage: typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null,
-      estatisticas: obterEstatisticas(),
-      modoSincronizacao,
-      user: user?.id,
-      isInitialized,
-      cotacaoUSD
-    };
-  }, [dadosFinais, obterEstatisticas, modoSincronizacao, user?.id, isInitialized, cotacaoUSD]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && isInitialized) {
       (window as any).debugDataStore = debug;
-      console.log('🔧 Função debugDataStore() híbrida disponibilizada globalmente');
       return () => {
         delete (window as any).debugDataStore;
       };
     }
-  }, [debug]);
+  }, [debug, isInitialized]);
 
   if (!isInitialized) {
-    console.log('⏳ DataStore ainda inicializando...');
     return (
       <DataStoreContext.Provider value={null}>
         {children}
@@ -916,8 +893,9 @@ useEffect(() => {
     );
   }
 
-  const value = {
-    // Dados finais (híbridos)
+  // 🔥 VALUE OBJECT ESTÁVEL
+  const contextValue = {
+    // Dados
     dados: dadosFinais,
     cotacoes,
     cotacaoUSD,
@@ -928,8 +906,8 @@ useEffect(() => {
     // Configurações
     CARTEIRAS_CONFIG,
     
-    // Métodos mantidos (interface compatível)
-    setDados: atualizarDados,
+    // Métodos
+    setDados,
     obterCarteira,
     adicionarAtivo,
     editarAtivo,
@@ -942,21 +920,19 @@ useEffect(() => {
     obterEstatisticas,
     debug,
 
-    // Estados do React Query
+    // Estados React Query
     isLoading: Object.values(carteirasQueries).some((q: any) => q.isLoading),
     isError: Object.values(carteirasQueries).some((q: any) => q.isError)
   };
 
-  console.log('✅ DataStore Híbrido: Provider renderizando com modo:', modoSincronizacao);
-
   return (
-    <DataStoreContext.Provider value={value}>
+    <DataStoreContext.Provider value={contextValue}>
       {children}
     </DataStoreContext.Provider>
   );
 };
 
-// 🎯 HOOKS ESPECÍFICOS MANTIDOS IGUAIS
+// 🎯 HOOKS ESPECÍFICOS
 export const useSmallCaps = () => {
   const { obterCarteira } = useDataStore();
   return obterCarteira('smallCaps');
