@@ -2,6 +2,61 @@
 
 import React, { useState, useEffect } from 'react';
 
+// 🔥 HOOK RESPONSIVO INTERNO
+const useResponsive = () => {
+  const [screenSize, setScreenSize] = useState(() => {
+    if (typeof window === 'undefined') return 'desktop';
+    
+    const width = window.innerWidth;
+    if (width <= 480) return 'mobile';
+    if (width <= 768) return 'tablet';
+    if (width <= 1024) return 'laptop';
+    return 'desktop';
+  });
+
+  const [dimensions, setDimensions] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800
+  }));
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      setDimensions({ width, height });
+      
+      if (width <= 480) setScreenSize('mobile');
+      else if (width <= 768) setScreenSize('tablet');
+      else if (width <= 1024) setScreenSize('laptop');
+      else setScreenSize('desktop');
+    };
+
+    let timeoutId;
+    const debouncedResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleResize, 150);
+    };
+
+    window.addEventListener('resize', debouncedResize);
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return {
+    screenSize,
+    isMobile: screenSize === 'mobile',
+    isTablet: screenSize === 'tablet',
+    isLaptop: screenSize === 'laptop',
+    isDesktop: screenSize === 'desktop',
+    isMobileOrTablet: screenSize === 'mobile' || screenSize === 'tablet',
+    width: dimensions.width,
+    height: dimensions.height
+  };
+};
+
 // 🏢 FUNÇÃO PARA DETECTAR ETFs AUTOMATICAMENTE
 const isETF = (ticker: string): boolean => {
   if (!ticker) return false;
@@ -164,6 +219,7 @@ const useETFData = (ticker: string) => {
 
   return { etfData, loading, error, refetch: fetchETFData };
 };
+
 const getETFHoldingsMock = (ticker: string) => {
   const etfData: Record<string, any> = {
     'QUAL': {
@@ -281,164 +337,6 @@ const getETFHoldingsMock = (ticker: string) => {
         { sector: 'Materials', weight: 2.7 },
         { sector: 'Utilities', weight: 2.6 }
       ]
-    },
-    'TFLO': {
-      name: 'iShares Treasury Floating Rate Bond ETF',
-      description: 'Seeks to track the investment results of an index composed of U.S. Treasury floating rate bonds.',
-      totalHoldings: 'N/A (Bond ETF)',
-      topHoldings: [
-        { symbol: 'US TREASURY FRN 2026', name: 'US Treasury Floating Rate Note 2026', weight: 15.2, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY FRN 2025', name: 'US Treasury Floating Rate Note 2025', weight: 12.8, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY FRN 2027', name: 'US Treasury Floating Rate Note 2027', weight: 11.4, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY FRN 2024', name: 'US Treasury Floating Rate Note 2024', weight: 10.1, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY FRN 2028', name: 'US Treasury Floating Rate Note 2028', weight: 9.7, sector: 'Government Bonds' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Government Bonds', weight: 100.0 }
-      ]
-    },
-    'TLT': {
-      name: 'iShares 20+ Year Treasury Bond ETF',
-      description: 'Seeks to track the investment results of an index composed of U.S. Treasury bonds with remaining maturities greater than twenty years.',
-      totalHoldings: 'N/A (Bond ETF)',
-      topHoldings: [
-        { symbol: 'US TREASURY 2054', name: 'US Treasury Bond 3.625% 2054', weight: 8.2, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY 2053', name: 'US Treasury Bond 3.875% 2053', weight: 7.8, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY 2052', name: 'US Treasury Bond 2.875% 2052', weight: 7.1, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY 2051', name: 'US Treasury Bond 2.375% 2051', weight: 6.9, sector: 'Government Bonds' },
-        { symbol: 'US TREASURY 2050', name: 'US Treasury Bond 1.375% 2050', weight: 6.5, sector: 'Government Bonds' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Government Bonds', weight: 100.0 }
-      ]
-    },
-    'HERO': {
-      name: 'Global X Video Games & Esports ETF',
-      description: 'Seeks to invest in companies that develop or publish video games, facilitate the streaming and distribution of video gaming or esports content.',
-      totalHoldings: 40,
-      topHoldings: [
-        { symbol: 'NVDA', name: 'NVIDIA Corporation', weight: 9.8, sector: 'Technology' },
-        { symbol: 'NTES', name: 'NetEase Inc', weight: 8.7, sector: 'Communication Services' },
-        { symbol: 'TCEHY', name: 'Tencent Holdings Ltd', weight: 8.1, sector: 'Communication Services' },
-        { symbol: 'SE', name: 'Sea Limited', weight: 7.9, sector: 'Communication Services' },
-        { symbol: 'TTWO', name: 'Take-Two Interactive Software', weight: 6.8, sector: 'Communication Services' },
-        { symbol: 'EA', name: 'Electronic Arts Inc', weight: 6.2, sector: 'Communication Services' },
-        { symbol: 'RBLX', name: 'Roblox Corporation', weight: 5.1, sector: 'Communication Services' },
-        { symbol: 'AMD', name: 'Advanced Micro Devices Inc', weight: 4.9, sector: 'Technology' },
-        { symbol: 'ATVI', name: 'Activision Blizzard Inc', weight: 4.7, sector: 'Communication Services' },
-        { symbol: 'BILI', name: 'Bilibili Inc', weight: 3.8, sector: 'Communication Services' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Communication Services', weight: 65.2 },
-        { sector: 'Technology', weight: 28.1 },
-        { sector: 'Consumer Discretionary', weight: 6.7 }
-      ]
-    },
-    'SOXX': {
-      name: 'iShares Semiconductor ETF',
-      description: 'Seeks to track the investment results of an index composed of U.S.-listed semiconductor companies.',
-      totalHoldings: 30,
-      topHoldings: [
-        { symbol: 'NVDA', name: 'NVIDIA Corporation', weight: 21.8, sector: 'Technology' },
-        { symbol: 'AVGO', name: 'Broadcom Inc', weight: 8.9, sector: 'Technology' },
-        { symbol: 'AMD', name: 'Advanced Micro Devices Inc', weight: 7.2, sector: 'Technology' },
-        { symbol: 'QCOM', name: 'QUALCOMM Incorporated', weight: 6.8, sector: 'Technology' },
-        { symbol: 'INTC', name: 'Intel Corporation', weight: 6.1, sector: 'Technology' },
-        { symbol: 'TXN', name: 'Texas Instruments Incorporated', weight: 5.9, sector: 'Technology' },
-        { symbol: 'MU', name: 'Micron Technology Inc', weight: 5.2, sector: 'Technology' },
-        { symbol: 'AMAT', name: 'Applied Materials Inc', weight: 4.8, sector: 'Technology' },
-        { symbol: 'LRCX', name: 'Lam Research Corporation', weight: 4.1, sector: 'Technology' },
-        { symbol: 'KLAC', name: 'KLA Corporation', weight: 3.9, sector: 'Technology' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Technology', weight: 100.0 }
-      ]
-    },
-    'VOO': {
-      name: 'Vanguard S&P 500 ETF',
-      description: 'Seeks to track the performance of the Standard & Poor\'s 500 Index.',
-      totalHoldings: 503,
-      topHoldings: [
-        { symbol: 'AAPL', name: 'Apple Inc.', weight: 7.1, sector: 'Technology' },
-        { symbol: 'MSFT', name: 'Microsoft Corporation', weight: 6.8, sector: 'Technology' },
-        { symbol: 'NVDA', name: 'NVIDIA Corporation', weight: 4.2, sector: 'Technology' },
-        { symbol: 'AMZN', name: 'Amazon.com Inc.', weight: 3.4, sector: 'Consumer Discretionary' },
-        { symbol: 'GOOGL', name: 'Alphabet Inc. Class A', weight: 2.1, sector: 'Communication Services' },
-        { symbol: 'GOOG', name: 'Alphabet Inc. Class C', weight: 2.0, sector: 'Communication Services' },
-        { symbol: 'META', name: 'Meta Platforms Inc.', weight: 2.2, sector: 'Communication Services' },
-        { symbol: 'TSLA', name: 'Tesla Inc.', weight: 2.1, sector: 'Consumer Discretionary' },
-        { symbol: 'BRK.B', name: 'Berkshire Hathaway Inc. Class B', weight: 1.8, sector: 'Financial Services' },
-        { symbol: 'LLY', name: 'Eli Lilly and Company', weight: 1.6, sector: 'Healthcare' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Technology', weight: 27.8 },
-        { sector: 'Financial Services', weight: 13.1 },
-        { sector: 'Healthcare', weight: 12.9 },
-        { sector: 'Consumer Discretionary', weight: 10.4 },
-        { sector: 'Communication Services', weight: 8.7 },
-        { sector: 'Industrials', weight: 8.2 },
-        { sector: 'Consumer Staples', weight: 6.1 },
-        { sector: 'Energy', weight: 4.2 },
-        { sector: 'Utilities', weight: 2.8 },
-        { sector: 'Real Estate', weight: 2.5 },
-        { sector: 'Materials', weight: 2.4 }
-      ]
-    },
-    'IJS': {
-      name: 'iShares Core S&P Small-Cap Value ETF',
-      description: 'Seeks to track the investment results of an index composed of small-capitalization value U.S. equities.',
-      totalHoldings: 600,
-      topHoldings: [
-        { symbol: 'UMBF', name: 'UMB Financial Corporation', weight: 0.8, sector: 'Financial Services' },
-        { symbol: 'PRGS', name: 'Progress Software Corporation', weight: 0.7, sector: 'Technology' },
-        { symbol: 'COLB', name: 'Columbia Banking System Inc', weight: 0.7, sector: 'Financial Services' },
-        { symbol: 'BCPC', name: 'Balchem Corporation', weight: 0.6, sector: 'Materials' },
-        { symbol: 'SFNC', name: 'Simmons First National Corporation', weight: 0.6, sector: 'Financial Services' },
-        { symbol: 'AEIS', name: 'Advanced Energy Industries Inc', weight: 0.6, sector: 'Technology' },
-        { symbol: 'CADE', name: 'Cadence Bank', weight: 0.5, sector: 'Financial Services' },
-        { symbol: 'KTB', name: 'Kontoor Brands Inc', weight: 0.5, sector: 'Consumer Discretionary' },
-        { symbol: 'MGEE', name: 'MGE Energy Inc', weight: 0.5, sector: 'Utilities' },
-        { symbol: 'BANF', name: 'BancFirst Corporation', weight: 0.5, sector: 'Financial Services' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Financial Services', weight: 22.8 },
-        { sector: 'Real Estate', weight: 16.4 },
-        { sector: 'Industrials', weight: 14.2 },
-        { sector: 'Consumer Discretionary', weight: 10.8 },
-        { sector: 'Materials', weight: 8.9 },
-        { sector: 'Energy', weight: 8.1 },
-        { sector: 'Utilities', weight: 6.9 },
-        { sector: 'Technology', weight: 5.2 },
-        { sector: 'Healthcare', weight: 4.1 },
-        { sector: 'Consumer Staples', weight: 2.6 }
-      ]
-    },
-    'NOBL': {
-      name: 'ProShares S&P 500 Dividend Aristocrats ETF',
-      description: 'Seeks investment results that track the performance of the S&P 500 Dividend Aristocrats Index.',
-      totalHoldings: 67,
-      topHoldings: [
-        { symbol: 'WMT', name: 'Walmart Inc', weight: 3.8, sector: 'Consumer Staples' },
-        { symbol: 'JNJ', name: 'Johnson & Johnson', weight: 3.6, sector: 'Healthcare' },
-        { symbol: 'PG', name: 'The Procter & Gamble Company', weight: 3.4, sector: 'Consumer Staples' },
-        { symbol: 'HD', name: 'The Home Depot Inc', weight: 3.2, sector: 'Consumer Discretionary' },
-        { symbol: 'KO', name: 'The Coca-Cola Company', weight: 3.1, sector: 'Consumer Staples' },
-        { symbol: 'PEP', name: 'PepsiCo Inc', weight: 2.9, sector: 'Consumer Staples' },
-        { symbol: 'ABT', name: 'Abbott Laboratories', weight: 2.8, sector: 'Healthcare' },
-        { symbol: 'MCD', name: 'McDonald\'s Corporation', weight: 2.7, sector: 'Consumer Discretionary' },
-        { symbol: 'LOW', name: 'Lowe\'s Companies Inc', weight: 2.6, sector: 'Consumer Discretionary' },
-        { symbol: 'CL', name: 'Colgate-Palmolive Company', weight: 2.4, sector: 'Consumer Staples' }
-      ],
-      sectorBreakdown: [
-        { sector: 'Consumer Staples', weight: 24.8 },
-        { sector: 'Industrials', weight: 20.1 },
-        { sector: 'Healthcare', weight: 16.7 },
-        { sector: 'Consumer Discretionary', weight: 14.2 },
-        { sector: 'Materials', weight: 11.4 },
-        { sector: 'Utilities', weight: 7.8 },
-        { sector: 'Real Estate', weight: 3.2 },
-        { sector: 'Technology', weight: 1.8 }
-      ]
     }
   };
   
@@ -472,8 +370,9 @@ interface ETFHoldingsProps {
   loading?: boolean;
 }
 
-// 📊 COMPONENTE PRINCIPAL ETF HOLDINGS COM API REAL
+// 📊 COMPONENTE PRINCIPAL ETF HOLDINGS RESPONSIVO
 const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: externalLoading = false }) => {
+  const { isMobile, isMobileOrTablet } = useResponsive();
   const [mostrarTodos, setMostrarTodos] = useState(false);
   
   // 🚀 USAR HOOK DE API REAL
@@ -492,317 +391,95 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
   }
   
   console.log(`✅ Renderizando ETFHoldings para ${ticker}`, { etfData, loading, apiError });
-  
-  return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      borderRadius: '16px',
-      padding: '24px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      marginBottom: '32px'
-    }}>
-      <h3 style={{
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#1e293b',
-        margin: '0 0 20px 0',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-       Composição do ETF
-        {/* Botão de atualização */}
-        <button
-          onClick={refetch}
-          disabled={loading}
-          style={{
-            backgroundColor: 'transparent',
-            border: 'none',
-            fontSize: '16px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            padding: '4px',
-            marginLeft: 'auto'
-          }}
-          title="Atualizar dados da API"
-        >
-          {loading ? '⏳' : '🔄'}
-        </button>
-      </h3>
 
-      {loading ? (
+  // Função para obter dados de holdings (mock ou API)
+  const getHoldingsData = () => {
+    // Prioridade: dadosYahoo > etfData > mock
+    if (dadosYahoo?.holdings && Array.isArray(dadosYahoo.holdings)) {
+      return dadosYahoo.holdings;
+    }
+    
+    if (etfData?.topHoldings && Array.isArray(etfData.topHoldings)) {
+      return etfData.topHoldings;
+    }
+    
+    // Fallback para mock data
+    const mockData = {
+      'QQQ': [
+        { symbol: 'AAPL', name: 'Apple Inc.', weight: 12.1, sector: 'Technology' },
+        { symbol: 'MSFT', name: 'Microsoft Corporation', weight: 11.8, sector: 'Technology' },
+        { symbol: 'NVDA', name: 'NVIDIA Corporation', weight: 7.2, sector: 'Technology' },
+        { symbol: 'AMZN', name: 'Amazon.com Inc.', weight: 5.8, sector: 'Consumer Discretionary' },
+        { symbol: 'GOOGL', name: 'Alphabet Inc. Class A', weight: 4.3, sector: 'Communication Services' },
+        { symbol: 'GOOG', name: 'Alphabet Inc. Class C', weight: 4.1, sector: 'Communication Services' },
+        { symbol: 'META', name: 'Meta Platforms Inc.', weight: 4.0, sector: 'Communication Services' },
+        { symbol: 'TSLA', name: 'Tesla Inc.', weight: 3.9, sector: 'Consumer Discretionary' },
+        { symbol: 'AVGO', name: 'Broadcom Inc.', weight: 2.8, sector: 'Technology' },
+        { symbol: 'COST', name: 'Costco Wholesale Corporation', weight: 2.1, sector: 'Consumer Staples' }
+      ],
+      'SPY': [
+        { symbol: 'AAPL', name: 'Apple Inc.', weight: 7.1, sector: 'Technology' },
+        { symbol: 'MSFT', name: 'Microsoft Corporation', weight: 6.8, sector: 'Technology' },
+        { symbol: 'NVDA', name: 'NVIDIA Corporation', weight: 4.2, sector: 'Technology' },
+        { symbol: 'AMZN', name: 'Amazon.com Inc.', weight: 3.4, sector: 'Consumer Discretionary' },
+        { symbol: 'GOOGL', name: 'Alphabet Inc. Class A', weight: 2.1, sector: 'Communication Services' },
+        { symbol: 'META', name: 'Meta Platforms Inc.', weight: 2.2, sector: 'Communication Services' },
+        { symbol: 'TSLA', name: 'Tesla Inc.', weight: 2.1, sector: 'Consumer Discretionary' },
+        { symbol: 'BRK.B', name: 'Berkshire Hathaway Inc. Class B', weight: 1.8, sector: 'Financial Services' },
+        { symbol: 'LLY', name: 'Eli Lilly and Company', weight: 1.6, sector: 'Healthcare' },
+        { symbol: 'V', name: 'Visa Inc.', weight: 1.5, sector: 'Financial Services' }
+      ]
+    };
+    
+    return mockData[ticker.toUpperCase()] || [];
+  };
+
+  const holdings = getHoldingsData();
+
+  if (loading) {
+    return (
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: isMobile ? '16px' : '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
+      }}>
+        <h3 style={{
+          fontSize: isMobile ? '18px' : '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 20px 0'
+        }}>
+          📊 Principais Holdings
+        </h3>
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
-          <p>Buscando dados reais do ETF via API...</p>
+          <p>Carregando holdings do ETF...</p>
         </div>
-      ) : apiError ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-          <div style={{ marginBottom: '16px', fontSize: '48px' }}>⚠️</div>
-          <h4 style={{ marginBottom: '8px', color: '#dc2626' }}>
-            Erro ao buscar dados
-          </h4>
-          <p style={{ marginBottom: '16px', color: '#64748b' }}>
-            {apiError}
-          </p>
-          <button
-            onClick={refetch}
-            style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}
-          >
-            🔄 Tentar Novamente
-          </button>
-        </div>
-      ) : etfData ? (
-        <div>
-          {/* Informações básicas do ETF */}
-          <div style={{
-            backgroundColor: '#f0f9ff',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '24px',
-            border: '1px solid #7dd3fc'
-          }}>
-            <h4 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#0c4a6e',
-              margin: '0 0 8px 0'
-            }}>
-              {etfData.name}
-            </h4>
-            <p style={{
-              fontSize: '14px',
-              color: '#0369a1',
-              margin: '0 0 12px 0',
-              lineHeight: '1.5'
-            }}>
-              {etfData.description}
-            </p>
-            <div style={{
-              display: 'flex',
-              gap: '16px',
-              flexWrap: 'wrap'
-            }}>
-              <span style={{
-                backgroundColor: '#dbeafe',
-                color: '#1e40af',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600'
-              }}>
-                📈 {etfData.totalHoldings || 0} Holdings
-              </span>
-              <span style={{
-                backgroundColor: '#dcfce7',
-                color: '#166534',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600'
-              }}>
-                🏢 Top {Math.min(10, etfData.topHoldings?.length || 0)} Mostrados
-              </span>
-            </div>
-          </div>
+      </div>
+    );
+  }
 
-          {/* Top Holdings */}
-          {etfData.topHoldings && etfData.topHoldings.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px'
-              }}>
-                <h4 style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1e293b',
-                  margin: 0
-                }}>
-                 Principais Holdings
-                </h4>
-                {etfData.topHoldings.length > 5 && (
-                  <button
-                    onClick={() => setMostrarTodos(!mostrarTodos)}
-                    style={{
-                      backgroundColor: '#f1f5f9',
-                      color: '#64748b',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {mostrarTodos ? 'Mostrar menos' : `Ver todos (${etfData.topHoldings.length})`}
-                  </button>
-                )}
-              </div>
-
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                overflow: 'hidden'
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead style={{ backgroundColor: '#f8fafc' }}>
-                    <tr>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
-                        #
-                      </th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
-                        TICKER
-                      </th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
-                        EMPRESA
-                      </th>
-                      <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
-                        PESO (%)
-                      </th>
-                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '12px', color: '#64748b' }}>
-                        SETOR
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(mostrarTodos ? etfData.topHoldings : etfData.topHoldings.slice(0, 5)).map((holding, index) => (
-                      <tr key={holding.symbol} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>
-                          {index + 1}
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{
-                            fontSize: '14px',
-                            fontWeight: '700',
-                            color: '#1e293b'
-                          }}>
-                            {holding.symbol}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{
-                            fontSize: '14px',
-                            color: '#374151'
-                          }}>
-                            {holding.name}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right' }}>
-                          <span style={{
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            color: '#059669'
-                          }}>
-                            {holding.weight.toFixed(2)}%
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <span style={{
-                            backgroundColor: '#f0f9ff',
-                            color: '#1e40af',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: '600'
-                          }}>
-                            {holding.sector}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {etfData.topHoldings.length > 5 && !mostrarTodos && (
-                <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                    Mostrando os 5 principais • Total: {etfData.topHoldings.length} holdings
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Breakdown por Setor */}
-          {etfData.sectorBreakdown && etfData.sectorBreakdown.length > 0 && (
-            <div>
-              <h4 style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#1e293b',
-                margin: '0 0 16px 0'
-              }}>
-                📈 Distribuição por Setor
-              </h4>
-
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                padding: '16px'
-              }}>
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  {etfData.sectorBreakdown.map((sector, index) => (
-                    <div key={sector.sector} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 0'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                        <span style={{
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: '#374151',
-                          minWidth: '150px'
-                        }}>
-                          {sector.sector}
-                        </span>
-                        <div style={{
-                          flex: 1,
-                          height: '8px',
-                          backgroundColor: '#f1f5f9',
-                          borderRadius: '4px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            width: `${sector.weight}%`,
-                            height: '100%',
-                            backgroundColor: `hsl(${index * 30}, 70%, 50%)`,
-                            borderRadius: '4px'
-                          }} />
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: '#1e293b',
-                        minWidth: '60px',
-                        textAlign: 'right'
-                      }}>
-                        {sector.weight.toFixed(1)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      ) : (
+  if (!holdings || holdings.length === 0) {
+    return (
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: isMobile ? '16px' : '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
+      }}>
+        <h3 style={{
+          fontSize: isMobile ? '18px' : '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 20px 0'
+        }}>
+          📊 ETF Detectado
+        </h3>
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <div style={{ marginBottom: '16px', fontSize: '48px' }}>📊</div>
           <h4 style={{ marginBottom: '8px', color: '#1e293b' }}>
@@ -825,6 +502,311 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
           >
             🔄 Buscar Dados da API
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  const holdingsToShow = mostrarTodos ? holdings : holdings.slice(0, 10);
+
+  return (
+    <div style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      padding: isMobile ? '16px' : '24px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      marginBottom: '32px'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'center', 
+        marginBottom: '20px',
+        gap: isMobile ? '12px' : '0'
+      }}>
+        <h3 style={{
+          fontSize: isMobile ? '18px' : '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0'
+        }}>
+          📊 Principais Holdings
+        </h3>
+        
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '600'
+          }}>
+            📈 {dadosYahoo?.holdings ? 'Yahoo Finance' : etfData ? 'API Data' : 'Mock Data'}
+          </span>
+          
+          {holdings.length > 10 && (
+            <button
+              onClick={() => setMostrarTodos(!mostrarTodos)}
+              style={{
+                backgroundColor: '#f1f5f9',
+                color: '#64748b',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: isMobile ? '10px' : '12px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              {mostrarTodos ? 'Menos' : `+${holdings.length - 10}`}
+            </button>
+          )}
+          
+          <button
+            onClick={refetch}
+            disabled={loading}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              fontSize: '16px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              opacity: loading ? 0.5 : 1
+            }}
+            title="Atualizar dados da API"
+          >
+            {loading ? '⏳' : '🔄'}
+          </button>
+        </div>
+      </div>
+
+      {/* Resumo para mobile */}
+      {isMobile && (
+        <div style={{
+          background: '#f0f9ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '20px'
+        }}>
+          <p style={{
+            fontSize: '14px',
+            color: '#1e40af',
+            margin: 0,
+            fontWeight: '600'
+          }}>
+            📊 <strong>{holdings.length}</strong> principais holdings do ETF <strong>{ticker}</strong>
+          </p>
+        </div>
+      )}
+
+      {/* Tabela com rolagem lateral */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0',
+        overflowX: isMobileOrTablet ? 'auto' : 'visible'
+      }}>
+        <table style={{ 
+          width: '100%', 
+          borderCollapse: 'collapse',
+          minWidth: isMobileOrTablet ? '700px' : '100%'
+        }}>
+          <thead style={{ 
+            backgroundColor: '#f8fafc'
+          }}>
+            <tr>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'left', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                #
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'left', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Símbolo
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'left', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Empresa
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'right', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Peso (%)
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'center', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Setor
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {holdingsToShow.map((holding, index) => (
+              <tr 
+                key={holding.symbol || index} 
+                style={{ 
+                  borderBottom: '1px solid #f1f5f9'
+                }}
+              >
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  fontSize: isMobile ? '12px' : '14px',
+                  color: '#64748b',
+                  fontWeight: '500'
+                }}>
+                  {index + 1}
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  fontWeight: '700',
+                  fontSize: isMobile ? '12px' : '14px',
+                  color: '#3b82f6'
+                }}>
+                  {holding.symbol}
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  fontWeight: '500',
+                  fontSize: isMobile ? '11px' : '14px',
+                  maxWidth: isMobile ? '150px' : 'none',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {holding.name || holding.holdingName || 'N/A'}
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  textAlign: 'right', 
+                  fontWeight: '700', 
+                  color: '#22c55e',
+                  fontSize: isMobile ? '12px' : '14px'
+                }}>
+                  {holding.weight ? 
+                    `${holding.weight.toFixed(2)}%` : 
+                    (holding.holdingPercent ? `${(holding.holdingPercent * 100).toFixed(2)}%` : 'N/A')
+                  }
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  textAlign: 'center'
+                }}>
+                  <span style={{
+                    backgroundColor: '#f0f9ff',
+                    color: '#1e40af',
+                    borderRadius: '4px',
+                    padding: isMobile ? '2px 6px' : '4px 8px',
+                    fontSize: isMobile ? '10px' : '12px',
+                    fontWeight: '600',
+                    border: '1px solid #bfdbfe'
+                  }}>
+                    {isMobile 
+                      ? (holding.sector || 'Outros').substring(0, 4) + '...'
+                      : (holding.sector || 'Outros')
+                    }
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {holdings.length > 10 && (
+        <div style={{
+          textAlign: 'center',
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: '#f8fafc',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <p style={{
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#64748b',
+            margin: 0,
+            fontWeight: '500'
+          }}>
+            📊 Exibindo {holdingsToShow.length} de {holdings.length} holdings • 
+            {holdingsToShow.reduce((acc, holding) => 
+              acc + (holding.weight || (holding.holdingPercent ? holding.holdingPercent * 100 : 0)), 0
+            ).toFixed(1)}% do total
+          </p>
+        </div>
+      )}
+
+      {/* Exibir informações adicionais do ETF se disponível */}
+      {etfData && etfData.description && (
+        <div style={{
+          marginTop: '24px',
+          backgroundColor: '#f0f9ff',
+          borderRadius: '12px',
+          padding: isMobile ? '16px' : '20px',
+          border: '1px solid #7dd3fc'
+        }}>
+          <h4 style={{
+            fontSize: isMobile ? '16px' : '18px',
+            fontWeight: '600',
+            color: '#0c4a6e',
+            margin: '0 0 8px 0'
+          }}>
+            {etfData.name}
+          </h4>
+          <p style={{
+            fontSize: isMobile ? '13px' : '14px',
+            color: '#0369a1',
+            margin: '0 0 12px 0',
+            lineHeight: '1.5'
+          }}>
+            {etfData.description}
+          </p>
+          <div style={{
+            display: 'flex',
+            gap: '16px',
+            flexWrap: 'wrap'
+          }}>
+            <span style={{
+              backgroundColor: '#dbeafe',
+              color: '#1e40af',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: isMobile ? '11px' : '12px',
+              fontWeight: '600'
+            }}>
+              📈 {etfData.totalHoldings || 0} Holdings
+            </span>
+            <span style={{
+              backgroundColor: '#dcfce7',
+              color: '#166534',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: isMobile ? '11px' : '12px',
+              fontWeight: '600'
+            }}>
+              🏢 Top {Math.min(10, holdings.length)} Mostrados
+            </span>
+          </div>
         </div>
       )}
     </div>

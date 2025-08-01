@@ -2859,11 +2859,220 @@ export default function AtivoPage() {
         </div>
       )}
 
-      <ETFHoldings 
+      <ETFHoldingsResponsivo 
         ticker={ticker}
         dadosYahoo={dadosYahoo}
         loading={loadingYahoo}
-      />
+      />Weight: '700',
+          color: '#1e293b',
+          margin: '0 0 20px 0'
+        }}>
+          📊 Principais Holdings
+        </h3>
+        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
+          <p>Carregando holdings do ETF...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dadosYahoo?.holdings || !Array.isArray(dadosYahoo.holdings) || dadosYahoo.holdings.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      padding: isMobile ? '16px' : '24px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      marginBottom: '32px'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'center', 
+        marginBottom: '20px',
+        gap: isMobile ? '12px' : '0'
+      }}>
+        <h3 style={{
+          fontSize: isMobile ? '18px' : '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0'
+        }}>
+          📊 Principais Holdings
+        </h3>
+        
+        <span style={{
+          backgroundColor: '#3b82f6',
+          color: 'white',
+          padding: '2px 8px',
+          borderRadius: '4px',
+          fontSize: '11px',
+          fontWeight: '600'
+        }}>
+          📈 Yahoo Finance
+        </span>
+      </div>
+
+      {/* Resumo para mobile */}
+      {isMobile && (
+        <div style={{
+          background: '#f0f9ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '20px'
+        }}>
+          <p style={{
+            fontSize: '14px',
+            color: '#1e40af',
+            margin: 0,
+            fontWeight: '600'
+          }}>
+            📊 <strong>{dadosYahoo.holdings.length}</strong> principais holdings do ETF <strong>{ticker}</strong>
+          </p>
+        </div>
+      )}
+
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0',
+        overflowX: isMobileOrTablet ? 'auto' : 'visible'
+      }}>
+        <table style={{ 
+          width: '100%', 
+          borderCollapse: 'collapse',
+          minWidth: isMobileOrTablet ? '600px' : '100%'
+        }}>
+          <thead style={{ 
+            backgroundColor: '#f8fafc'
+          }}>
+            <tr>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'left', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Empresa
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'left', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Símbolo
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'right', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                % Peso
+              </th>
+              <th style={{ 
+                padding: isMobile ? '10px 8px' : '12px',
+                textAlign: 'center', 
+                fontWeight: '700', 
+                fontSize: isMobile ? '12px' : '14px'
+              }}>
+                Setor
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {dadosYahoo.holdings.slice(0, 10).map((holding, index) => (
+              <tr 
+                key={holding.symbol || index} 
+                style={{ 
+                  borderBottom: '1px solid #f1f5f9'
+                }}
+              >
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  fontWeight: '500',
+                  fontSize: isMobile ? '13px' : '14px'
+                }}>
+                  {holding.holdingName || holding.name || 'N/A'}
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '14px',
+                  color: '#3b82f6'
+                }}>
+                  {holding.symbol || 'N/A'}
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  textAlign: 'right', 
+                  fontWeight: '700', 
+                  color: '#22c55e',
+                  fontSize: isMobile ? '13px' : '14px'
+                }}>
+                  {holding.holdingPercent ? 
+                    `${(holding.holdingPercent * 100).toFixed(2)}%` : 
+                    (holding.weight ? `${holding.weight.toFixed(2)}%` : 'N/A')
+                  }
+                </td>
+                <td style={{ 
+                  padding: isMobile ? '10px 8px' : '12px',
+                  textAlign: 'center'
+                }}>
+                  <span style={{
+                    backgroundColor: '#f0f9ff',
+                    color: '#1e40af',
+                    borderRadius: '4px',
+                    padding: isMobile ? '2px 6px' : '4px 8px',
+                    fontSize: isMobile ? '10px' : '12px',
+                    fontWeight: '600',
+                    border: '1px solid #bfdbfe'
+                  }}>
+                    {isMobile 
+                      ? (holding.sector || 'Outros').substring(0, 6) + '...'
+                      : (holding.sector || 'Outros')
+                    }
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {dadosYahoo.holdings.length > 10 && (
+        <div style={{
+          textAlign: 'center',
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: '#f8fafc',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <p style={{
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#64748b',
+            margin: 0,
+            fontWeight: '500'
+          }}>
+            📊 Exibindo 10 de {dadosYahoo.holdings.length} holdings • 
+            {dadosYahoo.holdings.slice(0, 10).reduce((acc, holding) => 
+              acc + (holding.holdingPercent ? holding.holdingPercent * 100 : (holding.weight || 0)), 0
+            ).toFixed(1)}% do total
+          </p>
+        </div>
+      )}
+    </div>
+  );
+});
 
       {/* Histórico de Dividendos */}
       <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={isFII} />
