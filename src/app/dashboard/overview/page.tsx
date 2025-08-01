@@ -1773,6 +1773,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
         </div>
       </div>
 
+
       {/* 🔥 SEÇÃO POSIÇÕES ATIVAS */}
       <div style={{
         backgroundColor: '#ffffff',
@@ -2355,7 +2356,7 @@ const ativosComPosicaoGerenciamento = ativosAtivos.map((ativo, index) => ({
                     }}>
                       <div style={{ color: '#64748b' }}>
                         <span style={{ fontWeight: '500' }}>Entrada:</span><br />
-                        <span style={{ fontWeight: '600', color: #64748b }}>{ativo.dataEntrada}</span>
+                        <span style={{ fontWeight: '600', color: '#64748b' }}>{ativo.dataEntrada}</span>
                       </div>
                       <div style={{ color: '#64748b' }}>
                         <span style={{ fontWeight: '500' }}>Saída:</span><br />
