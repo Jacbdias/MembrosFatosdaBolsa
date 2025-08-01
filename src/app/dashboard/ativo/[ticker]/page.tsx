@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
-import { relatoriosDB } from '../../../../utils/relatoriosDB';
 import AnalisesTrimesestrais from '@/components/AnalisesTrimesestrais';
 import ETFHoldings from '@/components/ETFHoldings';
 import { useAgendaCorporativaTicker } from '@/hooks/ativo/useAgendaCorporativaTicker';
@@ -14,6 +13,7 @@ import { useHGBrasilFII } from '../../../../hooks/ativo/useHGBrasilFII';
 import { useCotacaoCompleta } from '../../../../hooks/ativo/useCotacaoCompleta';
 import { useBRAPIETF } from '@/hooks/useBRAPIETF';
 import ETFMetricCards from '@/components/ETFMetricCards';
+import { useRelatoriosEstatisticas } from '@/hooks/useRelatoriosAPI';
 
 // ✅ IMPORT ÚNICO CORRIGIDO
 import { 
@@ -862,217 +862,6 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
               }}>
                 {i === 1 ? 'Dividend Yield' : i === 2 ? 'Último Rendimento' : 'Patrimônio Líquido'}
               </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
-
-// GerenciadorRelatorios com funcionalidades de visualização e download
-const GerenciadorRelatorios = React.memo(({ ticker }) => {
-  const [relatorios, setRelatorios] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const carregarRelatorios = async () => {
-      if (!ticker) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        
-        // Tentar IndexedDB primeiro
-        try {
-          await relatoriosDB.init();
-          const relatoriosIndexedDB = await relatoriosDB.buscarRelatoriosTicker(ticker);
-          
-          if (relatoriosIndexedDB.length > 0) {
-            const relatoriosFormatados = relatoriosIndexedDB.map(rel => ({
-              ...rel,
-              ticker,
-              arquivo: rel.arquivoPdf ? 'PDF_INDEXEDDB' : undefined,
-              tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
-            }));
-            
-            setRelatorios(relatoriosFormatados);
-            setLoading(false);
-            return;
-          }
-        } catch (indexedDBError) {
-          console.warn('IndexedDB falhou, tentando localStorage:', indexedDBError);
-        }
-
-        // Fallback para localStorage
-        const dadosCentralizados = localStorage.getItem('relatorios_central');
-        if (dadosCentralizados) {
-          try {
-            const dados = JSON.parse(dadosCentralizados);
-            const relatoriosTicker = dados[ticker] || [];
-            
-            if (relatoriosTicker.length > 0) {
-              const relatoriosFormatados = relatoriosTicker.map(rel => ({
-                ...rel,
-                ticker,
-                arquivo: rel.arquivoPdf ? 'PDF_LOCALSTORAGE' : undefined,
-                tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
-              }));
-              
-              setRelatorios(relatoriosFormatados);
-              setLoading(false);
-              return;
-            }
-          } catch (error) {
-            console.warn('Erro ao ler localStorage:', error);
-          }
-        }
-
-        setRelatorios([]);
-
-      } catch (error) {
-        console.error('Erro ao carregar relatórios:', error);
-        setRelatorios([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarRelatorios();
-  }, [ticker]);
-
-  const getIconePorTipo = (tipo) => {
-    switch (tipo) {
-      case 'iframe': return '🖼️';
-      case 'canva': return '🎨';
-      case 'link': return '🔗';
-      case 'pdf': return '📄';
-      default: return '📄';
-    }
-  };
-
-  const visualizarRelatorio = (relatorio) => {
-    if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
-      window.open(relatorio.linkExterno, '_blank');
-      return;
-    }
-    
-    if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
-      window.open(relatorio.linkCanva, '_blank');
-      return;
-    }
-    
-    if (relatorio.linkExterno) {
-      window.open(relatorio.linkExterno, '_blank');
-    } else if (relatorio.linkCanva) {
-      window.open(relatorio.linkCanva, '_blank');
-    } else {
-      alert('📋 Link de visualização não disponível para este relatório');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        padding: '24px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        marginBottom: '32px'
-      }}>
-        <h3 style={{
-          fontSize: '20px',
-          fontWeight: '700',
-          color: '#1e293b',
-          margin: '0 0 20px 0'
-        }}>
-         Relatórios da Empresa
-        </h3>
-        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
-          <p>Carregando relatórios de {ticker}...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      borderRadius: '16px',
-      padding: '24px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      marginBottom: '32px'
-    }}>
-      <h3 style={{
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#1e293b',
-        margin: '0 0 20px 0'
-      }}>
-       Relatórios da Empresa
-      </h3>
-
-      {relatorios.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-          <div style={{ marginBottom: '16px', fontSize: '48px' }}>📭</div>
-          <h4 style={{ marginBottom: '8px', color: '#1e293b' }}>
-            Nenhum relatório encontrado
-          </h4>
-          <p style={{ marginBottom: '16px' }}>
-            Não há relatórios cadastrados para <strong>{ticker}</strong>
-          </p>
-          <p style={{ fontSize: '14px', color: '#94a3b8' }}>
-            💡 Adicione relatórios através da Central de Relatórios
-          </p>
-        </div>
-      ) : (
-        <div>
-          {relatorios.map((relatorio, index) => (
-            <div key={relatorio.id || index} style={{ 
-              border: '1px solid #e2e8f0', 
-              borderRadius: '8px', 
-              marginBottom: '8px',
-              backgroundColor: 'white',
-              padding: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
-                  <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
-                    {relatorio.nome}
-                  </h4>
-                </div>
-                
-                <p style={{ margin: '0', fontSize: '14px', color: '#64748b' }}>
-                  {relatorio.tipo} • {relatorio.dataReferencia}
-                </p>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => visualizarRelatorio(relatorio)}
-                  style={{
-                    backgroundColor: '#e3f2fd',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    color: '#1976d2'
-                  }}
-                  title="Visualizar conteúdo"
-                >
-                  👁 Ver
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -2089,6 +1878,397 @@ const BDRAmericanoInfo = React.memo(({
           border: '1px solid #bbf7d0'
         }}>
           <span style={{ color: '#15803d', fontSize: '14px' }}>⏳ Carregando cotação do BDR...</span>
+        </div>
+      )}
+    </div>
+  );
+});
+
+const GerenciadorRelatorios = React.memo(({ ticker }) => {
+  // 🔄 USAR HOOK DA API EM VEZ DO SISTEMA ANTIGO
+  const { 
+    estatisticas, 
+    loading, 
+    error,
+    carregarEstatisticas 
+  } = useRelatoriosEstatisticas();
+
+  // 📊 FILTRAR RELATÓRIOS DO TICKER ESPECÍFICO
+  const relatoriosDoTicker = useMemo(() => {
+    if (!ticker || !estatisticas.relatorios) return [];
+    
+    return estatisticas.relatorios
+      .filter(rel => rel.ticker === ticker)
+      .map(rel => ({
+        ...rel,
+        arquivo: rel.arquivoPdf ? 'PDF_API' : undefined,
+        tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
+      }))
+      .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime());
+  }, [ticker, estatisticas.relatorios]);
+
+  // ✅ CARREGAR DADOS AO MONTAR COMPONENTE
+  useEffect(() => {
+    carregarEstatisticas();
+  }, [carregarEstatisticas]);
+
+  const getIconePorTipo = (tipo) => {
+    switch (tipo) {
+      case 'iframe': return '🖼️';
+      case 'canva': return '🎨';
+      case 'link': return '🔗';
+      case 'pdf': return '📄';
+      default: return '📄';
+    }
+  };
+
+  const visualizarRelatorio = (relatorio) => {
+    if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
+      window.open(relatorio.linkExterno, '_blank');
+      return;
+    }
+    
+    if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
+      window.open(relatorio.linkCanva, '_blank');
+      return;
+    }
+    
+    if (relatorio.linkExterno) {
+      window.open(relatorio.linkExterno, '_blank');
+    } else if (relatorio.linkCanva) {
+      window.open(relatorio.linkCanva, '_blank');
+    } else {
+      alert('📋 Link de visualização não disponível para este relatório');
+    }
+  };
+
+  // 🆕 FUNÇÃO PARA DOWNLOAD DE PDF (se for Base64)
+  const downloadPDF = (relatorio) => {
+    if (relatorio.arquivoPdf && relatorio.tipoPdf === 'base64') {
+      try {
+        // Criar link de download do Base64
+        const link = document.createElement('a');
+        link.href = relatorio.arquivoPdf;
+        link.download = relatorio.nomeArquivoPdf || `${relatorio.nome}.pdf`;
+        link.click();
+      } catch (error) {
+        console.error('Erro ao baixar PDF:', error);
+        alert('❌ Erro ao baixar PDF');
+      }
+    } else if (relatorio.tipoPdf === 'referencia') {
+      alert('📋 PDF grande - solicite re-upload na Central de Relatórios');
+    } else {
+      alert('📋 PDF não disponível para este relatório');
+    }
+  };
+
+  // 🔄 LOADING STATE
+  if (loading) {
+    return (
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: '0'
+          }}>
+            📊 Relatórios da Empresa
+          </h3>
+          {/* ✅ INDICADOR DE API */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            fontSize: '12px',
+            color: '#10b981'
+          }}>
+            <div style={{ 
+              width: 6, 
+              height: 6, 
+              borderRadius: '50%', 
+              backgroundColor: '#10b981' 
+            }} />
+            <span>API</span>
+          </div>
+        </div>
+        
+        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
+          <p>Carregando relatórios de {ticker} da API...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ❌ ERROR STATE
+  if (error) {
+    return (
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #fecaca',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
+      }}>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 20px 0'
+        }}>
+          📊 Relatórios da Empresa
+        </h3>
+        
+        <div style={{ textAlign: 'center', padding: '32px', color: '#dc2626' }}>
+          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⚠️</div>
+          <p><strong>Erro ao carregar relatórios:</strong></p>
+          <p style={{ fontSize: '14px', color: '#64748b' }}>{error}</p>
+          <button
+            onClick={carregarEstatisticas}
+            style={{
+              marginTop: '16px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔄 Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      padding: '24px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      marginBottom: '32px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: '0'
+          }}>
+            📊 Relatórios da Empresa
+          </h3>
+          
+          {/* ✅ INDICADOR DE STATUS DA API */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            fontSize: '12px',
+            color: '#10b981'
+          }}>
+            <div style={{ 
+              width: 6, 
+              height: 6, 
+              borderRadius: '50%', 
+              backgroundColor: '#10b981' 
+            }} />
+            <span>API Sincronizada</span>
+          </div>
+        </div>
+
+        {/* 🔄 BOTÃO DE REFRESH */}
+        <button
+          onClick={carregarEstatisticas}
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '6px 12px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            color: '#64748b'
+          }}
+          title="Atualizar relatórios"
+        >
+          🔄
+        </button>
+      </div>
+
+      {relatoriosDoTicker.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+          <div style={{ marginBottom: '16px', fontSize: '48px' }}>📭</div>
+          <h4 style={{ marginBottom: '8px', color: '#1e293b' }}>
+            Nenhum relatório encontrado
+          </h4>
+          <p style={{ marginBottom: '16px' }}>
+            Não há relatórios cadastrados para <strong>{ticker}</strong> na API
+          </p>
+          <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '16px' }}>
+            💡 Adicione relatórios através da Central de Relatórios
+          </p>
+          
+          {/* 🔗 LINK PARA CENTRAL DE RELATÓRIOS */}
+          <button
+            onClick={() => window.open('/dashboard/central-relatorios', '_blank')}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              textDecoration: 'none'
+            }}
+          >
+            ➕ Ir para Central de Relatórios
+          </button>
+        </div>
+      ) : (
+        <div>
+          {/* 📊 ESTATÍSTICAS RÁPIDAS */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '16px', 
+            marginBottom: '20px',
+            padding: '12px',
+            backgroundColor: '#f8fafc',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              <strong>{relatoriosDoTicker.length}</strong> relatórios
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              <strong>{relatoriosDoTicker.filter(r => r.arquivoPdf).length}</strong> com PDF
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              Última atualização: <strong>{new Date(estatisticas.dataUltimoUpload || Date.now()).toLocaleDateString('pt-BR')}</strong>
+            </div>
+          </div>
+
+          {relatoriosDoTicker.map((relatorio, index) => (
+            <div key={relatorio.id || index} style={{ 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '8px', 
+              marginBottom: '8px',
+              backgroundColor: 'white',
+              padding: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
+                  <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
+                    {relatorio.nome}
+                  </h4>
+                  
+                  {/* 🆕 BADGE DO TIPO DE PDF */}
+                  {relatorio.arquivoPdf && (
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
+                      color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e'
+                    }}>
+                      {relatorio.tipoPdf === 'base64' ? '📄 Disponível' : '⚠️ Re-upload'}
+                    </span>
+                  )}
+                </div>
+                
+                <p style={{ margin: '0', fontSize: '14px', color: '#64748b' }}>
+                  {relatorio.tipo} • {relatorio.dataReferencia}
+                  {relatorio.tamanho && ` • ${relatorio.tamanho}`}
+                </p>
+                
+                {/* 🆕 DATA DE UPLOAD */}
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                  Adicionado em: {new Date(relatorio.dataUpload).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {/* 🆕 BOTÃO DE DOWNLOAD PDF (se disponível) */}
+                {relatorio.arquivoPdf && relatorio.tipoPdf === 'base64' && (
+                  <button
+                    onClick={() => downloadPDF(relatorio)}
+                    style={{
+                      backgroundColor: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      color: '#166534'
+                    }}
+                    title="Baixar PDF"
+                  >
+                    📥 PDF
+                  </button>
+                )}
+                
+                {/* 🔗 BOTÃO DE VISUALIZAR */}
+                <button
+                  onClick={() => visualizarRelatorio(relatorio)}
+                  style={{
+                    backgroundColor: '#e3f2fd',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#1976d2'
+                  }}
+                  title="Visualizar conteúdo"
+                >
+                  👁 Ver
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* 🔗 LINK PARA GERENCIAR */}
+          <div style={{ 
+            textAlign: 'center', 
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#f8fafc',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <button
+              onClick={() => window.open('/dashboard/central-relatorios', '_blank')}
+              style={{
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#64748b',
+                textDecoration: 'none'
+              }}
+            >
+              🗃️ Gerenciar Relatórios na Central
+            </button>
+          </div>
         </div>
       )}
     </div>
