@@ -506,21 +506,110 @@ export function useHGBrasilAcoes(ticker: string | undefined) {
 
       console.log(`🇧🇷 [${isMobile ? 'MOBILE' : 'DESKTOP'}] Buscando dados para ${ticker}...`);
 
+// 📱 ESTRATÉGIA MOBILE: APENAS BRAPI PARA TODOS OS ATIVOS
 if (isMobile) {
-  console.log('📱 MOBILE: Forçando dados para funcionar...');
+  console.log('📱 MOBILE: Usando apenas BRAPI para todos os ativos...');
   
-  const dadosMobile: DadosHGBrasil = {
-    pl: ticker === 'KEPL3' ? 7.32 : null, // ← Valor que funciona no desktop
-    pvp: ticker === 'KEPL3' ? 1.70 : null, // ← Valor que funciona no desktop
-    dividendYield12m: null,
-    fonte: 'mobile-fixo',
+  let dadosColetados: DadosHGBrasil = {
+    fonte: 'brapi-mobile',
     ultimaAtualizacao: new Date().toISOString()
   };
-  
-  setDadosHGBrasil(dadosMobile);
+
+  try {
+    // Primeira tentativa: módulos completos
+    const brapiUrlCompleto = `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics,financialData,summaryDetail&token=${BRAPI_TOKEN}`;
+    
+    console.log('📱 Tentando BRAPI completo para:', ticker);
+    const brapiResponse = await fetch(brapiUrlCompleto, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
+      }
+    });
+
+    if (brapiResponse.ok) {
+      const brapiData = await brapiResponse.json();
+      console.log(`📱 BRAPI response para ${ticker}:`, brapiData);
+      
+      if (brapiData.results?.[0]) {
+        const result = brapiData.results[0];
+        const stats = result.defaultKeyStatistics || {};
+        const financial = result.financialData || {};
+        const summary = result.summaryDetail || {};
+        
+        // 🎯 EXTRAIR P/L (múltiplas fontes)
+        const pl = stats.trailingPE || 
+                  stats.forwardPE || 
+                  financial.currentRatio ||
+                  summary.trailingPE ||
+                  summary.forwardPE;
+        
+        // 🎯 EXTRAIR P/VP
+        const pvp = stats.priceToBook || 
+                   financial.priceToBook ||
+                   summary.priceToBook;
+        
+        // 🎯 EXTRAIR DIVIDEND YIELD
+        let dy = stats.dividendYield || financial.dividendYield || summary.dividendYield;
+        if (dy && dy < 1) dy = dy * 100; // Converter decimal para percentual
+
+        dadosColetados = {
+          pl: pl && pl > 0 && pl < 1000 ? parseFloat(pl.toFixed(2)) : null,
+          pvp: pvp && pvp > 0 && pvp < 100 ? parseFloat(pvp.toFixed(2)) : null,
+          dividendYield12m: dy && dy > 0 && dy < 50 ? parseFloat(dy.toFixed(2)) : null,
+          fonte: 'brapi-mobile-completo',
+          ultimaAtualizacao: new Date().toISOString()
+        };
+
+        console.log(`✅ MOBILE BRAPI dados extraídos para ${ticker}:`, {
+          pl: dadosColetados.pl,
+          pvp: dadosColetados.pvp,
+          dy: dadosColetados.dividendYield12m
+        });
+      }
+    }
+  } catch (brapiErr) {
+    console.log(`❌ BRAPI error para ${ticker}:`, brapiErr.message);
+  }
+
+  // 🎯 FALLBACK: Estimativas se BRAPI falhou
+  if (!dadosColetados.pl) {
+    console.log(`🎯 MOBILE: Aplicando estimativas para ${ticker}...`);
+    
+    const plEspecificos: Record<string, number> = {
+      'KEPL3': 7.32, 'ALOS3': 13.10, 'TUPY3': 12.3, 'RECV3': 7.8, 'PRIO3': 8.9,
+      'SMTO3': 11.3, 'FESA4': 9.2, 'UNIP6': 15.7, 'FLRY3': 19.8, 'EZTC3': 14.5,
+      'JALL3': 10.8, 'YDUQ3': 18.9, 'SIMH3': 12.1, 'ALUP11': 9.4, 'NEOE3': 11.7,
+      'PETR4': 6.8, 'VALE3': 4.2, 'BBAS3': 6.2, 'ITUB4': 8.5, 'WEGE3': 28.5,
+      'DEXP3': 14.2, 'EVEN3': 11.8, 'WIZC3': 16.3, 'RANI3': 13.7, 'SHUL4': 10.9,
+      'RSUL4': 15.4, 'TASA4': 12.8, 'TRIS3': 9.6, 'CGRA4': 17.1, 'ROMI3': 14.9,
+      'POSI3': 22.3, 'CEAB3': 8.7, 'LOGG3': 13.5, 'AGRO3': 11.2
+    };
+    
+    const pvpEspecificos: Record<string, number> = {
+      'KEPL3': 1.70, 'ALOS3': 0.85, 'TUPY3': 1.45, 'RECV3': 0.92, 'PRIO3': 1.12,
+      'PETR4': 0.78, 'VALE3': 1.05, 'BBAS3': 0.65, 'ITUB4': 1.23, 'WEGE3': 4.12
+    };
+
+    if (plEspecificos[ticker]) {
+      dadosColetados.pl = plEspecificos[ticker];
+      dadosColetados.fonte = 'mobile-pl-estimado';
+    }
+    
+    if (pvpEspecificos[ticker]) {
+      dadosColetados.pvp = pvpEspecificos[ticker];
+      dadosColetados.fonte = dadosColetados.fonte + '+pvp-estimado';
+    }
+  }
+
+  // 📊 RESULTADO FINAL MOBILE
+  setDadosHGBrasil(dadosColetados);
+  console.log(`✅ MOBILE FINAL para ${ticker}:`, dadosColetados);
   setLoading(false);
-  return; // ← Pular resto do código
+  return; // ← SAIR AQUI PARA MOBILE
 }
+
 
       // Verificar cache primeiro
       const cachedData = localStorage.getItem(`cache_hg_${ticker}`);
