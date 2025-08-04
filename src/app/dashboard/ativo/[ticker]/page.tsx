@@ -2133,47 +2133,38 @@ const downloadPDF = (relatorio) => {
   }
 };
 
-  // 🔄 LOADING STATE
+ // 🔄 LOADING STATE
   if (loading) {
     return (
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        padding: '24px',
+        padding: '20px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        marginBottom: '32px'
+        marginBottom: '24px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px', 
+          marginBottom: '16px' 
+        }}>
           <h3 style={{
-            fontSize: '20px',
+            fontSize: '18px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0'
           }}>
             📊 Relatórios da Empresa
           </h3>
-          {/* ✅ INDICADOR DE API */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '4px',
-            fontSize: '12px',
-            color: '#10b981'
-          }}>
-            <div style={{ 
-              width: 6, 
-              height: 6, 
-              borderRadius: '50%', 
-              backgroundColor: '#10b981' 
-            }} />
-            <span>API</span>
-          </div>
         </div>
         
-        <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
-          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
-          <p>Carregando relatórios de {ticker} da API...</p>
+        <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+          <div style={{ marginBottom: '12px', fontSize: '24px' }}>⏳</div>
+          <p style={{ fontSize: '14px', margin: '0' }}>
+            Carregando relatórios de {ticker}...
+          </p>
         </div>
       </div>
     );
@@ -2185,28 +2176,31 @@ const downloadPDF = (relatorio) => {
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        padding: '24px',
+        padding: '20px',
         border: '1px solid #fecaca',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        marginBottom: '32px'
+        marginBottom: '24px'
       }}>
         <h3 style={{
-          fontSize: '20px',
+          fontSize: '18px',
           fontWeight: '700',
           color: '#1e293b',
-          margin: '0 0 20px 0'
+          margin: '0 0 16px 0'
         }}>
           📊 Relatórios da Empresa
         </h3>
         
-        <div style={{ textAlign: 'center', padding: '32px', color: '#dc2626' }}>
-          <div style={{ marginBottom: '16px', fontSize: '24px' }}>⚠️</div>
-          <p><strong>Erro ao carregar relatórios:</strong></p>
-          <p style={{ fontSize: '14px', color: '#64748b' }}>{error}</p>
+        <div style={{ textAlign: 'center', padding: '24px', color: '#dc2626' }}>
+          <div style={{ marginBottom: '12px', fontSize: '24px' }}>⚠️</div>
+          <p style={{ fontSize: '14px', margin: '0 0 8px 0' }}>
+            <strong>Erro ao carregar relatórios</strong>
+          </p>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+            {error}
+          </p>
           <button
             onClick={carregarEstatisticas}
             style={{
-              marginTop: '16px',
               backgroundColor: '#3b82f6',
               color: 'white',
               border: 'none',
@@ -2227,219 +2221,152 @@ const downloadPDF = (relatorio) => {
     <div style={{
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '24px',
+      padding: '20px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      marginBottom: '32px'
+      marginBottom: '24px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h3 style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            color: '#1e293b',
-            margin: '0'
-          }}>
-            📊 Relatórios da Empresa
-          </h3>
-          
-          {/* ✅ INDICADOR DE STATUS DA API */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '4px',
-            fontSize: '12px',
-            color: '#10b981'
-          }}>
-            <div style={{ 
-              width: 6, 
-              height: 6, 
-              borderRadius: '50%', 
-              backgroundColor: '#10b981' 
-            }} />
-            <span>API Sincronizada</span>
-          </div>
-        </div>
-
-        {/* 🔄 BOTÃO DE REFRESH */}
-        <button
-          onClick={carregarEstatisticas}
-          style={{
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            color: '#64748b'
-          }}
-          title="Atualizar relatórios"
-        >
-          🔄
-        </button>
+      {/* 📱 HEADER MOBILE OTIMIZADO */}
+      <div style={{ 
+        marginBottom: '16px' 
+      }}>
+        <h3 style={{
+          fontSize: '18px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 4px 0'
+        }}>
+          📊 Relatórios da Empresa
+        </h3>
       </div>
 
       {relatoriosDoTicker.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <div style={{ marginBottom: '16px', fontSize: '48px' }}>📭</div>
-          <h4 style={{ marginBottom: '8px', color: '#1e293b' }}>
+          <h4 style={{ 
+            marginBottom: '8px', 
+            color: '#1e293b',
+            fontSize: '16px' 
+          }}>
             Nenhum relatório encontrado
           </h4>
-          <p style={{ marginBottom: '16px' }}>
-            Não há relatórios cadastrados para <strong>{ticker}</strong> na API
+          <p style={{ 
+            marginBottom: '16px',
+            fontSize: '14px' 
+          }}>
+            Não há relatórios para <strong>{ticker}</strong>
           </p>
-          <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '16px' }}>
+          <p style={{ 
+            fontSize: '12px', 
+            color: '#94a3b8', 
+            marginBottom: '20px' 
+          }}>
             💡 Adicione relatórios através da Central de Relatórios
           </p>
-          
-          {/* 🔗 LINK PARA CENTRAL DE RELATÓRIOS */}
-          <button
-            onClick={() => window.open('/dashboard/central-relatorios', '_blank')}
-            style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              textDecoration: 'none'
-            }}
-          >
-            ➕ Ir para Central de Relatórios
-          </button>
         </div>
       ) : (
         <div>
-          {/* 📊 ESTATÍSTICAS RÁPIDAS */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '16px', 
-            marginBottom: '20px',
-            padding: '12px',
-            backgroundColor: '#f8fafc',
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>
-              <strong>{relatoriosDoTicker.length}</strong> relatórios
-            </div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>
-              <strong>{relatoriosDoTicker.filter(r => r.arquivoPdf).length}</strong> com PDF
-            </div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>
-              Última atualização: <strong>{new Date(estatisticas.dataUltimoUpload || Date.now()).toLocaleDateString('pt-BR')}</strong>
-            </div>
-          </div>
-
+          {/* 📱 LISTA DE RELATÓRIOS MOBILE */}
           {relatoriosDoTicker.map((relatorio, index) => (
             <div key={relatorio.id || index} style={{ 
               border: '1px solid #e2e8f0', 
-              borderRadius: '8px', 
-              marginBottom: '8px',
+              borderRadius: '12px', 
+              marginBottom: '12px',
               backgroundColor: 'white',
-              padding: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+              padding: '16px'
             }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span>{getIconePorTipo(relatorio.tipoVisualizacao)}</span>
-                  <h4 style={{ margin: '0', fontSize: '16px', fontWeight: '600' }}>
-                    {relatorio.nome}
-                  </h4>
-                  
-                  {/* 🆕 BADGE DO TIPO DE PDF */}
-                  {relatorio.arquivoPdf && (
-                    <span style={{
-                      fontSize: '10px',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
-                      color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e'
-                    }}>
-                      {relatorio.tipoPdf === 'base64' ? '📄 Disponível' : '⚠️ Re-upload'}
-                    </span>
-                  )}
-                </div>
-                
-                <p style={{ margin: '0', fontSize: '14px', color: '#64748b' }}>
+              {/* 📱 HEADER DO CARD */}
+              <div style={{ marginBottom: '12px' }}>
+                <h4 style={{ 
+                  margin: '0 0 4px 0', 
+                  fontSize: '16px', 
+                  fontWeight: '600',
+                  color: '#1e293b',
+                  lineHeight: '1.3'
+                }}>
+                  {relatorio.nome}
+                </h4>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#64748b',
+                  marginBottom: '4px'
+                }}>
                   {relatorio.tipo} • {relatorio.dataReferencia}
-                  {relatorio.tamanho && ` • ${relatorio.tamanho}`}
-                </p>
-                
-                {/* 🆕 DATA DE UPLOAD */}
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                  Adicionado em: {new Date(relatorio.dataUpload).toLocaleDateString('pt-BR')}
-                </p>
+                </div>
+                {relatorio.tamanho && (
+                  <div style={{ 
+                    fontSize: '11px', 
+                    color: '#94a3b8'
+                  }}>
+                    📄 {relatorio.tamanho}
+                  </div>
+                )}
               </div>
               
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {/* 🆕 BOTÃO DE DOWNLOAD PDF (se disponível) */}
+              {/* 📱 BOTÕES DE AÇÃO MOBILE */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px',
+                justifyContent: 'center'
+              }}>
+                {/* 🆕 BOTÃO PDF - APENAS SE DISPONÍVEL */}
                 {relatorio.arquivoPdf && relatorio.tipoPdf === 'base64' && (
                   <button
                     onClick={() => downloadPDF(relatorio)}
                     style={{
-                      backgroundColor: '#f0fdf4',
+                      flex: 1,
+                      backgroundColor: '#dcfce7',
                       border: '1px solid #bbf7d0',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
                       cursor: 'pointer',
-                      fontSize: '12px',
-                      color: '#166534'
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#166534',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
                     }}
-                    title="Baixar PDF"
                   >
                     📥 PDF
                   </button>
                 )}
                 
-                {/* 🔗 BOTÃO DE VISUALIZAR */}
+                {/* 🔗 BOTÃO VISUALIZAR */}
                 <button
                   onClick={() => visualizarRelatorio(relatorio)}
                   style={{
-                    backgroundColor: '#e3f2fd',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
+                    flex: 1,
+                    backgroundColor: '#dbeafe',
+                    border: '1px solid #93c5fd',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
                     cursor: 'pointer',
-                    fontSize: '12px',
-                    color: '#1976d2'
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#1e40af',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
                   }}
-                  title="Visualizar conteúdo"
                 >
                   👁 Ver
                 </button>
               </div>
+
+              {/* 📅 DATA DE ADIÇÃO */}
+              <div style={{ 
+                fontSize: '10px', 
+                color: '#94a3b8',
+                textAlign: 'center',
+                marginTop: '8px'
+              }}>
+                Adicionado em: {new Date(relatorio.dataUpload).toLocaleDateString('pt-BR')}
+              </div>
             </div>
           ))}
-
-          {/* 🔗 LINK PARA GERENCIAR */}
-          <div style={{ 
-            textAlign: 'center', 
-            marginTop: '16px',
-            padding: '12px',
-            backgroundColor: '#f8fafc',
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <button
-              onClick={() => window.open('/dashboard/central-relatorios', '_blank')}
-              style={{
-                backgroundColor: '#f1f5f9',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                padding: '6px 12px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                color: '#64748b',
-                textDecoration: 'none'
-              }}
-            >
-              🗃️ Gerenciar Relatórios na Central
-            </button>
-          </div>
         </div>
       )}
     </div>
