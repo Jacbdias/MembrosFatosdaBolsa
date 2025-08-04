@@ -1922,25 +1922,91 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
     }
   };
 
-  const visualizarRelatorio = (relatorio) => {
-    if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
-      window.open(relatorio.linkExterno, '_blank');
-      return;
+const visualizarRelatorio = (relatorio) => {
+  // Se tem PDF disponível, priorizar o PDF em vez de link externo
+  if (relatorio.arquivoPdf && relatorio.tipoPdf === 'base64') {
+    console.log('📄 Abrindo PDF em vez do link externo');
+    
+    try {
+      // Usar a mesma lógica do download, mas para visualização
+      const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
+      const binaryString = atob(base64Clean);
+      const bytes = new Uint8Array(binaryString.length);
+      
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Abrir PDF em nova aba para visualização
+      const newWindow = window.open(url, '_blank');
+      
+      if (newWindow) {
+        console.log('✅ PDF aberto para visualização');
+        
+        // Limpar URL após um tempo
+        setTimeout(() => URL.revokeObjectURL(url), 30000); // 30 segundos
+        
+        // Detectar mobile e mostrar instruções se necessário
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          setTimeout(() => {
+            alert('📱 PDF aberto para visualização!\n\nPara salvar: use o botão de compartilhar (📤) do navegador');
+          }, 1000);
+        }
+      } else {
+        alert('🚫 Popup bloqueado! Permita popups para visualizar o PDF.');
+      }
+      
+      return; // Sair da função - PDF foi aberto
+      
+    } catch (error) {
+      console.error('❌ Erro ao abrir PDF para visualização:', error);
+      // Se der erro com PDF, continuar com os links abaixo
+    }
+  }
+  
+  // Se não tem PDF ou deu erro, usar os links
+  if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
+    window.open(relatorio.linkExterno, '_blank');
+    return;
+  }
+  
+  if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
+    // Opção 1: Tentar abrir PDF primeiro, depois Canva
+    if (relatorio.arquivoPdf) {
+      // Já tentou PDF acima e não funcionou
+      console.log('📄 PDF não disponível, abrindo Canva...');
     }
     
-    if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
-      window.open(relatorio.linkCanva, '_blank');
-      return;
-    }
+    // Detectar se é mobile e avisar sobre o app
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    if (relatorio.linkExterno) {
-      window.open(relatorio.linkExterno, '_blank');
-    } else if (relatorio.linkCanva) {
-      window.open(relatorio.linkCanva, '_blank');
+    if (isMobile) {
+      // No mobile, avisar que pode abrir o app
+      if (confirm('🎨 Abrir no Canva?\n\n📱 Pode abrir o app do Canva se instalado.\n\nClique OK para continuar ou Cancelar para tentar outra opção.')) {
+        window.open(relatorio.linkCanva, '_blank');
+      } else {
+        alert('💡 Alternativa: Use o botão "📥 PDF" para baixar a versão em PDF se disponível.');
+      }
     } else {
-      alert('📋 Link de visualização não disponível para este relatório');
+      // No desktop, abrir normalmente
+      window.open(relatorio.linkCanva, '_blank');
     }
-  };
+    return;
+  }
+  
+  // Fallback para outros links
+  if (relatorio.linkExterno) {
+    window.open(relatorio.linkExterno, '_blank');
+  } else if (relatorio.linkCanva) {
+    window.open(relatorio.linkCanva, '_blank');
+  } else {
+    alert('📋 Link de visualização não disponível para este relatório');
+  }
+};
 
 // 🆕 FUNÇÃO PARA DOWNLOAD DE PDF - VERSÃO CORRIGIDA
 const downloadPDF = (relatorio) => {
