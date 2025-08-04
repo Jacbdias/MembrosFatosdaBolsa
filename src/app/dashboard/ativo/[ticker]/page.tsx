@@ -1942,7 +1942,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
     }
   };
 
-// 🆕 FUNÇÃO PARA DOWNLOAD DE PDF (iOS + ANDROID + DESKTOP)
+// 🆕 FUNÇÃO PARA DOWNLOAD DE PDF - VERSÃO CORRIGIDA
 const downloadPDF = (relatorio) => {
   if (!relatorio.arquivoPdf || relatorio.tipoPdf !== 'base64') {
     if (relatorio.tipoPdf === 'referencia') {
@@ -1954,84 +1954,85 @@ const downloadPDF = (relatorio) => {
   }
 
   try {
-    console.log('📱 Iniciando download PDF para:', relatorio.nome);
+    console.log('📄 Iniciando download PDF:', relatorio.nome);
     
-    // Detectar dispositivo específico
+    // Detectar dispositivo
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isAndroid = /Android/.test(navigator.userAgent);
     const isMobile = isIOS || isAndroid;
     
-    console.log('📱 Dispositivo:', { isIOS, isAndroid, isMobile });
-    
     // Nome do arquivo
     const nomeArquivo = relatorio.nomeArquivoPdf || `${relatorio.ticker}_${relatorio.nome}.pdf`;
     
-    if (isIOS) {
-      // MÉTODO ESPECÍFICO PARA iOS
-      console.log('🍎 Usando método iOS...');
+    // Validar se o base64 está correto
+    if (!relatorio.arquivoPdf.startsWith('data:application/pdf;base64,')) {
+      console.error('❌ Base64 inválido');
+      alert('❌ Formato de PDF inválido. Tente fazer re-upload do arquivo.');
+      return;
+    }
+    
+    if (isMobile) {
+      // MÉTODO MOBILE: Converter para blob e usar URL.createObjectURL
+      console.log('📱 Usando método mobile...');
       
       try {
-        // Para iOS, a melhor abordagem é abrir diretamente
-        // O Safari vai mostrar o PDF e o usuário pode salvá-lo usando o botão de compartilhamento
-        const newWindow = window.open(relatorio.arquivoPdf, '_blank');
+        // Extrair base64 limpo
+        const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
         
-        if (newWindow) {
-          // Sucesso - nova aba aberta
-          console.log('✅ PDF aberto em nova aba no iOS');
-          
-          // Mostrar instruções para o usuário
-          setTimeout(() => {
-            alert('📄 PDF aberto em nova aba!\n\n📱 Para salvar:\n1. Toque no ícone de compartilhar (📤)\n2. Escolha "Salvar em Arquivos" ou outro app');
-          }, 500);
-          
-        } else {
-          // Popup bloqueado
-          console.log('❌ Popup bloqueado no iOS');
-          alert('🚫 Popup bloqueado!\n\nPara ver o PDF:\n1. Permita popups para este site\n2. Ou toque no botão PDF novamente');
+        // Converter para blob
+        const binaryString = atob(base64Clean);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
         }
         
-      } catch (error) {
-        console.error('❌ Erro no método iOS:', error);
-        alert('❌ Erro ao abrir PDF. Tente permitir popups nas configurações do Safari.');
-      }
-      
-    } else if (isAndroid) {
-      // MÉTODO ESPECÍFICO PARA ANDROID
-      console.log('🤖 Usando método Android...');
-      
-      try {
-        // Primeiro tentar download direto
-        const link = document.createElement('a');
-        link.href = relatorio.arquivoPdf;
-        link.download = nomeArquivo;
-        link.style.display = 'none';
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
         
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('✅ Download iniciado no Android');
-        
-        // Verificar se funcionou após um tempo
-        setTimeout(() => {
-          if (confirm('📱 Se o download não apareceu na barra de notificações, deseja abrir o PDF em nova aba?')) {
-            window.open(relatorio.arquivoPdf, '_blank');
+        if (isIOS) {
+          // iOS: Abrir em nova aba com instruções
+          const newWindow = window.open(url, '_blank');
+          if (newWindow) {
+            setTimeout(() => {
+              alert('📱 PDF aberto em nova aba!\n\nPara salvar no iPhone:\n1. Toque no ícone de compartilhar (📤)\n2. Escolha "Salvar em Arquivos"');
+            }, 1000);
+          } else {
+            alert('🚫 Popup bloqueado! Permita popups nas configurações do Safari.');
           }
-        }, 2000);
+        } else {
+          // Android: Tentar download direto
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = nomeArquivo;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Verificar se funcionou
+          setTimeout(() => {
+            if (confirm('📱 Se o download não apareceu, deseja abrir o PDF em nova aba?')) {
+              window.open(url, '_blank');
+            }
+          }, 2000);
+        }
+        
+        // Limpar URL após uso
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
         
       } catch (error) {
-        console.error('❌ Erro no método Android:', error);
-        // Fallback: abrir em nova aba
-        window.open(relatorio.arquivoPdf, '_blank');
+        console.error('❌ Erro no método mobile:', error);
+        alert('❌ Erro ao processar PDF no mobile. Tente fazer re-upload do arquivo.');
       }
       
     } else {
-      // MÉTODO DESKTOP
+      // MÉTODO DESKTOP: Blob download
       console.log('🖥️ Usando método desktop...');
       
       try {
-        // Converter base64 para blob (método mais confiável no desktop)
-        const base64Clean = relatorio.arquivoPdf.replace(/^data:application\/pdf;base64,/, '');
+        const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
         const binaryString = atob(base64Clean);
         const bytes = new Uint8Array(binaryString.length);
         
@@ -2045,24 +2046,24 @@ const downloadPDF = (relatorio) => {
         const link = document.createElement('a');
         link.href = url;
         link.download = nomeArquivo;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         console.log('✅ Download iniciado no desktop');
         
       } catch (error) {
         console.error('❌ Erro no método desktop:', error);
-        // Fallback: usar data URL
-        const link = document.createElement('a');
-        link.href = relatorio.arquivoPdf;
-        link.download = nomeArquivo;
-        link.click();
+        alert('❌ Erro ao processar PDF. Verifique se o arquivo não está corrompido.');
       }
     }
     
   } catch (error) {
     console.error('❌ Erro geral no download:', error);
-    alert('❌ Erro ao processar PDF. Tente novamente.');
+    alert('❌ Erro ao baixar PDF: ' + error.message);
   }
 };
 
