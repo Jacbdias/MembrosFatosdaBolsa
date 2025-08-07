@@ -921,8 +921,10 @@ export default function SmallCapsPage() {
     cotacoesAtualizadas, 
     setCotacoesAtualizadas, 
     loading, 
+    loadingDY,
+    loadingProventos,
     isMobile,
-    loadingMessage
+    todosOsDadosProntos
   } = useSmallCapsIntegradas();
   
   const { smllData } = useSmllRealTime();
@@ -1043,8 +1045,10 @@ export default function SmallCapsPage() {
           lineHeight: '1.5'
         }}>
           {ativosAtivos.length} posições ativas • {ativosEncerrados.length} encerradas
-          {loading && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• {loadingMessage || 'Carregando...'}</span>}
-          {!loading && <span style={{ color: '#059669', marginLeft: '8px' }}>• Total Return aplicado ✓</span>}
+          {loading && !todosOsDadosProntos && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• Coletando dados...</span>}
+          {loadingDY && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Carregando DY...</span>}
+          {loadingProventos && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Carregando proventos...</span>}
+          {todosOsDadosProntos && <span style={{ color: '#059669', marginLeft: '8px' }}>• Total Return aplicado ✓</span>}
         </p>
       </div>
 
@@ -1105,7 +1109,7 @@ export default function SmallCapsPage() {
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {loading ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
+            {loadingDY ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
           </div>
         </div>
 
@@ -1238,7 +1242,7 @@ export default function SmallCapsPage() {
             gap: '8px'
           }}>
             Posições Ativas ({ativosAtivos.length})
-            {loading && (
+            {(loading || !todosOsDadosProntos) && (
               <div style={{
                 width: '16px',
                 height: '16px',
@@ -1254,15 +1258,15 @@ export default function SmallCapsPage() {
             fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {loading
-              ? loadingMessage || 'Carregando dados...' 
+            {loading || !todosOsDadosProntos
+              ? 'Carregando Total Return com proventos...' 
               : 'Total Return aplicado - dados atualizados a cada 5 minutos'
             }
           </p>
         </div>
 
         {/* Skeleton Loading */}
-        {(loading || !todosOsDadosProntos) && ativosAtivos.length === 0 ? (
+        {loading && ativosAtivos.length === 0 ? (
           <div style={{ padding: '24px' }}>
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} style={{
