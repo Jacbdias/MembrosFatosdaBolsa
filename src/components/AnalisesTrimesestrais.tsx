@@ -116,16 +116,6 @@ const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
   );
 };
 
-// Função para validar se a análise tem dados mínimos
-const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
-  return !!(
-    analise.id &&
-    analise.ticker &&
-    analise.titulo &&
-    analise.dataPublicacao
-  );
-};
-
 // Componente do Modal de Análise Completa - melhorado e responsivo
 const ModalAnaliseCompleta = memo(({ 
   analise, 
