@@ -107,6 +107,8 @@ const useIsMobile = () => {
   
   return isMobile;
 };
+
+// Função para validar se a análise tem dados mínimos
 const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
   return !!(
     analise.id &&
@@ -271,7 +273,7 @@ const ModalAnaliseCompleta = memo(({
                 color: '#64748b',
                 flexWrap: 'wrap'
               }}>
-                <span>📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
+                <span> {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
                 <span>✍️ {analise.autor}</span>
               </div>
             </div>
@@ -758,16 +760,6 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
             gap: '8px'
           }}>
             📊 Análises Trimestrais
-            <span style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              borderRadius: '12px',
-              padding: '2px 8px',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}>
-              {analises.length}
-            </span>
           </h3>
         </div>
 
@@ -779,10 +771,10 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
             
             return (
               <div key={analiseKey} style={{
-                border: `2px solid ${isRecente ? '#3b82f6' : '#e2e8f0'}`,
+                border: '1px solid #e2e8f0',
                 borderRadius: '12px',
                 padding: isMobile ? '16px' : '20px',
-                backgroundColor: isRecente ? '#f8fafc' : 'white',
+                backgroundColor: 'white',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 position: 'relative'
@@ -853,7 +845,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       </span>
                       
                       <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
-                        📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}
+                         {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}
                       </span>
                       
                       <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
