@@ -1377,11 +1377,9 @@ export default function SmallCapsPage() {
           margin: '0',
           lineHeight: '1.5'
         }}>
-          {ativosAtivos.length} posições ativas • {ativosEncerrados.length} encerradas
           {loading && !todosOsDadosProntos && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• Coletando dados...</span>}
           {loadingDY && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Carregando DY...</span>}
           {loadingProventos && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Carregando proventos...</span>}
-          {todosOsDadosProntos && <span style={{ color: '#059669', marginLeft: '8px' }}>• Total Return aplicado ✓</span>}
         </p>
       </div>
 
