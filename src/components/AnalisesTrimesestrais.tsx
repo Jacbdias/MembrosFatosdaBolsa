@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Eye, Calendar, TrendingUp, TrendingDown, BarChart3, Target, AlertCircle, ExternalLink, FileText, Building } from 'lucide-react';
 
-// Interfaces (mesmas do componente admin)
+// Interfaces corrigidas para compatibilidade
 interface MetricaTrimestreData {
   valor: number;
   unidade: string;
-  variacao?: number;
+  variacao?: number;      // Variação trimestre vs trimestre anterior
+  variacaoYoY?: number;   // Variação ano vs ano (principal campo usado)
   margem?: number;
 }
 
@@ -47,7 +48,7 @@ interface AnaliseTrimestreData {
   status: 'draft' | 'published';
 }
 
-// Função para formatar valores
+// Função para formatar valores - corrigida
 const formatarValorMetrica = (metrica: MetricaTrimestreData | undefined): string => {
   if (!metrica || !metrica.valor) return 'N/A';
   
@@ -61,7 +62,29 @@ const formatarValorMetrica = (metrica: MetricaTrimestreData | undefined): string
   return `R$ ${valor.toFixed(1)} ${unidade}`;
 };
 
-// Componente do Modal de Análise Completa
+// Função auxiliar para limpar HTML - melhorada
+const stripHtml = (html: string): string => {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, '') // Remove tags HTML
+    .replace(/&nbsp;/g, ' ') // Replace &nbsp; com espaço
+    .replace(/&amp;/g, '&')  // Replace &amp; com &
+    .replace(/&lt;/g, '<')   // Replace &lt; com <
+    .replace(/&gt;/g, '>')   // Replace &gt; com >
+    .trim();
+};
+
+// Função para validar se a análise tem dados mínimos
+const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
+  return !!(
+    analise.id &&
+    analise.ticker &&
+    analise.titulo &&
+    analise.dataPublicacao
+  );
+};
+
+// Componente do Modal de Análise Completa - melhorado
 const ModalAnaliseCompleta = memo(({ 
   analise, 
   isOpen, 
@@ -209,7 +232,7 @@ const ModalAnaliseCompleta = memo(({
           </div>
           
           {/* Recomendação e Risco */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             {getBadgeRecomendacao(analise.recomendacao)}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '14px', color: '#64748b' }}>Risco:</span>
@@ -248,7 +271,7 @@ const ModalAnaliseCompleta = memo(({
             </div>
           )}
 
-          {/* Métricas do Trimestre */}
+          {/* Métricas do Trimestre - CORRIGIDO */}
           {Object.keys(analise.metricas).length > 0 && (
             <div style={{ marginBottom: '32px' }}>
               <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -256,54 +279,68 @@ const ModalAnaliseCompleta = memo(({
               </h4>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                {analise.metricas.receita && (
+                {analise.metricas.receita && analise.metricas.receita.valor !== undefined && (
                   <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                     <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#15803d', fontWeight: '600' }}>💰 Receita</h5>
                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#166534' }}>
                       {formatarValorMetrica(analise.metricas.receita)}
                     </div>
-                    {analise.metricas.receita.variacao && (
+                    {/* CORRIGIDO: Usar variacaoYoY em vez de variacao */}
+                    {analise.metricas.receita.variacaoYoY !== undefined && typeof analise.metricas.receita.variacaoYoY === 'number' && (
                       <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px' }}>
-                        {analise.metricas.receita.variacao >= 0 ? '↗' : '↘'} {analise.metricas.receita.variacao.toFixed(1)}%
+                        {analise.metricas.receita.variacaoYoY >= 0 ? '↗' : '↘'} {analise.metricas.receita.variacaoYoY.toFixed(1)}% A/A
                       </div>
                     )}
                   </div>
                 )}
 
-                {analise.metricas.ebitda && (
+                {analise.metricas.ebitda && analise.metricas.ebitda.valor !== undefined && (
                   <div style={{ backgroundColor: '#f0f9ff', padding: '16px', borderRadius: '8px', border: '1px solid #7dd3fc' }}>
                     <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#0c4a6e', fontWeight: '600' }}>📊 EBITDA</h5>
                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#0369a1' }}>
                       {formatarValorMetrica(analise.metricas.ebitda)}
                     </div>
-                    {analise.metricas.ebitda.margem && (
+                    {analise.metricas.ebitda.margem !== undefined && typeof analise.metricas.ebitda.margem === 'number' && (
                       <div style={{ fontSize: '12px', color: '#0c4a6e', marginTop: '4px' }}>
                         Margem: {analise.metricas.ebitda.margem.toFixed(1)}%
+                      </div>
+                    )}
+                    {/* CORRIGIDO: Usar variacaoYoY */}
+                    {analise.metricas.ebitda.variacaoYoY !== undefined && typeof analise.metricas.ebitda.variacaoYoY === 'number' && (
+                      <div style={{ fontSize: '11px', color: '#0c4a6e', marginTop: '2px' }}>
+                        {analise.metricas.ebitda.variacaoYoY >= 0 ? '↗' : '↘'} {analise.metricas.ebitda.variacaoYoY.toFixed(1)}% A/A
                       </div>
                     )}
                   </div>
                 )}
 
-                {analise.metricas.lucroLiquido && (
+                {analise.metricas.lucroLiquido && analise.metricas.lucroLiquido.valor !== undefined && (
                   <div style={{ backgroundColor: '#fdf4ff', padding: '16px', borderRadius: '8px', border: '1px solid #d8b4fe' }}>
                     <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#7c2d12', fontWeight: '600' }}>💎 Lucro Líquido</h5>
                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#92400e' }}>
                       {formatarValorMetrica(analise.metricas.lucroLiquido)}
                     </div>
-                    {analise.metricas.lucroLiquido.variacao && (
+                    {/* CORRIGIDO: Usar variacaoYoY */}
+                    {analise.metricas.lucroLiquido.variacaoYoY !== undefined && typeof analise.metricas.lucroLiquido.variacaoYoY === 'number' && (
                       <div style={{ fontSize: '12px', color: '#7c2d12', marginTop: '4px' }}>
-                        {analise.metricas.lucroLiquido.variacao >= 0 ? '↗' : '↘'} {analise.metricas.lucroLiquido.variacao.toFixed(1)}%
+                        {analise.metricas.lucroLiquido.variacaoYoY >= 0 ? '↗' : '↘'} {analise.metricas.lucroLiquido.variacaoYoY.toFixed(1)}% A/A
                       </div>
                     )}
                   </div>
                 )}
 
-                {analise.metricas.roe && (
+                {analise.metricas.roe && analise.metricas.roe.valor !== undefined && (
                   <div style={{ backgroundColor: '#fef2f2', padding: '16px', borderRadius: '8px', border: '1px solid #fecaca' }}>
                     <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#991b1b', fontWeight: '600' }}>🎯 ROE</h5>
                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#dc2626' }}>
-                      {analise.metricas.roe.valor.toFixed(1)}%
+                      {typeof analise.metricas.roe.valor === 'number' ? analise.metricas.roe.valor.toFixed(1) : analise.metricas.roe.valor}%
                     </div>
+                    {/* CORRIGIDO: Usar variacaoYoY para ROE também */}
+                    {analise.metricas.roe.variacaoYoY !== undefined && typeof analise.metricas.roe.variacaoYoY === 'number' && (
+                      <div style={{ fontSize: '12px', color: '#991b1b', marginTop: '4px' }}>
+                        {analise.metricas.roe.variacaoYoY >= 0 ? '↗' : '↘'} {analise.metricas.roe.variacaoYoY.toFixed(1)}p.p. A/A
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -426,14 +463,14 @@ const ModalAnaliseCompleta = memo(({
   );
 });
 
-// Componente Principal
+// Componente Principal - CORRIGIDO
 const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
   const [analises, setAnalises] = useState<AnaliseTrimestreData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analiseModalAberta, setAnaliseModalAberta] = useState<AnaliseTrimestreData | null>(null);
 
-  // Carregar análises do IndexedDB
+  // Carregar análises da API - MELHORADO
   useEffect(() => {
     const loadAnalises = async () => {
       if (!ticker) {
@@ -445,64 +482,42 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
         setLoading(true);
         setError(null);
         
-        console.log(`🔍 Buscando análises para ${ticker}...`);
+        console.log(`🔍 Buscando análises para ${ticker} via API...`);
         
-        const request = indexedDB.open('AnalisesTrimesestraisDB', 1);
+        // 🚀 CHAMADA PARA API REAL
+        const response = await fetch('/api/analises-trimestrais');
         
-        request.onerror = () => {
-          console.error('❌ Erro ao abrir IndexedDB');
-          setError('Erro ao conectar com o banco de dados');
-          setLoading(false);
-        };
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
         
-        request.onsuccess = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          
-          if (!db.objectStoreNames.contains('analises')) {
-            console.log('ℹ️ Object store "analises" não encontrado');
-            setAnalises([]);
-            setLoading(false);
-            return;
-          }
-          
-          const transaction = db.transaction(['analises'], 'readonly');
-          const store = transaction.objectStore('analises');
-          
-          // Usar getAll() em vez de index
-          const getRequest = store.getAll();
-          
-          getRequest.onsuccess = () => {
-            const todasAnalises = getRequest.result || [];
-            console.log(`✅ Total de análises carregadas: ${todasAnalises.length}`);
-            
-            // Filtrar manualmente por ticker
-            const analisesEncontradas = todasAnalises.filter((analise: AnaliseTrimestreData) => 
-              analise.ticker && analise.ticker.toUpperCase() === ticker.toUpperCase()
-            );
-            
-            console.log(`✅ ${analisesEncontradas.length} análises encontradas para ${ticker}`);
-            
-            // Filtrar apenas análises publicadas e ordenar por data
-            const analisesPublicadas = analisesEncontradas
-              .filter((analise: AnaliseTrimestreData) => analise.status === 'published')
-              .sort((a: AnaliseTrimestreData, b: AnaliseTrimestreData) => 
-                new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime()
-              );
-            
-            setAnalises(analisesPublicadas);
-            setLoading(false);
-          };
-          
-          getRequest.onerror = () => {
-            console.error('❌ Erro ao buscar análises no IndexedDB');
-            setError('Erro ao carregar análises');
-            setLoading(false);
-          };
-        };
+        const todasAnalises: AnaliseTrimestreData[] = await response.json();
+        console.log(`✅ Total de análises carregadas da API: ${todasAnalises.length}`);
+        
+        // Filtrar por ticker (case-insensitive) e validar dados
+        const analisesEncontradas = todasAnalises.filter((analise: AnaliseTrimestreData) => {
+          if (!analise.ticker || !isAnaliseValida(analise)) return false;
+          return analise.ticker.toUpperCase() === ticker.toUpperCase();
+        });
+        
+        console.log(`✅ ${analisesEncontradas.length} análises válidas encontradas para ${ticker}`);
+        
+        // Filtrar apenas análises publicadas e ordenar por data
+        const analisesPublicadas = analisesEncontradas
+          .filter((analise: AnaliseTrimestreData) => analise.status === 'published')
+          .sort((a: AnaliseTrimestreData, b: AnaliseTrimestreData) => {
+            const dataA = new Date(a.dataPublicacao).getTime();
+            const dataB = new Date(b.dataPublicacao).getTime();
+            return dataB - dataA; // Mais recente primeiro
+          });
+        
+        console.log(`📊 ${analisesPublicadas.length} análises publicadas para ${ticker}`);
+        setAnalises(analisesPublicadas);
         
       } catch (error) {
-        console.error('❌ Erro geral ao carregar análises:', error);
-        setError('Erro ao carregar análises');
+        console.error('❌ Erro ao carregar análises:', error);
+        setError(error instanceof Error ? error.message : 'Erro ao carregar análises');
+      } finally {
         setLoading(false);
       }
     };
@@ -511,7 +526,9 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
   }, [ticker]);
 
   const abrirModal = useCallback((analise: AnaliseTrimestreData) => {
-    setAnaliseModalAberta(analise);
+    if (isAnaliseValida(analise)) {
+      setAnaliseModalAberta(analise);
+    }
   }, []);
 
   const fecharModal = useCallback(() => {
@@ -537,7 +554,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           alignItems: 'center',
           gap: '8px'
         }}>
-         Análises Trimestrais
+          📊 Análises Trimestrais
         </h3>
         
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
@@ -663,9 +680,11 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
         <div style={{ display: 'grid', gap: '16px' }}>
           {analises.slice(0, 4).map((analise, index) => {
             const isRecente = index === 0;
+            // CORRIGIDO: Garantir ID único
+            const analiseKey = analise.id || `analise-${ticker}-${index}-${Date.now()}`;
             
             return (
-              <div key={analise.id || index} style={{
+              <div key={analiseKey} style={{
                 border: `2px solid ${isRecente ? '#3b82f6' : '#e2e8f0'}`,
                 borderRadius: '12px',
                 padding: '20px',
@@ -734,7 +753,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       </span>
                     </div>
 
-                    {/* Resumo Executivo (sem HTML) */}
+                    {/* Resumo Executivo (sem HTML) - MELHORADO */}
                     {analise.resumoExecutivo && (
                       <p style={{
                         color: '#64748b',
@@ -746,7 +765,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden'
                       }}>
-                        {analise.resumoExecutivo.replace(/<[^>]*>/g, '')}
+                        {stripHtml(analise.resumoExecutivo)}
                       </p>
                     )}
                   </div>
@@ -795,7 +814,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                   </div>
                 </div>
 
-                {/* Métricas Resumidas */}
+                {/* Métricas Resumidas - CORRIGIDO */}
                 {Object.keys(analise.metricas).length > 0 && (
                   <div style={{ 
                     display: 'flex', 
@@ -805,27 +824,28 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                     borderTop: '1px solid #e2e8f0',
                     flexWrap: 'wrap'
                   }}>
-                    {analise.metricas.receita && (
+                    {analise.metricas.receita && analise.metricas.receita.valor !== undefined && (
                       <div style={{ fontSize: '12px' }}>
                         <span style={{ color: '#64748b' }}>Receita: </span>
                         <span style={{ fontWeight: '600', color: '#059669' }}>
                           {formatarValorMetrica(analise.metricas.receita)}
                         </span>
-                        {analise.metricas.receita.variacao && (
-                          <span style={{ color: analise.metricas.receita.variacao >= 0 ? '#059669' : '#dc2626', marginLeft: '4px' }}>
-                            ({analise.metricas.receita.variacao >= 0 ? '+' : ''}{analise.metricas.receita.variacao.toFixed(1)}%)
+                        {/* CORRIGIDO: Usar variacaoYoY */}
+                        {analise.metricas.receita.variacaoYoY !== undefined && typeof analise.metricas.receita.variacaoYoY === 'number' && (
+                          <span style={{ color: analise.metricas.receita.variacaoYoY >= 0 ? '#059669' : '#dc2626', marginLeft: '4px' }}>
+                            ({analise.metricas.receita.variacaoYoY >= 0 ? '+' : ''}{analise.metricas.receita.variacaoYoY.toFixed(1)}%)
                           </span>
                         )}
                       </div>
                     )}
                     
-                    {analise.metricas.ebitda && (
+                    {analise.metricas.ebitda && analise.metricas.ebitda.valor !== undefined && (
                       <div style={{ fontSize: '12px' }}>
                         <span style={{ color: '#64748b' }}>EBITDA: </span>
                         <span style={{ fontWeight: '600', color: '#0ea5e9' }}>
                           {formatarValorMetrica(analise.metricas.ebitda)}
                         </span>
-                        {analise.metricas.ebitda.margem && (
+                        {analise.metricas.ebitda.margem !== undefined && typeof analise.metricas.ebitda.margem === 'number' && (
                           <span style={{ color: '#0ea5e9', marginLeft: '4px' }}>
                             ({analise.metricas.ebitda.margem.toFixed(1)}%)
                           </span>
@@ -833,11 +853,11 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       </div>
                     )}
 
-                    {analise.metricas.roe && (
+                    {analise.metricas.roe && analise.metricas.roe.valor !== undefined && (
                       <div style={{ fontSize: '12px' }}>
                         <span style={{ color: '#64748b' }}>ROE: </span>
                         <span style={{ fontWeight: '600', color: '#dc2626' }}>
-                          {analise.metricas.roe.valor.toFixed(1)}%
+                          {typeof analise.metricas.roe.valor === 'number' ? analise.metricas.roe.valor.toFixed(1) : analise.metricas.roe.valor}%
                         </span>
                       </div>
                     )}

@@ -905,9 +905,6 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
       marginBottom: '32px'
     }}>
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         marginBottom: '20px'
       }}>
         <h3 style={{
@@ -918,87 +915,27 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
         }}>
           📅 Agenda Corporativa
         </h3>
-        
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{
-            backgroundColor: loading ? '#f59e0b' : error ? '#ef4444' : '#22c55e',
-            color: 'white',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            fontSize: '10px',
-            fontWeight: '600'
-          }}>
-            {loading ? '⏳ API' : error ? '❌ API' : '✅ API'}
-          </span>
-          
-          <button
-            onClick={refetch}
-            disabled={loading}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              padding: '4px',
-              opacity: loading ? 0.5 : 1
-            }}
-            title="Atualizar eventos"
-          >
-            🔄
-          </button>
-        </div>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
           <div style={{ color: '#64748b', textAlign: 'center' }}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
-            <p>Carregando eventos via API...</p>
+            <p>Carregando eventos...</p>
           </div>
         </div>
       ) : error ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#ef4444' }}>
           <h4 style={{ marginBottom: '16px' }}>❌ Erro ao carregar eventos</h4>
           <p style={{ marginBottom: '24px', fontSize: '14px' }}>{error}</p>
-          <button
-            onClick={refetch}
-            style={{
-              backgroundColor: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}
-          >
-            🔄 Tentar Novamente
-          </button>
         </div>
       ) : eventos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <h4 style={{ marginBottom: '16px' }}>📭 Nenhum evento encontrado para {ticker}</h4>
-          <p style={{ marginBottom: '24px' }}>ℹ️ Não há eventos cadastrados para este ticker na API</p>
+          <p style={{ marginBottom: '24px' }}>ℹ️ Não há eventos cadastrados para este ticker</p>
         </div>
       ) : (
         <div>
-          <div style={{
-            background: '#f0f9ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: '20px'
-          }}>
-            <p style={{
-              fontSize: '14px',
-              color: '#1e40af',
-              margin: 0,
-              fontWeight: '600'
-            }}>
-              📊 <strong>{eventos.length}</strong> eventos encontrados para <strong>{ticker}</strong> via API
-            </p>
-          </div>
-
           {eventos.slice(0, 4).map((evento, index) => {
             const diasAteEvento = calcularDiasAteEvento(evento.dataObj);
             const proximidade = formatarProximidade(diasAteEvento);
@@ -3180,9 +3117,6 @@ const {
   loading={loadingYahoo || loadingETFBRAPI}
 />
 
-      {/* Histórico de Dividendos */}
-      <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={isFII} />
-
       {/* Análises Trimestrais */}
       <AnalisesTrimesestrais ticker={ticker} />
 
@@ -3191,6 +3125,9 @@ const {
       
       {/* Agenda Corporativa */}
       <AgendaCorporativa ticker={ticker} isFII={isFII} />
+
+      {/* Histórico de Dividendos */}
+      <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={isFII} />
 
       {/* Dados da Posição Expandidos */}
       <DadosPosicaoExpandidos 

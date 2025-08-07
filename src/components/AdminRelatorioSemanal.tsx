@@ -1,50 +1,57 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter, LineChart, Coins, ToggleLeft, ToggleRight } from 'lucide-react';
 
-// Interfaces para Relatório Semanal
+// Interface unificada para item de relatório (notícia ou provento)
 interface ItemRelatorioSemanal {
+  // Campos comuns
   ticker: string;
   empresa: string;
-  titulo: string;
-  resumo: string;
-  analise: string;
+  
+  // Identificador de tipo
+  isProvento?: boolean;
+  
+  // Campos para notícias/análises
+  titulo?: string;
+  resumo?: string;
+  analise?: string;
   recomendacao?: 'COMPRA' | 'VENDA' | 'MANTER';
   impacto?: 'positivo' | 'negativo' | 'neutro';
   precoAlvo?: number;
   destaque?: string;
-}
-
-interface ProventoItem {
-  ticker: string;
-  empresa: string;
-  tipo: 'Dividendo' | 'JCP' | 'Bonificação';
-  valor: string;
-  dy: string;
-  datacom: string;
-  pagamento: string;
+  
+  // Campos para proventos
+  tipoProvento?: 'Dividendo' | 'JCP' | 'Bonificação';
+  valor?: string;
+  dy?: string;
+  datacom?: string;
+  pagamento?: string;
 }
 
 interface RelatorioSemanalData {
   id?: string;
-  semana: string; // Ex: "2025-W03" (3ª semana de 2025)
+  semana: string;
   dataPublicacao: string;
   autor: string;
   titulo: string;
   
-  // Seções do relatório
+  // Seções do relatório - SEM PROVENTOS SEPARADOS
   macro: ItemRelatorioSemanal[];
-  proventos: ProventoItem[];
   dividendos: ItemRelatorioSemanal[];
   smallCaps: ItemRelatorioSemanal[];
   microCaps: ItemRelatorioSemanal[];
-  exterior: ItemRelatorioSemanal[];
+  
+  // Internacional separado
+  exteriorStocks: ItemRelatorioSemanal[];
+  exteriorETFs: ItemRelatorioSemanal[];
+  exteriorDividendos: ItemRelatorioSemanal[];
+  exteriorProjetoAmerica: ItemRelatorioSemanal[];
   
   status: 'draft' | 'published';
 }
 
-// Rich Text Editor Component (mesmo da página anterior)
+// Rich Text Editor Component (mantém igual)
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -103,83 +110,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [execCommand]);
 
-  const insertImageByUrl = useCallback(() => {
-    const url = prompt('Digite a URL da imagem:');
-    if (url) {
-      try {
-        new URL(url);
-        execCommand('insertImage', url);
-        
-        setTimeout(() => {
-          if (editorRef.current) {
-            const images = editorRef.current.querySelectorAll('img');
-            const lastImage = images[images.length - 1];
-            if (lastImage) {
-              lastImage.style.maxWidth = '100%';
-              lastImage.style.height = 'auto';
-              lastImage.style.borderRadius = '8px';
-              lastImage.style.margin = '8px 0';
-              lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-            }
-          }
-        }, 100);
-      } catch (error) {
-        alert('URL inválida. Por favor, digite uma URL válida.');
-      }
-    }
-  }, [execCommand]);
-
-  const uploadImage = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.display = 'none';
-    
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        if (file.size > 5 * 1024 * 1024) {
-          alert('Arquivo muito grande. Máximo 5MB permitido.');
-          return;
-        }
-        
-        if (!file.type.startsWith('image/')) {
-          alert('Por favor, selecione apenas arquivos de imagem.');
-          return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const base64 = event.target?.result as string;
-          if (base64) {
-            execCommand('insertImage', base64);
-            
-            setTimeout(() => {
-              if (editorRef.current) {
-                const images = editorRef.current.querySelectorAll('img');
-                const lastImage = images[images.length - 1];
-                if (lastImage) {
-                  lastImage.style.maxWidth = '100%';
-                  lastImage.style.height = 'auto';
-                  lastImage.style.borderRadius = '8px';
-                  lastImage.style.margin = '8px 0';
-                  lastImage.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                  lastImage.setAttribute('title', file.name);
-                  lastImage.setAttribute('alt', file.name.split('.')[0]);
-                }
-              }
-            }, 100);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    
-    document.body.appendChild(input);
-    input.click();
-    document.body.removeChild(input);
-  }, [execCommand]);
-
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
@@ -223,7 +153,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       transition: 'border-color 0.2s',
       ...style
     }}>
-      {/* Toolbar simplificada */}
       <div style={{
         padding: '8px 12px',
         borderBottom: '1px solid #e5e7eb',
@@ -328,149 +257,56 @@ const getWeekNumber = (date: Date): string => {
   return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
 };
 
-// Componente para criar item de seção
+// 🆕 COMPONENTE UNIFICADO PARA CRIAR ITEM (NOTÍCIA OU PROVENTO)
 const ItemEditor = memo(({ 
   item, 
   onUpdate, 
   onRemove,
   secaoNome 
 }: { 
-  item: ItemRelatorioSemanal | ProventoItem;
-  onUpdate: (item: any) => void;
+  item: ItemRelatorioSemanal;
+  onUpdate: (item: ItemRelatorioSemanal) => void;
   onRemove: () => void;
   secaoNome: string;
 }) => {
-  const isProvento = 'tipo' in item;
+  const isProvento = item.isProvento || false;
 
-  if (isProvento) {
-    const provento = item as ProventoItem;
-    return (
-      <div style={{
-        border: '2px solid #e5e7eb',
-        borderRadius: '12px',
-        padding: '16px',
-        backgroundColor: '#fefce8',
-        position: 'relative'
-      }}>
-        <button
-          onClick={onRemove}
-          style={{
-            position: 'absolute',
-            top: '8px',
-            right: '8px',
-            backgroundColor: '#dc2626',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <Trash2 size={12} />
-        </button>
+  // Função para alternar entre notícia e provento
+  const toggleTipo = () => {
+    if (isProvento) {
+      // Mudando de provento para notícia - limpar campos de provento
+      onUpdate({
+        ticker: item.ticker,
+        empresa: item.empresa,
+        isProvento: false,
+        titulo: '',
+        resumo: '',
+        analise: ''
+      });
+    } else {
+      // Mudando de notícia para provento - limpar campos de notícia
+      onUpdate({
+        ticker: item.ticker,
+        empresa: item.empresa,
+        isProvento: true,
+        tipoProvento: 'Dividendo',
+        valor: '',
+        dy: '',
+        datacom: '',
+        pagamento: ''
+      });
+    }
+  };
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-          <input
-            placeholder="Ticker"
-            value={provento.ticker}
-            onChange={(e) => onUpdate({ ...provento, ticker: e.target.value.toUpperCase() })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-          <input
-            placeholder="Empresa"
-            value={provento.empresa}
-            onChange={(e) => onUpdate({ ...provento, empresa: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-          <select
-            value={provento.tipo}
-            onChange={(e) => onUpdate({ ...provento, tipo: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          >
-            <option value="Dividendo">Dividendo</option>
-            <option value="JCP">JCP</option>
-            <option value="Bonificação">Bonificação</option>
-          </select>
-          <input
-            placeholder="Valor (R$ 0,50)"
-            value={provento.valor}
-            onChange={(e) => onUpdate({ ...provento, valor: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-          <input
-            placeholder="DY (5,2%)"
-            value={provento.dy}
-            onChange={(e) => onUpdate({ ...provento, dy: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-          <input
-            type="date"
-            placeholder="Data-com"
-            value={provento.datacom}
-            onChange={(e) => onUpdate({ ...provento, datacom: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-          <input
-            type="date"
-            placeholder="Pagamento"
-            value={provento.pagamento}
-            onChange={(e) => onUpdate({ ...provento, pagamento: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const itemNormal = item as ItemRelatorioSemanal;
-  
   return (
     <div style={{
       border: '2px solid #e5e7eb',
       borderRadius: '12px',
       padding: '16px',
-      backgroundColor: 'white',
+      backgroundColor: isProvento ? '#fefce8' : 'white',
       position: 'relative'
     }}>
+      {/* Botão remover */}
       <button
         onClick={onRemove}
         style={{
@@ -492,12 +328,63 @@ const ItemEditor = memo(({
         <Trash2 size={12} />
       </button>
 
+      {/* 🆕 TOGGLE PARA ESCOLHER TIPO */}
+      <div style={{
+        marginBottom: '16px',
+        padding: '12px',
+        backgroundColor: isProvento ? '#fef3c7' : '#f0f9ff',
+        borderRadius: '8px',
+        border: `1px solid ${isProvento ? '#fde68a' : '#bae6fd'}`
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: isProvento ? '#92400e' : '#0c4a6e'
+            }}>
+              {isProvento ? '💰 Provento' : '📰 Notícia/Análise'}
+            </span>
+            <span style={{
+              fontSize: '12px',
+              color: '#6b7280'
+            }}>
+              {isProvento ? 'Dividendo, JCP ou Bonificação' : 'Notícia ou análise da empresa'}
+            </span>
+          </div>
+          
+          <button
+            onClick={toggleTipo}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#6b7280',
+              fontSize: '13px',
+              fontWeight: '500'
+            }}
+          >
+            {isProvento ? <ToggleRight size={24} color="#f59e0b" /> : <ToggleLeft size={24} />}
+            Alternar tipo
+          </button>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gap: '12px' }}>
+        {/* Campos comuns */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <input
             placeholder="Ticker"
-            value={itemNormal.ticker}
-            onChange={(e) => onUpdate({ ...itemNormal, ticker: e.target.value.toUpperCase() })}
+            value={item.ticker}
+            onChange={(e) => onUpdate({ ...item, ticker: e.target.value.toUpperCase() })}
             style={{
               border: '1px solid #d1d5db',
               borderRadius: '6px',
@@ -508,8 +395,8 @@ const ItemEditor = memo(({
           />
           <input
             placeholder="Empresa"
-            value={itemNormal.empresa}
-            onChange={(e) => onUpdate({ ...itemNormal, empresa: e.target.value })}
+            value={item.empresa}
+            onChange={(e) => onUpdate({ ...item, empresa: e.target.value })}
             style={{
               border: '1px solid #d1d5db',
               borderRadius: '6px',
@@ -519,120 +406,242 @@ const ItemEditor = memo(({
           />
         </div>
 
-        <input
-          placeholder="Título da notícia/análise"
-          value={itemNormal.titulo}
-          onChange={(e) => onUpdate({ ...itemNormal, titulo: e.target.value })}
-          style={{
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            padding: '8px',
-            fontSize: '14px'
-          }}
-        />
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-            Resumo/Destaque
-          </label>
-          <RichTextEditor
-            value={itemNormal.resumo}
-            onChange={(value) => onUpdate({ ...itemNormal, resumo: value })}
-            placeholder="Resumo dos principais pontos..."
-            minHeight="80px"
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-            Análise Completa
-          </label>
-          <RichTextEditor
-            value={itemNormal.analise}
-            onChange={(value) => onUpdate({ ...itemNormal, analise: value })}
-            placeholder="Análise detalhada..."
-            minHeight="100px"
-          />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-              Recomendação
-            </label>
-            <select
-              value={itemNormal.recomendacao || ''}
-              onChange={(e) => onUpdate({ ...itemNormal, recomendacao: e.target.value || undefined })}
-              style={{
-                width: '100%',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                padding: '8px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">Selecione</option>
-              <option value="COMPRA">🟢 COMPRA</option>
-              <option value="MANTER">🟡 MANTER</option>
-              <option value="VENDA">🔴 VENDA</option>
-            </select>
+        {/* 🆕 CAMPOS ESPECÍFICOS BASEADO NO TIPO */}
+        {isProvento ? (
+          // CAMPOS PARA PROVENTO
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#fffbeb',
+            borderRadius: '8px',
+            border: '1px solid #fde68a'
+          }}>
+            <h5 style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#92400e',
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <DollarSign size={16} />
+              Informações do Provento
+            </h5>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                  Tipo
+                </label>
+                <select
+                  value={item.tipoProvento || 'Dividendo'}
+                  onChange={(e) => onUpdate({ ...item, tipoProvento: e.target.value as any })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="Dividendo">Dividendo</option>
+                  <option value="JCP">JCP</option>
+                  <option value="Bonificação">Bonificação</option>
+                </select>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                  Valor
+                </label>
+                <input
+                  placeholder="R$ 0,50"
+                  value={item.valor || ''}
+                  onChange={(e) => onUpdate({ ...item, valor: e.target.value })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                  Dividend Yield
+                </label>
+                <input
+                  placeholder="5,2%"
+                  value={item.dy || ''}
+                  onChange={(e) => onUpdate({ ...item, dy: e.target.value })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                  Data-com
+                </label>
+                <input
+                  type="date"
+                  value={item.datacom || ''}
+                  onChange={(e) => onUpdate({ ...item, datacom: e.target.value })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                  Pagamento
+                </label>
+                <input
+                  type="date"
+                  value={item.pagamento || ''}
+                  onChange={(e) => onUpdate({ ...item, pagamento: e.target.value })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
           </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-              Impacto
-            </label>
-            <select
-              value={itemNormal.impacto || ''}
-              onChange={(e) => onUpdate({ ...itemNormal, impacto: e.target.value || undefined })}
-              style={{
-                width: '100%',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                padding: '8px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">Selecione</option>
-              <option value="positivo">📈 Positivo</option>
-              <option value="neutro">➖ Neutro</option>
-              <option value="negativo">📉 Negativo</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-              Preço Alvo (R$)
-            </label>
+        ) : (
+          // CAMPOS PARA NOTÍCIA/ANÁLISE
+          <>
             <input
-              type="number"
-              step="0.01"
-              placeholder="25.50"
-              value={itemNormal.precoAlvo || ''}
-              onChange={(e) => onUpdate({ ...itemNormal, precoAlvo: parseFloat(e.target.value) || undefined })}
+              placeholder="Título da notícia/análise"
+              value={item.titulo || ''}
+              onChange={(e) => onUpdate({ ...item, titulo: e.target.value })}
               style={{
-                width: '100%',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 padding: '8px',
                 fontSize: '14px'
               }}
             />
-          </div>
-        </div>
 
-        {itemNormal.destaque && (
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-              Destaque Especial
-            </label>
-            <RichTextEditor
-              value={itemNormal.destaque}
-              onChange={(value) => onUpdate({ ...itemNormal, destaque: value })}
-              placeholder="Destaque especial ou observação importante..."
-              minHeight="60px"
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                Resumo/Destaque
+              </label>
+              <RichTextEditor
+                value={item.resumo || ''}
+                onChange={(value) => onUpdate({ ...item, resumo: value })}
+                placeholder="Resumo dos principais pontos..."
+                minHeight="80px"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                Análise Completa
+              </label>
+              <RichTextEditor
+                value={item.analise || ''}
+                onChange={(value) => onUpdate({ ...item, analise: value })}
+                placeholder="Análise detalhada..."
+                minHeight="100px"
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Recomendação
+                </label>
+                <select
+                  value={item.recomendacao || ''}
+                  onChange={(e) => onUpdate({ ...item, recomendacao: e.target.value as any || undefined })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Selecione</option>
+                  <option value="COMPRA">🟢 COMPRA</option>
+                  <option value="MANTER">🟡 MANTER</option>
+                  <option value="VENDA">🔴 VENDA</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Impacto
+                </label>
+                <select
+                  value={item.impacto || ''}
+                  onChange={(e) => onUpdate({ ...item, impacto: e.target.value as any || undefined })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Selecione</option>
+                  <option value="positivo">📈 Positivo</option>
+                  <option value="neutro">➖ Neutro</option>
+                  <option value="negativo">📉 Negativo</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Preço Alvo (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="25.50"
+                  value={item.precoAlvo || ''}
+                  onChange={(e) => onUpdate({ ...item, precoAlvo: parseFloat(e.target.value) || undefined })}
+                  style={{
+                    width: '100%',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+
+            {item.destaque && (
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Destaque Especial
+                </label>
+                <RichTextEditor
+                  value={item.destaque}
+                  onChange={(value) => onUpdate({ ...item, destaque: value })}
+                  placeholder="Destaque especial ou observação importante..."
+                  minHeight="60px"
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -648,17 +657,21 @@ const SecaoEditor = memo(({
   onRemoveItem,
   cor,
   icone: Icone,
-  isProvento = false
+  descricao
 }: {
   titulo: string;
-  items: any[];
+  items: ItemRelatorioSemanal[];
   onAddItem: () => void;
-  onUpdateItem: (index: number, item: any) => void;
+  onUpdateItem: (index: number, item: ItemRelatorioSemanal) => void;
   onRemoveItem: (index: number) => void;
   cor: string;
   icone: any;
-  isProvento?: boolean;
+  descricao?: string;
 }) => {
+  // Contar proventos e notícias
+  const totalProventos = items.filter(item => item.isProvento).length;
+  const totalNoticias = items.filter(item => !item.isProvento).length;
+
   return (
     <div style={{
       backgroundColor: 'white',
@@ -673,18 +686,41 @@ const SecaoEditor = memo(({
         alignItems: 'center',
         marginBottom: '16px'
       }}>
-        <h4 style={{
-          fontSize: '18px',
-          fontWeight: '600',
-          color: cor,
-          margin: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <Icone size={20} />
-          {titulo} ({items.length})
-        </h4>
+        <div>
+          <h4 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: cor,
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Icone size={20} />
+            {titulo} ({items.length})
+          </h4>
+          {descricao && (
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              margin: '4px 0 0 28px'
+            }}>
+              {descricao}
+            </p>
+          )}
+          {items.length > 0 && (
+            <div style={{
+              fontSize: '11px',
+              color: '#6b7280',
+              margin: '4px 0 0 28px',
+              display: 'flex',
+              gap: '12px'
+            }}>
+              {totalNoticias > 0 && <span>📰 {totalNoticias} notícia{totalNoticias > 1 ? 's' : ''}</span>}
+              {totalProventos > 0 && <span>💰 {totalProventos} provento{totalProventos > 1 ? 's' : ''}</span>}
+            </div>
+          )}
+        </div>
         
         <button
           onClick={onAddItem}
@@ -740,7 +776,7 @@ const SecaoEditor = memo(({
   );
 });
 
-// 🎯 COMPONENTE DE CRIAÇÃO DE RELATÓRIO
+// 🎯 COMPONENTE DE CRIAÇÃO DE RELATÓRIO - ATUALIZADO SEM SEÇÃO PROVENTOS
 const CriarRelatorioForm = memo(({ 
   onSave,
   relatorioEditando 
@@ -761,18 +797,19 @@ const CriarRelatorioForm = memo(({
       autor: '',
       titulo: '',
       macro: [],
-      proventos: [],
       dividendos: [],
       smallCaps: [],
       microCaps: [],
-      exterior: [],
+      exteriorStocks: [],
+      exteriorETFs: [],
+      exteriorDividendos: [],
+      exteriorProjetoAmerica: [],
       status: 'draft'
     };
   });
 
   const [salvando, setSalvando] = useState(false);
 
-  // Atualizar quando relatorioEditando mudar
   useEffect(() => {
     if (relatorioEditando) {
       setRelatorio(relatorioEditando);
@@ -783,30 +820,36 @@ const CriarRelatorioForm = memo(({
     setRelatorio(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const addItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>) => {
+  const addItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exteriorStocks' | 'exteriorETFs' | 'exteriorDividendos' | 'exteriorProjetoAmerica'>) => {
     setRelatorio(prev => {
-      const newItem = secao === 'proventos' 
-        ? { ticker: '', empresa: '', tipo: 'Dividendo', valor: '', dy: '', datacom: '', pagamento: '' }
-        : { ticker: '', empresa: '', titulo: '', resumo: '', analise: '' };
+      // Por padrão, criar uma notícia
+      const newItem: ItemRelatorioSemanal = {
+        ticker: '',
+        empresa: '',
+        isProvento: false,
+        titulo: '',
+        resumo: '',
+        analise: ''
+      };
       
       return {
         ...prev,
-        [secao]: [...(prev[secao] as any[]), newItem]
+        [secao]: [...(prev[secao] as ItemRelatorioSemanal[]), newItem]
       };
     });
   }, []);
 
-  const updateItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>, index: number, item: any) => {
+  const updateItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exteriorStocks' | 'exteriorETFs' | 'exteriorDividendos' | 'exteriorProjetoAmerica'>, index: number, item: ItemRelatorioSemanal) => {
     setRelatorio(prev => ({
       ...prev,
-      [secao]: (prev[secao] as any[]).map((existing, i) => i === index ? item : existing)
+      [secao]: (prev[secao] as ItemRelatorioSemanal[]).map((existing, i) => i === index ? item : existing)
     }));
   }, []);
 
-  const removeItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'proventos' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exterior'>, index: number) => {
+  const removeItem = useCallback((secao: keyof Pick<RelatorioSemanalData, 'macro' | 'dividendos' | 'smallCaps' | 'microCaps' | 'exteriorStocks' | 'exteriorETFs' | 'exteriorDividendos' | 'exteriorProjetoAmerica'>, index: number) => {
     setRelatorio(prev => ({
       ...prev,
-      [secao]: (prev[secao] as any[]).filter((_, i) => i !== index)
+      [secao]: (prev[secao] as ItemRelatorioSemanal[]).filter((_, i) => i !== index)
     }));
   }, []);
 
@@ -814,7 +857,6 @@ const CriarRelatorioForm = memo(({
     setSalvando(true);
     
     try {
-      // Validações básicas
       if (!relatorio.semana || !relatorio.titulo) {
         alert('Por favor, preencha pelo menos a Semana e o Título.');
         return;
@@ -822,7 +864,6 @@ const CriarRelatorioForm = memo(({
       
       await onSave(relatorio);
       
-      // Limpar formulário apenas se não estiver editando
       if (!relatorioEditando) {
         const hoje = new Date();
         setRelatorio({
@@ -832,11 +873,13 @@ const CriarRelatorioForm = memo(({
           autor: '',
           titulo: '',
           macro: [],
-          proventos: [],
           dividendos: [],
           smallCaps: [],
           microCaps: [],
-          exterior: [],
+          exteriorStocks: [],
+          exteriorETFs: [],
+          exteriorDividendos: [],
+          exteriorProjetoAmerica: [],
           status: 'draft'
         });
       }
@@ -851,13 +894,20 @@ const CriarRelatorioForm = memo(({
     }
   }, [relatorio, onSave, relatorioEditando]);
 
+  // 🆕 SEÇÕES ATUALIZADAS SEM PROVENTOS SEPARADOS
   const secoes = [
-    { key: 'macro' as const, titulo: 'Panorama Macro', cor: '#2563eb', icone: Globe },
-    { key: 'proventos' as const, titulo: 'Proventos', cor: '#4cfa00', icone: DollarSign, isProvento: true },
-    { key: 'dividendos' as const, titulo: 'Dividendos', cor: '#22c55e', icone: Calendar },
-    { key: 'smallCaps' as const, titulo: 'Small Caps', cor: '#2563eb', icone: Building },
-    { key: 'microCaps' as const, titulo: 'Micro Caps', cor: '#ea580c', icone: Zap },
-    { key: 'exterior' as const, titulo: 'Exterior', cor: '#7c3aed', icone: TrendingUp }
+    { key: 'macro' as const, titulo: 'Panorama Macro', cor: '#2563eb', icone: Globe, descricao: 'Notícias macroeconômicas gerais' },
+    { key: 'dividendos' as const, titulo: 'Dividendos', cor: '#22c55e', icone: Calendar, descricao: 'Empresas boas pagadoras - notícias e proventos' },
+    { key: 'smallCaps' as const, titulo: 'Small Caps', cor: '#2563eb', icone: Building, descricao: 'Empresas de médio porte - notícias e proventos' },
+    { key: 'microCaps' as const, titulo: 'Micro Caps', cor: '#ea580c', icone: Zap, descricao: 'Empresas de pequeno porte - notícias e proventos' },
+  ];
+
+  // SEÇÃO INTERNACIONAL SEPARADA
+  const secoesInternacional = [
+    { key: 'exteriorStocks' as const, titulo: 'Internacional - Stocks', cor: '#7c3aed', icone: TrendingUp, descricao: 'Ações internacionais - notícias e proventos' },
+    { key: 'exteriorETFs' as const, titulo: 'Internacional - ETFs', cor: '#6366f1', icone: LineChart, descricao: 'ETFs internacionais - notícias e distribuições' },
+    { key: 'exteriorDividendos' as const, titulo: 'Internacional - Dividendos', cor: '#0ea5e9', icone: Coins, descricao: 'Empresas internacionais pagadoras - notícias e dividendos' },
+    { key: 'exteriorProjetoAmerica' as const, titulo: 'Internacional - Projeto América', cor: '#dc2626', icone: Target, descricao: 'Conteúdo exclusivo do Projeto América' },
   ];
 
   return (
@@ -878,7 +928,7 @@ const CriarRelatorioForm = memo(({
             {relatorioEditando ? '✏️ Editando Relatório' : '✨ Criar Novo Relatório'}
           </h3>
           <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
-            Relatório semanal organizado por seções
+            Notícias e proventos integrados em cada carteira
           </p>
         </div>
         
@@ -1002,7 +1052,58 @@ const CriarRelatorioForm = memo(({
         </div>
       </div>
 
-      {/* Seções do relatório */}
+      {/* 🆕 AVISO SOBRE SISTEMA UNIFICADO */}
+      <div style={{
+        backgroundColor: '#f0fdf4',
+        borderRadius: '12px',
+        padding: '20px',
+        border: '1px solid #86efac'
+      }}>
+        <h4 style={{
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#15803d',
+          margin: '0 0 12px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <CheckCircle size={20} />
+          Sistema Unificado de Notícias e Proventos
+        </h4>
+        <div style={{ fontSize: '14px', color: '#166534', lineHeight: '1.6' }}>
+          <p style={{ margin: '0 0 8px 0' }}>
+            Agora você pode adicionar <strong>notícias e proventos na mesma seção</strong>! 
+          </p>
+          <ul style={{ margin: '8px 0', paddingLeft: '24px' }}>
+            <li>Ao adicionar um item, escolha se é <strong>📰 Notícia/Análise</strong> ou <strong>💰 Provento</strong></li>
+            <li>Proventos de Small Caps ficam junto com notícias de Small Caps</li>
+            <li>Organização mais lógica e intuitiva</li>
+            <li>Use o toggle para alternar entre os tipos a qualquer momento</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Seções nacionais */}
+      <div style={{
+        backgroundColor: '#f0f9ff',
+        borderRadius: '12px',
+        padding: '16px',
+        marginBottom: '-8px'
+      }}>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#0c4a6e',
+          margin: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          🇧🇷 Mercado Nacional
+        </h3>
+      </div>
+      
       {secoes.map((secao) => (
         <SecaoEditor
           key={secao.key}
@@ -1013,7 +1114,50 @@ const CriarRelatorioForm = memo(({
           onRemoveItem={(index) => removeItem(secao.key, index)}
           cor={secao.cor}
           icone={secao.icone}
-          isProvento={secao.isProvento}
+          descricao={secao.descricao}
+        />
+      ))}
+
+      {/* SEPARADOR PARA SEÇÕES INTERNACIONAIS */}
+      <div style={{
+        backgroundColor: '#faf5ff',
+        borderRadius: '12px',
+        padding: '16px',
+        marginBottom: '-8px',
+        border: '1px solid #e9d5ff'
+      }}>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#6b21a8',
+          margin: '0 0 8px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          🌎 Mercado Internacional
+        </h3>
+        <p style={{
+          fontSize: '14px',
+          color: '#7c3aed',
+          margin: 0
+        }}>
+          Conteúdo separado por categoria para controle granular de permissões
+        </p>
+      </div>
+
+      {/* SEÇÕES INTERNACIONAIS SEPARADAS */}
+      {secoesInternacional.map((secao) => (
+        <SecaoEditor
+          key={secao.key}
+          titulo={secao.titulo}
+          items={relatorio[secao.key]}
+          onAddItem={() => addItem(secao.key)}
+          onUpdateItem={(index, item) => updateItem(secao.key, index, item)}
+          onRemoveItem={(index) => removeItem(secao.key, index)}
+          cor={secao.cor}
+          icone={secao.icone}
+          descricao={secao.descricao}
         />
       ))}
     </div>
@@ -1040,7 +1184,6 @@ const RelatoriosPublicados = memo(({
     return !filtroSemana || relatorio.semana.toLowerCase().includes(filtroSemana.toLowerCase());
   });
 
-  // Agrupar por semana e ordenar
   const relatoriosPorSemana = relatoriosFiltrados
     .sort((a, b) => b.semana.localeCompare(a.semana))
     .reduce((acc, relatorio) => {
@@ -1141,7 +1284,6 @@ const RelatoriosPublicados = memo(({
             border: '1px solid #e2e8f0',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
           }}>
-            {/* Header da semana */}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -1172,12 +1314,31 @@ const RelatoriosPublicados = memo(({
               </div>
             </div>
 
-            {/* Grid de relatórios */}
             <div style={{ display: 'grid', gap: '16px' }}>
               {relatoriosDaSemana.map((relatorio) => {
-                const totalItens = relatorio.macro.length + relatorio.proventos.length + 
+                // Calcular totais - contar todos os itens
+                const totalItens = relatorio.macro.length + 
                   relatorio.dividendos.length + relatorio.smallCaps.length + 
-                  relatorio.microCaps.length + relatorio.exterior.length;
+                  relatorio.microCaps.length + 
+                  (relatorio.exteriorStocks?.length || 0) +
+                  (relatorio.exteriorETFs?.length || 0) +
+                  (relatorio.exteriorDividendos?.length || 0) +
+                  (relatorio.exteriorProjetoAmerica?.length || 0);
+
+                // Contar proventos e notícias
+                const allItems = [
+                  ...relatorio.macro,
+                  ...relatorio.dividendos,
+                  ...relatorio.smallCaps,
+                  ...relatorio.microCaps,
+                  ...(relatorio.exteriorStocks || []),
+                  ...(relatorio.exteriorETFs || []),
+                  ...(relatorio.exteriorDividendos || []),
+                  ...(relatorio.exteriorProjetoAmerica || [])
+                ];
+                
+                const totalProventos = allItems.filter(item => item.isProvento).length;
+                const totalNoticias = allItems.filter(item => !item.isProvento).length;
 
                 return (
                   <div key={relatorio.id} style={{
@@ -1196,6 +1357,8 @@ const RelatoriosPublicados = memo(({
                           <span>📅 {new Date(relatorio.dataPublicacao).toLocaleDateString('pt-BR')}</span>
                           <span>✍️ {relatorio.autor}</span>
                           <span>📊 {totalItens} itens</span>
+                          {totalNoticias > 0 && <span>📰 {totalNoticias} notícias</span>}
+                          {totalProventos > 0 && <span>💰 {totalProventos} proventos</span>}
                         </div>
 
                         {/* Resumo das seções */}
@@ -1218,7 +1381,7 @@ const RelatoriosPublicados = memo(({
                             </span>
                           )}
                           
-                          {relatorio.proventos.length > 0 && (
+                          {relatorio.dividendos.length > 0 && (
                             <span style={{ 
                               fontSize: '12px',
                               backgroundColor: '#f0fdf4',
@@ -1227,7 +1390,7 @@ const RelatoriosPublicados = memo(({
                               borderRadius: '6px',
                               fontWeight: '600'
                             }}>
-                              Proventos: {relatorio.proventos.length}
+                              Dividendos: {relatorio.dividendos.length}
                             </span>
                           )}
 
@@ -1244,7 +1407,7 @@ const RelatoriosPublicados = memo(({
                             </span>
                           )}
 
-                          {relatorio.exterior.length > 0 && (
+                          {(relatorio.exteriorStocks?.length || 0) > 0 && (
                             <span style={{ 
                               fontSize: '12px',
                               backgroundColor: '#faf5ff',
@@ -1253,7 +1416,7 @@ const RelatoriosPublicados = memo(({
                               borderRadius: '6px',
                               fontWeight: '600'
                             }}>
-                              Exterior: {relatorio.exterior.length}
+                              Int. Stocks: {relatorio.exteriorStocks?.length}
                             </span>
                           )}
                         </div>
@@ -1264,7 +1427,6 @@ const RelatoriosPublicados = memo(({
                         minWidth: '150px',
                         marginLeft: '20px'
                       }}>
-                        {/* Botões de ação */}
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => onEdit(relatorio)}
@@ -1346,7 +1508,7 @@ const RelatoriosPublicados = memo(({
   );
 });
 
-// 📝 COMPONENTE DE RASCUNHOS
+// Componente de Rascunhos
 const RascunhosRelatorios = memo(({ 
   relatorios, 
   onEdit, 
@@ -1393,9 +1555,13 @@ const RascunhosRelatorios = memo(({
 
           <div style={{ display: 'grid', gap: '16px' }}>
             {rascunhos.map((relatorio) => {
-              const totalItens = relatorio.macro.length + relatorio.proventos.length + 
+              const totalItens = relatorio.macro.length + 
                 relatorio.dividendos.length + relatorio.smallCaps.length + 
-                relatorio.microCaps.length + relatorio.exterior.length;
+                relatorio.microCaps.length + 
+                (relatorio.exteriorStocks?.length || 0) +
+                (relatorio.exteriorETFs?.length || 0) +
+                (relatorio.exteriorDividendos?.length || 0) +
+                (relatorio.exteriorProjetoAmerica?.length || 0);
 
               return (
                 <div key={relatorio.id} style={{
@@ -1516,16 +1682,17 @@ const AdminRelatorioSemanal = () => {
   const [error, setError] = useState<string | null>(null);
   const [relatorioEditando, setRelatorioEditando] = useState<RelatorioSemanalData | null>(null);
 
-  // 📚 CARREGAR RELATÓRIOS DO INDEXEDDB
+  // 📚 CARREGAR RELATÓRIOS DO INDEXEDDB - COM MIGRAÇÃO
   useEffect(() => {
     const loadRelatorios = async () => {
       try {
         console.log('🔄 Carregando relatórios semanais do IndexedDB...');
         
-        const request = indexedDB.open('RelatoriosSemanaisDB', 1);
+        const request = indexedDB.open('RelatoriosSemanaisDB', 3); // Versão 3 para nova migração
         
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
+          
           if (!db.objectStoreNames.contains('relatorios')) {
             const store = db.createObjectStore('relatorios', { keyPath: 'id' });
             store.createIndex('semana', 'semana', { unique: false });
@@ -1543,8 +1710,29 @@ const AdminRelatorioSemanal = () => {
           
           getAllRequest.onsuccess = () => {
             const relatoriosSalvos = getAllRequest.result || [];
-            console.log(`✅ ${relatoriosSalvos.length} relatórios carregados do IndexedDB`);
-            setRelatorios(relatoriosSalvos);
+            
+            // 🆕 MIGRAÇÃO: Remover campo proventos se existir
+            const relatoriosMigrados = relatoriosSalvos.map(rel => {
+              const { proventos, ...resto } = rel as any;
+              
+              // Se tinha proventos separados, podemos ignorá-los ou migrá-los
+              // Por simplicidade, vamos apenas remover
+              
+              return {
+                ...resto,
+                macro: resto.macro || [],
+                dividendos: resto.dividendos || [],
+                smallCaps: resto.smallCaps || [],
+                microCaps: resto.microCaps || [],
+                exteriorStocks: resto.exteriorStocks || [],
+                exteriorETFs: resto.exteriorETFs || [],
+                exteriorDividendos: resto.exteriorDividendos || [],
+                exteriorProjetoAmerica: resto.exteriorProjetoAmerica || []
+              };
+            });
+            
+            console.log(`✅ ${relatoriosMigrados.length} relatórios carregados do IndexedDB`);
+            setRelatorios(relatoriosMigrados);
             setLoading(false);
           };
           
@@ -1579,7 +1767,7 @@ const AdminRelatorioSemanal = () => {
     try {
       console.log('💾 Salvando relatório no IndexedDB...', relatorio);
       
-      const request = indexedDB.open('RelatoriosSemanaisDB', 1);
+      const request = indexedDB.open('RelatoriosSemanaisDB', 3);
       
       request.onsuccess = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
@@ -1591,7 +1779,6 @@ const AdminRelatorioSemanal = () => {
         putRequest.onsuccess = () => {
           console.log('✅ Relatório salvo no IndexedDB');
           
-          // Atualizar estado local
           setRelatorios(prev => {
             const existing = prev.find(r => r.id === relatorio.id);
             if (existing) {
@@ -1622,7 +1809,7 @@ const AdminRelatorioSemanal = () => {
     }
   }, []);
 
-  // 📤 PUBLICAR RELATÓRIO
+  // Outras funções mantêm iguais
   const publishRelatorio = useCallback(async (id: string) => {
     const relatorio = relatorios.find(r => r.id === id);
     if (!relatorio) return;
@@ -1631,7 +1818,6 @@ const AdminRelatorioSemanal = () => {
     await saveRelatorio(relatorioPublicado);
   }, [relatorios, saveRelatorio]);
 
-  // 📥 DESPUBLICAR RELATÓRIO
   const unpublishRelatorio = useCallback(async (id: string) => {
     const relatorio = relatorios.find(r => r.id === id);
     if (!relatorio) return;
@@ -1640,12 +1826,11 @@ const AdminRelatorioSemanal = () => {
     await saveRelatorio(relatorioRascunho);
   }, [relatorios, saveRelatorio]);
 
-  // 🗑️ DELETAR RELATÓRIO
   const deleteRelatorio = useCallback(async (id: string) => {
     setSaving(true);
     
     try {
-      const request = indexedDB.open('RelatoriosSemanaisDB', 1);
+      const request = indexedDB.open('RelatoriosSemanaisDB', 3);
       
       request.onsuccess = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
@@ -1667,7 +1852,6 @@ const AdminRelatorioSemanal = () => {
     }
   }, []);
 
-  // ✏️ EDITAR RELATÓRIO
   const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
     setRelatorioEditando(relatorio);
     setActiveTab('criar');
@@ -1717,7 +1901,7 @@ const AdminRelatorioSemanal = () => {
                   Relatórios Semanais
                 </h1>
                 <p style={{ color: '#94a3b8', margin: 0, fontSize: '16px' }}>
-                  Central de Relatórios Semanais - Fatos da Bolsa
+                  Sistema Unificado - Notícias e Proventos Integrados
                 </p>
               </div>
             </div>
@@ -1940,83 +2124,6 @@ const AdminRelatorioSemanal = () => {
             </div>
           </div>
         )}
-
-        {/* Instrução Final */}
-        <div style={{
-          backgroundColor: '#f0fdf4',
-          borderRadius: '16px',
-          padding: '32px',
-          border: '1px solid #86efac'
-        }}>
-          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#15803d', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={24} />
-            Sistema de Relatórios Semanais
-          </h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-            <div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
-                ✨ Criar
-              </h4>
-              <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Formulário organizado por seções</li>
-                <li>Macro, Proventos, Small Caps, Exterior</li>
-                <li>Rich Text Editor para análises</li>
-                <li>Organização automática por semana</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
-                📋 Publicados
-              </h4>
-              <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Relatórios organizados por semana</li>
-                <li>Visualização de todas as seções</li>
-                <li>Editar relatórios publicados</li>
-                <li>Filtros por período</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#15803d', marginBottom: '12px' }}>
-                📝 Rascunhos
-              </h4>
-              <ul style={{ color: '#0f172a', lineHeight: '1.6', paddingLeft: '20px' }}>
-                <li>Relatórios ainda não publicados</li>
-                <li>Continuar editando seções</li>
-                <li>Publicar quando estiver completo</li>
-                <li>Gerenciar trabalho em progresso</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div style={{
-            marginTop: '24px',
-            padding: '16px',
-            backgroundColor: '#dcfce7',
-            borderRadius: '8px',
-            border: '1px solid #86efac'
-          }}>
-            <p style={{ margin: 0, color: '#166534', fontSize: '14px', fontWeight: '500' }}>
-              💡 <strong>Fluxo Semanal:</strong> Crie um novo relatório da semana → Adicione itens em cada seção → 
-              Publique quando estiver pronto → Os relatórios ficam organizados automaticamente por semana no banco de dados local!
-            </p>
-          </div>
-          
-          <div style={{
-            marginTop: '16px',
-            padding: '16px',
-            backgroundColor: '#fef3c7',
-            borderRadius: '8px',
-            border: '1px solid #fde68a'
-          }}>
-            <p style={{ margin: 0, color: '#92400e', fontSize: '14px', fontWeight: '500' }}>
-              🗂️ <strong>Organização:</strong> Cada relatório é identificado pela semana (ex: 2025-W03) e contém 
-              seções específicas para Macro, Proventos, Small Caps, Micro Caps e Exterior. Você tem controle total sobre o conteúdo!
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

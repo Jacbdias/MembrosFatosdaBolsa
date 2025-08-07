@@ -32,6 +32,10 @@ model User {
   carteirasAnalista       CarteiraAnalise[]             @relation("CarteirasAnalista")
   carteiras               CarteiraAnalise[]             @relation("CarteirasUsuario")
   instagramCadastro       InstagramCadastro?
+
+  // ✅ NOVO: Relacionamento com análises trimestrais
+  analisesTrimestrais     AnaliseTrimestreData[]        @relation("AnalisesTrimestrais")
+
   // ✅ COMENTADO TEMPORARIAMENTE PARA RESOLVER FK CONSTRAINT
   // relatorios              RelatorioSemanal[]
   dividendos              UserDividendos[]
@@ -518,4 +522,75 @@ model Relatorio {
   
   @@map("relatorios")
 
+}
+
+// =====================================================
+// 📊 MODELO PARA ANÁLISES TRIMESTRAIS
+// =====================================================
+
+model AnaliseTrimestreData {
+  id                  String   @id @default(cuid())
+  
+  // 🏢 Informações básicas
+  ticker              String                        // TUPY3, VALE3, etc.
+  empresa             String                        // Nome da empresa
+  trimestre           String?                       // 3T24, Q1 2024, etc.
+  dataPublicacao      DateTime @default(now())      // Data de publicação
+  autor               String?                       // Nome do autor
+  categoria           String   @default("resultado_trimestral") // resultado_trimestral, analise_setorial, tese_investimento
+  
+  // 📝 Conteúdo principal
+  titulo              String                        // Título da análise
+  resumoExecutivo     String?  @db.Text             // Resumo executivo (rich text)
+  analiseCompleta     String?  @db.Text             // Análise completa (rich text)
+  
+  // 💰 Métricas financeiras (JSON para flexibilidade)
+  metricas            Json     @default("{}")       // { receita: { valor: 1200, unidade: "milhões", variacao: -8.5 }, ... }
+  
+  // 📊 Análise qualitativa
+  pontosFavoraveis    String?  @db.Text             // Pontos positivos (rich text)
+  pontosAtencao       String?  @db.Text             // Pontos de atenção (rich text)
+  
+  // 🎯 Recomendação
+  recomendacao        String   @default("MANTER")   // COMPRA, VENDA, MANTER
+  precoAlvo           Float?                        // Preço alvo em R$
+  risco               String   @default("MÉDIO")    // BAIXO, MÉDIO, ALTO
+  
+  // 🔗 Links externos
+  linkResultado       String?                       // Link do release de resultados
+  linkConferencia     String?                       // Link da conference call
+  
+  // 📋 Status e metadados
+  status              String   @default("draft")    // draft, published
+  visualizacoes       Int      @default(0)          // Contador de visualizações
+  
+  // 👤 Relacionamento com usuário (autor)
+  userId              String?                       // ID do usuário que criou
+  user                User?    @relation("AnalisesTrimestrais", fields: [userId], references: [id])
+
+  // ✅ NOVOS CAMPOS PARA INTEGRAÇÃO BRAPI
+  dadosPeriodo            Json?    @default("{}")     // Dados fixos do período (cotação, P/L, etc.)
+  historicoComparativo    Json?    @default("[]")     // Histórico dos últimos trimestres
+  badges                  Json?    @default("[]")     // Badges automáticos baseados nos dados
+  fonteDados              String?  @default("manual") // 'manual', 'brapi', 'misto'
+  ultimaAtualizacaoBrapi  DateTime?                   // Timestamp da última sincronização BRAPI
+  
+  // ⏰ Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // 📊 Indexes para performance
+  @@index([ticker])                                 // Busca por ticker
+  @@index([trimestre])                              // Busca por trimestre
+  @@index([status])                                 // Filtro por status
+  @@index([categoria])                              // Filtro por categoria
+  @@index([dataPublicacao])                         // Ordenação por data
+  @@index([ticker, trimestre])                      // Busca combinada
+  @@index([ticker, status])                         // Ticker + status
+  @@index([userId])                                 // Análises do usuário
+  
+  // 🔍 Constraint para evitar duplicatas
+  @@unique([ticker, trimestre, titulo], name: "unique_analise_trimestre")
+  
+  @@map("analises_trimestrais")
 }
