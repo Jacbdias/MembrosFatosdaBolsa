@@ -570,84 +570,172 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
   return cotacoesMap;
 }
 
-// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR DY EM PARALELO
-async function buscarDYParalelo(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
-  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (RESTAURADA)
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  if (!isMobile) {
-    // Desktop: busca em lote
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 4000);
+  if (isMobile) {
+    // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
+    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
+    
+    for (const ticker of tickers) {
+      let dyObtido = false;
       
-      const response = await fetch(
-        `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`,
-        {
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'SmallCaps-DY-Batch-Optimized'
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
+              dyObtido = true; // Considera obtido mesmo se zero
+            }
           }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
         }
-      );
+      }
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 3: URL simplificada
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 3 - URL simplificada`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
+        }
+      }
+      
+      // Se ainda não obteve, definir como 0%
+      if (!dyObtido) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
+      }
+      
+      // ⭐ DELAY CRUCIAL: previne rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+  } else {
+    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
+    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
+    
+    try {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SmallCaps-DY-Batch'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
+        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
+        
         data.results?.forEach((result: any) => {
           const ticker = result.symbol;
           const dy = result.defaultKeyStatistics?.dividendYield;
-          dyMap.set(ticker, dy && dy > 0 ? `${dy.toFixed(2).replace('.', ',')}%` : '0,00%');
+          
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          } else {
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+          }
         });
+        
+      } else {
+        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
+        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
       }
+      
     } catch (error) {
+      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
       tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
     }
-    
-    return dyMap;
   }
-
-  // Mobile: busca em paralelo simplificada
-  const buscarDYAtivo = async (ticker: string) => {
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 2500);
-      
-      const response = await fetch(
-        `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`,
-        {
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-        return { ticker, dy: dy && dy > 0 ? `${dy.toFixed(2).replace('.', ',')}%` : '0,00%' };
-      }
-    } catch (error) {
-      // Falha silenciosa
-    }
-    
-    return { ticker, dy: '0,00%' };
-  };
-
-  // Executar buscas em paralelo
-  const resultados = await Promise.allSettled(
-    tickers.map(ticker => buscarDYAtivo(ticker))
-  );
-
-  // Processar resultados
-  resultados.forEach((resultado) => {
-    if (resultado.status === 'fulfilled') {
-      dyMap.set(resultado.value.ticker, resultado.value.dy);
-    }
-  });
-
+  
+  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
   return dyMap;
 }
 
@@ -771,7 +859,7 @@ function useSmallCapsIntegradas() {
       console.log('📈 ETAPA 2: Buscando DY...');
       setLoadingDY(true);
       
-      const dyMap = await buscarDYParalelo(tickers, isMobile);
+const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
       console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
       
       setDyCompletos(dyMap);
