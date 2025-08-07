@@ -234,7 +234,7 @@ const ModalAnaliseCompleta = memo(({
                   {analise.ticker}
                 </h2>
                 <span style={{
-                  backgroundColor: '#3b82f6',
+                  backgroundColor: '#374151',
                   color: 'white',
                   padding: isMobile ? '3px 8px' : '4px 12px',
                   borderRadius: '8px',
@@ -274,7 +274,7 @@ const ModalAnaliseCompleta = memo(({
                 flexWrap: 'wrap'
               }}>
                 <span> {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
-                <span>✍️ {analise.autor}</span>
+                <span> {analise.autor}</span>
               </div>
             </div>
             
@@ -309,7 +309,7 @@ const ModalAnaliseCompleta = memo(({
             </div>
             {analise.precoAlvo && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço Alvo:</span>
+                <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço Teto:</span>
                 <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1e293b' }}>
                   R$ {analise.precoAlvo.toFixed(2)}
                 </span>
@@ -511,7 +511,7 @@ const ModalAnaliseCompleta = memo(({
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '8px',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: '#374151',
                       color: 'white',
                       padding: '12px 16px',
                       borderRadius: '8px',
@@ -650,7 +650,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           alignItems: 'center',
           gap: '8px'
         }}>
-          📊 Análises Trimestrais
+          Análises Trimestrais
         </h3>
         
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
@@ -677,7 +677,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           color: '#1e293b',
           margin: '0 0 20px 0'
         }}>
-          📊 Análises Trimestrais
+          Análises Trimestrais
         </h3>
         
         <div style={{ textAlign: 'center', padding: '32px' }}>
@@ -688,7 +688,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           <button
             onClick={() => window.location.reload()}
             style={{
-              backgroundColor: '#3b82f6',
+              backgroundColor: '#374151',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -720,7 +720,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
           color: '#1e293b',
           margin: '0 0 20px 0'
         }}>
-          📊 Análises Trimestrais
+          Análises Trimestrais
         </h3>
         
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
@@ -759,7 +759,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
             alignItems: 'center',
             gap: '8px'
           }}>
-            📊 Análises Trimestrais
+            Análises Trimestrais
           </h3>
         </div>
 
@@ -794,14 +794,14 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                     position: 'absolute',
                     top: isMobile ? '-6px' : '-8px',
                     right: isMobile ? '12px' : '16px',
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '#374151',
                     color: 'white',
                     padding: isMobile ? '3px 8px' : '4px 12px',
                     borderRadius: '12px',
                     fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '600'
                   }}>
-                    {isMobile ? '🆕 RECENTE' : '🆕 MAIS RECENTE'}
+                    {isMobile ? 'RECENTE' : 'MAIS RECENTE'}
                   </div>
                 )}
 
@@ -834,7 +834,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       flexWrap: 'wrap'
                     }}>
                       <span style={{
-                        backgroundColor: '#3b82f6',
+                        backgroundColor: '#374151',
                         color: 'white',
                         padding: '2px 8px',
                         borderRadius: '8px',
@@ -849,7 +849,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       </span>
                       
                       <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
-                        ✍️ {analise.autor}
+                         {analise.autor}
                       </span>
                     </div>
 
@@ -908,7 +908,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                     
                     {analise.precoAlvo && (
                       <div style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
-                        Alvo: R$ {analise.precoAlvo.toFixed(2)}
+                        Preço Teto: R$ {analise.precoAlvo.toFixed(2)}
                       </div>
                     )}
                     
@@ -977,7 +977,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                   borderTop: '1px solid #e2e8f0'
                 }}>
                   <button style={{
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '#374151',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',

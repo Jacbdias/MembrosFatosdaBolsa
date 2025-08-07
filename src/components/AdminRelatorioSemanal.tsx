@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter, LineChart, Coins, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter, LineChart, Coins, ToggleLeft, ToggleRight, TrendingDown as TrendingDownIcon } from 'lucide-react';
 
 // Interface unificada para item de relatório (notícia ou provento)
 interface ItemRelatorioSemanal {
@@ -20,6 +20,13 @@ interface ItemRelatorioSemanal {
   impacto?: 'positivo' | 'negativo' | 'neutro';
   precoAlvo?: number;
   destaque?: string;
+  
+  // 🆕 Análise Trimestral Vinculada
+  temAnaliseTrismestral?: boolean;
+  analiseTrismestralId?: string;
+  analiseTrismestralTicker?: string;
+  analiseTrismestralTitulo?: string;
+  analiseTrismestralTrimestre?: string;
   
   // Campos para proventos
   tipoProvento?: 'Dividendo' | 'JCP' | 'Bonificação';
@@ -270,6 +277,57 @@ const ItemEditor = memo(({
   secaoNome: string;
 }) => {
   const isProvento = item.isProvento || false;
+  
+  // 🆕 Estado para análises trimestrais
+  const [analisesDisponiveis, setAnalisesDisponiveis] = useState<any[]>([]);
+  const [carregandoAnalises, setCarregandoAnalises] = useState(false);
+  const [errorAnalises, setErrorAnalises] = useState<string | null>(null);
+
+  // 🆕 Carregar análises trimestrais da API
+  const carregarAnalisesTrimestrais = useCallback(async () => {
+    if (carregandoAnalises || analisesDisponiveis.length > 0) return;
+    
+    setCarregandoAnalises(true);
+    setErrorAnalises(null);
+    
+    try {
+      console.log('🔍 Buscando análises trimestrais para seleção...');
+      const response = await fetch('/api/analises-trimestrais');
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+      
+      const todasAnalises = await response.json();
+      
+      // Filtrar apenas análises publicadas e ordenar
+      const analisesPublicadas = todasAnalises
+        .filter((analise: any) => analise.status === 'published')
+        .sort((a: any, b: any) => {
+          // Ordenar por ticker primeiro, depois por trimestre
+          if (a.ticker !== b.ticker) {
+            return a.ticker.localeCompare(b.ticker);
+          }
+          return b.trimestre.localeCompare(a.trimestre); // Mais recente primeiro
+        });
+      
+      console.log(`✅ ${analisesPublicadas.length} análises disponíveis para vinculação`);
+      setAnalisesDisponiveis(analisesPublicadas);
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar análises:', error);
+      setErrorAnalises('Erro ao carregar análises trimestrais');
+    } finally {
+      setCarregandoAnalises(false);
+    }
+  }, [analisesDisponiveis.length, carregandoAnalises]);
+
+  // 🆕 Carregar análises quando componente monta e usuário marca "tem análise"
+  useEffect(() => {
+    if (!isProvento && item.temAnaliseTrismestral) {
+      carregarAnalisesTrimestrais();
+    }
+  }, [isProvento, item.temAnaliseTrismestral, carregarAnalisesTrimestrais]);
 
   // Função para alternar entre notícia e provento
   const toggleTipo = () => {
@@ -294,6 +352,54 @@ const ItemEditor = memo(({
         dy: '',
         datacom: '',
         pagamento: ''
+      });
+    }
+  };
+
+  // 🆕 Toggle para análise trimestral
+  const toggleAnaliseTrismestral = () => {
+    if (item.temAnaliseTrismestral) {
+      // Desabilitar análise trimestral - limpar campos
+      onUpdate({
+        ...item,
+        temAnaliseTrismestral: false,
+        analiseTrismestralId: undefined,
+        analiseTrismestralTicker: undefined,
+        analiseTrismestralTitulo: undefined,
+        analiseTrismestralTrimestre: undefined
+      });
+    } else {
+      // Habilitar análise trimestral
+      onUpdate({
+        ...item,
+        temAnaliseTrismestral: true
+      });
+      
+      // Carregar análises se ainda não carregou
+      carregarAnalisesTrimestrais();
+    }
+  };
+
+  // 🆕 Selecionar análise trimestral
+  const selecionarAnalise = (analiseId: string) => {
+    const analiseSelecionada = analisesDisponiveis.find(a => a.id === analiseId);
+    
+    if (analiseSelecionada) {
+      onUpdate({
+        ...item,
+        analiseTrismestralId: analiseSelecionada.id,
+        analiseTrismestralTicker: analiseSelecionada.ticker,
+        analiseTrismestralTitulo: analiseSelecionada.titulo,
+        analiseTrismestralTrimestre: analiseSelecionada.trimestre
+      });
+    } else {
+      // Limpar seleção
+      onUpdate({
+        ...item,
+        analiseTrismestralId: '',
+        analiseTrismestralTicker: '',
+        analiseTrismestralTitulo: '',
+        analiseTrismestralTrimestre: ''
       });
     }
   };
@@ -628,6 +734,249 @@ const ItemEditor = memo(({
               </div>
             </div>
 
+            {/* 🆕 SEÇÃO ANÁLISE TRIMESTRAL VINCULADA */}
+            <div style={{
+              padding: '16px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '8px',
+              border: '1px solid #bbf7d0',
+              marginTop: '8px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <h5 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#15803d',
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <BarChart3 size={16} />
+                    Análise Trimestral Vinculada
+                  </h5>
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#166534'
+                  }}>
+                    Permite aos leitores acessar análise completa
+                  </span>
+                </div>
+
+                <button
+                  onClick={toggleAnaliseTrismestral}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#15803d',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}
+                >
+                  {item.temAnaliseTrismestral ? (
+                    <>
+                      <ToggleRight size={24} color="#16a34a" />
+                      Ativado
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft size={24} />
+                      Ativar
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {item.temAnaliseTrismestral && (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {/* Dropdown para selecionar análise */}
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#166534',
+                      marginBottom: '8px'
+                    }}>
+                      Selecionar Análise Trimestral
+                    </label>
+
+                    {carregandoAnalises ? (
+                      <div style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        color: '#166534',
+                        fontSize: '14px'
+                      }}>
+                        ⏳ Carregando análises disponíveis...
+                      </div>
+                    ) : errorAnalises ? (
+                      <div style={{
+                        padding: '12px',
+                        backgroundColor: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: '6px',
+                        color: '#dc2626',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <AlertCircle size={16} />
+                        {errorAnalises}
+                        <button
+                          onClick={carregarAnalisesTrimestrais}
+                          style={{
+                            marginLeft: 'auto',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Tentar novamente
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={item.analiseTrismestralId || ''}
+                        onChange={(e) => selecionarAnalise(e.target.value)}
+                        style={{
+                          width: '100%',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '6px',
+                          padding: '10px',
+                          fontSize: '14px',
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <option value="">
+                          {analisesDisponiveis.length === 0 
+                            ? 'Nenhuma análise disponível'
+                            : 'Selecione uma análise...'
+                          }
+                        </option>
+                        {analisesDisponiveis.map((analise) => (
+                          <option key={analise.id} value={analise.id}>
+                            {analise.ticker} - {analise.trimestre} - {analise.titulo}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {analisesDisponiveis.length > 0 && !carregandoAnalises && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#166534',
+                        marginTop: '4px'
+                      }}>
+                        💡 {analisesDisponiveis.length} análises disponíveis para vinculação
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preview da análise selecionada */}
+                  {item.analiseTrismestralId && item.analiseTrismestralTicker && (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#dcfce7',
+                      border: '1px solid #86efac',
+                      borderRadius: '8px'
+                    }}>
+                      <h6 style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: '#15803d',
+                        margin: '0 0 8px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <CheckCircle size={14} />
+                        Análise Selecionada
+                      </h6>
+                      
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        color: '#166534'
+                      }}>
+                        <span style={{
+                          backgroundColor: '#16a34a',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {item.analiseTrismestralTicker}
+                        </span>
+                        
+                        <span style={{
+                          backgroundColor: '#15803d',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {item.analiseTrismestralTrimestre}
+                        </span>
+                        
+                        <span style={{ fontWeight: '500', flex: 1 }}>
+                          {item.analiseTrismestralTitulo}
+                        </span>
+
+                        <span style={{
+                          backgroundColor: '#22c55e',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <ExternalLink size={12} />
+                          VINCULADO
+                        </span>
+                      </div>
+                      
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#16a34a',
+                        marginTop: '8px',
+                        fontStyle: 'italic'
+                      }}>
+                        📊 Os leitores verão um botão "Ver Análise Trimestral" neste item do relatório
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {item.destaque && (
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
@@ -671,6 +1020,7 @@ const SecaoEditor = memo(({
   // Contar proventos e notícias
   const totalProventos = items.filter(item => item.isProvento).length;
   const totalNoticias = items.filter(item => !item.isProvento).length;
+  const totalComAnalise = items.filter(item => !item.isProvento && item.temAnaliseTrismestral && item.analiseTrismestralId).length;
 
   return (
     <div style={{
@@ -718,6 +1068,7 @@ const SecaoEditor = memo(({
             }}>
               {totalNoticias > 0 && <span>📰 {totalNoticias} notícia{totalNoticias > 1 ? 's' : ''}</span>}
               {totalProventos > 0 && <span>💰 {totalProventos} provento{totalProventos > 1 ? 's' : ''}</span>}
+              {totalComAnalise > 0 && <span>📊 {totalComAnalise} c/ análise trimestral</span>}
             </div>
           )}
         </div>
@@ -928,7 +1279,7 @@ const CriarRelatorioForm = memo(({
             {relatorioEditando ? '✏️ Editando Relatório' : '✨ Criar Novo Relatório'}
           </h3>
           <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
-            Notícias e proventos integrados em cada carteira
+            🆕 Agora com vinculação a análises trimestrais
           </p>
         </div>
         
@@ -1052,7 +1403,7 @@ const CriarRelatorioForm = memo(({
         </div>
       </div>
 
-      {/* 🆕 AVISO SOBRE SISTEMA UNIFICADO */}
+      {/* 🆕 AVISO SOBRE NOVA FUNCIONALIDADE */}
       <div style={{
         backgroundColor: '#f0fdf4',
         borderRadius: '12px',
@@ -1068,18 +1419,18 @@ const CriarRelatorioForm = memo(({
           alignItems: 'center',
           gap: '8px'
         }}>
-          <CheckCircle size={20} />
-          Sistema Unificado de Notícias e Proventos
+          <BarChart3 size={20} />
+          🆕 Nova Funcionalidade: Análises Trimestrais Vinculadas
         </h4>
         <div style={{ fontSize: '14px', color: '#166534', lineHeight: '1.6' }}>
           <p style={{ margin: '0 0 8px 0' }}>
-            Agora você pode adicionar <strong>notícias e proventos na mesma seção</strong>! 
+            Agora você pode <strong>vincular análises trimestrais</strong> às notícias dos relatórios semanais!
           </p>
           <ul style={{ margin: '8px 0', paddingLeft: '24px' }}>
-            <li>Ao adicionar um item, escolha se é <strong>📰 Notícia/Análise</strong> ou <strong>💰 Provento</strong></li>
-            <li>Proventos de Small Caps ficam junto com notícias de Small Caps</li>
-            <li>Organização mais lógica e intuitiva</li>
-            <li>Use o toggle para alternar entre os tipos a qualquer momento</li>
+            <li>Em qualquer notícia, ative "Análise Trimestral Vinculada"</li>
+            <li>Selecione a análise desejada da lista disponível</li>
+            <li>Os leitores verão um botão para acessar a análise completa</li>
+            <li>Integração perfeita entre relatórios semanais e análises trimestrais</li>
           </ul>
         </div>
       </div>
@@ -1325,7 +1676,7 @@ const RelatoriosPublicados = memo(({
                   (relatorio.exteriorDividendos?.length || 0) +
                   (relatorio.exteriorProjetoAmerica?.length || 0);
 
-                // Contar proventos e notícias
+                // Contar proventos, notícias e análises vinculadas
                 const allItems = [
                   ...relatorio.macro,
                   ...relatorio.dividendos,
@@ -1339,6 +1690,7 @@ const RelatoriosPublicados = memo(({
                 
                 const totalProventos = allItems.filter(item => item.isProvento).length;
                 const totalNoticias = allItems.filter(item => !item.isProvento).length;
+                const totalComAnalise = allItems.filter(item => !item.isProvento && item.temAnaliseTrismestral && item.analiseTrismestralId).length;
 
                 return (
                   <div key={relatorio.id} style={{
@@ -1359,6 +1711,18 @@ const RelatoriosPublicados = memo(({
                           <span>📊 {totalItens} itens</span>
                           {totalNoticias > 0 && <span>📰 {totalNoticias} notícias</span>}
                           {totalProventos > 0 && <span>💰 {totalProventos} proventos</span>}
+                          {totalComAnalise > 0 && (
+                            <span style={{
+                              backgroundColor: '#22c55e',
+                              color: 'white',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              📊 {totalComAnalise} c/ análise
+                            </span>
+                          )}
                         </div>
 
                         {/* Resumo das seções */}
@@ -1431,7 +1795,7 @@ const RelatoriosPublicados = memo(({
                           <button
                             onClick={() => onEdit(relatorio)}
                             style={{
-                              backgroundColor: '#3b82f6',
+                              backgroundColor: '#374151',
                               color: 'white',
                               border: 'none',
                               borderRadius: '6px',
@@ -1601,7 +1965,7 @@ const RascunhosRelatorios = memo(({
                       <button
                         onClick={() => onEdit(relatorio)}
                         style={{
-                          backgroundColor: '#3b82f6',
+                          backgroundColor: '#374151',
                           color: 'white',
                           border: 'none',
                           borderRadius: '6px',
@@ -1901,7 +2265,7 @@ const AdminRelatorioSemanal = () => {
                   Relatórios Semanais
                 </h1>
                 <p style={{ color: '#94a3b8', margin: 0, fontSize: '16px' }}>
-                  Sistema Unificado - Notícias e Proventos Integrados
+                  🆕 Agora com vinculação a análises trimestrais
                 </p>
               </div>
             </div>
