@@ -1,3 +1,17 @@
+/*
+ * COMPONENTE ANÁLISES TRIMESTRAIS - MOBILE RESPONSIVO
+ * 
+ * Melhorias implementadas para mobile:
+ * - Modal em tela cheia no mobile (bottom sheet)
+ * - Layout em coluna para pontos favoráveis/atenção no mobile
+ * - Métricas em coluna vertical no mobile
+ * - Cards mais compactos com padding reduzido
+ * - Fontes menores e mais adequadas para mobile
+ * - Botões com largura completa no mobile
+ * - Hook useIsMobile para detectar mobile sem causar problemas de hidratação
+ * - Smooth scrolling no modal
+ */
+
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Eye, Calendar, TrendingUp, TrendingDown, BarChart3, Target, AlertCircle, ExternalLink, FileText, Building } from 'lucide-react';
 
@@ -74,6 +88,34 @@ const stripHtml = (html: string): string => {
     .trim();
 };
 
+// Hook para detectar mobile - evita problemas de hidratação
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Check inicial
+    checkIsMobile();
+    
+    // Listener para mudanças
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+  
+  return isMobile;
+};
+const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
+  return !!(
+    analise.id &&
+    analise.ticker &&
+    analise.titulo &&
+    analise.dataPublicacao
+  );
+};
+
 // Função para validar se a análise tem dados mínimos
 const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
   return !!(
@@ -84,7 +126,7 @@ const isAnaliseValida = (analise: AnaliseTrimestreData): boolean => {
   );
 };
 
-// Componente do Modal de Análise Completa - melhorado
+// Componente do Modal de Análise Completa - melhorado e responsivo
 const ModalAnaliseCompleta = memo(({ 
   analise, 
   isOpen, 
@@ -94,6 +136,8 @@ const ModalAnaliseCompleta = memo(({
   isOpen: boolean;
   onClose: () => void;
 }) => {
+  const isMobile = useIsMobile();
+  
   if (!isOpen || !analise) return null;
 
   const getBadgeRecomendacao = (recomendacao: string) => {
@@ -161,34 +205,48 @@ const ModalAnaliseCompleta = memo(({
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '16px',
-        width: '90%',
-        height: '90%',
-        maxWidth: '1200px',
-        maxHeight: '800px',
+        borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+        width: isMobile ? '100%' : '90%',
+        height: isMobile ? '95%' : '90%',
+        maxWidth: isMobile ? 'none' : '1200px',
+        maxHeight: isMobile ? 'none' : '800px',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)'
+        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+        position: isMobile ? 'fixed' : 'relative',
+        bottom: isMobile ? '0' : 'auto',
+        left: isMobile ? '0' : 'auto'
       }}>
-        {/* Header do Modal */}
+        {/* Header do Modal - RESPONSIVO */}
         <div style={{
-          padding: '24px 32px',
+          padding: isMobile ? '16px 20px' : '24px 32px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: isMobile ? '8px' : '12px', 
+                marginBottom: '8px',
+                flexWrap: 'wrap'
+              }}>
+                <h2 style={{ 
+                  margin: 0, 
+                  fontSize: isMobile ? '20px' : '24px', 
+                  fontWeight: '700', 
+                  color: '#1e293b' 
+                }}>
                   {analise.ticker}
                 </h2>
                 <span style={{
                   backgroundColor: '#3b82f6',
                   color: 'white',
-                  padding: '4px 12px',
+                  padding: isMobile ? '3px 8px' : '4px 12px',
                   borderRadius: '8px',
-                  fontSize: '14px',
+                  fontSize: isMobile ? '12px' : '14px',
                   fontWeight: '600'
                 }}>
                   {analise.trimestre}
@@ -196,20 +254,33 @@ const ModalAnaliseCompleta = memo(({
                 <span style={{
                   backgroundColor: '#e2e8f0',
                   color: '#64748b',
-                  padding: '4px 8px',
+                  padding: isMobile ? '2px 6px' : '4px 8px',
                   borderRadius: '6px',
-                  fontSize: '12px',
+                  fontSize: isMobile ? '10px' : '12px',
                   fontWeight: '500'
                 }}>
                   {analise.categoria.replace('_', ' ').toUpperCase()}
                 </span>
               </div>
               
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600', color: '#374151' }}>
+              <h3 style={{ 
+                margin: '0 0 12px 0', 
+                fontSize: isMobile ? '16px' : '18px', 
+                fontWeight: '600', 
+                color: '#374151',
+                lineHeight: '1.4'
+              }}>
                 {analise.titulo}
               </h3>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: isMobile ? '12px' : '16px', 
+                fontSize: isMobile ? '12px' : '14px', 
+                color: '#64748b',
+                flexWrap: 'wrap'
+              }}>
                 <span>📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
                 <span>✍️ {analise.autor}</span>
               </div>
@@ -220,28 +291,34 @@ const ModalAnaliseCompleta = memo(({
               style={{
                 background: 'none',
                 border: 'none',
-                fontSize: '24px',
+                fontSize: isMobile ? '20px' : '24px',
                 cursor: 'pointer',
                 color: '#64748b',
                 padding: '8px',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                marginLeft: '8px'
               }}
             >
               ✕
             </button>
           </div>
           
-          {/* Recomendação e Risco */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          {/* Recomendação e Risco - RESPONSIVO */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: isMobile ? '8px' : '16px', 
+            flexWrap: 'wrap' 
+          }}>
             {getBadgeRecomendacao(analise.recomendacao)}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', color: '#64748b' }}>Risco:</span>
+              <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Risco:</span>
               {getBadgeRisco(analise.risco)}
             </div>
             {analise.precoAlvo && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#64748b' }}>Preço Alvo:</span>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
+                <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço Alvo:</span>
+                <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1e293b' }}>
                   R$ {analise.precoAlvo.toFixed(2)}
                 </span>
               </div>
@@ -249,8 +326,13 @@ const ModalAnaliseCompleta = memo(({
           </div>
         </div>
 
-        {/* Conteúdo Scrollável */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '32px' }}>
+        {/* Conteúdo Scrollável - RESPONSIVO */}
+        <div style={{ 
+          flex: 1, 
+          overflow: 'auto', 
+          padding: isMobile ? '20px 16px' : '32px',
+          WebkitOverflowScrolling: 'touch'
+        }}>
           {/* Resumo Executivo */}
           {analise.resumoExecutivo && (
             <div style={{ marginBottom: '32px' }}>
@@ -278,7 +360,11 @@ const ModalAnaliseCompleta = memo(({
                 📊 Métricas do Trimestre
               </h4>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px' 
+              }}>
                 {analise.metricas.receita && analise.metricas.receita.valor !== undefined && (
                   <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                     <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#15803d', fontWeight: '600' }}>💰 Receita</h5>
@@ -371,26 +457,43 @@ const ModalAnaliseCompleta = memo(({
                 📝 Análise Qualitativa
               </h4>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              {/* MOBILE FIRST: Stack vertical em telas pequenas, grid em telas grandes */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: '16px'
+              }}>
                 {analise.pontosFavoraveis && (
-                  <div style={{ backgroundColor: '#f0fdf4', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ 
+                    backgroundColor: '#f0fdf4', 
+                    padding: isMobile ? '16px' : '20px', 
+                    borderRadius: '12px', 
+                    border: '1px solid #bbf7d0',
+                    flex: 1
+                  }}>
                     <h5 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#15803d' }}>
                       ✅ Pontos Favoráveis
                     </h5>
                     <div 
-                      style={{ lineHeight: '1.6', color: '#166534' }}
+                      style={{ lineHeight: '1.6', color: '#166534', fontSize: isMobile ? '14px' : '16px' }}
                       dangerouslySetInnerHTML={{ __html: analise.pontosFavoraveis }}
                     />
                   </div>
                 )}
 
                 {analise.pontosAtencao && (
-                  <div style={{ backgroundColor: '#fef3c7', padding: '20px', borderRadius: '12px', border: '1px solid #fde68a' }}>
+                  <div style={{ 
+                    backgroundColor: '#fef3c7', 
+                    padding: isMobile ? '16px' : '20px', 
+                    borderRadius: '12px', 
+                    border: '1px solid #fde68a',
+                    flex: 1
+                  }}>
                     <h5 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#92400e' }}>
                       ⚠️ Pontos de Atenção
                     </h5>
                     <div 
-                      style={{ lineHeight: '1.6', color: '#92400e' }}
+                      style={{ lineHeight: '1.6', color: '#92400e', fontSize: isMobile ? '14px' : '16px' }}
                       dangerouslySetInnerHTML={{ __html: analise.pontosAtencao }}
                     />
                   </div>
@@ -463,12 +566,13 @@ const ModalAnaliseCompleta = memo(({
   );
 });
 
-// Componente Principal - CORRIGIDO
+// Componente Principal - CORRIGIDO E RESPONSIVO
 const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
   const [analises, setAnalises] = useState<AnaliseTrimestreData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analiseModalAberta, setAnaliseModalAberta] = useState<AnaliseTrimestreData | null>(null);
+  const isMobile = useIsMobile();
 
   // Carregar análises da API - MELHORADO
   useEffect(() => {
@@ -540,7 +644,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         marginBottom: '32px'
@@ -687,7 +791,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
               <div key={analiseKey} style={{
                 border: `2px solid ${isRecente ? '#3b82f6' : '#e2e8f0'}`,
                 borderRadius: '12px',
-                padding: '20px',
+                padding: isMobile ? '16px' : '20px',
                 backgroundColor: isRecente ? '#f8fafc' : 'white',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
@@ -706,62 +810,76 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                 {isRecente && (
                   <div style={{
                     position: 'absolute',
-                    top: '-8px',
-                    right: '16px',
+                    top: isMobile ? '-6px' : '-8px',
+                    right: isMobile ? '12px' : '16px',
                     backgroundColor: '#3b82f6',
                     color: 'white',
-                    padding: '4px 12px',
+                    padding: isMobile ? '3px 8px' : '4px 12px',
                     borderRadius: '12px',
-                    fontSize: '12px',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '600'
                   }}>
-                    🆕 MAIS RECENTE
+                    {isMobile ? '🆕 RECENTE' : '🆕 MAIS RECENTE'}
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: isMobile ? 'column' : 'row',
+                  justifyContent: 'space-between', 
+                  alignItems: isMobile ? 'stretch' : 'flex-start', 
+                  marginBottom: '12px',
+                  gap: isMobile ? '12px' : '0'
+                }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                       <h4 style={{
-                        fontSize: '18px',
+                        fontSize: isMobile ? '16px' : '18px',
                         fontWeight: '700',
                         color: '#1e293b',
-                        margin: 0
+                        margin: 0,
+                        lineHeight: '1.3'
                       }}>
                         {analise.titulo}
                       </h4>
                     </div>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: isMobile ? '8px' : '12px', 
+                      marginBottom: '8px',
+                      flexWrap: 'wrap'
+                    }}>
                       <span style={{
                         backgroundColor: '#3b82f6',
                         color: 'white',
                         padding: '2px 8px',
                         borderRadius: '8px',
-                        fontSize: '12px',
+                        fontSize: isMobile ? '10px' : '12px',
                         fontWeight: '600'
                       }}>
                         {analise.trimestre}
                       </span>
                       
-                      <span style={{ fontSize: '14px', color: '#64748b' }}>
+                      <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
                         📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}
                       </span>
                       
-                      <span style={{ fontSize: '14px', color: '#64748b' }}>
+                      <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
                         ✍️ {analise.autor}
                       </span>
                     </div>
 
-                    {/* Resumo Executivo (sem HTML) - MELHORADO */}
+                    {/* Resumo Executivo - RESPONSIVO */}
                     {analise.resumoExecutivo && (
                       <p style={{
                         color: '#64748b',
-                        fontSize: '14px',
+                        fontSize: isMobile ? '13px' : '14px',
                         lineHeight: '1.5',
                         margin: '8px 0',
                         display: '-webkit-box',
-                        WebkitLineClamp: 2,
+                        WebkitLineClamp: isMobile ? 3 : 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden'
                       }}>
@@ -771,9 +889,14 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                   </div>
 
                   <div style={{ 
-                    textAlign: 'right',
-                    minWidth: '120px',
-                    marginLeft: '20px'
+                    textAlign: isMobile ? 'left' : 'right',
+                    minWidth: isMobile ? 'auto' : '120px',
+                    marginLeft: isMobile ? '0' : '20px',
+                    display: 'flex',
+                    flexDirection: isMobile ? 'row' : 'column',
+                    alignItems: isMobile ? 'center' : 'flex-end',
+                    gap: isMobile ? '12px' : '8px',
+                    flexWrap: 'wrap'
                   }}>
                     <div style={{
                       display: 'inline-flex',
@@ -793,39 +916,38 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                           default: return '#92400e';
                         }
                       })(),
-                      padding: '6px 12px',
+                      padding: isMobile ? '4px 8px' : '6px 12px',
                       borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      marginBottom: '8px'
+                      fontSize: isMobile ? '10px' : '12px',
+                      fontWeight: '700'
                     }}>
                       {analise.recomendacao === 'COMPRA' ? '🟢' : analise.recomendacao === 'VENDA' ? '🔴' : '🟡'} {analise.recomendacao}
                     </div>
                     
                     {analise.precoAlvo && (
-                      <div style={{ fontSize: '14px', color: '#64748b' }}>
+                      <div style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
                         Alvo: R$ {analise.precoAlvo.toFixed(2)}
                       </div>
                     )}
                     
-                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
+                    <div style={{ fontSize: isMobile ? '11px' : '12px', color: '#94a3b8' }}>
                       Risco: {analise.risco}
                     </div>
                   </div>
                 </div>
 
-                {/* Métricas Resumidas - CORRIGIDO */}
+                {/* Métricas Resumidas - MOBILE FRIENDLY */}
                 {Object.keys(analise.metricas).length > 0 && (
                   <div style={{ 
                     display: 'flex', 
-                    gap: '12px', 
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? '8px' : '12px', 
                     marginTop: '16px',
                     paddingTop: '16px',
-                    borderTop: '1px solid #e2e8f0',
-                    flexWrap: 'wrap'
+                    borderTop: '1px solid #e2e8f0'
                   }}>
                     {analise.metricas.receita && analise.metricas.receita.valor !== undefined && (
-                      <div style={{ fontSize: '12px' }}>
+                      <div style={{ fontSize: isMobile ? '11px' : '12px' }}>
                         <span style={{ color: '#64748b' }}>Receita: </span>
                         <span style={{ fontWeight: '600', color: '#059669' }}>
                           {formatarValorMetrica(analise.metricas.receita)}
@@ -840,7 +962,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                     )}
                     
                     {analise.metricas.ebitda && analise.metricas.ebitda.valor !== undefined && (
-                      <div style={{ fontSize: '12px' }}>
+                      <div style={{ fontSize: isMobile ? '11px' : '12px' }}>
                         <span style={{ color: '#64748b' }}>EBITDA: </span>
                         <span style={{ fontWeight: '600', color: '#0ea5e9' }}>
                           {formatarValorMetrica(analise.metricas.ebitda)}
@@ -854,7 +976,7 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                     )}
 
                     {analise.metricas.roe && analise.metricas.roe.valor !== undefined && (
-                      <div style={{ fontSize: '12px' }}>
+                      <div style={{ fontSize: isMobile ? '11px' : '12px' }}>
                         <span style={{ color: '#64748b' }}>ROE: </span>
                         <span style={{ fontWeight: '600', color: '#dc2626' }}>
                           {typeof analise.metricas.roe.valor === 'number' ? analise.metricas.roe.valor.toFixed(1) : analise.metricas.roe.valor}%
@@ -864,10 +986,10 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                   </div>
                 )}
 
-                {/* Botão Ver Análise */}
+                {/* Botão Ver Análise - RESPONSIVO */}
                 <div style={{ 
                   display: 'flex', 
-                  justifyContent: 'flex-end', 
+                  justifyContent: isMobile ? 'center' : 'flex-end', 
                   marginTop: '16px',
                   paddingTop: '12px',
                   borderTop: '1px solid #e2e8f0'
@@ -877,16 +999,18 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '8px 16px',
-                    fontSize: '14px',
+                    padding: isMobile ? '10px 16px' : '8px 16px',
+                    fontSize: isMobile ? '13px' : '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: 'center'
                   }}>
                     <Eye size={16} />
-                    Ver Análise Completa
+                    {isMobile ? 'Ver Análise' : 'Ver Análise Completa'}
                   </button>
                 </div>
               </div>
