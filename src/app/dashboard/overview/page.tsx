@@ -570,12 +570,10 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
   return cotacoesMap;
 }
 
-// 🚀 FUNÇÃO CORRIGIDA PARA BUSCAR DY EM PARALELO (MOBILE MELHORADO)
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR DY EM PARALELO
 async function buscarDYParalelo(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const dyMap = new Map<string, string>();
-  
-  console.log(`📈 Iniciando busca de DY para ${tickers.length} tickers (Mobile: ${isMobile})`);
   
   if (!isMobile) {
     // Desktop: busca em lote
@@ -596,97 +594,45 @@ async function buscarDYParalelo(tickers: string[], isMobile: boolean): Promise<M
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`📈 Desktop: Resposta recebida para ${data.results?.length || 0} ativos`);
-        
         data.results?.forEach((result: any) => {
           const ticker = result.symbol;
           const dy = result.defaultKeyStatistics?.dividendYield;
-          const dyFormatado = dy && dy > 0 ? `${dy.toFixed(2).replace('.', ',')}%` : '0,00%';
-          dyMap.set(ticker, dyFormatado);
-          console.log(`📈 Desktop ${ticker}: ${dyFormatado}`);
+          dyMap.set(ticker, dy && dy > 0 ? `${dy.toFixed(2).replace('.', ',')}%` : '0,00%');
         });
-      } else {
-        console.log(`📈 Desktop: Erro HTTP ${response.status}`);
       }
     } catch (error) {
-      console.log(`📈 Desktop: Erro -`, error.message);
       tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
     }
     
     return dyMap;
   }
 
-  // Mobile: busca individual com estratégia robusta
-  console.log('📈 Mobile: Buscando DY individualmente com estratégia robusta');
-  
+  // Mobile: busca em paralelo simplificada
   const buscarDYAtivo = async (ticker: string) => {
-    console.log(`📈 Mobile: Buscando DY para ${ticker}`);
-    
-    // Lista de estratégias para mobile
-    const estrategias = [
-      // Estratégia 1: User-Agent Desktop
-      {
-        nome: 'Desktop UA',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      },
-      // Estratégia 2: Sem User-Agent
-      {
-        nome: 'Sem UA', 
-        headers: {
-          'Accept': 'application/json'
-        }
-      },
-      // Estratégia 3: User-Agent mobile
-      {
-        nome: 'Mobile UA',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'
-        }
-      }
-    ];
-
-    for (const estrategia of estrategias) {
-      try {
-        console.log(`📈 ${ticker}: Tentativa ${estrategia.nome}`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        const response = await fetch(
-          `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`,
-          {
-            signal: controller.signal,
-            headers: estrategia.headers
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 2500);
+      
+      const response = await fetch(
+        `https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`,
+        {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
-        );
-        
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
-          const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-          
-          if (dy !== undefined && dy !== null) {
-            const dyFormatado = dy > 0 ? `${dy.toFixed(2).replace('.', ',')}%` : '0,00%';
-            console.log(`📈 ${ticker}: DY encontrado ${dyFormatado} (${estrategia.nome})`);
-            return { ticker, dy: dyFormatado };
-          } else {
-            console.log(`📈 ${ticker}: DY não encontrado nos dados (${estrategia.nome})`);
-          }
-        } else {
-          console.log(`📈 ${ticker}: HTTP ${response.status} (${estrategia.nome})`);
         }
-      } catch (error) {
-        console.log(`📈 ${ticker}: Erro ${estrategia.nome} -`, error.message);
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+        return { ticker, dy: dy && dy > 0 ? `${dy.toFixed(2).replace('.', ',')}%` : '0,00%' };
       }
+    } catch (error) {
+      // Falha silenciosa
     }
     
-    // Se todas as estratégias falharam
-    console.log(`📈 ${ticker}: Todas as estratégias falharam, usando 0,00%`);
     return { ticker, dy: '0,00%' };
   };
 
@@ -696,18 +642,10 @@ async function buscarDYParalelo(tickers: string[], isMobile: boolean): Promise<M
   );
 
   // Processar resultados
-  resultados.forEach((resultado, index) => {
+  resultados.forEach((resultado) => {
     if (resultado.status === 'fulfilled') {
       dyMap.set(resultado.value.ticker, resultado.value.dy);
-    } else {
-      dyMap.set(tickers[index], '0,00%');
-      console.log(`📈 ${tickers[index]}: Promise rejeitada`);
     }
-  });
-
-  console.log(`📈 Mobile: Resultado final DY - ${dyMap.size} tickers processados`);
-  dyMap.forEach((dy, ticker) => {
-    console.log(`📈 Final ${ticker}: ${dy}`);
   });
 
   return dyMap;
@@ -907,7 +845,7 @@ function useSmallCapsIntegradas() {
           variacaoPercent: cotacao.variacaoPercent,
           volume: cotacao.volume,
           vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-                      dy: dyFinal,
+          dy: dyAPI,
           statusApi: 'success',
           nomeCompleto: cotacao.nome,
           posicaoExibicao: index + 1
@@ -930,7 +868,7 @@ function useSmallCapsIntegradas() {
           variacaoPercent: 0,
           volume: 0,
           vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-                      dy: dyFinal,
+          dy: dyAPI,
           statusApi: 'not_found',
           nomeCompleto: 'N/A',
           posicaoExibicao: index + 1
@@ -1324,16 +1262,8 @@ export default function SmallCapsPage() {
         </div>
 
         {/* Skeleton Loading */}
-        {loading && ativosAtivos.length === 0 ? (
+        {(loading || !todosOsDadosProntos) && ativosAtivos.length === 0 ? (
           <div style={{ padding: '24px' }}>
-            <div style={{
-              textAlign: 'center',
-              color: '#64748b',
-              marginBottom: '16px',
-              fontSize: '16px'
-            }}>
-              {loadingMessage || 'Carregando dados...'}
-            </div>
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} style={{
                 height: '60px',
@@ -1482,7 +1412,7 @@ export default function SmallCapsPage() {
                         <div style={{ color: '#64748b' }}>
                           <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
                           <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                            {loading ? '...' : (ativo.dy || '0,00%')}
+                            {loadingDY ? '...' : ativo.dy}
                           </span>
                         </div>
                         <div style={{ color: '#64748b' }}>
@@ -1710,7 +1640,7 @@ export default function SmallCapsPage() {
                             fontWeight: '700',
                             color: '#1e293b'
                           }}>
-                            {loading ? '...' : (ativo.dy || '0,00%')}
+                            {loadingDY ? '...' : ativo.dy}
                           </td>
                           <td style={{ padding: '16px', textAlign: 'center' }}>
                             <span style={{
