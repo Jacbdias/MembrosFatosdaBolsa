@@ -1031,32 +1031,6 @@ export default function ETFsInternacionaisPage() {
             {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+0.81%'}
           </div>
         </div>
-
-        {/* Quantidade de ETFs */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
-            color: '#64748b', 
-            fontWeight: '500',
-            marginBottom: '8px'
-          }}>
-            Total de ETFs
-          </div>
-          <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700', 
-            color: '#1e293b',
-            lineHeight: '1'
-          }}>
-            {loading ? '...' : metricas.quantidadeAtivos}
-          </div>
-        </div>
       </div>
 
       {/* Tabela de ETFs Responsiva */}
