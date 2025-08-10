@@ -1866,25 +1866,24 @@ export default function SmallCapsPage() {
                           }}
                         >
                           {/* Posição */}
-                          <td style={{ padding: '16px', textAlign: 'center' }}>
-                            <div style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              backgroundColor: '#f8fafc',
-                              border: '1px solid #e2e8f0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: '700',
-                              fontSize: '14px',
-                              color: '#64748b',
-                              margin: '0 auto'
-                            }}>
-                              {ativo.posicaoExibicao}
-                            </div>
-                          </td>
-
+<td style={{ padding: '16px', textAlign: 'center' }}>
+  <div style={{
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '14px',
+    color: '#64748b',
+    margin: '0 auto'
+  }}>
+    {ativo.posicaoExibicao}
+  </div>
+</td>
                           {/* Ativo */}
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

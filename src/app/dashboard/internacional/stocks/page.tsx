@@ -693,7 +693,7 @@ function useExteriorStocksIntegradas() {
                 dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
                 statusApi: 'suspicious_price',
                 nomeCompleto: cotacao.nome,
-                rank: (index + 1) + '°'
+rank: String(index + 1)
               };
             }
             
@@ -1043,31 +1043,6 @@ export default function ExteriorStocksPage() {
           </div>
         </div>
 
-        {/* Quantidade de Ativos */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
-            color: '#64748b', 
-            fontWeight: '500',
-            marginBottom: '8px'
-          }}>
-            Total de ativos
-          </div>
-          <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700', 
-            color: '#1e293b',
-            lineHeight: '1'
-          }}>
-            {loading ? '...' : metricas.quantidadeAtivos}
-          </div>
-        </div>
       </div>
 
       {/* Tabela de Ativos Responsiva */}
@@ -1375,7 +1350,7 @@ export default function ExteriorStocksPage() {
                             fontSize: '16px',
                             color: '#000000'
                           }}>
-                            {ativo.rank || (index + 1) + '°'}
+                            {ativo.rank || (index + 1)}
                           </td>
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
