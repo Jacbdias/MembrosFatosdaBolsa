@@ -1379,28 +1379,30 @@ export default function ExteriorStocksPage() {
                           </td>
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                backgroundColor: '#ffffff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: '1px solid #e2e8f0',
-                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                                padding: '6px'
-                              }}>
-                                <img 
-                                  src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
-                                  alt={`Logo ${ativo.ticker}`}
-                                  style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'contain',
-                                    borderRadius: '2px'
-                                  }}
+<div style={{
+  width: '48px',
+  height: '48px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  backgroundColor: '#ffffff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+  padding: '6px',
+  flexShrink: 0         // ✅ IMPEDIR QUE ENCOLHA
+}}>
+  <img 
+    src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
+    alt={`Logo ${ativo.ticker}`}
+    style={{
+      width: '36px',
+      height: '36px',
+      objectFit: 'cover',
+      borderRadius: '2px',
+      flexShrink: 0       // ✅ IMPEDIR QUE A IMAGEM ENCOLHA
+    }}
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';
