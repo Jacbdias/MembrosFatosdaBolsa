@@ -474,12 +474,160 @@ function calcularDY12MesesLocalStorage(ticker: string, precoAtual: number): stri
   }
 }
 
+// 🚀 FUNÇÃO PARA BUSCAR COTAÇÕES EM PARALELO (ADAPTADA DO ARQUIVO FUNCIONAL)
+async function buscarCotacoesETFsParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  const cotacoesMap = new Map();
+  
+  if (!isMobile) {
+    // 🖥️ DESKTOP: busca em lote (mais eficiente)
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 8000);
+      
+      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'ETFsInternacionais-Desktop-Optimized'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🖥️ Resposta Desktop:', data.results?.length || 0, 'ativos');
+        
+        data.results?.forEach((quote: any) => {
+          if (quote.regularMarketPrice > 0) {
+            cotacoesMap.set(quote.symbol, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || quote.symbol,
+              dadosCompletos: quote
+            });
+            console.log(`✅ Desktop ${quote.symbol}: US$ ${quote.regularMarketPrice}`);
+          }
+        });
+      }
+    } catch (error) {
+      console.log('❌ Erro na busca em lote desktop:', error);
+    }
+    
+    return cotacoesMap;
+  }
+
+  // 📱 MOBILE: busca individual com estratégias múltiplas (FUNCIONAL)
+  console.log('📱 MOBILE: Iniciando busca individual para', tickers.length, 'tickers');
+  
+  const buscarCotacaoAtivo = async (ticker: string) => {
+    const estrategias = [
+      // Estratégia 1: User-Agent Desktop
+      {
+        nome: 'Desktop UA',
+        fetch: () => fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          }
+        })
+      },
+      // Estratégia 2: Sem User-Agent
+      {
+        nome: 'Sem UA',
+        fetch: () => fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        })
+      },
+      // Estratégia 3: URL simplificada
+      {
+        nome: 'URL simples',
+        fetch: () => fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+          method: 'GET',
+          mode: 'cors'
+        })
+      }
+    ];
+
+    for (const estrategia of estrategias) {
+      try {
+        console.log(`📱🔄 ${ticker}: Tentativa ${estrategia.nome}`);
+        
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 3000);
+        
+        const response = await Promise.race([
+          estrategia.fetch(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]) as Response;
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            console.log(`📱✅ ${ticker}: US$ ${quote.regularMarketPrice} (${estrategia.nome})`);
+            return {
+              ticker,
+              cotacao: {
+                precoAtual: quote.regularMarketPrice,
+                variacao: quote.regularMarketChange || 0,
+                variacaoPercent: quote.regularMarketChangePercent || 0,
+                volume: quote.regularMarketVolume || 0,
+                nome: quote.shortName || quote.longName || ticker,
+                dadosCompletos: quote
+              }
+            };
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ ${ticker} (${estrategia.nome}): ${error.message}`);
+      }
+      
+      // Delay entre estratégias
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    console.log(`📱⚠️ ${ticker}: Todas as estratégias falharam`);
+    return { ticker, cotacao: null };
+  };
+
+  // Executar todas as buscas em paralelo (com limite)
+  const BATCH_SIZE = 3; // Máximo 3 tickers por vez no mobile
+  for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
+    const batch = tickers.slice(i, i + BATCH_SIZE);
+    console.log(`📱🔄 Lote mobile ${Math.floor(i/BATCH_SIZE) + 1}: ${batch.join(', ')}`);
+    
+    const resultados = await Promise.allSettled(
+      batch.map(ticker => buscarCotacaoAtivo(ticker))
+    );
+
+    resultados.forEach((resultado) => {
+      if (resultado.status === 'fulfilled' && resultado.value.cotacao) {
+        cotacoesMap.set(resultado.value.ticker, resultado.value.cotacao);
+      }
+    });
+    
+    // Delay entre lotes no mobile
+    if (i + BATCH_SIZE < tickers.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  console.log(`📱📊 Mobile final: ${cotacoesMap.size} cotações obtidas de ${tickers.length} tickers`);
+  return cotacoesMap;
+}
+
 // 🚀 HOOK CORRIGIDO PARA BUSCAR COTAÇÕES DOS ETFS DO DATASTORE
 function useETFsInternacionaisIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const isMobile = useDeviceDetection(); // ✅ USAR DETECÇÃO DE MOBILE
 
   // 📊 OBTER DADOS DA CARTEIRA ETFS INTERNACIONAIS DO DATASTORE
   const etfsInternacionaisData = dados.etfs || [];
@@ -489,7 +637,8 @@ function useETFsInternacionaisIntegradas() {
       setLoading(true);
       setError(null);
 
-      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA ETFS INTERNACIONAIS');
+      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA ETFS INTERNACIONAIS - ESTRATÉGIA MOBILE/DESKTOP');
+      console.log('📱 Device Info:', { isMobile });
       console.log('📋 Ativos do DataStore:', etfsInternacionaisData);
 
       if (etfsInternacionaisData.length === 0) {
@@ -499,80 +648,14 @@ function useETFsInternacionaisIntegradas() {
         return;
       }
 
-      // 🔑 TOKEN BRAPI FUNCIONANDO
-      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
       // 📋 EXTRAIR TODOS OS TICKERS
       const tickers = etfsInternacionaisData.map(ativo => ativo.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 BUSCAR EM LOTES MENORES COM TOKEN E TIMEOUT
-      const LOTE_SIZE = 5;
-      const cotacoesMap = new Map();
-      let sucessosTotal = 0;
-      let falhasTotal = 0;
+      // 🔄 USAR FUNÇÃO ADAPTADA COM ESTRATÉGIAS MOBILE/DESKTOP
+      const cotacoesMap = await buscarCotacoesETFsParalelas(tickers, isMobile);
 
-      for (let i = 0; i < tickers.length; i += LOTE_SIZE) {
-        const lote = tickers.slice(i, i + LOTE_SIZE);
-        const tickersString = lote.join(',');
-        
-        const apiUrl = `https://brapi.dev/api/quote/${tickersString}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`;
-        
-        console.log(`🔍 Lote ${Math.floor(i/LOTE_SIZE) + 1}: ${lote.join(', ')}`);
-
-        try {
-          // 🔥 ADICIONAR TIMEOUT DE 8 SEGUNDOS PARA LOTES MÚLTIPLOS
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'ETFsInternacionais-Portfolio-App'
-            },
-            signal: controller.signal
-          });
-
-          clearTimeout(timeoutId);
-
-          if (response.ok) {
-            const apiData = await response.json();
-            console.log(`📊 Resposta para lote ${Math.floor(i/LOTE_SIZE) + 1}:`, apiData);
-
-            if (apiData.results && Array.isArray(apiData.results)) {
-              apiData.results.forEach((quote: any) => {
-                if (quote.symbol && quote.regularMarketPrice && quote.regularMarketPrice > 0) {
-                  cotacoesMap.set(quote.symbol, {
-                    precoAtual: quote.regularMarketPrice,
-                    variacao: quote.regularMarketChange || 0,
-                    variacaoPercent: quote.regularMarketChangePercent || 0,
-                    volume: quote.regularMarketVolume || 0,
-                    nome: quote.shortName || quote.longName,
-                    dadosCompletos: quote
-                  });
-                  sucessosTotal++;
-                  console.log(`✅ ${quote.symbol}: US$ ${quote.regularMarketPrice}`);
-                } else {
-                  console.warn(`⚠️ ${quote.symbol}: Dados inválidos (preço: ${quote.regularMarketPrice})`);
-                  falhasTotal++;
-                }
-              });
-            }
-          } else {
-            console.error(`❌ Erro HTTP ${response.status} para lote: ${lote.join(', ')}`);
-            falhasTotal += lote.length;
-          }
-        } catch (loteError) {
-          console.error(`❌ Erro no lote ${lote.join(', ')}:`, loteError);
-          falhasTotal += lote.length;
-        }
-
-        // DELAY entre requisições para evitar rate limiting
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
-      console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
+      console.log(`✅ Total processado: ${cotacoesMap.size} sucessos de ${tickers.length} tentativas`);
 
       // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS E DY VIA API
       const ativosComCotacoes = await Promise.all(
