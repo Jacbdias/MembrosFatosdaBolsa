@@ -5,6 +5,27 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 
+// 🔥 DETECÇÃO DE DISPOSITIVO (ADICIONADO DO ARQUIVO 2)
+const useDeviceDetection = () => {
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  return isMobile;
+};
+
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DE ÍNDICES INTERNACIONAIS
 function useIndicesInternacionaisRealTime() {
   const [indicesData, setIndicesData] = React.useState<any>(null);
@@ -134,6 +155,48 @@ function useIndicesInternacionaisRealTime() {
   return { indicesData, loading, error, refetch: buscarIndicesReal };
 }
 
+// 🎨 FUNÇÃO PARA OBTER COR DE FUNDO BASEADA NO SETOR
+function obterCorPorSetor(setor: string): { backgroundColor: string; borderColor: string } {
+  const setorLower = setor.toLowerCase();
+  
+  if (setorLower.includes('reit')) {
+    if (setorLower.includes('retail')) {
+      return { backgroundColor: '#eff6ff', borderColor: '#2563eb' }; // Azul
+    } else if (setorLower.includes('apartamento')) {
+      return { backgroundColor: '#f0fdf4', borderColor: '#16a34a' }; // Verde
+    } else if (setorLower.includes('industrial')) {
+      return { backgroundColor: '#fef3c7', borderColor: '#d97706' }; // Amarelo
+    } else if (setorLower.includes('net lease')) {
+      return { backgroundColor: '#fdf2f8', borderColor: '#db2777' }; // Rosa
+    } else {
+      return { backgroundColor: '#f3f4f6', borderColor: '#6b7280' }; // Cinza para outros REITs
+    }
+  }
+  
+  if (setorLower.includes('telecom')) {
+    return { backgroundColor: '#ecfdf5', borderColor: '#059669' }; // Verde escuro
+  }
+  
+  if (setorLower.includes('petroleum') || setorLower.includes('oil') || setorLower.includes('energy')) {
+    return { backgroundColor: '#fef2f2', borderColor: '#dc2626' }; // Vermelho
+  }
+  
+  if (setorLower.includes('tech') || setorLower.includes('software')) {
+    return { backgroundColor: '#f0f9ff', borderColor: '#0284c7' }; // Azul tech
+  }
+  
+  if (setorLower.includes('financial') || setorLower.includes('bank')) {
+    return { backgroundColor: '#f8fafc', borderColor: '#475569' }; // Azul acinzentado
+  }
+  
+  if (setorLower.includes('healthcare') || setorLower.includes('pharma')) {
+    return { backgroundColor: '#fefce8', borderColor: '#ca8a04' }; // Amarelo saúde
+  }
+  
+  // Padrão para setores não mapeados
+  return { backgroundColor: '#f9fafb', borderColor: '#4b5563' };
+}
+
 // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
 function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: string): string {
   if (!precoTeto || precoAtual === 'N/A') {
@@ -157,8 +220,232 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   }
 }
 
-// 🎯 FUNÇÃO PARA CALCULAR DY DOS ÚLTIMOS 12 MESES BASEADO NOS PROVENTOS UPLOADADOS
-function calcularDY12Meses(ticker: string, precoAtual: number): string {
+// 🚀 FUNÇÃO PARA BUSCAR DY 12 MESES VIA YAHOO FINANCE API
+async function buscarDY12MesesAPI(ticker: string, precoAtual: number): Promise<string> {
+  try {
+    if (!ticker || precoAtual <= 0) return '0,00%';
+    
+    console.log(`🔍 Buscando DY via API para ${ticker}...`);
+    
+    // 📊 MÉTODO 1: TENTAR VIA BRAPI (PODE TER DADOS DE DIVIDENDOS)
+    try {
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      const brapiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(brapiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'DY-Calculator-App'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 Resposta BRAPI para ${ticker}:`, data);
+        
+        if (data.results && data.results.length > 0) {
+          const quote = data.results[0];
+          
+          // Verificar se tem dados de dividendos
+          if (quote.dividendYield && quote.dividendYield > 0) {
+            const dyPercent = quote.dividendYield * 100;
+            console.log(`✅ DY encontrado via BRAPI para ${ticker}: ${dyPercent.toFixed(2)}%`);
+            return `${dyPercent.toFixed(2).replace('.', ',')}%`;
+          }
+          
+          // Verificar dados fundamentais
+          if (quote.summaryProfile?.dividendYield) {
+            const dyPercent = quote.summaryProfile.dividendYield * 100;
+            console.log(`✅ DY encontrado via BRAPI (fundamental) para ${ticker}: ${dyPercent.toFixed(2)}%`);
+            return `${dyPercent.toFixed(2).replace('.', ',')}%`;
+          }
+        }
+      }
+    } catch (brapiError) {
+      console.warn(`⚠️ Erro BRAPI para ${ticker}:`, brapiError);
+    }
+    
+    // 📊 MÉTODO 2: TENTAR VIA YAHOO FINANCE DIRETO (COM CORS PROXY)
+    try {
+      // Usar um proxy CORS público para acessar Yahoo Finance
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&events=div`;
+      
+      const proxyUrl = corsProxy + encodeURIComponent(yahooUrl);
+      
+      const controller2 = new AbortController();
+      const timeoutId2 = setTimeout(() => controller2.abort(), 8000);
+      
+      const response2 = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller2.signal
+      });
+      
+      clearTimeout(timeoutId2);
+      
+      if (response2.ok) {
+        const data = await response2.json();
+        console.log(`📊 Resposta Yahoo Finance para ${ticker}:`, data);
+        
+        if (data.chart && data.chart.result && data.chart.result.length > 0) {
+          const result = data.chart.result[0];
+          
+          // Verificar se tem eventos de dividendos
+          if (result.events && result.events.dividends) {
+            const dividendos = Object.values(result.events.dividends) as any[];
+            
+            // Calcular data de 12 meses atrás
+            const hoje = new Date();
+            const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+            const timestampUmAnoAtras = Math.floor(umAnoAtras.getTime() / 1000);
+            
+            // Filtrar dividendos dos últimos 12 meses
+            const dividendosUltimos12Meses = dividendos.filter((div: any) => 
+              div.date && div.date >= timestampUmAnoAtras
+            );
+            
+            if (dividendosUltimos12Meses.length > 0) {
+              // Somar todos os dividendos dos últimos 12 meses
+              const totalDividendos = dividendosUltimos12Meses.reduce((total: number, div: any) => 
+                total + (div.amount || 0), 0
+              );
+              
+              if (totalDividendos > 0) {
+                // Calcular DY: (Total Dividendos / Preço Atual) * 100
+                const dy = (totalDividendos / precoAtual) * 100;
+                console.log(`✅ DY calculado via Yahoo Finance para ${ticker}: ${dy.toFixed(2)}% (${totalDividendos} USD em dividendos)`);
+                return `${dy.toFixed(2).replace('.', ',')}%`;
+              }
+            }
+          }
+        }
+      }
+    } catch (yahooError) {
+      console.warn(`⚠️ Erro Yahoo Finance para ${ticker}:`, yahooError);
+    }
+    
+    // 📊 MÉTODO 3: TENTAR VIA FINANCIAL MODELING PREP (GRATUITO ATÉ 250 CALLS/DIA)
+    try {
+      // API Key demo da Financial Modeling Prep (substituir por uma própria se necessário)
+      const fmpUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${ticker}?apikey=demo`;
+      
+      const controller3 = new AbortController();
+      const timeoutId3 = setTimeout(() => controller3.abort(), 5000);
+      
+      const response3 = await fetch(fmpUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller3.signal
+      });
+      
+      clearTimeout(timeoutId3);
+      
+      if (response3.ok) {
+        const data = await response3.json();
+        console.log(`📊 Resposta FMP para ${ticker}:`, data);
+        
+        if (data.historical && Array.isArray(data.historical)) {
+          // Calcular data de 12 meses atrás
+          const hoje = new Date();
+          const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+          
+          // Filtrar dividendos dos últimos 12 meses
+          const dividendosUltimos12Meses = data.historical.filter((div: any) => {
+            const dataDividendo = new Date(div.date);
+            return dataDividendo >= umAnoAtras && dataDividendo <= hoje;
+          });
+          
+          if (dividendosUltimos12Meses.length > 0) {
+            // Somar todos os dividendos dos últimos 12 meses
+            const totalDividendos = dividendosUltimos12Meses.reduce((total: number, div: any) => 
+              total + (div.dividend || 0), 0
+            );
+            
+            if (totalDividendos > 0) {
+              // Calcular DY: (Total Dividendos / Preço Atual) * 100
+              const dy = (totalDividendos / precoAtual) * 100;
+              console.log(`✅ DY calculado via FMP para ${ticker}: ${dy.toFixed(2)}% (${totalDividendos} USD em dividendos)`);
+              return `${dy.toFixed(2).replace('.', ',')}%`;
+            }
+          }
+        }
+      }
+    } catch (fmpError) {
+      console.warn(`⚠️ Erro FMP para ${ticker}:`, fmpError);
+    }
+    
+    // 📊 MÉTODO 4: FALLBACK - TENTAR BUSCAR DIVIDEND YIELD ATUAL VIA QUOTE
+    try {
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
+      const yahooQuoteUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics,summaryDetail`;
+      const proxyQuoteUrl = corsProxy + encodeURIComponent(yahooQuoteUrl);
+      
+      const controller4 = new AbortController();
+      const timeoutId4 = setTimeout(() => controller4.abort(), 5000);
+      
+      const response4 = await fetch(proxyQuoteUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller4.signal
+      });
+      
+      clearTimeout(timeoutId4);
+      
+      if (response4.ok) {
+        const data = await response4.json();
+        console.log(`📊 Resposta Yahoo Quote para ${ticker}:`, data);
+        
+        if (data.quoteSummary && data.quoteSummary.result && data.quoteSummary.result.length > 0) {
+          const result = data.quoteSummary.result[0];
+          
+          // Tentar vários campos de dividend yield
+          const possiveisCampos = [
+            result.summaryDetail?.dividendYield?.raw,
+            result.summaryDetail?.trailingAnnualDividendYield?.raw,
+            result.defaultKeyStatistics?.dividendYield?.raw,
+            result.defaultKeyStatistics?.trailingAnnualDividendYield?.raw
+          ];
+          
+          for (const dy of possiveisCampos) {
+            if (dy && dy > 0) {
+              const dyPercent = dy * 100;
+              console.log(`✅ DY encontrado via Yahoo Quote para ${ticker}: ${dyPercent.toFixed(2)}%`);
+              return `${dyPercent.toFixed(2).replace('.', ',')}%`;
+            }
+          }
+        }
+      }
+    } catch (quoteError) {
+      console.warn(`⚠️ Erro Yahoo Quote para ${ticker}:`, quoteError);
+    }
+    
+    console.log(`❌ Nenhum método funcionou para ${ticker}, usando fallback localStorage`);
+    
+    // 📊 MÉTODO 5: FALLBACK PARA LOCALSTORAGE (MÉTODO ORIGINAL)
+    return calcularDY12MesesLocalStorage(ticker, precoAtual);
+    
+  } catch (error) {
+    console.error(`❌ Erro geral ao buscar DY para ${ticker}:`, error);
+    return calcularDY12MesesLocalStorage(ticker, precoAtual);
+  }
+}
+
+// 🎯 FUNÇÃO ORIGINAL RENOMEADA PARA FALLBACK
+function calcularDY12MesesLocalStorage(ticker: string, precoAtual: number): string {
   try {
     if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
     
@@ -428,25 +715,58 @@ function useDividendosInternacionaisIntegradas() {
       console.log(`✅ Total processado: ${sucessosTotal} sucessos, ${falhasTotal} falhas`);
 
       // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS
-      const ativosComCotacoes = dividendosInternacionaisData.map((ativo, index) => {
-        const cotacao = cotacoesMap.get(ativo.ticker);
-        
-        console.log(`\n🔄 Processando ${ativo.ticker}:`);
-        console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
-        console.log(`🔍 Cotação encontrada:`, cotacao ? 'SIM' : 'NÃO');
-        
-        if (cotacao && cotacao.precoAtual > 0) {
-          const precoAtualNum = cotacao.precoAtual;
-          const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+      const ativosComCotacoes = await Promise.all(
+        dividendosInternacionaisData.map(async (ativo, index) => {
+          const cotacao = cotacoesMap.get(ativo.ticker);
           
-          console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
-          console.log(`📈 Performance: ${performance.toFixed(2)}%`);
-          console.log(`🏢 Nome: ${cotacao.nome}`);
+          console.log(`\n🔄 Processando ${ativo.ticker}:`);
+          console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
+          console.log(`🔍 Cotação encontrada:`, cotacao ? 'SIM' : 'NÃO');
           
-          // 🔥 VALIDAÇÃO MAIS RIGOROSA PARA EVITAR PREÇOS SUSPEITOS
-          const diferencaPercent = Math.abs(performance);
-          if (diferencaPercent > 200) {
-            console.warn(`🚨 ${ativo.ticker}: Performance suspeita ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+          if (cotacao && cotacao.precoAtual > 0) {
+            const precoAtualNum = cotacao.precoAtual;
+            const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+            
+            console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
+            console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+            console.log(`🏢 Nome: ${cotacao.nome}`);
+            
+            // 🔥 VALIDAÇÃO MAIS RIGOROSA PARA EVITAR PREÇOS SUSPEITOS
+            const diferencaPercent = Math.abs(performance);
+            if (diferencaPercent > 200) {
+              console.warn(`🚨 ${ativo.ticker}: Performance suspeita ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+              return {
+                ...ativo,
+                id: String(ativo.id || index + 1),
+                precoAtual: ativo.precoEntrada,
+                performance: 0,
+                variacao: 0,
+                variacaoPercent: 0,
+                volume: 0,
+                vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+                dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
+                statusApi: 'suspicious_price',
+                nomeCompleto: cotacao.nome || 'Nome Suspeito'
+              };
+            }
+            
+            return {
+              ...ativo,
+              id: String(ativo.id || index + 1),
+              precoAtual: precoAtualNum,
+              performance: performance,
+              variacao: cotacao.variacao,
+              variacaoPercent: cotacao.variacaoPercent,
+              volume: cotacao.volume,
+              vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
+              dy: await buscarDY12MesesAPI(ativo.ticker, precoAtualNum), // 🚀 USAR API
+              statusApi: 'success',
+              nomeCompleto: cotacao.nome
+            };
+          } else {
+            // ⚠️ SEM COTAÇÃO - AQUI É ONDE APARECE "SIM" e "N/A"
+            console.warn(`⚠️ ${ativo.ticker}: SEM COTAÇÃO VÁLIDA - usando preço de entrada`);
+            
             return {
               ...ativo,
               id: String(ativo.id || index + 1),
@@ -456,44 +776,13 @@ function useDividendosInternacionaisIntegradas() {
               variacaoPercent: 0,
               volume: 0,
               vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-              dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-              statusApi: 'suspicious_price',
-              nomeCompleto: cotacao.nome || 'Nome Suspeito'
+              dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
+              statusApi: 'not_found',
+              nomeCompleto: ativo.ticker // 🔥 USAR TICKER AO INVÉS DE 'N/A'
             };
           }
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: precoAtualNum,
-            performance: performance,
-            variacao: cotacao.variacao,
-            variacaoPercent: cotacao.variacaoPercent,
-            volume: cotacao.volume,
-            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
-            dy: calcularDY12Meses(ativo.ticker, precoAtualNum),
-            statusApi: 'success',
-            nomeCompleto: cotacao.nome
-          };
-        } else {
-          // ⚠️ SEM COTAÇÃO - AQUI É ONDE APARECE "SIM" e "N/A"
-          console.warn(`⚠️ ${ativo.ticker}: SEM COTAÇÃO VÁLIDA - usando preço de entrada`);
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: ativo.precoEntrada,
-            performance: 0,
-            variacao: 0,
-            variacaoPercent: 0,
-            volume: 0,
-            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-            dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-            statusApi: 'not_found',
-            nomeCompleto: ativo.ticker // 🔥 USAR TICKER AO INVÉS DE 'N/A'
-          };
-        }
-      });
+        })
+      );
 
       // 📊 ESTATÍSTICAS FINAIS
       const sucessos = ativosComCotacoes.filter(a => a.statusApi === 'success').length;
@@ -523,19 +812,21 @@ function useDividendosInternacionaisIntegradas() {
       
       // 🔄 FALLBACK: USAR DADOS DO DATASTORE SEM COTAÇÕES
       console.log('🔄 Usando fallback com dados do DataStore...');
-      const ativosFallback = dividendosInternacionaisData.map((ativo, index) => ({
-        ...ativo,
-        id: String(ativo.id || index + 1),
-        precoAtual: ativo.precoEntrada,
-        performance: 0,
-        variacao: 0,
-        variacaoPercent: 0,
-        volume: 0,
-        vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-        dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-        statusApi: 'error',
-        nomeCompleto: ativo.ticker // 🔥 USAR TICKER AO INVÉS DE 'Erro'
-      }));
+      const ativosFallback = await Promise.all(
+        dividendosInternacionaisData.map(async (ativo, index) => ({
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: ativo.precoEntrada,
+          performance: 0,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+          dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API MESMO NO FALLBACK
+          statusApi: 'error',
+          nomeCompleto: ativo.ticker // 🔥 USAR TICKER AO INVÉS DE 'Erro'
+        }))
+      );
       setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
@@ -571,6 +862,7 @@ export default function DividendosInternacionaisPage() {
   const { dados } = useDataStore();
   const { ativosAtualizados, loading } = useDividendosInternacionaisIntegradas();
   const { indicesData } = useIndicesInternacionaisRealTime();
+  const isMobile = useDeviceDetection(); // ✅ ADICIONADO DETECÇÃO DE MOBILE
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
@@ -652,12 +944,12 @@ export default function DividendosInternacionaisPage() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '16px' : '24px' // ✅ PADDING RESPONSIVO
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      {/* Header Responsivo */}
+      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', // ✅ TAMANHO RESPONSIVO
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
@@ -666,7 +958,7 @@ export default function DividendosInternacionaisPage() {
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '18px',
+          fontSize: isMobile ? '16px' : '18px', // ✅ TAMANHO RESPONSIVO
           margin: '0',
           lineHeight: '1.5'
         }}>
@@ -674,23 +966,25 @@ export default function DividendosInternacionaisPage() {
         </p>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Cards de Métricas Responsivos */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '12px',
+        gridTemplateColumns: isMobile 
+          ? 'repeat(auto-fit, minmax(140px, 1fr))'  // ✅ GRID RESPONSIVO
+          : 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: isMobile ? '8px' : '12px', // ✅ GAP RESPONSIVO
         marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px', // ✅ PADDING RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px', // ✅ FONTE RESPONSIVA
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -698,12 +992,12 @@ export default function DividendosInternacionaisPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px', // ✅ FONTE RESPONSIVA
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {formatPercentage(metricas.rentabilidadeTotal)}
+            {loading ? '...' : formatPercentage(metricas.rentabilidadeTotal)}
           </div>
         </div>
 
@@ -711,12 +1005,12 @@ export default function DividendosInternacionaisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -724,12 +1018,12 @@ export default function DividendosInternacionaisPage() {
             DY médio 12M
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {metricas.dyMedio.toFixed(1)}%
+            {loading ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
           </div>
         </div>
 
@@ -737,12 +1031,12 @@ export default function DividendosInternacionaisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -750,7 +1044,7 @@ export default function DividendosInternacionaisPage() {
             S&P 500
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -759,7 +1053,7 @@ export default function DividendosInternacionaisPage() {
             {indicesData?.sp500?.valorFormatado || '5,970.80'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
             color: indicesData?.sp500?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -772,12 +1066,12 @@ export default function DividendosInternacionaisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -785,7 +1079,7 @@ export default function DividendosInternacionaisPage() {
             NASDAQ 100
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -794,7 +1088,7 @@ export default function DividendosInternacionaisPage() {
             {indicesData?.nasdaq?.valorFormatado || '19,400.00'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
             color: indicesData?.nasdaq?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -802,35 +1096,9 @@ export default function DividendosInternacionaisPage() {
             {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+0.81%'}
           </div>
         </div>
-
-        {/* Quantidade de Ativos */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          padding: '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#64748b', 
-            fontWeight: '500',
-            marginBottom: '8px'
-          }}>
-            Total de ativos
-          </div>
-          <div style={{ 
-            fontSize: '24px', 
-            fontWeight: '700', 
-            color: '#1e293b',
-            lineHeight: '1'
-          }}>
-            {metricas.quantidadeAtivos}
-          </div>
-        </div>
       </div>
 
-      {/* Tabela de Ativos */}
+      {/* Tabela de Ativos Responsiva */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -840,120 +1108,142 @@ export default function DividendosInternacionaisPage() {
         marginBottom: '32px'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            margin: '0 0 8px 0'
+            margin: '0 0 8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-           Dividendos Internacionais • Performance Individual
+            Dividendos Internacionais • Performance Individual
+            {loading && (
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            )}
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {ativosAtualizados.length} ativos
+            {loading ? 'Carregando...' : `${ativosAtualizados.length} ativos`}
           </p>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f1f5f9' }}>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ATIVO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  SETOR
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ENTRADA
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO INICIAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO ATUAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO TETO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PERFORMANCE
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  DY 12M
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  VIÉS
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {ativosAtualizados.map((ativo, index) => {
-                const temCotacaoReal = ativo.statusApi === 'success';
-                
-                return (
-                  <tr 
-                    key={ativo.id || index} 
-                    style={{ 
-                      borderBottom: '1px solid #f1f5f9',
-                      transition: 'background-color 0.2s',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                      // Navegar para página de detalhes do ativo
-                      window.location.href = `/dashboard/ativo/${ativo.ticker}`;
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Skeleton Loading */}
+        {loading && ativosAtualizados.length === 0 ? (
+          <div style={{ padding: isMobile ? '16px' : '24px' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{
+                height: isMobile ? '80px' : '60px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                animation: 'pulse 1.5s ease-in-out infinite'
+              }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            {isMobile ? (
+              // 📱 MOBILE: Cards verticais
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {ativosAtualizados.map((ativo, index) => {
+                  const temCotacaoReal = ativo.statusApi === 'success';
+                  
+                  return (
+                    <div 
+                      key={ativo.id || index}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        border: '1px solid #e2e8f0',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onClick={() => {
+                        window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                      }}
+                      onTouchStart={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                      }}
+                      onTouchEnd={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                      }}
+                    >
+                      {/* Header do Card */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        {/* Posição */}
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '700',
+                          fontSize: '12px',
+                          color: '#64748b'
+                        }}>
+                          {index + 1}
+                        </div>
+
+                        {/* Logo do Ativo */}
                         <div style={{
                           width: '40px',
                           height: '40px',
                           borderRadius: '8px',
                           overflow: 'hidden',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#ffffff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          border: '1px solid #e2e8f0'
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                          padding: '4px'
                         }}>
                           <img 
                             src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
                             alt={`Logo ${ativo.ticker}`}
                             style={{
-                              width: '32px',
-                              height: '32px',
-                              objectFit: 'contain'
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              borderRadius: '2px'
                             }}
                             onError={(e) => {
-                              // Fallback para ícone com iniciais se a imagem não carregar
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                               const parent = target.parentElement;
                               if (parent) {
                                 parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#dc2626';
                                 parent.style.fontWeight = '700';
-                                parent.style.fontSize = '14px';
-                                parent.textContent = ativo.ticker.slice(0, 2);
+                                parent.style.fontSize = '12px';
+                                parent.style.letterSpacing = '0.5px';
+                                parent.textContent = ativo.ticker.slice(0, 2).toUpperCase();
                               }
                             }}
                           />
                         </div>
-                        <div>
+
+                        {/* Nome e Setor */}
+                        <div style={{ flex: '1' }}>
                           <div style={{ 
                             fontWeight: '700', 
                             color: '#1e293b', 
@@ -963,75 +1253,259 @@ export default function DividendosInternacionaisPage() {
                             {!temCotacaoReal && (
                               <span style={{ 
                                 marginLeft: '8px', 
-                                fontSize: '12px', 
+                                fontSize: '10px', 
                                 color: '#f59e0b',
                                 backgroundColor: '#fef3c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
+                                padding: '2px 4px',
+                                borderRadius: '3px'
                               }}>
                                 SIM
                               </span>
                             )}
                           </div>
-                          <div style={{ color: '#64748b', fontSize: '14px' }}>
-                            {ativo.nomeCompleto || 'N/A'}
+                          <div style={{ color: '#64748b', fontSize: '12px' }}>
+                            {ativo.setor}
                           </div>
                         </div>
+
+                        {/* Viés */}
+                        <div style={{
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                        }}>
+                          {ativo.vies}
+                        </div>
                       </div>
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                      {ativo.setor}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                      {ativo.dataEntrada}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
-                      {formatCurrency(ativo.precoEntrada)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
-                      {formatCurrency(ativo.precoAtual)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
-                      {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
-                    </td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '800',
-                      fontSize: '16px',
-                      color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
-                    }}>
-                      {formatPercentage(ativo.performance)}
-                    </td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center',
-                      fontWeight: '700',
-                      color: '#1e293b'
-                    }}>
-                      {ativo.dy}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
-                        color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                      
+                      {/* Dados em Grid */}
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '8px', 
+                        fontSize: '14px',
+                        marginBottom: '12px'
                       }}>
-                        {ativo.vies}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                          <span style={{ fontWeight: '600', color: '#1e293b' }}>{ativo.dataEntrada}</span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {ativo.dy}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {formatCurrency(ativo.precoAtual)}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Teto:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Performance em destaque */}
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '8px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                          Performance
+                        </div>
+                        <div style={{ 
+                          fontSize: '18px', 
+                          fontWeight: '800',
+                          color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
+                        }}>
+                          {formatPercentage(ativo.performance)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // 🖥️ DESKTOP: Tabela completa
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ATIVO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ENTRADA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO INICIAL
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO ATUAL
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO TETO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PERFORMANCE
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        DY 12M
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        VIÉS
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ativosAtualizados.map((ativo, index) => {
+                      const temCotacaoReal = ativo.statusApi === 'success';
+                      
+                      return (
+                        <tr 
+                          key={ativo.id || index} 
+                          style={{ 
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background-color 0.2s',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => {
+                            // Navegar para página de detalhes do ativo
+                            window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f8fafc';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                backgroundColor: '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #e2e8f0'
+                              }}>
+                                <img 
+                                  src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
+                                  alt={`Logo ${ativo.ticker}`}
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    objectFit: 'contain'
+                                  }}
+                                  onError={(e) => {
+                                    // Fallback para ícone com iniciais se a imagem não carregar
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                      parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                      parent.style.fontWeight = '700';
+                                      parent.style.fontSize = '14px';
+                                      parent.textContent = ativo.ticker.slice(0, 2);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <div style={{ 
+                                  fontWeight: '700', 
+                                  color: '#1e293b', 
+                                  fontSize: '16px'
+                                }}>
+                                  {ativo.ticker}
+                                  {!temCotacaoReal && (
+                                    <span style={{ 
+                                      marginLeft: '8px', 
+                                      fontSize: '12px', 
+                                      color: '#f59e0b',
+                                      backgroundColor: '#fef3c7',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      SIM
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                  {ativo.setor}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {ativo.dataEntrada}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
+                            {formatCurrency(ativo.precoEntrada)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
+                            {formatCurrency(ativo.precoAtual)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
+                            {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            fontWeight: '800',
+                            fontSize: '16px',
+                            color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
+                          }}>
+                            {formatPercentage(ativo.performance)}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center',
+                            fontWeight: '700',
+                            color: '#1e293b'
+                          }}>
+                            {ativo.dy}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                              color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                            }}>
+                              {ativo.vies}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Gráfico de Composição por Setor */}
+      {/* Gráfico de Composição por Setor Responsivo */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1040,12 +1514,12 @@ export default function DividendosInternacionaisPage() {
         overflow: 'hidden'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1054,16 +1528,26 @@ export default function DividendosInternacionaisPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
             Distribuição setorial da carteira • {ativosAtualizados.length} ativos
           </p>
         </div>
 
-        <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
-          {/* Gráfico SVG */}
-          <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
+        <div style={{ 
+          padding: isMobile ? '16px' : '32px', 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row', // ✅ DIREÇÃO RESPONSIVA
+          gap: isMobile ? '16px' : '32px', 
+          alignItems: 'center' 
+        }}>
+          {/* Gráfico SVG Responsivo */}
+          <div style={{ 
+            flex: isMobile ? '1' : '0 0 400px', 
+            height: isMobile ? '300px' : '400px', // ✅ ALTURA RESPONSIVA
+            position: 'relative' 
+          }}>
             {(() => {
               // Agrupar por setor
               const setoresMap = new Map();
@@ -1085,10 +1569,11 @@ export default function DividendosInternacionaisPage() {
                 '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
               ];
               
-              const radius = 150;
-              const innerRadius = 75;
-              const centerX = 200;
-              const centerY = 200;
+              const chartSize = isMobile ? 300 : 400; // ✅ TAMANHO RESPONSIVO
+              const radius = isMobile ? 120 : 150; // ✅ RAIO RESPONSIVO
+              const innerRadius = isMobile ? 60 : 75; // ✅ RAIO INTERNO RESPONSIVO
+              const centerX = chartSize / 2;
+              const centerY = chartSize / 2;
               const totalAngle = 2 * Math.PI;
               let currentAngle = -Math.PI / 2; // Começar no topo
               
@@ -1109,7 +1594,12 @@ export default function DividendosInternacionaisPage() {
               };
               
               return (
-                <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
+                <svg 
+                  width={chartSize} 
+                  height={chartSize} 
+                  viewBox={`0 0 ${chartSize} ${chartSize}`} 
+                  style={{ width: '100%', height: '100%' }}
+                >
                   <defs>
                     <style>
                       {`
@@ -1167,7 +1657,7 @@ export default function DividendosInternacionaisPage() {
                             x={textX}
                             y={textY - 6}
                             textAnchor="middle"
-                            fontSize="10"
+                            fontSize={isMobile ? "10" : "11"} // ✅ FONTE RESPONSIVA
                             fontWeight="700"
                             fill="#ffffff"
                             style={{ 
@@ -1182,7 +1672,7 @@ export default function DividendosInternacionaisPage() {
                             x={textX}
                             y={textY + 8}
                             textAnchor="middle"
-                            fontSize="10"
+                            fontSize={isMobile ? "9" : "10"} // ✅ FONTE RESPONSIVA
                             fontWeight="600"
                             fill="#ffffff"
                             style={{ 
@@ -1211,7 +1701,7 @@ export default function DividendosInternacionaisPage() {
                     x={centerX}
                     y={centerY - 10}
                     textAnchor="middle"
-                    fontSize="16"
+                    fontSize={isMobile ? "14" : "16"} // ✅ FONTE RESPONSIVA
                     fontWeight="700"
                     fill="#1e293b"
                   >
@@ -1221,7 +1711,7 @@ export default function DividendosInternacionaisPage() {
                     x={centerX}
                     y={centerY + 10}
                     textAnchor="middle"
-                    fontSize="12"
+                    fontSize={isMobile ? "10" : "12"} // ✅ FONTE RESPONSIVA
                     fill="#64748b"
                   >
                     SETORES
@@ -1231,8 +1721,15 @@ export default function DividendosInternacionaisPage() {
             })()}
           </div>
           
-          {/* Legenda */}
-          <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+          {/* Legenda Responsiva */}
+          <div style={{ 
+            flex: '1', 
+            display: 'grid', 
+            gridTemplateColumns: isMobile 
+              ? 'repeat(auto-fit, minmax(100px, 1fr))' // ✅ GRID RESPONSIVO
+              : 'repeat(auto-fit, minmax(140px, 1fr))', 
+            gap: isMobile ? '8px' : '12px' // ✅ GAP RESPONSIVO
+          }}>
             {(() => {
               // Agrupar por setor para a legenda
               const setoresMap = new Map();
@@ -1270,7 +1767,7 @@ export default function DividendosInternacionaisPage() {
                       <div style={{ 
                         fontWeight: '700', 
                         color: '#1e293b', 
-                        fontSize: '14px',
+                        fontSize: isMobile ? '12px' : '14px', // ✅ FONTE RESPONSIVA
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1279,7 +1776,7 @@ export default function DividendosInternacionaisPage() {
                       </div>
                       <div style={{ 
                         color: '#64748b', 
-                        fontSize: '12px',
+                        fontSize: isMobile ? '10px' : '12px', // ✅ FONTE RESPONSIVA
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1294,6 +1791,18 @@ export default function DividendosInternacionaisPage() {
           </div>
         </div>
       </div>
+
+      {/* Animações CSS */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }
