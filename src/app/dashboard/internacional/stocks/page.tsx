@@ -1343,15 +1343,24 @@ export default function ExteriorStocksPage() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          <td style={{ 
-                            padding: '16px', 
-                            textAlign: 'center', 
-                            fontWeight: '800', 
-                            fontSize: '16px',
-                            color: '#000000'
-                          }}>
-                            {ativo.rank || (index + 1)}
-                          </td>
+<td style={{ padding: '16px', textAlign: 'center' }}>
+  <div style={{
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '14px',
+    color: '#64748b',
+    margin: '0 auto'
+  }}>
+    {index + 1}
+  </div>
+</td>
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
 <div style={{
