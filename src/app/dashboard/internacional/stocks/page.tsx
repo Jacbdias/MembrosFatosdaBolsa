@@ -5,10 +5,12 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 
-// 🔥 DETECÇÃO DE DISPOSITIVO (ADICIONADO DO ARQUIVO 2)
+// 🔥 DETECÇÃO DE DISPOSITIVO PARA UI (PADRONIZADO)
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
+      // 📱 SÓ CONSIDERA MOBILE PARA UI: largura <= 768px (telefones)
+      // iPad será tratado como desktop para mostrar tabela
       return window.innerWidth <= 768;
     }
     return false;
@@ -16,14 +18,79 @@ const useDeviceDetection = () => {
 
   React.useEffect(() => {
     const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // 📱 INTERFACE MOBILE apenas para telefones (largura <= 768px)
+      // iPad, tablets e desktop mostram tabela
+      const shouldBeMobile = window.innerWidth <= 768;
+      
+      console.log('📱 Device Detection (UI):', {
+        width: window.innerWidth,
+        isMobile: shouldBeMobile,
+        userAgent: navigator.userAgent.substring(0, 50) + '...'
+      });
+      
+      setIsMobile(shouldBeMobile);
     };
 
+    // 🔄 VERIFICAR NO RESIZE E ORIENTAÇÃO
     window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
+    window.addEventListener('orientationchange', checkDevice);
+    
+    // ✅ VERIFICAÇÃO INICIAL APÓS MOUNT
+    checkDevice();
+    
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      window.removeEventListener('orientationchange', checkDevice);
+    };
   }, []);
 
   return isMobile;
+};
+
+// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE
+const useApiDetection = () => {
+  const [isApiMobile, setIsApiMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
+      // - É telefone (<=768px) OU
+      // - É iPad/iPadOS (precisa da estratégia sequencial)
+      return isMobileWidth || isIpad || isIpadOS;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkApiDevice = () => {
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
+      
+      console.log('🌐 API Detection:', {
+        width: window.innerWidth,
+        isIpad,
+        isIpadOS,
+        isApiMobile: shouldBeApiMobile
+      });
+      
+      setIsApiMobile(shouldBeApiMobile);
+    };
+
+    window.addEventListener('resize', checkApiDevice);
+    checkApiDevice();
+    
+    return () => window.removeEventListener('resize', checkApiDevice);
+  }, []);
+
+  return isApiMobile;
 };
 
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DE ÍNDICES INTERNACIONAIS
@@ -472,12 +539,12 @@ function calcularDY12MesesLocalStorage(ticker: string, precoAtual: number): stri
   }
 }
 
-// 🚀 FUNÇÃO PARA BUSCAR COTAÇÕES EM PARALELO (ADAPTADA DO ARQUIVO 2)
-async function buscarCotacoesExteriorParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+// 🚀 FUNÇÃO PARA BUSCAR COTAÇÕES EM PARALELO (ADAPTADA PARA USAR isApiMobile)
+async function buscarCotacoesExteriorParalelas(tickers: string[], isApiMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  if (!isMobile) {
+  if (!isApiMobile) {
     // 🖥️ DESKTOP: busca em lote (mais eficiente)
     try {
       const controller = new AbortController();
@@ -516,8 +583,8 @@ async function buscarCotacoesExteriorParalelas(tickers: string[], isMobile: bool
     return cotacoesMap;
   }
 
-  // 📱 MOBILE: busca individual com estratégias múltiplas (IGUAL AO ARQUIVO 2)
-  console.log('📱 MOBILE: Iniciando busca individual para', tickers.length, 'tickers');
+  // 📱 MOBILE/IPAD: busca individual com estratégias múltiplas (IGUAL AO ARQUIVO 2)
+  console.log('📱 MOBILE/IPAD: Iniciando busca individual para', tickers.length, 'tickers');
   
   const buscarCotacaoAtivo = async (ticker: string) => {
     const estrategias = [
@@ -627,7 +694,8 @@ function useExteriorStocksIntegradas() {
   
   // 🔥 USAR O DATASTORE EM VEZ DE LOCALSTORAGE DIRETO
   const { dados } = useDataStore();
-  const isMobile = useDeviceDetection(); // ✅ USAR DETECÇÃO DE MOBILE
+  const isMobile = useDeviceDetection(); // ✅ PARA UI (tabela vs cards)
+  const isApiMobile = useApiDetection(); // 🔥 ADICIONADO: PARA APIs
 
   const buscarCotacoesIntegradas = React.useCallback(async () => {
     try {
@@ -635,7 +703,7 @@ function useExteriorStocksIntegradas() {
       setError(null);
 
       console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA EXTERIOR STOCKS - ESTRATÉGIA MOBILE/DESKTOP');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isMobile, isApiMobile }); // 🔥 MUDANÇA: mostrar ambos
       
       // 🔄 USAR DADOS DO DATASTORE
       const exteriorStocksData = dados.exteriorStocks || [];
@@ -653,8 +721,8 @@ function useExteriorStocksIntegradas() {
       const tickers = exteriorStocksData.map((ativo: any) => ativo.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 USAR FUNÇÃO ADAPTADA COM ESTRATÉGIAS MOBILE/DESKTOP
-      const cotacoesMap = await buscarCotacoesExteriorParalelas(tickers, isMobile);
+      // 🔄 USAR FUNÇÃO ADAPTADA COM ESTRATÉGIAS MOBILE/DESKTOP (isApiMobile)
+      const cotacoesMap = await buscarCotacoesExteriorParalelas(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
 
       console.log(`✅ Total processado: ${cotacoesMap.size} sucessos de ${tickers.length} tentativas`);
 
@@ -780,7 +848,7 @@ rank: String(index + 1)
     } finally {
       setLoading(false);
     }
-  }, [dados.exteriorStocks, isMobile]); // 🔥 DEPENDÊNCIA DOS DADOS DO DATASTORE E MOBILE
+  }, [dados.exteriorStocks, isApiMobile]); // 🔥 MUDANÇA: adicionado isApiMobile
 
   // 🔄 EXECUTAR QUANDO OS DADOS DO DATASTORE MUDAREM
   React.useEffect(() => {
@@ -808,7 +876,7 @@ export default function ExteriorStocksPage() {
   const { dados } = useDataStore();
   const { ativosAtualizados, loading, refetch } = useExteriorStocksIntegradas();
   const { indicesData } = useIndicesInternacionaisRealTime();
-  const isMobile = useDeviceDetection(); // ✅ ADICIONADO DETECÇÃO DE MOBILE
+  const isMobile = useDeviceDetection(); // ✅ PARA UI (tabela vs cards)
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
