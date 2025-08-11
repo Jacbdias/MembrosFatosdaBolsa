@@ -688,46 +688,14 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
 }
 
-// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES EM PARALELO
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES - SEMPRE ESTRATÉGIA MOBILE
 async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  if (!isMobile) {
-    // Desktop: busca em lote (mais eficiente)
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'FIIs-Desktop-Optimized'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        data.results?.forEach((quote: any) => {
-          if (quote.regularMarketPrice > 0) {
-            cotacoesMap.set(quote.symbol, {
-              precoAtual: quote.regularMarketPrice,
-              variacao: quote.regularMarketChange || 0,
-              variacaoPercent: quote.regularMarketChangePercent || 0,
-              volume: quote.regularMarketVolume || 0,
-              nome: quote.shortName || quote.longName || quote.symbol,
-              dadosCompletos: quote
-            });
-          }
-        });
-      }
-    } catch (error) {
-      console.log('Erro na busca em lote desktop:', error);
-    }
-    
-    return cotacoesMap;
-  }
+  console.log('🚀 [COTAÇÕES] Forçando estratégia mobile para todos os dispositivos');
+  
+  // ✅ SEMPRE USAR ESTRATÉGIA MOBILE (que funciona perfeitamente)
 
   // Mobile: busca em paralelo (máximo 2 tentativas por ativo)
   const buscarCotacaoAtivo = async (ticker: string) => {
