@@ -22,7 +22,7 @@ const setCachedData = (key: string, data: any) => {
   globalCache.set(key, { data, timestamp: Date.now() });
 };
 
-// 🔥 DETECÇÃO DE DISPOSITIVO - IPAD COMO DESKTOP PARA UI
+// 🔥 DETECÇÃO DE DISPOSITIVO - DUAS ESTRATÉGIAS SEPARADAS
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -64,12 +64,58 @@ const useDeviceDetection = () => {
   return isMobile;
 };
 
+// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE
+const useApiDetection = () => {
+  const [isApiMobile, setIsApiMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
+      // - É telefone (<=768px) OU
+      // - É iPad/iPadOS (precisa da estratégia sequencial)
+      return isMobileWidth || isIpad || isIpadOS;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkApiDevice = () => {
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
+      
+      console.log('🌐 API Detection:', {
+        width: window.innerWidth,
+        isIpad,
+        isIpadOS,
+        isApiMobile: shouldBeApiMobile
+      });
+      
+      setIsApiMobile(shouldBeApiMobile);
+    };
+
+    window.addEventListener('resize', checkApiDevice);
+    checkApiDevice();
+    
+    return () => window.removeEventListener('resize', checkApiDevice);
+  }, []);
+
+  return isApiMobile;
+};
+
 // 🚀 HOOK SMLL SINCRONIZADO - ESTRATÉGIA UNIFICADA
 function useSmllRealTime() {
   const [smllData, setSmllData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🌐 USA DETECÇÃO ESPECÍFICA PARA APIs
 
   const buscarSmllReal = React.useCallback(async () => {
     try {
@@ -87,7 +133,7 @@ function useSmllRealTime() {
       }
 
       console.log('🔍 BUSCANDO SMLL - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isApiMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
@@ -142,7 +188,7 @@ function useSmllRealTime() {
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosSmllObtidos && isMobile) {
+      if (!dadosSmllObtidos && isApiMobile) {
         console.log('📱 SMLL: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -278,7 +324,7 @@ function useSmllRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [isMobile]);
+  }, [isApiMobile]);
 
   React.useEffect(() => {
     buscarSmllReal();
@@ -289,12 +335,12 @@ function useSmllRealTime() {
   return { smllData, loading, error, refetch: buscarSmllReal };
 }
 
-// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA
+// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA (CORRIGIDO)
 function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
 
   const buscarIbovespaReal = React.useCallback(async () => {
     try {
@@ -312,7 +358,7 @@ function useIbovespaRealTime() {
       }
 
       console.log('🔍 BUSCANDO IBOVESPA - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isApiMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
@@ -364,7 +410,7 @@ function useIbovespaRealTime() {
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosIbovObtidos && isMobile) {
+      if (!dadosIbovObtidos && isApiMobile) { // 🔥 MUDANÇA: era isMobile
         console.log('📱 IBOV: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -483,7 +529,7 @@ function useIbovespaRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [isMobile]);
+  }, [isApiMobile]); // 🔥 MUDANÇA: era isMobile
 
   React.useEffect(() => {
     buscarIbovespaReal();
@@ -494,11 +540,11 @@ function useIbovespaRealTime() {
   return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
 }
 
-// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO
+// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO (CORRIGIDO)
 function useIbovespaPeriodo(ativosAtualizados: any[]) {
   const [ibovespaPeriodo, setIbovespaPeriodo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
 
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
@@ -543,7 +589,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
             signal: controller.signal,
             headers: {
               'Accept': 'application/json',
-              'User-Agent': isMobile 
+              'User-Agent': isApiMobile  // 🔥 MUDANÇA: era isMobile
                 ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 : 'SmallCaps-Ibov-Current'
             }
@@ -703,7 +749,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
     };
 
     calcularIbovespaPeriodo();
-  }, [ativosAtualizados, isMobile]);
+  }, [ativosAtualizados, isApiMobile]); // 🔥 MUDANÇA: era isMobile
 
   return { ibovespaPeriodo, loading };
 }
@@ -719,7 +765,7 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
 }
 
 // 🚀 FUNÇÃO CORRIGIDA - ESTRATÉGIA MOBILE UNIVERSAL (igual ao código FIIs)
-async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+async function buscarCotacoesParalelas(tickers: string[], isApiMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
@@ -845,11 +891,11 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
 }
 
 // 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (RESTAURADA)
-async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+async function buscarDYsComEstrategia(tickers: string[], isApiMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  if (isMobile) {
+  if (isApiMobile) {
     // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
     console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
     
@@ -1013,7 +1059,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
   return dyMap;
 }
 
-// 🚀 HOOK PRINCIPAL OTIMIZADO COM LOADING STATES GRANULARES
+// 🚀 HOOK PRINCIPAL OTIMIZADO COM LOADING STATES GRANULARES (CORRIGIDO)
 function useSmallCapsIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
@@ -1031,7 +1077,8 @@ function useSmallCapsIntegradas() {
   const [loadingProventos, setLoadingProventos] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const isMobile = useDeviceDetection();
+  const isMobile = useDeviceDetection(); // ✅ MANTER: para UI
+  const isApiMobile = useApiDetection(); // 🔥 ADICIONAR: para APIs
   const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
   const smallCapsData = dados.smallCaps || [];
 
@@ -1099,7 +1146,7 @@ function useSmallCapsIntegradas() {
     return novosProventos;
   }, []);
 
-  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - ABORDAGEM STEP-BY-STEP ROBUSTA
+  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - ABORDAGEM STEP-BY-STEP ROBUSTA (CORRIGIDA)
   const buscarDadosCompletos = React.useCallback(async () => {
     if (smallCapsData.length === 0) {
       setAtivosAtualizados([]);
@@ -1112,7 +1159,7 @@ function useSmallCapsIntegradas() {
       setTodosOsDadosProntos(false);
       const tickers = smallCapsData.map(ativo => ativo.ticker);
       
-      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA - ESTRATÉGIA MOBILE UNIVERSAL...');
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA...');
       
       // 🔄 RESET DOS ESTADOS
       setCotacoesCompletas(new Map());
@@ -1123,7 +1170,7 @@ function useSmallCapsIntegradas() {
       console.log('📊 ETAPA 1: Buscando cotações...');
       setLoadingCotacoes(true);
       
-      const cotacoesMap = await buscarCotacoesParalelas(tickers, isMobile);
+      const cotacoesMap = await buscarCotacoesParalelas(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
       console.log('📊 Cotações obtidas:', cotacoesMap.size, 'de', tickers.length);
       
       setCotacoesCompletas(cotacoesMap);
@@ -1133,7 +1180,7 @@ function useSmallCapsIntegradas() {
       console.log('📈 ETAPA 2: Buscando DY...');
       setLoadingDY(true);
       
-      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
+      const dyMap = await buscarDYsComEstrategia(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
       console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
       
       setDyCompletos(dyMap);
@@ -1162,7 +1209,7 @@ function useSmallCapsIntegradas() {
       setLoadingDY(false);
       setLoadingProventos(false);
     }
-  }, [smallCapsData, isMobile, buscarProventosAtivos]);
+  }, [smallCapsData, isApiMobile, buscarProventosAtivos]); // 🔥 MUDANÇA: era isMobile
 
   // 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
   React.useEffect(() => {
@@ -1270,7 +1317,7 @@ function useSmallCapsIntegradas() {
     loadingProventos,
     error,
     refetch,
-    isMobile,
+    isMobile, // ✅ Para UI (tabela vs cards)
     todosOsDadosProntos // ✅ Novo estado para debug
   };
 }
