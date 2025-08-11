@@ -814,14 +814,14 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
   return cotacoesMap;
 }
 
-// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (RESTAURADA)
+// 🔄 FUNÇÃO PARA BUSCAR DY COM CÁLCULO MANUAL - ESTRATÉGIA MOBILE/DESKTOP
 async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
   if (isMobile) {
     // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
-    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
+    console.log('📱 [DY-MOBILE] Calculando DY manualmente no mobile');
     
     for (const ticker of tickers) {
       let dyObtido = false;
@@ -843,16 +843,24 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
 
           if (response.ok) {
             const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            const ativo = data.results?.[0];
             
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
-              dyObtido = true; // Considera obtido mesmo se zero
+            if (ativo) {
+              // 🧮 CÁLCULO MANUAL DO DY
+              const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+              const currentPrice = ativo.regularMarketPrice;
+              
+              if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+                // DY Anualizado = (Último dividendo * 12) / Preço atual * 100
+                const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+                dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+                console.log(`📱✅ [DY] ${ticker}: ${dyCalculado.toFixed(2)}% (calculado: R$ ${lastDividend} * 12 / R$ ${currentPrice.toFixed(2)})`);
+                dyObtido = true;
+              } else {
+                dyMap.set(ticker, '0,00%');
+                console.log(`📱❌ [DY] ${ticker}: Dados insuficientes (dividend: ${lastDividend}, price: ${currentPrice})`);
+                dyObtido = true;
+              }
             }
           }
         } catch (error) {
@@ -874,16 +882,22 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
 
           if (response.ok) {
             const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            const ativo = data.results?.[0];
             
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
-              dyObtido = true;
+            if (ativo) {
+              // 🧮 CÁLCULO MANUAL DO DY
+              const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+              const currentPrice = ativo.regularMarketPrice;
+              
+              if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+                const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+                dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+                console.log(`📱✅ [DY] ${ticker}: ${dyCalculado.toFixed(2)}% (calculado sem UA)`);
+                dyObtido = true;
+              } else {
+                dyMap.set(ticker, '0,00%');
+                dyObtido = true;
+              }
             }
           }
         } catch (error) {
@@ -903,16 +917,22 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
 
           if (response.ok) {
             const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            const ativo = data.results?.[0];
             
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
-              dyObtido = true;
+            if (ativo) {
+              // 🧮 CÁLCULO MANUAL DO DY
+              const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+              const currentPrice = ativo.regularMarketPrice;
+              
+              if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+                const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+                dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+                console.log(`📱✅ [DY] ${ticker}: ${dyCalculado.toFixed(2)}% (calculado URL simples)`);
+                dyObtido = true;
+              } else {
+                dyMap.set(ticker, '0,00%');
+                dyObtido = true;
+              }
             }
           }
         } catch (error) {
@@ -931,8 +951,8 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
     }
     
   } else {
-    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
-    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
+    // 🖥️ DESKTOP: Requisição em lote com cálculo manual
+    console.log('🖥️ [DY-DESKTOP] Calculando DY manualmente em lote no desktop');
     
     try {
       const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
@@ -944,7 +964,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'FIIs-DY-Batch'
+          'User-Agent': 'FIIs-DY-Batch-Manual'
         },
         signal: controller.signal
       });
@@ -955,16 +975,20 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
         const data = await response.json();
         console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
         
-        data.results?.forEach((result: any) => {
-          const ticker = result.symbol;
-          const dy = result.defaultKeyStatistics?.dividendYield;
+        data.results?.forEach((ativo: any) => {
+          const ticker = ativo.symbol;
           
-          if (dy && dy > 0) {
-            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          // 🧮 CÁLCULO MANUAL DO DY
+          const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+          const currentPrice = ativo.regularMarketPrice;
+          
+          if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+            const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+            dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dyCalculado.toFixed(2)}% (R$ ${lastDividend} * 12 / R$ ${currentPrice.toFixed(2)})`);
           } else {
             dyMap.set(ticker, '0,00%');
-            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+            console.log(`❌ [DY-DESKTOP] ${ticker}: Dados insuficientes para cálculo (dividend: ${lastDividend}, price: ${currentPrice})`);
           }
         });
         
@@ -979,7 +1003,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
     }
   }
   
-  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  console.log(`📋 [DY-MANUAL] Resultado final: ${dyMap.size} tickers processados com cálculo manual`);
   return dyMap;
 }
 
