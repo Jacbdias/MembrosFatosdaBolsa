@@ -697,71 +697,120 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
   
   // ✅ SEMPRE USAR ESTRATÉGIA MOBILE (que funciona perfeitamente)
 
-  // Mobile: busca em paralelo (máximo 2 tentativas por ativo)
-  const buscarCotacaoAtivo = async (ticker: string) => {
-    const tentativas = [
-      // Tentativa 1: User-Agent Desktop
-      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }),
-      // Tentativa 2: Sem User-Agent
-      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      })
-    ];
-
-    for (const tentativa of tentativas) {
+  // 📱 ESTRATÉGIA MOBILE PARA TODOS OS DISPOSITIVOS (SEQUENCIAL - mais confiável)
+  console.log('📱 [UNIVERSAL] Usando estratégia mobile para', tickers.length, 'tickers');
+  
+  for (const ticker of tickers) {
+    let cotacaoObtida = false;
+    
+    // ESTRATÉGIA 1: User-Agent Desktop
+    if (!cotacaoObtida) {
       try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 3000); // Timeout reduzido
+        console.log(`📱🔄 [${ticker}] Tentativa 1 - User-Agent Desktop`);
         
-        const response = await Promise.race([
-          tentativa,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-        ]) as Response;
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          }
+        });
 
         if (response.ok) {
           const data = await response.json();
           if (data.results?.[0]?.regularMarketPrice > 0) {
             const quote = data.results[0];
-            return {
-              ticker,
-              cotacao: {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || ticker,
-                dadosCompletos: quote
-              }
-            };
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+            cotacaoObtida = true;
           }
         }
       } catch (error) {
-        // Continua para próxima tentativa
+        console.log(`📱❌ [${ticker}] (Desktop UA): ${error.message}`);
       }
     }
     
-    return { ticker, cotacao: null };
-  };
+    // ESTRATÉGIA 2: Sem User-Agent
+    if (!cotacaoObtida) {
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 2 - Sem User-Agent`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
 
-  // Executar todas as buscas em paralelo
-  const resultados = await Promise.allSettled(
-    tickers.map(ticker => buscarCotacaoAtivo(ticker))
-  );
-
-  // Processar resultados
-  resultados.forEach((resultado) => {
-    if (resultado.status === 'fulfilled' && resultado.value.cotacao) {
-      cotacoesMap.set(resultado.value.ticker, resultado.value.cotacao);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+            cotacaoObtida = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [${ticker}] (Sem UA): ${error.message}`);
+      }
     }
-  });
+    
+    // ESTRATÉGIA 3: URL simplificada
+    if (!cotacaoObtida) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 3 - URL simplificada`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+          method: 'GET',
+          mode: 'cors'
+        });
 
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
+            cotacaoObtida = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [${ticker}] (URL simples): ${error.message}`);
+      }
+    }
+    
+    if (!cotacaoObtida) {
+      console.log(`📱⚠️ [${ticker}]: Todas as estratégias falharam`);
+    }
+    
+    // ⭐ DELAY CRUCIAL: previne rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  console.log('📱 [UNIVERSAL] Resultado final:', cotacoesMap.size, 'de', tickers.length);
   return cotacoesMap;
 }
 
@@ -1033,7 +1082,7 @@ function useFiisIntegradas() {
       setTodosOsDadosProntos(false);
       const tickers = fiisData.map(ativo => ativo.ticker);
       
-      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA...');
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA - ESTRATÉGIA MOBILE UNIVERSAL...');
       
       // 🔄 RESET DOS ESTADOS
       setCotacoesCompletas(new Map());
@@ -1319,7 +1368,7 @@ export default function FiisPage() {
           color: '#1e293b',
           margin: '0 0 8px 0'
         }}>
-          Carteira de FIIs
+          Carteira de FIIs - Estratégia Mobile Universal
         </h1>
         <p style={{ 
           color: '#64748b', 
@@ -1596,7 +1645,7 @@ export default function FiisPage() {
                           width: '28px',
                           height: '28px',
                           borderRadius: '50%',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#f1f5f9',
                           border: '1px solid #e2e8f0',
                           display: 'flex',
                           alignItems: 'center',
@@ -1614,7 +1663,7 @@ export default function FiisPage() {
                           height: '36px',
                           borderRadius: '6px',
                           overflow: 'hidden',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#f1f5f9',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1633,8 +1682,8 @@ export default function FiisPage() {
                               target.style.display = 'none';
                               const parent = target.parentElement;
                               if (parent) {
-                                parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#dc2626';
+                                parent.style.backgroundColor = '#f1f5f9';
+                                parent.style.color = '#64748b';
                                 parent.style.fontWeight = '700';
                                 parent.style.fontSize = '12px';
                                 parent.textContent = ativo.ticker.slice(0, 2);
@@ -1842,7 +1891,7 @@ export default function FiisPage() {
                                 height: '40px',
                                 borderRadius: '8px',
                                 overflow: 'hidden',
-                                backgroundColor: '#f8fafc',
+                                backgroundColor: '#f1f5f9',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1861,8 +1910,8 @@ export default function FiisPage() {
                                     target.style.display = 'none';
                                     const parent = target.parentElement;
                                     if (parent) {
-                                      parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                                      parent.style.color = ativo.performance >= 0 ? '#065f46' : '#dc2626';
+                                      parent.style.backgroundColor = '#f1f5f9';
+                                      parent.style.color = '#64748b';
                                       parent.style.fontWeight = '700';
                                       parent.style.fontSize = '14px';
                                       parent.textContent = ativo.ticker.slice(0, 2);
@@ -2004,7 +2053,7 @@ export default function FiisPage() {
                         height: '36px',
                         borderRadius: '6px',
                         overflow: 'hidden',
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: '#f1f5f9',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2023,8 +2072,8 @@ export default function FiisPage() {
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
-                              parent.style.backgroundColor = '#dc2626';
-                              parent.style.color = 'white';
+                              parent.style.backgroundColor = '#f1f5f9';
+                              parent.style.color = '#64748b';
                               parent.style.fontWeight = '700';
                               parent.style.fontSize = '12px';
                               parent.textContent = ativo.ticker.slice(0, 2);
@@ -2168,7 +2217,7 @@ export default function FiisPage() {
                               height: '40px',
                               borderRadius: '8px',
                               overflow: 'hidden',
-                              backgroundColor: '#f8fafc',
+                              backgroundColor: '#f1f5f9',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -2187,8 +2236,8 @@ export default function FiisPage() {
                                   target.style.display = 'none';
                                   const parent = target.parentElement;
                                   if (parent) {
-                                    parent.style.backgroundColor = '#dc2626';
-                                    parent.style.color = 'white';
+                                    parent.style.backgroundColor = '#f1f5f9';
+                                    parent.style.color = '#64748b';
                                     parent.style.fontWeight = '700';
                                     parent.style.fontSize = '14px';
                                     parent.textContent = ativo.ticker.slice(0, 2);
