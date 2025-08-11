@@ -22,50 +22,26 @@ const setCachedData = (key: string, data: any) => {
   globalCache.set(key, { data, timestamp: Date.now() });
 };
 
-// 🔥 DETECÇÃO DE DISPOSITIVO MELHORADA - IPAD COMO MOBILE
+// 🔥 DETECÇÃO DE DISPOSITIVO - IPAD COMO DESKTOP PARA UI
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
-      // 🎯 DETECTAR IPAD ESPECIFICAMENTE
-      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
-      const isIpadOS = /iPad/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      
-      // 📱 LARGURA MÓVEL TRADICIONAL
-      const isMobileWidth = window.innerWidth <= 768;
-      
-      // 📱 TABLET EM PORTRAIT (mais próximo do mobile)
-      const isTabletPortrait = window.innerWidth <= 1024 && window.innerHeight > window.innerWidth;
-      
-      // ✅ CONSIDERA MOBILE SE:
-      // - Largura <= 768px OU
-      // - É iPad/iPadOS OU  
-      // - É tablet em portrait
-      return isMobileWidth || isIpad || isIpadOS || isTabletPortrait;
+      // 📱 SÓ CONSIDERA MOBILE PARA UI: largura <= 768px (telefones)
+      // iPad será tratado como desktop para mostrar tabela
+      return window.innerWidth <= 768;
     }
     return false;
   });
 
   React.useEffect(() => {
     const checkDevice = () => {
-      // 🎯 MESMA LÓGICA DO ESTADO INICIAL
-      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
-      const isIpadOS = /iPad/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      // 📱 INTERFACE MOBILE apenas para telefones (largura <= 768px)
+      // iPad, tablets e desktop mostram tabela
+      const shouldBeMobile = window.innerWidth <= 768;
       
-      const isMobileWidth = window.innerWidth <= 768;
-      const isTabletPortrait = window.innerWidth <= 1024 && window.innerHeight > window.innerWidth;
-      
-      const shouldBeMobile = isMobileWidth || isIpad || isIpadOS || isTabletPortrait;
-      
-      console.log('📱 Device Detection:', {
+      console.log('📱 Device Detection (UI):', {
         width: window.innerWidth,
-        height: window.innerHeight,
-        isIpad,
-        isIpadOS,
-        isMobileWidth,
-        isTabletPortrait,
-        shouldBeMobile,
+        isMobile: shouldBeMobile,
         userAgent: navigator.userAgent.substring(0, 50) + '...'
       });
       
@@ -1422,7 +1398,7 @@ export default function SmallCapsPage() {
           color: '#1e293b',
           margin: '0 0 8px 0'
         }}>
-          Carteira de Small Caps - Estratégia Mobile Universal
+          Carteira de Small Caps
         </h1>
         <p style={{ 
           color: '#64748b', 
