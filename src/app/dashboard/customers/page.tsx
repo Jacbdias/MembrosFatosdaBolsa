@@ -22,10 +22,12 @@ const setCachedData = (key: string, data: any) => {
   globalCache.set(key, { data, timestamp: Date.now() });
 };
 
-// 🔥 DETECÇÃO DE DISPOSITIVO SIMPLIFICADA E OTIMIZADA
+// 🔥 DETECÇÃO DE DISPOSITIVO - DUAS ESTRATÉGIAS SEPARADAS (IGUAL AO CÓDIGO 1)
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
+      // 📱 SÓ CONSIDERA MOBILE PARA UI: largura <= 768px (telefones)
+      // iPad será tratado como desktop para mostrar tabela
       return window.innerWidth <= 768;
     }
     return false;
@@ -33,22 +35,87 @@ const useDeviceDetection = () => {
 
   React.useEffect(() => {
     const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // 📱 INTERFACE MOBILE apenas para telefones (largura <= 768px)
+      // iPad, tablets e desktop mostram tabela
+      const shouldBeMobile = window.innerWidth <= 768;
+      
+      console.log('📱 Device Detection (UI):', {
+        width: window.innerWidth,
+        isMobile: shouldBeMobile,
+        userAgent: navigator.userAgent.substring(0, 50) + '...'
+      });
+      
+      setIsMobile(shouldBeMobile);
     };
 
+    // 🔄 VERIFICAR NO RESIZE E ORIENTAÇÃO
     window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
+    window.addEventListener('orientationchange', checkDevice);
+    
+    // ✅ VERIFICAÇÃO INICIAL APÓS MOUNT
+    checkDevice();
+    
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      window.removeEventListener('orientationchange', checkDevice);
+    };
   }, []);
 
   return isMobile;
 };
 
-// 🚀 HOOK SMLL SINCRONIZADO - ESTRATÉGIA UNIFICADA
+// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE (ADICIONADO DO CÓDIGO 1)
+const useApiDetection = () => {
+  const [isApiMobile, setIsApiMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
+      // - É telefone (<=768px) OU
+      // - É iPad/iPadOS (precisa da estratégia sequencial)
+      return isMobileWidth || isIpad || isIpadOS;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkApiDevice = () => {
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
+      
+      console.log('🌐 API Detection:', {
+        width: window.innerWidth,
+        isIpad,
+        isIpadOS,
+        isApiMobile: shouldBeApiMobile
+      });
+      
+      setIsApiMobile(shouldBeApiMobile);
+    };
+
+    window.addEventListener('resize', checkApiDevice);
+    checkApiDevice();
+    
+    return () => window.removeEventListener('resize', checkApiDevice);
+  }, []);
+
+  return isApiMobile;
+};
+
+// 🚀 HOOK SMLL SINCRONIZADO - ESTRATÉGIA UNIFICADA (CORRIGIDO)
 function useSmllRealTime() {
   const [smllData, setSmllData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
 
   const buscarSmllReal = React.useCallback(async () => {
     try {
@@ -66,7 +133,7 @@ function useSmllRealTime() {
       }
 
       console.log('🔍 BUSCANDO SMLL - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isApiMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
@@ -117,11 +184,11 @@ function useSmllRealTime() {
           }
         }
       } catch (error) {
-        console.log('🎯❌ SMLL (Estratégia Unificada):', error.message);
+        console.log('🎯❌ SMLL (Estratégia Unificada):', (error as Error).message);
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosSmllObtidos && isMobile) {
+      if (!dadosSmllObtidos && isApiMobile) { // 🔥 MUDANÇA: era isMobile
         console.log('📱 SMLL: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -160,7 +227,7 @@ function useSmllRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ SMLL (Fallback 1):', error.message);
+            console.log('📱❌ SMLL (Fallback 1):', (error as Error).message);
           }
         }
 
@@ -199,7 +266,7 @@ function useSmllRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ SMLL (Fallback 2):', error.message);
+            console.log('📱❌ SMLL (Fallback 2):', (error as Error).message);
           }
         }
       }
@@ -257,7 +324,7 @@ function useSmllRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [isMobile]);
+  }, [isApiMobile]); // 🔥 MUDANÇA: era isMobile
 
   React.useEffect(() => {
     buscarSmllReal();
@@ -268,12 +335,12 @@ function useSmllRealTime() {
   return { smllData, loading, error, refetch: buscarSmllReal };
 }
 
-// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA
+// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA (CORRIGIDO)
 function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
 
   const buscarIbovespaReal = React.useCallback(async () => {
     try {
@@ -291,7 +358,7 @@ function useIbovespaRealTime() {
       }
 
       console.log('🔍 BUSCANDO IBOVESPA - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isApiMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
@@ -339,11 +406,11 @@ function useIbovespaRealTime() {
           }
         }
       } catch (error) {
-        console.log('🎯❌ IBOV (Estratégia Unificada):', error.message);
+        console.log('🎯❌ IBOV (Estratégia Unificada):', (error as Error).message);
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosIbovObtidos && isMobile) {
+      if (!dadosIbovObtidos && isApiMobile) { // 🔥 MUDANÇA: era isMobile
         console.log('📱 IBOV: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -379,7 +446,7 @@ function useIbovespaRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ IBOV (Fallback 1):', error.message);
+            console.log('📱❌ IBOV (Fallback 1):', (error as Error).message);
           }
         }
 
@@ -415,7 +482,7 @@ function useIbovespaRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ IBOV (Fallback 2):', error.message);
+            console.log('📱❌ IBOV (Fallback 2):', (error as Error).message);
           }
         }
       }
@@ -462,7 +529,7 @@ function useIbovespaRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [isMobile]);
+  }, [isApiMobile]); // 🔥 MUDANÇA: era isMobile
 
   React.useEffect(() => {
     buscarIbovespaReal();
@@ -473,11 +540,11 @@ function useIbovespaRealTime() {
   return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
 }
 
-// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO
+// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO (CORRIGIDO)
 function useIbovespaPeriodo(ativosAtualizados: any[]) {
   const [ibovespaPeriodo, setIbovespaPeriodo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
 
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
@@ -522,7 +589,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
             signal: controller.signal,
             headers: {
               'Accept': 'application/json',
-              'User-Agent': isMobile 
+              'User-Agent': isApiMobile  // 🔥 MUDANÇA: era isMobile
                 ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 : 'MicroCaps-Ibov-Current'
             }
@@ -682,7 +749,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
     };
 
     calcularIbovespaPeriodo();
-  }, [ativosAtualizados, isMobile]);
+  }, [ativosAtualizados, isApiMobile]); // 🔥 MUDANÇA: era isMobile
 
   return { ibovespaPeriodo, loading };
 }
@@ -697,12 +764,12 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
 }
 
-// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES EM PARALELO
-async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+// 🚀 FUNÇÃO CORRIGIDA - ESTRATÉGIA MOBILE UNIVERSAL (CORRIGIDA)
+async function buscarCotacoesParalelas(tickers: string[], isApiMobile: boolean): Promise<Map<string, any>> { // 🔥 MUDANÇA: era isMobile
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  if (!isMobile) {
+  if (!isApiMobile) { // 🔥 MUDANÇA: era !isMobile
     // Desktop: busca em lote (mais eficiente)
     try {
       const controller = new AbortController();
@@ -738,80 +805,129 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
     return cotacoesMap;
   }
 
-  // Mobile: busca em paralelo (máximo 2 tentativas por ativo)
-  const buscarCotacaoAtivo = async (ticker: string) => {
-    const tentativas = [
-      // Tentativa 1: User-Agent Desktop
-      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }),
-      // Tentativa 2: Sem User-Agent
-      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      })
-    ];
-
-    for (const tentativa of tentativas) {
+  // Mobile: busca sequencial (ESTRATÉGIA MOBILE UNIVERSAL IGUAL AO CÓDIGO 1)
+  console.log('📱 [UNIVERSAL] Usando estratégia mobile para', tickers.length, 'tickers');
+  
+  for (const ticker of tickers) {
+    let cotacaoObtida = false;
+    
+    // ESTRATÉGIA 1: User-Agent Desktop
+    if (!cotacaoObtida) {
       try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 3000); // Timeout reduzido
+        console.log(`📱🔄 [${ticker}] Tentativa 1 - User-Agent Desktop`);
         
-        const response = await Promise.race([
-          tentativa,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-        ]) as Response;
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          }
+        });
 
         if (response.ok) {
           const data = await response.json();
           if (data.results?.[0]?.regularMarketPrice > 0) {
             const quote = data.results[0];
-            return {
-              ticker,
-              cotacao: {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || ticker,
-                dadosCompletos: quote
-              }
-            };
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+            cotacaoObtida = true;
           }
         }
       } catch (error) {
-        // Continua para próxima tentativa
+        console.log(`📱❌ [${ticker}] (Desktop UA): ${(error as Error).message}`);
       }
     }
     
-    return { ticker, cotacao: null };
-  };
+    // ESTRATÉGIA 2: Sem User-Agent
+    if (!cotacaoObtida) {
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 2 - Sem User-Agent`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
 
-  // Executar todas as buscas em paralelo
-  const resultados = await Promise.allSettled(
-    tickers.map(ticker => buscarCotacaoAtivo(ticker))
-  );
-
-  // Processar resultados
-  resultados.forEach((resultado) => {
-    if (resultado.status === 'fulfilled' && resultado.value.cotacao) {
-      cotacoesMap.set(resultado.value.ticker, resultado.value.cotacao);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+            cotacaoObtida = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [${ticker}] (Sem UA): ${(error as Error).message}`);
+      }
     }
-  });
+    
+    // ESTRATÉGIA 3: URL simplificada
+    if (!cotacaoObtida) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 3 - URL simplificada`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+          method: 'GET',
+          mode: 'cors'
+        });
 
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
+            cotacaoObtida = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [${ticker}] (URL simples): ${(error as Error).message}`);
+      }
+    }
+    
+    if (!cotacaoObtida) {
+      console.log(`📱⚠️ [${ticker}]: Todas as estratégias falharam`);
+    }
+    
+    // ⭐ DELAY CRUCIAL: previne rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  console.log('📱 [UNIVERSAL] Resultado final:', cotacoesMap.size, 'de', tickers.length);
   return cotacoesMap;
 }
 
-// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP
-async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (CORRIGIDA)
+async function buscarDYsComEstrategia(tickers: string[], isApiMobile: boolean): Promise<Map<string, string>> { // 🔥 MUDANÇA: era isMobile
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  if (isMobile) {
+  if (isApiMobile) { // 🔥 MUDANÇA: era isMobile
     // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
     console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
     
@@ -848,7 +964,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${(error as Error).message}`);
         }
       }
       
@@ -879,7 +995,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${(error as Error).message}`);
         }
       }
       
@@ -908,7 +1024,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (URL simples): ${(error as Error).message}`);
         }
       }
       
@@ -975,7 +1091,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
   return dyMap;
 }
 
-// 🚀 HOOK PRINCIPAL OTIMIZADO COM LOADING STATES GRANULARES - ADAPTADO PARA MICROCAPS
+// 🚀 HOOK PRINCIPAL OTIMIZADO COM LOADING STATES GRANULARES - ADAPTADO PARA MICROCAPS (CORRIGIDO)
 function useMicroCapsIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
@@ -993,7 +1109,8 @@ function useMicroCapsIntegradas() {
   const [loadingProventos, setLoadingProventos] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const isMobile = useDeviceDetection();
+  const isMobile = useDeviceDetection(); // ✅ MANTER: para UI
+  const isApiMobile = useApiDetection(); // 🔥 ADICIONAR: para APIs
   const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
   const microCapsData = dados.microCaps || []; // 🔥 USANDO microCaps em vez de smallCaps
 
@@ -1038,7 +1155,7 @@ function useMicroCapsIntegradas() {
           console.log(`💰 ${ativo.ticker}: Erro HTTP ${response.status}`);
         }
       } catch (error) {
-        console.log(`💰 ${ativo.ticker}: Erro -`, error.message);
+        console.log(`💰 ${ativo.ticker}: Erro -`, (error as Error).message);
       }
       
       return { ticker: ativo.ticker, valor: 0 };
@@ -1061,7 +1178,7 @@ function useMicroCapsIntegradas() {
     return novosProventos;
   }, []);
 
-  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - ABORDAGEM STEP-BY-STEP ROBUSTA
+  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - ABORDAGEM STEP-BY-STEP ROBUSTA (CORRIGIDA)
   const buscarDadosCompletos = React.useCallback(async () => {
     if (microCapsData.length === 0) {
       setAtivosAtualizados([]);
@@ -1085,7 +1202,7 @@ function useMicroCapsIntegradas() {
       console.log('📊 ETAPA 1: Buscando cotações...');
       setLoadingCotacoes(true);
       
-      const cotacoesMap = await buscarCotacoesParalelas(tickers, isMobile);
+      const cotacoesMap = await buscarCotacoesParalelas(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
       console.log('📊 Cotações obtidas:', cotacoesMap.size, 'de', tickers.length);
       
       setCotacoesCompletas(cotacoesMap);
@@ -1095,7 +1212,7 @@ function useMicroCapsIntegradas() {
       console.log('📈 ETAPA 2: Buscando DY...');
       setLoadingDY(true);
       
-      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
+      const dyMap = await buscarDYsComEstrategia(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
       console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
       
       setDyCompletos(dyMap);
@@ -1124,7 +1241,7 @@ function useMicroCapsIntegradas() {
       setLoadingDY(false);
       setLoadingProventos(false);
     }
-  }, [microCapsData, isMobile, buscarProventosAtivos]);
+  }, [microCapsData, isApiMobile, buscarProventosAtivos]); // 🔥 MUDANÇA: era isMobile
 
   // 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
   React.useEffect(() => {
@@ -1232,7 +1349,7 @@ function useMicroCapsIntegradas() {
     loadingProventos,
     error,
     refetch,
-    isMobile,
+    isMobile, // ✅ Para UI (tabela vs cards)
     todosOsDadosProntos // ✅ Novo estado para debug
   };
 }
@@ -1527,8 +1644,6 @@ export default function MicroCapsPage() {
             Desde {ibovespaPeriodo?.dataInicial || 'mar/2020'}
           </div>
         </div>
-
-
       </div>
 
       {/* Posições Ativas */}
