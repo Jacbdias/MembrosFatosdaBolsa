@@ -583,7 +583,7 @@ const CompanyAvatar = ({ symbol, companyName, size = 40 }) => {
     <div style={{
       width: size,
       height: size,
-      borderRadius: '8px',
+      borderRadius: '8px', // Quadrado arredondado para FIIs
       backgroundColor: '#ffffff',
       border: '1px solid #e2e8f0',
       display: 'flex',
@@ -597,23 +597,34 @@ const CompanyAvatar = ({ symbol, companyName, size = 40 }) => {
       overflow: 'hidden',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     }}>
-      {showFallback ? (
-        <span style={{ 
-          fontSize: size > 100 ? '1rem' : '0.75rem',
-          color: '#8b5cf6'
-        }}>
-          {symbol.slice(0, 2)}
-        </span>
-      ) : (
+      {/* Fallback com iniciais */}
+      <span style={{ 
+        position: 'absolute', 
+        zIndex: 1,
+        fontSize: size > 100 ? '1rem' : '0.75rem',
+        display: showFallback ? 'block' : 'none',
+        color: '#8b5cf6'
+      }}>
+        {symbol.slice(0, 2)}
+      </span>
+      
+      {/* Imagem da empresa */}
+      {imageUrl && !showFallback && (
         <img
           src={imageUrl}
           alt={`Logo ${symbol}`}
           style={{
-            width: '80%',
+            width: '80%', // Deixar um pouco menor para FIIs
             height: '80%',
             borderRadius: '4px',
-            objectFit: 'contain'
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 2,
+            objectFit: 'contain' // contain para logos de FII
           }}
+          onLoad={handleImageLoad}
           onError={handleImageError}
         />
       )}
@@ -627,7 +638,7 @@ export default function FiisPage() {
   const { ifixData, loading: ifixLoading, error: ifixError } = useIfixRealTime();
   const { ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaRealTime();
   const { ibovespaPeriodo } = useIbovespaPeriodo(fiis);
-  
+
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
 
@@ -723,72 +734,20 @@ export default function FiisPage() {
     return signal + value.toFixed(2) + '%';
   };
 
-  // ✅ ESTILOS RESPONSIVOS INLINE
-  const containerStyle = {
-    minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-    padding: '16px',
-    '@media (min-width: 768px)': {
-      padding: '24px'
-    }
-  };
-
-  const headerStyle = {
-    marginBottom: '24px',
-    '@media (min-width: 768px)': {
-      marginBottom: '32px'
-    }
-  };
-
-  const titleStyle = {
-    fontSize: '28px',
-    fontWeight: '800',
-    color: '#1e293b',
-    margin: '0 0 8px 0',
-    lineHeight: '1.2',
-    '@media (min-width: 768px)': {
-      fontSize: '48px'
-    }
-  };
-
-  const subtitleStyle = {
-    color: '#64748b',
-    fontSize: '14px',
-    margin: '0',
-    lineHeight: '1.5',
-    '@media (min-width: 768px)': {
-      fontSize: '18px'
-    }
-  };
-
-  // Hook para detectar se é mobile
-  const [isMobile, setIsMobile] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-    
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
-
   // Se ainda está carregando
   if (fiisLoading || marketLoading) {
     return (
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
+        padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ 
-            fontSize: isMobile ? '16px' : '18px',
+            fontSize: '18px', 
             color: '#64748b',
             marginBottom: '16px'
           }}>
@@ -805,21 +764,21 @@ export default function FiisPage() {
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
+        padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ 
-            fontSize: isMobile ? '16px' : '18px',
+            fontSize: '18px', 
             color: '#ef4444',
             marginBottom: '8px'
           }}>
             ⚠️ Erro ao carregar FIIs
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: '14px', 
             color: '#64748b'
           }}>
             {fiisError}
@@ -829,19 +788,20 @@ export default function FiisPage() {
     );
   }
 
+  // Se não há FIIs
   if (!Array.isArray(fiis) || fiis.length === 0) {
     return (
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
+        padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ 
-            fontSize: isMobile ? '16px' : '18px',
+            fontSize: '18px', 
             color: '#64748b'
           }}>
             📊 Nenhum FII encontrado na carteira
@@ -855,22 +815,21 @@ export default function FiisPage() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: isMobile ? '16px' : '24px'
+      padding: '24px' 
     }}>
       {/* Header */}
-      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
+      <div style={{ marginBottom: '32px' }}>
         <h1 style={{ 
-          fontSize: isMobile ? '28px' : '48px',
+          fontSize: '48px', 
           fontWeight: '800', 
           color: '#1e293b',
-          margin: '0 0 8px 0',
-          lineHeight: '1.2'
+          margin: '0 0 8px 0'
         }}>
           Carteira de Fundos Imobiliários
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: isMobile ? '14px' : '18px',
+          fontSize: '18px',
           margin: '0',
           lineHeight: '1.5'
         }}>
@@ -881,15 +840,15 @@ export default function FiisPage() {
       {/* Cards de Métricas */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: isMobile ? '8px' : '12px',
-        marginBottom: isMobile ? '24px' : '32px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '12px',
+        marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
@@ -902,7 +861,7 @@ export default function FiisPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
+            fontSize: '24px', 
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -915,7 +874,7 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
@@ -928,7 +887,7 @@ export default function FiisPage() {
             DY médio 12M
           </div>
           <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
+            fontSize: '24px', 
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
@@ -941,7 +900,7 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
@@ -954,7 +913,7 @@ export default function FiisPage() {
             IFIX Index
           </div>
           <div style={{ 
-            fontSize: isMobile ? '16px' : '20px',
+            fontSize: '20px', 
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -963,7 +922,7 @@ export default function FiisPage() {
             {ifixData?.valorFormatado || '3.435'}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: '14px', 
             fontWeight: '600', 
             color: ifixData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -976,7 +935,7 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
@@ -989,7 +948,7 @@ export default function FiisPage() {
             Ibovespa
           </div>
           <div style={{ 
-            fontSize: isMobile ? '16px' : '20px',
+            fontSize: '20px', 
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -998,12 +957,12 @@ export default function FiisPage() {
             {ibovespaData?.valorFormatado || '137.213'}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: '14px', 
             fontWeight: '600', 
             color: ibovespaData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {ibovespaData ? formatPercentage(ibovespaData.variacaoPercent) : '-0.43%'}
+            {ibovespaData ? formatPercentage(ibovespaData.variacaoPercent) : '+0.2%'}
           </div>
         </div>
 
@@ -1011,10 +970,9 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          gridColumn: isMobile ? 'span 2' : 'auto'
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
             fontSize: '12px', 
@@ -1025,7 +983,7 @@ export default function FiisPage() {
             Ibovespa período
           </div>
           <div style={{ 
-            fontSize: isMobile ? '16px' : '20px',
+            fontSize: '20px', 
             fontWeight: '700', 
             color: ibovespaPeriodo?.performancePeriodo >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1',
@@ -1046,19 +1004,19 @@ export default function FiisPage() {
       {/* Tabela de FIIs */}
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: isMobile ? '12px' : '16px',
+        borderRadius: '16px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
         overflow: 'hidden',
-        marginBottom: isMobile ? '24px' : '32px'
+        marginBottom: '32px'
       }}>
         <div style={{
-          padding: isMobile ? '16px' : '24px',
+          padding: '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: isMobile ? '18px' : '24px',
+            fontSize: '24px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1067,131 +1025,115 @@ export default function FiisPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: isMobile ? '14px' : '16px',
+            fontSize: '16px',
             margin: '0'
           }}>
             {fiis.length} fundos imobiliários • Viés calculado automaticamente
           </p>
         </div>
 
-        {/* Wrapper com scroll horizontal em mobile */}
-        <div style={{ 
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch' // Smooth scrolling em iOS
-        }}>
-          <table style={{ 
-            width: '100%', 
-            borderCollapse: 'collapse',
-            minWidth: isMobile ? '800px' : 'auto' // Força largura mínima em mobile
-          }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ backgroundColor: '#f1f5f9' }}>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'left', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '120px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   FII
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '80px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   ENTRADA
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '90px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   PREÇO INICIAL
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '90px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   PREÇO ATUAL
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '90px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   PREÇO TETO
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '120px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     PERFORMANCE TOTAL
-                    {!isMobile && (
-                      <div 
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '50%',
-                          backgroundColor: '#64748b',
-                          color: 'white',
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'help'
-                        }}
-                        title="A rentabilidade de todos os FIIs é calculada pelo método Total Return, incluindo o reinvestimento dos dividendos."
-                      >
-                        i
-                      </div>
-                    )}
+                    <div 
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: '#64748b',
+                        color: 'white',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'help',
+                        position: 'relative'
+                      }}
+                      onMouseEnter={(e) => {
+                        const tooltip = document.createElement('div');
+                        tooltip.id = 'performance-tooltip';
+                        tooltip.innerHTML = 'A rentabilidade de todos os FIIs é calculada pelo método "Total Return", ou seja, incluindo o reinvestimento dos dividendos.';
+                        tooltip.style.cssText = `
+                          position: absolute;
+                          top: 25px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: #ffffff;
+                          color: #1f2937;
+                          border: 1px solid #e5e7eb;
+                          padding: 12px 16px;
+                          border-radius: 8px;
+                          font-size: 14px;
+                          font-weight: 500;
+                          max-width: 450px;
+                          width: max-content;
+                          white-space: normal;
+                          line-height: 1.5;
+                          z-index: 1000;
+                          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        `;
+                        // Adicionar seta
+                        const arrow = document.createElement('div');
+                        arrow.style.cssText = `
+                          position: absolute;
+                          top: -8px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          width: 0;
+                          height: 0;
+                          border-left: 8px solid transparent;
+                          border-right: 8px solid transparent;
+                          border-bottom: 8px solid #ffffff;
+                        `;
+                        tooltip.appendChild(arrow);
+                        e.currentTarget.appendChild(tooltip);
+                      }}
+                      onMouseLeave={(e) => {
+                        const tooltip = e.currentTarget.querySelector('#performance-tooltip');
+                        if (tooltip) {
+                          tooltip.remove();
+                        }
+                      }}
+                    >
+                      i
+                    </div>
                   </div>
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '70px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   DY 12M
                 </th>
-                <th style={{ 
-                  padding: isMobile ? '12px 8px' : '16px', 
-                  textAlign: 'center', 
-                  fontWeight: '700', 
-                  color: '#374151', 
-                  fontSize: isMobile ? '12px' : '14px',
-                  minWidth: '80px'
-                }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                   VIÉS
                 </th>
               </tr>
             </thead>
             <tbody>
               {fiis.map((fii, index) => {
+                if (!fii || !fii.id || !fii.ticker) {
+                  console.warn('Invalid FII row:', fii);
+                  return null;
+                }
+
                 const { performanceTotal } = calculatePerformanceTotal(fii);
                 
                 return (
@@ -1203,6 +1145,7 @@ export default function FiisPage() {
                       cursor: 'pointer'
                     }}
                     onClick={() => {
+                      // Navegar para página de detalhes do FII
                       window.location.href = `/dashboard/ativo/${fii.ticker}`;
                     }}
                     onMouseEnter={(e) => {
@@ -1212,91 +1155,62 @@ export default function FiisPage() {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <td style={{ padding: isMobile ? '12px 8px' : '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }}>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* ✅ NOVO SISTEMA DE AVATAR */}
                         <CompanyAvatar 
                           symbol={fii.ticker}
                           companyName={fii.setor || 'FII'}
-                          size={isMobile ? 32 : 40}
+                          size={40}
                         />
                         <div>
                           <div style={{ 
                             fontWeight: '700', 
                             color: '#1e293b', 
-                            fontSize: isMobile ? '14px' : '16px'
+                            fontSize: '16px'
                           }}>
                             {fii.ticker}
                           </div>
-                          <div style={{ 
-                            color: '#64748b', 
-                            fontSize: isMobile ? '12px' : '14px'
-                          }}>
+                          <div style={{ color: '#64748b', fontSize: '14px' }}>
                             {fii.setor || 'FII'}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
-                      textAlign: 'center', 
-                      color: '#64748b',
-                      fontSize: isMobile ? '12px' : '14px'
-                    }}>
+                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                       {fii.dataEntrada || '-'}
                     </td>
-                    <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '600', 
-                      color: '#374151',
-                      fontSize: isMobile ? '12px' : '14px'
-                    }}>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
                       {fii.precoEntrada || '-'}
                     </td>
-                    <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '700', 
-                      color: performanceTotal >= 0 ? '#10b981' : '#ef4444',
-                      fontSize: isMobile ? '12px' : '14px'
-                    }}>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performanceTotal >= 0 ? '#10b981' : '#ef4444' }}>
                       {fii.precoAtual || '-'}
                     </td>
-                    <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '600', 
-                      color: '#1e293b',
-                      fontSize: isMobile ? '12px' : '14px'
-                    }}>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
                       {fii.precoTeto || '-'}
                     </td>
                     <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
+                      padding: '16px', 
                       textAlign: 'center', 
                       fontWeight: '800',
-                      fontSize: isMobile ? '14px' : '16px',
+                      fontSize: '16px',
                       color: performanceTotal >= 0 ? '#10b981' : '#ef4444'
                     }}>
                       {formatPercentage(performanceTotal)}
                     </td>
                     <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
+                      padding: '16px', 
                       textAlign: 'center',
                       fontWeight: '700',
-                      color: '#1e293b',
-                      fontSize: isMobile ? '12px' : '14px'
+                      color: '#1e293b'
                     }}>
                       {fii.dy || '-'}
                     </td>
-                    <td style={{ 
-                      padding: isMobile ? '12px 8px' : '16px', 
-                      textAlign: 'center' 
-                    }}>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
                       <span style={{
-                        padding: isMobile ? '2px 8px' : '4px 12px',
+                        padding: '4px 12px',
                         borderRadius: '12px',
-                        fontSize: isMobile ? '10px' : '12px',
+                        fontSize: '12px',
                         fontWeight: '700',
                         backgroundColor: (fii.vies === 'Compra') ? '#dcfce7' : '#fef3c7',
                         color: (fii.vies === 'Compra') ? '#065f46' : '#92400e'
@@ -1315,18 +1229,18 @@ export default function FiisPage() {
       {/* Gráfico de Composição por FIIs */}
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: isMobile ? '12px' : '16px',
+        borderRadius: '16px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
         overflow: 'hidden'
       }}>
         <div style={{
-          padding: isMobile ? '16px' : '24px',
+          padding: '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: isMobile ? '18px' : '24px',
+            fontSize: '24px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1335,39 +1249,28 @@ export default function FiisPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: isMobile ? '14px' : '16px',
+            fontSize: '16px',
             margin: '0'
           }}>
             Distribuição percentual da carteira • {fiis.length} fundos
           </p>
         </div>
 
-        <div style={{ 
-          padding: isMobile ? '16px' : '32px', 
-          display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row', 
-          gap: isMobile ? '24px' : '32px', 
-          alignItems: 'center' 
-        }}>
+        <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
           {/* Gráfico SVG */}
-          <div style={{ 
-            flex: isMobile ? 'none' : '0 0 400px', 
-            width: isMobile ? '100%' : '400px',
-            height: isMobile ? '300px' : '400px', 
-            position: 'relative',
-            maxWidth: isMobile ? '300px' : '400px',
-            margin: isMobile ? '0 auto' : '0'
-          }}>
+          <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
             {(() => {
               const cores = [
                 '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
-                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
               ];
               
-              const radius = isMobile ? 120 : 150;
-              const innerRadius = isMobile ? 60 : 75;
-              const centerX = isMobile ? 150 : 200;
-              const centerY = isMobile ? 150 : 200;
+              const radius = 150;
+              const innerRadius = 75;
+              const centerX = 200;
+              const centerY = 200;
               const totalFiis = fiis.length;
               const anglePerSlice = (2 * Math.PI) / totalFiis;
               
@@ -1387,15 +1290,8 @@ export default function FiisPage() {
                 return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4} Z`;
               };
               
-              const svgSize = isMobile ? 300 : 400;
-              
               return (
-                <svg 
-                  width={svgSize} 
-                  height={svgSize} 
-                  viewBox={`0 0 ${svgSize} ${svgSize}`} 
-                  style={{ width: '100%', height: '100%' }}
-                >
+                <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
                   <defs>
                     <style>
                       {`
@@ -1425,8 +1321,9 @@ export default function FiisPage() {
                     const cor = cores[index % cores.length];
                     const path = createPath(startAngle, endAngle);
                     
+                    // Calcular posição do texto no meio da fatia
                     const middleAngle = (startAngle + endAngle) / 2;
-                    const textRadius = (radius + innerRadius) / 2;
+                    const textRadius = (radius + innerRadius) / 2; // Meio da fatia
                     const textX = centerX + textRadius * Math.cos(middleAngle);
                     const textY = centerY + textRadius * Math.sin(middleAngle);
                     const porcentagem = (100 / totalFiis).toFixed(1);
@@ -1443,12 +1340,14 @@ export default function FiisPage() {
                           <title>{fii.ticker}: {porcentagem}%</title>
                         </path>
                         
+                        {/* Textos que aparecem no hover */}
                         <g className="slice-text">
+                          {/* Texto do ticker */}
                           <text
                             x={textX}
                             y={textY - 6}
                             textAnchor="middle"
-                            fontSize={isMobile ? "9" : "11"}
+                            fontSize="11"
                             fontWeight="700"
                             fill="#ffffff"
                             style={{ 
@@ -1458,11 +1357,12 @@ export default function FiisPage() {
                             {fii.ticker}
                           </text>
                           
+                          {/* Texto da porcentagem */}
                           <text
                             x={textX}
                             y={textY + 8}
                             textAnchor="middle"
-                            fontSize={isMobile ? "8" : "10"}
+                            fontSize="10"
                             fontWeight="600"
                             fill="#ffffff"
                             style={{ 
@@ -1476,6 +1376,7 @@ export default function FiisPage() {
                     );
                   })}
                   
+                  {/* Círculo central */}
                   <circle
                     cx={centerX}
                     cy={centerY}
@@ -1485,11 +1386,12 @@ export default function FiisPage() {
                     strokeWidth="2"
                   />
                   
+                  {/* Texto central */}
                   <text
                     x={centerX}
                     y={centerY - 10}
                     textAnchor="middle"
-                    fontSize={isMobile ? "14" : "16"}
+                    fontSize="16"
                     fontWeight="700"
                     fill="#1e293b"
                   >
@@ -1499,7 +1401,7 @@ export default function FiisPage() {
                     x={centerX}
                     y={centerY + 10}
                     textAnchor="middle"
-                    fontSize={isMobile ? "10" : "12"}
+                    fontSize="12"
                     fill="#64748b"
                   >
                     FIIs
@@ -1510,28 +1412,23 @@ export default function FiisPage() {
           </div>
           
           {/* Legenda */}
-          <div style={{ 
-            flex: '1', 
-            display: 'grid', 
-            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(120px, 1fr))', 
-            gap: isMobile ? '8px' : '12px',
-            width: '100%'
-          }}>
+          <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
             {fiis.map((fii, index) => {
               const porcentagem = ((1 / fiis.length) * 100).toFixed(1);
               
               return (
                 <div key={fii.ticker} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* ✅ NOVO SISTEMA DE AVATAR na legenda */}
                   <CompanyAvatar 
                     symbol={fii.ticker}
                     companyName={fii.setor || 'FII'}
-                    size={isMobile ? 20 : 24}
+                    size={24}
                   />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ 
                       fontWeight: '700', 
                       color: '#1e293b', 
-                      fontSize: isMobile ? '12px' : '14px',
+                      fontSize: '14px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
@@ -1540,7 +1437,7 @@ export default function FiisPage() {
                     </div>
                     <div style={{ 
                       color: '#64748b', 
-                      fontSize: isMobile ? '10px' : '12px',
+                      fontSize: '12px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
