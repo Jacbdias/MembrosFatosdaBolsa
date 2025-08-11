@@ -819,12 +819,12 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  if (isMobile) {
-    // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
-    console.log('📱 [DY-MOBILE] Calculando DY manualmente no mobile');
-    
-    for (const ticker of tickers) {
-      let dyObtido = false;
+  // 🚀 FORÇAR ESTRATÉGIA MOBILE PARA TODOS OS DISPOSITIVOS (EVITA RATE LIMITING)
+  console.log('📱 [DY-UNIVERSAL] Forçando estratégia mobile sequencial para TODOS os dispositivos');
+  console.log('📱 [DY-UNIVERSAL] Processando', tickers.length, 'tickers individualmente...');
+  
+  for (const ticker of tickers) {
+    let dyObtido = false;
       
       // ESTRATÉGIA 1: User-Agent Desktop
       if (!dyObtido) {
@@ -846,19 +846,38 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             const ativo = data.results?.[0];
             
             if (ativo) {
+              // 🔍 DEBUG COMPLETO DOS DADOS DA API
+              console.log(`🔍 [API-DEBUG] ${ticker} - Resposta completa:`, ativo);
+              console.log(`🔍 [API-DEBUG] ${ticker} - defaultKeyStatistics:`, ativo.defaultKeyStatistics);
+              console.log(`🔍 [API-DEBUG] ${ticker} - regularMarketPrice:`, ativo.regularMarketPrice);
+              
               // 🧮 CÁLCULO MANUAL DO DY
               const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
               const currentPrice = ativo.regularMarketPrice;
               
+              // 🔍 DEBUG DOS VALORES ESPECÍFICOS
+              console.log(`🔍 [CALC-DEBUG] ${ticker}:`);
+              console.log(`  - lastDividendValue: ${lastDividend} (tipo: ${typeof lastDividend})`);
+              console.log(`  - regularMarketPrice: ${currentPrice} (tipo: ${typeof currentPrice})`);
+              console.log(`  - lastDividend > 0: ${lastDividend > 0}`);
+              console.log(`  - currentPrice > 0: ${currentPrice > 0}`);
+              console.log(`  - Condição geral: ${lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0}`);
+              
               if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
                 // DY Anualizado = (Último dividendo * 12) / Preço atual * 100
                 const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+                console.log(`🔍 [CALC-DEBUG] ${ticker} - Cálculo: (${lastDividend} * 12) / ${currentPrice} * 100 = ${dyCalculado}`);
                 dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
                 console.log(`📱✅ [DY] ${ticker}: ${dyCalculado.toFixed(2)}% (calculado: R$ ${lastDividend} * 12 / R$ ${currentPrice.toFixed(2)})`);
                 dyObtido = true;
               } else {
                 dyMap.set(ticker, '0,00%');
                 console.log(`📱❌ [DY] ${ticker}: Dados insuficientes (dividend: ${lastDividend}, price: ${currentPrice})`);
+                console.log(`🔍 [FAIL-DEBUG] ${ticker} - Motivo da falha:`);
+                if (!lastDividend) console.log(`  - lastDividend é falsy: ${lastDividend}`);
+                if (lastDividend <= 0) console.log(`  - lastDividend <= 0: ${lastDividend}`);
+                if (!currentPrice) console.log(`  - currentPrice é falsy: ${currentPrice}`);
+                if (currentPrice <= 0) console.log(`  - currentPrice <= 0: ${currentPrice}`);
                 dyObtido = true;
               }
             }
@@ -889,6 +908,10 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
               const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
               const currentPrice = ativo.regularMarketPrice;
               
+              console.log(`🔍 [CALC-DEBUG-FALLBACK1] ${ticker}:`);
+              console.log(`  - lastDividendValue: ${lastDividend} (tipo: ${typeof lastDividend})`);
+              console.log(`  - regularMarketPrice: ${currentPrice} (tipo: ${typeof currentPrice})`);
+              
               if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
                 const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
                 dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
@@ -896,6 +919,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
                 dyObtido = true;
               } else {
                 dyMap.set(ticker, '0,00%');
+                console.log(`📱❌ [DY] ${ticker}: Dados insuficientes (Fallback 1)`);
                 dyObtido = true;
               }
             }
@@ -950,60 +974,10 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
       await new Promise(resolve => setTimeout(resolve, 200));
     }
     
-  } else {
-    // 🖥️ DESKTOP: Requisição em lote com cálculo manual
-    console.log('🖥️ [DY-DESKTOP] Calculando DY manualmente em lote no desktop');
-    
-    try {
-      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'FIIs-DY-Batch-Manual'
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
-        
-        data.results?.forEach((ativo: any) => {
-          const ticker = ativo.symbol;
-          
-          // 🧮 CÁLCULO MANUAL DO DY
-          const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
-          const currentPrice = ativo.regularMarketPrice;
-          
-          if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
-            const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
-            dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
-            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dyCalculado.toFixed(2)}% (R$ ${lastDividend} * 12 / R$ ${currentPrice.toFixed(2)})`);
-          } else {
-            dyMap.set(ticker, '0,00%');
-            console.log(`❌ [DY-DESKTOP] ${ticker}: Dados insuficientes para cálculo (dividend: ${lastDividend}, price: ${currentPrice})`);
-          }
-        });
-        
-      } else {
-        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
-        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
-      }
-      
-    } catch (error) {
-      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
-      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
-    }
-  }
+  console.log('🔍 [DY-DEBUG] Conteúdo completo do dyMap:', Object.fromEntries(dyMap));
+  console.log('🔍 [DY-DEBUG] Tickers no Map:', Array.from(dyMap.keys()));
+  console.log('🔍 [DY-DEBUG] Valores no Map:', Array.from(dyMap.values()));
   
-  console.log(`📋 [DY-MANUAL] Resultado final: ${dyMap.size} tickers processados com cálculo manual`);
   return dyMap;
 }
 
@@ -1123,15 +1097,38 @@ function useFiisIntegradas() {
       setCotacoesCompletas(cotacoesMap);
       setLoadingCotacoes(false);
 
-      // 📈 ETAPA 2: DY
-      console.log('📈 ETAPA 2: Buscando DY...');
-      setLoadingDY(true);
-      
-      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
-      console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
-      
-      setDyCompletos(dyMap);
-      setLoadingDY(false);
+// 📈 ETAPA 2: DY COM DEBUG ESTADO COMPLETO
+console.log('📈 ETAPA 2: Buscando DY...');
+setLoadingDY(true);
+
+const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
+console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
+
+// 🔍 DEBUG ANTES DE SETAR O ESTADO
+console.log('🔍 [PRE-SET] dyMap antes do setState:');
+console.log('🔍 [PRE-SET] dyMap.size:', dyMap.size);
+console.log('🔍 [PRE-SET] dyMap conteúdo:', Object.fromEntries(dyMap));
+console.log('🔍 [PRE-SET] Exemplo KNRI11:', dyMap.get('KNRI11'));
+console.log('🔍 [PRE-SET] Exemplo HGLG11:', dyMap.get('HGLG11'));
+
+// SETAR O ESTADO
+setDyCompletos(dyMap);
+console.log('🔍 [POST-SET] setDyCompletos foi chamado');
+
+// VERIFICAR IMEDIATAMENTE (pode não funcionar devido ao async do React)
+console.log('🔍 [POST-SET-SYNC] dyCompletos imediato (pode estar desatualizado):', dyCompletos.size);
+
+setLoadingDY(false);
+console.log('🔍 [POST-SET] loadingDY definido como false');
+
+// 🔍 TIMEOUT PARA VERIFICAR O ESTADO DEPOIS DA ATUALIZAÇÃO
+setTimeout(() => {
+  console.log('🔍 [TIMEOUT-CHECK] Verificando dyCompletos após 100ms:');
+  console.log('🔍 [TIMEOUT-CHECK] dyCompletos.size:', dyCompletos.size);
+  console.log('🔍 [TIMEOUT-CHECK] dyCompletos conteúdo:', Object.fromEntries(dyCompletos));
+  console.log('🔍 [TIMEOUT-CHECK] Exemplo KNRI11:', dyCompletos.get('KNRI11'));
+  console.log('🔍 [TIMEOUT-CHECK] Exemplo HGLG11:', dyCompletos.get('HGLG11'));
+}, 100);
 
       // 💰 ETAPA 3: PROVENTOS
       console.log('💰 ETAPA 3: Buscando proventos...');
@@ -1158,79 +1155,97 @@ function useFiisIntegradas() {
     }
   }, [fiisData, isMobile, buscarProventosAtivos]);
 
-  // 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
-  React.useEffect(() => {
-    if (!todosOsDadosProntos || fiisData.length === 0) return;
+// 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
+React.useEffect(() => {
+  if (!todosOsDadosProntos || fiisData.length === 0) return;
+  
+  // 🔍 DEBUG COMPLETO DAS DEPENDÊNCIAS
+  console.log('🏆 PROCESSANDO TOTAL RETURN - TODOS OS DADOS PRONTOS!');
+  console.log('🔍 [DEPS-DEBUG] Verificando estados no momento da execução:');
+  console.log('🔍 [DEPS-DEBUG] todosOsDadosProntos:', todosOsDadosProntos);
+  console.log('🔍 [DEPS-DEBUG] fiisData.length:', fiisData.length);
+  console.log('🔍 [DEPS-DEBUG] cotacoesCompletas.size:', cotacoesCompletas.size);
+  console.log('🔍 [DEPS-DEBUG] dyCompletos.size:', dyCompletos.size);
+  console.log('🔍 [DEPS-DEBUG] proventosCompletos.size:', proventosCompletos.size);
+  console.log('🔍 [DEPS-DEBUG] dyCompletos conteúdo:', Object.fromEntries(dyCompletos));
+  
+  console.log('📊 Dados disponíveis:', {
+    cotacoes: cotacoesCompletas.size,
+    dy: dyCompletos.size, 
+    proventos: proventosCompletos.size,
+    ativos: fiisData.length
+  });
+
+  const novasCotacoes: any = {};
+
+  // 🎯 PROCESSAR TODOS OS ATIVOS COM TOTAL RETURN CORRETO
+  const ativosFinais = fiisData.map((ativo, index) => {
+    const cotacao = cotacoesCompletas.get(ativo.ticker);
     
-    console.log('🏆 PROCESSANDO TOTAL RETURN - TODOS OS DADOS PRONTOS!');
-    console.log('📊 Dados disponíveis:', {
-      cotacoes: cotacoesCompletas.size,
-      dy: dyCompletos.size, 
-      proventos: proventosCompletos.size,
-      ativos: fiisData.length
-    });
-
-    const novasCotacoes: any = {};
-
-    // 🎯 PROCESSAR TODOS OS ATIVOS COM TOTAL RETURN CORRETO
-    const ativosFinais = fiisData.map((ativo, index) => {
-      const cotacao = cotacoesCompletas.get(ativo.ticker);
-      const dyAPI = dyCompletos.get(ativo.ticker) || '0,00%';
-      const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
-      
-      if (cotacao && cotacao.precoAtual > 0) {
-        // ✅ ATIVO COM COTAÇÃO REAL
-        const precoAtualNum = cotacao.precoAtual;
-        const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-        const performanceTotal = performanceAcao + performanceProventos;
-        
-        novasCotacoes[ativo.ticker] = precoAtualNum;
-        
-        console.log(`🏆 ${ativo.ticker}: R$ ${ativo.precoEntrada.toFixed(2)} -> R$ ${precoAtualNum.toFixed(2)} | Ação ${performanceAcao.toFixed(2)}% + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceTotal.toFixed(2)}%`);
-        
-        return {
-          ...ativo,
-          id: String(ativo.id || index + 1),
-          precoAtual: precoAtualNum,
-          performance: performanceTotal,     // 🏆 TOTAL RETURN DEFINITIVO
-          performanceAcao: performanceAcao,
-          performanceProventos: performanceProventos,
-          proventosAtivo: proventosAtivo,
-          variacao: cotacao.variacao,
-          variacaoPercent: cotacao.variacaoPercent,
-          volume: cotacao.volume,
-          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
-          dy: dyAPI,
-          statusApi: 'success',
-          nomeCompleto: cotacao.nome,
-          posicaoExibicao: index + 1
-        };
-      } else {
-        // ⚠️ ATIVO SEM COTAÇÃO REAL - mas ainda pode ter proventos
-        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
-        
-        console.log(`🏆 ${ativo.ticker}: Sem cotação | R$ ${ativo.precoEntrada.toFixed(2)} + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceProventos.toFixed(2)}%`);
-        
-        return {
-          ...ativo,
-          id: String(ativo.id || index + 1),
-          precoAtual: ativo.precoEntrada,
-          performance: performanceProventos,  // 🏆 SÓ PROVENTOS
-          performanceAcao: 0,
-          performanceProventos: performanceProventos,
-          proventosAtivo: proventosAtivo,
-          variacao: 0,
-          variacaoPercent: 0,
-          volume: 0,
-          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
-          dy: dyAPI,
-          statusApi: 'not_found',
-          nomeCompleto: 'N/A',
-          posicaoExibicao: index + 1
-        };
-      }
-    });
+    // 🔍 DEBUG DY ASSIGNMENT
+    const dyAPI = dyCompletos.get(ativo.ticker) || '0,00%';
+    console.log(`🔍 [ASSIGN-DEBUG] ${ativo.ticker}:`);
+    console.log(`  - dyCompletos.size: ${dyCompletos.size}`);
+    console.log(`  - dyCompletos.has('${ativo.ticker}'): ${dyCompletos.has(ativo.ticker)}`);
+    console.log(`  - dyCompletos.get('${ativo.ticker}'): ${dyCompletos.get(ativo.ticker)}`);
+    console.log(`  - dyAPI final: ${dyAPI}`);
+    console.log(`  - loadingDY: ${loadingDY}`);
+    
+    const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
+  
+  if (cotacao && cotacao.precoAtual > 0) {
+    // ✅ ATIVO COM COTAÇÃO REAL
+    const precoAtualNum = cotacao.precoAtual;
+    const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    const performanceTotal = performanceAcao + performanceProventos;
+    
+    novasCotacoes[ativo.ticker] = precoAtualNum;
+    
+    console.log(`🏆 ${ativo.ticker}: DY final que será usado = ${dyAPI}`);
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: precoAtualNum,
+      performance: performanceTotal,
+      performanceAcao: performanceAcao,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: cotacao.variacao,
+      variacaoPercent: cotacao.variacaoPercent,
+      volume: cotacao.volume,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
+      dy: dyAPI, // 🔍 ESTE É O VALOR QUE DEVE APARECER NA TELA
+      statusApi: 'success',
+      nomeCompleto: cotacao.nome,
+      posicaoExibicao: index + 1
+    };
+  } else {
+    // ⚠️ ATIVO SEM COTAÇÃO REAL
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    
+    console.log(`🏆 ${ativo.ticker}: (sem cotação) DY final que será usado = ${dyAPI}`);
+    
+    return {
+      ...ativo,
+      id: String(ativo.id || index + 1),
+      precoAtual: ativo.precoEntrada,
+      performance: performanceProventos,
+      performanceAcao: 0,
+      performanceProventos: performanceProventos,
+      proventosAtivo: proventosAtivo,
+      variacao: 0,
+      variacaoPercent: 0,
+      volume: 0,
+      vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+      dy: dyAPI, // 🔍 ESTE É O VALOR QUE DEVE APARECER NA TELA
+      statusApi: 'not_found',
+      nomeCompleto: 'N/A',
+      posicaoExibicao: index + 1
+    };
+  }
+});
 
     // 🎯 ATUALIZAÇÃO FINAL DEFINITIVA
     setCotacoesAtualizadas(novasCotacoes);
