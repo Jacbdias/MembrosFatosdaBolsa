@@ -5,6 +5,27 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 
+// 🔥 DETECÇÃO DE DISPOSITIVO (ADICIONADO)
+const useDeviceDetection = () => {
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  return isMobile;
+};
+
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DE ÍNDICES INTERNACIONAIS
 function useIndicesInternacionaisRealTime() {
   const [indicesData, setIndicesData] = React.useState<any>(null);
@@ -58,7 +79,10 @@ function useIndicesInternacionaisRealTime() {
             if (indice.symbol === '^GSPC') {
               dadosIndices.sp500 = {
                 valor: indice.regularMarketPrice,
-                valorFormatado: Math.round(indice.regularMarketPrice).toLocaleString('pt-BR'),
+                valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+                }),
                 variacao: indice.regularMarketChange || 0,
                 variacaoPercent: indice.regularMarketChangePercent || 0,
                 trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
@@ -67,7 +91,10 @@ function useIndicesInternacionaisRealTime() {
             } else if (indice.symbol === '^IXIC') {
               dadosIndices.nasdaq = {
                 valor: indice.regularMarketPrice,
-                valorFormatado: Math.round(indice.regularMarketPrice).toLocaleString('pt-BR'),
+                valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+                }),
                 variacao: indice.regularMarketChange || 0,
                 variacaoPercent: indice.regularMarketChangePercent || 0,
                 trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
@@ -95,17 +122,17 @@ function useIndicesInternacionaisRealTime() {
       console.log('🔄 Usando fallback para índices internacionais...');
       const fallbackData = {
         sp500: {
-          valor: 5845,
-          valorFormatado: '5.845',
-          variacao: 125.30,
-          variacaoPercent: 25.13,
+          valor: 5970.80,
+          valorFormatado: '5,970.80',
+          variacao: 35.2,
+          variacaoPercent: 0.59,
           trend: 'up'
         },
         nasdaq: {
-          valor: 19345,
-          valorFormatado: '19.345',
-          variacao: 532.20,
-          variacaoPercent: 28.7,
+          valor: 19400.00,
+          valorFormatado: '19,400.00',
+          variacao: 156.3,
+          variacaoPercent: 0.81,
           trend: 'up'
         }
       };
@@ -350,7 +377,7 @@ function useProjetoAmericaIntegradas() {
               variacaoPercent: 0,
               volume: 0,
               vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-              dy: '0,00%',
+              dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
               statusApi: 'suspicious_price',
               nomeCompleto: cotacao.nome,
               rank: (index + 1) + '°'
@@ -462,6 +489,7 @@ export default function ProjetoAmericaPage() {
   const { dados } = useDataStore();
   const { ativosAtualizados, loading } = useProjetoAmericaIntegradas();
   const { indicesData } = useIndicesInternacionaisRealTime();
+  const isMobile = useDeviceDetection(); // ✅ ADICIONADO DETECÇÃO DE MOBILE
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
@@ -543,12 +571,12 @@ export default function ProjetoAmericaPage() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '16px' : '24px' // ✅ PADDING RESPONSIVO
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      {/* Header Responsivo */}
+      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', // ✅ TAMANHO RESPONSIVO
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
@@ -557,7 +585,7 @@ export default function ProjetoAmericaPage() {
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '18px',
+          fontSize: isMobile ? '16px' : '18px', // ✅ TAMANHO RESPONSIVO
           margin: '0',
           lineHeight: '1.5'
         }}>
@@ -565,23 +593,25 @@ export default function ProjetoAmericaPage() {
         </p>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Cards de Métricas Responsivos */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '12px',
+        gridTemplateColumns: isMobile 
+          ? 'repeat(auto-fit, minmax(140px, 1fr))'  // ✅ GRID RESPONSIVO
+          : 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: isMobile ? '8px' : '12px', // ✅ GAP RESPONSIVO
         marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px', // ✅ PADDING RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px', // ✅ FONTE RESPONSIVA
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -589,12 +619,12 @@ export default function ProjetoAmericaPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px', // ✅ FONTE RESPONSIVA
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {formatPercentage(metricas.rentabilidadeTotal)}
+            {loading ? '...' : formatPercentage(metricas.rentabilidadeTotal)}
           </div>
         </div>
 
@@ -602,12 +632,12 @@ export default function ProjetoAmericaPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -615,12 +645,12 @@ export default function ProjetoAmericaPage() {
             DY médio 12M
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {metricas.dyMedio.toFixed(1)}%
+            {loading ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
           </div>
         </div>
 
@@ -628,12 +658,12 @@ export default function ProjetoAmericaPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -641,21 +671,21 @@ export default function ProjetoAmericaPage() {
             S&P 500
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {indicesData?.sp500?.valorFormatado || '5.845'}
+            {indicesData?.sp500?.valorFormatado || '5,970.80'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
             color: indicesData?.sp500?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {indicesData?.sp500 ? formatPercentage(indicesData.sp500.variacaoPercent) : '+25.13%'}
+            {indicesData?.sp500 ? formatPercentage(indicesData.sp500.variacaoPercent) : '+0.59%'}
           </div>
         </div>
 
@@ -663,12 +693,12 @@ export default function ProjetoAmericaPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -676,21 +706,21 @@ export default function ProjetoAmericaPage() {
             NASDAQ 100
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {indicesData?.nasdaq?.valorFormatado || '19.345'}
+            {indicesData?.nasdaq?.valorFormatado || '19,400.00'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
             color: indicesData?.nasdaq?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+28.7%'}
+            {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+0.81%'}
           </div>
         </div>
 
@@ -698,12 +728,12 @@ export default function ProjetoAmericaPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -711,17 +741,17 @@ export default function ProjetoAmericaPage() {
             Total de ativos
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {metricas.quantidadeAtivos}
+            {loading ? '...' : metricas.quantidadeAtivos}
           </div>
         </div>
       </div>
 
-      {/* Tabela de Ativos */}
+      {/* Tabela de Ativos Responsiva */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -731,129 +761,142 @@ export default function ProjetoAmericaPage() {
         marginBottom: '32px'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            margin: '0 0 8px 0'
+            margin: '0 0 8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
            Projeto América • Performance Individual
+           {loading && (
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            )}
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {ativosAtualizados.length} ativos
+            {loading ? 'Carregando...' : `${ativosAtualizados.length} ativos`}
           </p>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f1f5f9' }}>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px', width: '60px' }}>
-                  RANK
-                </th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px', width: '200px' }}>
-                  ATIVO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  SETOR
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ENTRADA
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO INICIAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO ATUAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO TETO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PERFORMANCE
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  VIÉS
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {ativosAtualizados.map((ativo, index) => {
-                const temCotacaoReal = ativo.statusApi === 'success';
-                
-                return (
-                  <tr 
-                    key={ativo.id || index} 
-                    style={{ 
-                      borderBottom: '1px solid #f1f5f9',
-                      transition: 'background-color 0.2s',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                      // Navegar para página de detalhes do ativo
-                      window.location.href = `/dashboard/ativo/${ativo.ticker}`;
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '800', 
-                      fontSize: '16px',
-                      color: '#1e40af'
-                    }}>
-                      {ativo.rank || (index + 1) + '°'}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Skeleton Loading */}
+        {loading && ativosAtualizados.length === 0 ? (
+          <div style={{ padding: isMobile ? '16px' : '24px' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{
+                height: isMobile ? '80px' : '60px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                animation: 'pulse 1.5s ease-in-out infinite'
+              }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            {isMobile ? (
+              // 📱 MOBILE: Cards verticais
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {ativosAtualizados.map((ativo, index) => {
+                  const temCotacaoReal = ativo.statusApi === 'success';
+                  
+                  return (
+                    <div 
+                      key={ativo.id || index}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        border: '1px solid #e2e8f0',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onClick={() => {
+                        window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                      }}
+                      onTouchStart={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                      }}
+                      onTouchEnd={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                      }}
+                    >
+                      {/* Header do Card */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        {/* Posição */}
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '700',
+                          fontSize: '12px',
+                          color: '#64748b'
+                        }}>
+                          {index + 1}
+                        </div>
+
+                        {/* Logo do Ativo */}
                         <div style={{
                           width: '40px',
                           height: '40px',
                           borderRadius: '8px',
                           overflow: 'hidden',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#ffffff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          border: '1px solid #e2e8f0'
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                          padding: '4px'
                         }}>
                           <img 
                             src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
                             alt={`Logo ${ativo.ticker}`}
                             style={{
-                              width: '32px',
-                              height: '32px',
-                              objectFit: 'contain'
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              borderRadius: '2px'
                             }}
                             onError={(e) => {
-                              // Fallback para ícone com iniciais se a imagem não carregar
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                               const parent = target.parentElement;
                               if (parent) {
                                 parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
-                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#dc2626';
                                 parent.style.fontWeight = '700';
-                                parent.style.fontSize = '14px';
-                                parent.textContent = ativo.ticker.slice(0, 2);
+                                parent.style.fontSize = '12px';
+                                parent.style.letterSpacing = '0.5px';
+                                parent.textContent = ativo.ticker.slice(0, 2).toUpperCase();
                               }
                             }}
                           />
                         </div>
-                        <div>
+
+                        {/* Nome e Setor */}
+                        <div style={{ flex: '1' }}>
                           <div style={{ 
                             fontWeight: '700', 
                             color: '#1e293b', 
@@ -863,67 +906,265 @@ export default function ProjetoAmericaPage() {
                             {!temCotacaoReal && (
                               <span style={{ 
                                 marginLeft: '8px', 
-                                fontSize: '12px', 
+                                fontSize: '10px', 
                                 color: '#f59e0b',
                                 backgroundColor: '#fef3c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
+                                padding: '2px 4px',
+                                borderRadius: '3px'
                               }}>
                                 SIM
                               </span>
                             )}
                           </div>
-                          <div style={{ color: '#64748b', fontSize: '14px' }}>
-                            {ativo.nomeCompleto || 'N/A'}
+                          <div style={{ color: '#64748b', fontSize: '12px' }}>
+                            {ativo.setor}
                           </div>
                         </div>
+
+                        {/* Viés */}
+                        <div style={{
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                        }}>
+                          {ativo.vies}
+                        </div>
                       </div>
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                      {ativo.setor}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                      {ativo.dataEntrada}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
-                      {formatCurrency(ativo.precoEntrada)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
-                      {formatCurrency(ativo.precoAtual)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
-                      {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
-                    </td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '800',
-                      fontSize: '16px',
-                      color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
-                    }}>
-                      {formatPercentage(ativo.performance)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
-                        color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                      
+                      {/* Dados em Grid */}
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '8px', 
+                        fontSize: '14px',
+                        marginBottom: '12px'
                       }}>
-                        {ativo.vies}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                          <span style={{ fontWeight: '600', color: '#1e293b' }}>{ativo.dataEntrada}</span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {ativo.dy}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {formatCurrency(ativo.precoAtual)}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Teto:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Performance em destaque */}
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '8px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                          Performance
+                        </div>
+                        <div style={{ 
+                          fontSize: '18px', 
+                          fontWeight: '800',
+                          color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
+                        }}>
+                          {formatPercentage(ativo.performance)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // 🖥️ DESKTOP: Tabela completa
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px', width: '60px' }}>
+                        RANK
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px', width: '200px' }}>
+                        ATIVO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        SETOR
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ENTRADA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO INICIAL
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO ATUAL
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO TETO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PERFORMANCE
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        VIÉS
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ativosAtualizados.map((ativo, index) => {
+                      const temCotacaoReal = ativo.statusApi === 'success';
+                      
+                      return (
+                        <tr 
+                          key={ativo.id || index} 
+                          style={{ 
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background-color 0.2s',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => {
+                            window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f8fafc';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            fontWeight: '800', 
+                            fontSize: '16px',
+                            color: '#1e40af'
+                          }}>
+                            {ativo.rank || (index + 1) + '°'}
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                backgroundColor: '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #e2e8f0'
+                              }}>
+                                <img 
+                                  src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
+                                  alt={`Logo ${ativo.ticker}`}
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    objectFit: 'contain'
+                                  }}
+                                  onError={(e) => {
+                                    // Fallback para ícone com iniciais se a imagem não carregar
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                      parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
+                                      parent.style.fontWeight = '700';
+                                      parent.style.fontSize = '14px';
+                                      parent.textContent = ativo.ticker.slice(0, 2);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <div style={{ 
+                                  fontWeight: '700', 
+                                  color: '#1e293b', 
+                                  fontSize: '16px'
+                                }}>
+                                  {ativo.ticker}
+                                  {!temCotacaoReal && (
+                                    <span style={{ 
+                                      marginLeft: '8px', 
+                                      fontSize: '12px', 
+                                      color: '#f59e0b',
+                                      backgroundColor: '#fef3c7',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      SIM
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                  {ativo.nomeCompleto || 'N/A'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {ativo.setor}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {ativo.dataEntrada}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
+                            {formatCurrency(ativo.precoEntrada)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
+                            {formatCurrency(ativo.precoAtual)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
+                            {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            fontWeight: '800',
+                            fontSize: '16px',
+                            color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
+                          }}>
+                            {formatPercentage(ativo.performance)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                              color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                            }}>
+                              {ativo.vies}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Gráfico de Composição por Setor */}
+      {/* Gráfico de Composição por Setor Responsivo */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -932,12 +1173,12 @@ export default function ProjetoAmericaPage() {
         overflow: 'hidden'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -946,16 +1187,26 @@ export default function ProjetoAmericaPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
             Distribuição setorial da carteira • {ativosAtualizados.length} ativos
           </p>
         </div>
 
-        <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
-          {/* Gráfico SVG */}
-          <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
+        <div style={{ 
+          padding: isMobile ? '16px' : '32px', 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row', // ✅ DIREÇÃO RESPONSIVA
+          gap: isMobile ? '16px' : '32px', 
+          alignItems: 'center' 
+        }}>
+          {/* Gráfico SVG Responsivo */}
+          <div style={{ 
+            flex: isMobile ? '1' : '0 0 400px', 
+            height: isMobile ? '300px' : '400px', // ✅ ALTURA RESPONSIVA
+            position: 'relative' 
+          }}>
             {(() => {
               // Agrupar por setor
               const setoresMap = new Map();
@@ -977,10 +1228,11 @@ export default function ProjetoAmericaPage() {
                 '#65a30d', '#ea580c', '#db2777', '#0d9488', '#dc2626'
               ];
               
-              const radius = 150;
-              const innerRadius = 75;
-              const centerX = 200;
-              const centerY = 200;
+              const chartSize = isMobile ? 300 : 400; // ✅ TAMANHO RESPONSIVO
+              const radius = isMobile ? 120 : 150; // ✅ RAIO RESPONSIVO
+              const innerRadius = isMobile ? 60 : 75; // ✅ RAIO INTERNO RESPONSIVO
+              const centerX = chartSize / 2;
+              const centerY = chartSize / 2;
               const totalAngle = 2 * Math.PI;
               let currentAngle = -Math.PI / 2; // Começar no topo
               
@@ -1001,7 +1253,12 @@ export default function ProjetoAmericaPage() {
               };
               
               return (
-                <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
+                <svg 
+                  width={chartSize} 
+                  height={chartSize} 
+                  viewBox={`0 0 ${chartSize} ${chartSize}`} 
+                  style={{ width: '100%', height: '100%' }}
+                >
                   <defs>
                     <style>
                       {`
@@ -1059,7 +1316,7 @@ export default function ProjetoAmericaPage() {
                             x={textX}
                             y={textY - 6}
                             textAnchor="middle"
-                            fontSize="10"
+                            fontSize={isMobile ? "10" : "11"} // ✅ FONTE RESPONSIVA
                             fontWeight="700"
                             fill="#ffffff"
                             style={{ 
@@ -1074,7 +1331,7 @@ export default function ProjetoAmericaPage() {
                             x={textX}
                             y={textY + 8}
                             textAnchor="middle"
-                            fontSize="10"
+                            fontSize={isMobile ? "9" : "10"} // ✅ FONTE RESPONSIVA
                             fontWeight="600"
                             fill="#ffffff"
                             style={{ 
@@ -1103,7 +1360,7 @@ export default function ProjetoAmericaPage() {
                     x={centerX}
                     y={centerY - 10}
                     textAnchor="middle"
-                    fontSize="16"
+                    fontSize={isMobile ? "14" : "16"} // ✅ FONTE RESPONSIVA
                     fontWeight="700"
                     fill="#1e293b"
                   >
@@ -1113,7 +1370,7 @@ export default function ProjetoAmericaPage() {
                     x={centerX}
                     y={centerY + 10}
                     textAnchor="middle"
-                    fontSize="12"
+                    fontSize={isMobile ? "10" : "12"} // ✅ FONTE RESPONSIVA
                     fill="#64748b"
                   >
                     SETORES
@@ -1123,8 +1380,15 @@ export default function ProjetoAmericaPage() {
             })()}
           </div>
           
-          {/* Legenda */}
-          <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+          {/* Legenda Responsiva */}
+          <div style={{ 
+            flex: '1', 
+            display: 'grid', 
+            gridTemplateColumns: isMobile 
+              ? 'repeat(auto-fit, minmax(100px, 1fr))' // ✅ GRID RESPONSIVO
+              : 'repeat(auto-fit, minmax(140px, 1fr))', 
+            gap: isMobile ? '8px' : '12px' // ✅ GAP RESPONSIVO
+          }}>
             {(() => {
               // Agrupar por setor para a legenda
               const setoresMap = new Map();
@@ -1162,7 +1426,7 @@ export default function ProjetoAmericaPage() {
                       <div style={{ 
                         fontWeight: '700', 
                         color: '#1e293b', 
-                        fontSize: '14px',
+                        fontSize: isMobile ? '12px' : '14px', // ✅ FONTE RESPONSIVA
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1171,7 +1435,7 @@ export default function ProjetoAmericaPage() {
                       </div>
                       <div style={{ 
                         color: '#64748b', 
-                        fontSize: '12px',
+                        fontSize: isMobile ? '10px' : '12px', // ✅ FONTE RESPONSIVA
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1186,6 +1450,18 @@ export default function ProjetoAmericaPage() {
           </div>
         </div>
       </div>
+
+      {/* Animações CSS */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }
