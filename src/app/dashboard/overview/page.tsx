@@ -22,7 +22,7 @@ const setCachedData = (key: string, data: any) => {
   globalCache.set(key, { data, timestamp: Date.now() });
 };
 
-// 🔥 DETECÇÃO DE DISPOSITIVO - IPAD COMO DESKTOP PARA UI
+// 🔥 DETECÇÃO DE DISPOSITIVO - DUAS ESTRATÉGIAS SEPARADAS
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -64,12 +64,58 @@ const useDeviceDetection = () => {
   return isMobile;
 };
 
+// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE
+const useApiDetection = () => {
+  const [isApiMobile, setIsApiMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
+      // - É telefone (<=768px) OU
+      // - É iPad/iPadOS (precisa da estratégia sequencial)
+      return isMobileWidth || isIpad || isIpadOS;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkApiDevice = () => {
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
+      
+      console.log('🌐 API Detection:', {
+        width: window.innerWidth,
+        isIpad,
+        isIpadOS,
+        isApiMobile: shouldBeApiMobile
+      });
+      
+      setIsApiMobile(shouldBeApiMobile);
+    };
+
+    window.addEventListener('resize', checkApiDevice);
+    checkApiDevice();
+    
+    return () => window.removeEventListener('resize', checkApiDevice);
+  }, []);
+
+  return isApiMobile;
+};
+
 // 🚀 HOOK SMLL SINCRONIZADO - ESTRATÉGIA UNIFICADA
 function useSmllRealTime() {
   const [smllData, setSmllData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
+  const isApiMobile = useApiDetection(); // 🌐 USA DETECÇÃO ESPECÍFICA PARA APIs
 
   const buscarSmllReal = React.useCallback(async () => {
     try {
@@ -87,7 +133,7 @@ function useSmllRealTime() {
       }
 
       console.log('🔍 BUSCANDO SMLL - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isApiMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
@@ -142,7 +188,7 @@ function useSmllRealTime() {
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosSmllObtidos && isMobile) {
+      if (!dadosSmllObtidos && isApiMobile) {
         console.log('📱 SMLL: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -1112,7 +1158,7 @@ function useSmallCapsIntegradas() {
       setTodosOsDadosProntos(false);
       const tickers = smallCapsData.map(ativo => ativo.ticker);
       
-      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA - ESTRATÉGIA MOBILE UNIVERSAL...');
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA...');
       
       // 🔄 RESET DOS ESTADOS
       setCotacoesCompletas(new Map());
