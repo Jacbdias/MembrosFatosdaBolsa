@@ -22,22 +22,67 @@ const setCachedData = (key: string, data: any) => {
   globalCache.set(key, { data, timestamp: Date.now() });
 };
 
-// 🔥 DETECÇÃO DE DISPOSITIVO SIMPLIFICADA E OTIMIZADA
+// 🔥 DETECÇÃO DE DISPOSITIVO MELHORADA - IPAD COMO MOBILE
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth <= 768;
+      // 🎯 DETECTAR IPAD ESPECIFICAMENTE
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      // 📱 LARGURA MÓVEL TRADICIONAL
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      // 📱 TABLET EM PORTRAIT (mais próximo do mobile)
+      const isTabletPortrait = window.innerWidth <= 1024 && window.innerHeight > window.innerWidth;
+      
+      // ✅ CONSIDERA MOBILE SE:
+      // - Largura <= 768px OU
+      // - É iPad/iPadOS OU  
+      // - É tablet em portrait
+      return isMobileWidth || isIpad || isIpadOS || isTabletPortrait;
     }
     return false;
   });
 
   React.useEffect(() => {
     const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // 🎯 MESMA LÓGICA DO ESTADO INICIAL
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      const isMobileWidth = window.innerWidth <= 768;
+      const isTabletPortrait = window.innerWidth <= 1024 && window.innerHeight > window.innerWidth;
+      
+      const shouldBeMobile = isMobileWidth || isIpad || isIpadOS || isTabletPortrait;
+      
+      console.log('📱 Device Detection:', {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        isIpad,
+        isIpadOS,
+        isMobileWidth,
+        isTabletPortrait,
+        shouldBeMobile,
+        userAgent: navigator.userAgent.substring(0, 50) + '...'
+      });
+      
+      setIsMobile(shouldBeMobile);
     };
 
+    // 🔄 VERIFICAR NO RESIZE E ORIENTAÇÃO
     window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
+    window.addEventListener('orientationchange', checkDevice);
+    
+    // ✅ VERIFICAÇÃO INICIAL APÓS MOUNT
+    checkDevice();
+    
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      window.removeEventListener('orientationchange', checkDevice);
+    };
   }, []);
 
   return isMobile;
@@ -117,7 +162,7 @@ function useSmllRealTime() {
           }
         }
       } catch (error) {
-        console.log('🎯❌ SMLL (Estratégia Unificada):', error.message);
+        console.log('🎯❌ SMLL (Estratégia Unificada):', (error as Error).message);
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
@@ -160,7 +205,7 @@ function useSmllRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ SMLL (Fallback 1):', error.message);
+            console.log('📱❌ SMLL (Fallback 1):', (error as Error).message);
           }
         }
 
@@ -199,7 +244,7 @@ function useSmllRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ SMLL (Fallback 2):', error.message);
+            console.log('📱❌ SMLL (Fallback 2):', (error as Error).message);
           }
         }
       }
@@ -339,7 +384,7 @@ function useIbovespaRealTime() {
           }
         }
       } catch (error) {
-        console.log('🎯❌ IBOV (Estratégia Unificada):', error.message);
+        console.log('🎯❌ IBOV (Estratégia Unificada):', (error as Error).message);
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
@@ -379,7 +424,7 @@ function useIbovespaRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ IBOV (Fallback 1):', error.message);
+            console.log('📱❌ IBOV (Fallback 1):', (error as Error).message);
           }
         }
 
@@ -415,7 +460,7 @@ function useIbovespaRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ IBOV (Fallback 2):', error.message);
+            console.log('📱❌ IBOV (Fallback 2):', (error as Error).message);
           }
         }
       }
@@ -482,14 +527,6 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
       if (!ativosAtualizados || ativosAtualizados.length === 0) return;
-
-      // ❌ REMOVER CACHE PARA DEPURAR
-      // const cacheKey = 'ibovespa_periodo';
-      // const cached = getCachedData(cacheKey);
-      // if (cached) {
-      //   setIbovespaPeriodo(cached);
-      //   return;
-      // }
 
       try {
         setLoading(true);
@@ -667,7 +704,6 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
           performance: performancePeriodo.toFixed(2) + '%'
         });
 
-        // setCachedData(cacheKey, resultado); ← CACHE DESABILITADO TEMPORARIAMENTE
         setIbovespaPeriodo(resultado);
 
       } catch (error) {
@@ -706,112 +742,129 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
 }
 
-// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES EM PARALELO
+// 🚀 FUNÇÃO CORRIGIDA - ESTRATÉGIA MOBILE UNIVERSAL (igual ao código FIIs)
 async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  if (!isMobile) {
-    // Desktop: busca em lote (mais eficiente)
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'SmallCaps-Desktop-Optimized'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        data.results?.forEach((quote: any) => {
-          if (quote.regularMarketPrice > 0) {
-            cotacoesMap.set(quote.symbol, {
-              precoAtual: quote.regularMarketPrice,
-              variacao: quote.regularMarketChange || 0,
-              variacaoPercent: quote.regularMarketChangePercent || 0,
-              volume: quote.regularMarketVolume || 0,
-              nome: quote.shortName || quote.longName || quote.symbol,
-              dadosCompletos: quote
-            });
+  console.log('🚀 [COTAÇÕES] Forçando estratégia mobile para todos os dispositivos');
+  
+  // ✅ SEMPRE USAR ESTRATÉGIA MOBILE (que funciona perfeitamente)
+  // 📱 ESTRATÉGIA MOBILE PARA TODOS OS DISPOSITIVOS (SEQUENCIAL - mais confiável)
+  
+  console.log('📱 [UNIVERSAL] Usando estratégia mobile para', tickers.length, 'tickers');
+  
+  for (const ticker of tickers) {
+    let cotacaoObtida = false;
+    
+    // ESTRATÉGIA 1: User-Agent Desktop
+    if (!cotacaoObtida) {
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 1 - User-Agent Desktop`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
           }
         });
-      }
-    } catch (error) {
-      console.log('Erro na busca em lote desktop:', error);
-    }
-    
-    return cotacoesMap;
-  }
-
-  // Mobile: busca em paralelo (máximo 2 tentativas por ativo)
-  const buscarCotacaoAtivo = async (ticker: string) => {
-    const tentativas = [
-      // Tentativa 1: User-Agent Desktop
-      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }),
-      // Tentativa 2: Sem User-Agent
-      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      })
-    ];
-
-    for (const tentativa of tentativas) {
-      try {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 3000); // Timeout reduzido
-        
-        const response = await Promise.race([
-          tentativa,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-        ]) as Response;
 
         if (response.ok) {
           const data = await response.json();
           if (data.results?.[0]?.regularMarketPrice > 0) {
             const quote = data.results[0];
-            return {
-              ticker,
-              cotacao: {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || ticker,
-                dadosCompletos: quote
-              }
-            };
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+            cotacaoObtida = true;
           }
         }
       } catch (error) {
-        // Continua para próxima tentativa
+        console.log(`📱❌ [${ticker}] (Desktop UA): ${(error as Error).message}`);
       }
     }
     
-    return { ticker, cotacao: null };
-  };
+    // ESTRATÉGIA 2: Sem User-Agent
+    if (!cotacaoObtida) {
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 2 - Sem User-Agent`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
 
-  // Executar todas as buscas em paralelo
-  const resultados = await Promise.allSettled(
-    tickers.map(ticker => buscarCotacaoAtivo(ticker))
-  );
-
-  // Processar resultados
-  resultados.forEach((resultado) => {
-    if (resultado.status === 'fulfilled' && resultado.value.cotacao) {
-      cotacoesMap.set(resultado.value.ticker, resultado.value.cotacao);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+            cotacaoObtida = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [${ticker}] (Sem UA): ${(error as Error).message}`);
+      }
     }
-  });
+    
+    // ESTRATÉGIA 3: URL simplificada
+    if (!cotacaoObtida) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      try {
+        console.log(`📱🔄 [${ticker}] Tentativa 3 - URL simplificada`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+          method: 'GET',
+          mode: 'cors'
+        });
 
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            cotacoesMap.set(ticker, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote
+            });
+            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
+            cotacaoObtida = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [${ticker}] (URL simples): ${(error as Error).message}`);
+      }
+    }
+    
+    if (!cotacaoObtida) {
+      console.log(`📱⚠️ [${ticker}]: Todas as estratégias falharam`);
+    }
+    
+    // ⭐ DELAY CRUCIAL: previne rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  console.log('📱 [UNIVERSAL] Resultado final:', cotacoesMap.size, 'de', tickers.length);
   return cotacoesMap;
 }
 
@@ -857,7 +910,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${(error as Error).message}`);
         }
       }
       
@@ -888,7 +941,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${(error as Error).message}`);
         }
       }
       
@@ -917,7 +970,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (URL simples): ${(error as Error).message}`);
         }
       }
       
@@ -1047,7 +1100,7 @@ function useSmallCapsIntegradas() {
           console.log(`💰 ${ativo.ticker}: Erro HTTP ${response.status}`);
         }
       } catch (error) {
-        console.log(`💰 ${ativo.ticker}: Erro -`, error.message);
+        console.log(`💰 ${ativo.ticker}: Erro -`, (error as Error).message);
       }
       
       return { ticker: ativo.ticker, valor: 0 };
@@ -1083,7 +1136,7 @@ function useSmallCapsIntegradas() {
       setTodosOsDadosProntos(false);
       const tickers = smallCapsData.map(ativo => ativo.ticker);
       
-      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA...');
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA - ESTRATÉGIA MOBILE UNIVERSAL...');
       
       // 🔄 RESET DOS ESTADOS
       setCotacoesCompletas(new Map());
@@ -1369,7 +1422,7 @@ export default function SmallCapsPage() {
           color: '#1e293b',
           margin: '0 0 8px 0'
         }}>
-          Carteira de Small Caps
+          Carteira de Small Caps - Estratégia Mobile Universal
         </h1>
         <p style={{ 
           color: '#64748b', 
@@ -1866,24 +1919,24 @@ export default function SmallCapsPage() {
                           }}
                         >
                           {/* Posição */}
-<td style={{ padding: '16px', textAlign: 'center' }}>
-  <div style={{
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    backgroundColor: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '700',
-    fontSize: '14px',
-    color: '#64748b',
-    margin: '0 auto'
-  }}>
-    {ativo.posicaoExibicao}
-  </div>
-</td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '700',
+                              fontSize: '14px',
+                              color: '#64748b',
+                              margin: '0 auto'
+                            }}>
+                              {ativo.posicaoExibicao}
+                            </div>
+                          </td>
                           {/* Ativo */}
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
