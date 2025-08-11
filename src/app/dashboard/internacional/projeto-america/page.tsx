@@ -1036,32 +1036,6 @@ export default function ProjetoAmericaPage() {
             {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+0.81%'}
           </div>
         </div>
-
-        {/* Quantidade de Ativos */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
-            color: '#64748b', 
-            fontWeight: '500',
-            marginBottom: '8px'
-          }}>
-            Total de ativos
-          </div>
-          <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700', 
-            color: '#1e293b',
-            lineHeight: '1'
-          }}>
-            {loading ? '...' : metricas.quantidadeAtivos}
-          </div>
-        </div>
       </div>
 
       {/* Tabela de Ativos Responsiva */}
@@ -1157,14 +1131,15 @@ export default function ProjetoAmericaPage() {
                           width: '28px',
                           height: '28px',
                           borderRadius: '50%',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#ffffff',
                           border: '1px solid #e2e8f0',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: '700',
                           fontSize: '12px',
-                          color: '#64748b'
+                          color: '#64748b',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                         }}>
                           {index + 1}
                         </div>
@@ -1181,16 +1156,18 @@ export default function ProjetoAmericaPage() {
                           justifyContent: 'center',
                           border: '1px solid #e2e8f0',
                           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                          padding: '4px'
+                          padding: '4px',
+                          flexShrink: 0         // ✅ IMPEDIR QUE ENCOLHA
                         }}>
                           <img 
                             src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
                             alt={`Logo ${ativo.ticker}`}
                             style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'contain',
-                              borderRadius: '2px'
+                              width: '32px',
+                              height: '32px',
+                              objectFit: 'cover',
+                              borderRadius: '2px',
+                              flexShrink: 0       // ✅ IMPEDIR QUE A IMAGEM ENCOLHA
                             }}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
@@ -1362,38 +1339,51 @@ export default function ProjetoAmericaPage() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          <td style={{ 
-                            padding: '16px', 
-                            textAlign: 'center', 
-                            fontWeight: '800', 
-                            fontSize: '16px',
-                            color: '#1e40af'
-                          }}>
-                            {ativo.rank || (index + 1) + '°'}
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '700',
+                              fontSize: '14px',
+                              color: '#64748b',
+                              margin: '0 auto'
+                            }}>
+                              {index + 1}
+                            </div>
                           </td>
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               <div style={{
-                                width: '40px',
-                                height: '40px',
+                                width: '48px',
+                                height: '48px',
                                 borderRadius: '8px',
                                 overflow: 'hidden',
-                                backgroundColor: '#f8fafc',
+                                backgroundColor: '#ffffff',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                border: '1px solid #e2e8f0'
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                padding: '6px',
+                                flexShrink: 0         // ✅ IMPEDIR QUE ENCOLHA
                               }}>
                                 <img 
                                   src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
                                   alt={`Logo ${ativo.ticker}`}
                                   style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    objectFit: 'contain'
+                                    width: '36px',
+                                    height: '36px',
+                                    objectFit: 'cover',
+                                    borderRadius: '2px',
+                                    flexShrink: 0       // ✅ IMPEDIR QUE A IMAGEM ENCOLHA
                                   }}
                                   onError={(e) => {
-                                    // Fallback para ícone com iniciais se a imagem não carregar
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';
                                     const parent = target.parentElement;
@@ -1402,7 +1392,8 @@ export default function ProjetoAmericaPage() {
                                       parent.style.color = ativo.performance >= 0 ? '#065f46' : '#991b1b';
                                       parent.style.fontWeight = '700';
                                       parent.style.fontSize = '14px';
-                                      parent.textContent = ativo.ticker.slice(0, 2);
+                                      parent.style.letterSpacing = '0.5px';
+                                      parent.textContent = ativo.ticker.slice(0, 2).toUpperCase();
                                     }
                                   }}
                                 />
