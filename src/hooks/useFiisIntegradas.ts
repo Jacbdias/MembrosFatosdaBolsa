@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
 
-// 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS
+// 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS E EVITAR CORS
 const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
 const globalCache = new Map<string, { data: any; timestamp: number }>();
 
@@ -41,18 +41,26 @@ const useDeviceDetection = () => {
   return isMobile;
 };
 
-// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES DE FIIs EM PARALELO
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES DE FIIs EM PARALELO (CORS RESOLVIDO)
 async function buscarCotacoesFIIsParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
   console.log(`📊 Iniciando busca cotações para ${tickers.length} FIIs - Mobile: ${isMobile}`);
   
+  // ✅ VERIFICAR CACHE GLOBAL PRIMEIRO
+  const cacheKey = `cotacoes_fiis_${tickers.join(',')}_${isMobile}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) {
+    console.log('📋 FIIs Cotações: Usando cache global');
+    return new Map(Object.entries(cached));
+  }
+  
   if (!isMobile) {
     // 🖥️ DESKTOP: busca em lote (mais eficiente para FIIs)
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 6000); // Timeout maior para FIIs
+      setTimeout(() => controller.abort(), 8000); // ✅ TIMEOUT MAIOR PARA FIIs
       
       const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
         signal: controller.signal,
@@ -80,6 +88,11 @@ async function buscarCotacoesFIIsParalelas(tickers: string[], isMobile: boolean)
             console.log(`✅ [COTAÇÕES-FII-DESKTOP] ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
           }
         });
+        
+        // ✅ SALVAR NO CACHE SE OBTEVE DADOS
+        if (cotacoesMap.size > 0) {
+          setCachedData(cacheKey, Object.fromEntries(cotacoesMap));
+        }
       } else {
         console.log(`❌ [COTAÇÕES-FII-DESKTOP] Erro HTTP ${response.status}`);
       }
@@ -90,83 +103,130 @@ async function buscarCotacoesFIIsParalelas(tickers: string[], isMobile: boolean)
     return cotacoesMap;
   }
 
-  // 📱 MOBILE: busca individual com múltiplas estratégias para FIIs
+  // 📱 MOBILE: ESTRATÉGIA UNIFICADA (MESMO PADRÃO DO SMALLCAPS QUE FUNCIONA)
   const buscarCotacaoFII = async (ticker: string) => {
-    const estrategias = [
-      // Estratégia 1: User-Agent Desktop
-      {
-        nome: 'Desktop UA',
-        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        })
-      },
-      // Estratégia 2: Sem User-Agent
-      {
-        nome: 'Sem UA',
-        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+    let dadosFiiObtidos = false;
+    let dadosFii = null;
+
+    // 🎯 ESTRATÉGIA 1: DESKTOP STYLE (PRIORIDADE MÁXIMA - MESMO PARA MOBILE)
+    console.log(`📱🎯 [COTAÇÕES-FII] ${ticker}: Tentativa 1 - Estratégia Desktop (Unificada)`);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // ✅ TIMEOUT MAIOR
+      
+      const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Cache-Control': 'no-cache'
+        },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.results?.[0]?.regularMarketPrice > 0) {
+          const quote = data.results[0];
+          console.log(`📱✅ [COTAÇÕES-FII] ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Estratégia Unificada)`);
+          
+          dadosFii = {
+            precoAtual: quote.regularMarketPrice,
+            variacao: quote.regularMarketChange || 0,
+            variacaoPercent: quote.regularMarketChangePercent || 0,
+            volume: quote.regularMarketVolume || 0,
+            nome: quote.shortName || quote.longName || ticker,
+            dadosCompletos: quote,
+            fonte: 'BRAPI_UNIFIED_STRATEGY'
+          };
+          dadosFiiObtidos = true;
+        }
+      }
+    } catch (error) {
+      console.log(`📱❌ [COTAÇÕES-FII] ${ticker} (Estratégia Unificada): ${error.message}`);
+    }
+
+    // 🔄 FALLBACK 1: Sem User-Agent
+    if (!dadosFiiObtidos) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      try {
+        console.log(`📱🔄 [COTAÇÕES-FII] ${ticker}: Fallback 1 - Sem User-Agent`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
-        })
-      },
-      // Estratégia 3: URL simplificada
-      {
-        nome: 'URL Simples',
-        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
-          method: 'GET',
-          mode: 'cors'
-        })
-      }
-    ];
-
-    for (const estrategia of estrategias) {
-      try {
-        console.log(`📱🔄 [COTAÇÕES-FII] ${ticker}: Tentando ${estrategia.nome}`);
-        
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 4000);
-        
-        const response = await Promise.race([
-          estrategia.request,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-        ]) as Response;
+        });
 
         if (response.ok) {
           const data = await response.json();
           if (data.results?.[0]?.regularMarketPrice > 0) {
             const quote = data.results[0];
-            console.log(`📱✅ [COTAÇÕES-FII] ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (${estrategia.nome})`);
+            console.log(`📱✅ [COTAÇÕES-FII] ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Fallback 1)`);
             
-            return {
-              ticker,
-              cotacao: {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || ticker,
-                dadosCompletos: quote,
-                fonte: `BRAPI_MOBILE_${estrategia.nome.replace(' ', '_').toUpperCase()}`
-              }
+            dadosFii = {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote,
+              fonte: 'BRAPI_MOBILE_FALLBACK_1'
             };
+            dadosFiiObtidos = true;
           }
         }
       } catch (error) {
-        console.log(`📱❌ [COTAÇÕES-FII] ${ticker} (${estrategia.nome}): ${error.message}`);
+        console.log(`📱❌ [COTAÇÕES-FII] ${ticker} (Fallback 1): ${error.message}`);
       }
+    }
+
+    // 🔄 FALLBACK 2: URL simplificada
+    if (!dadosFiiObtidos) {
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Delay entre estratégias para o mesmo FII
-      await new Promise(resolve => setTimeout(resolve, 200));
+      try {
+        console.log(`📱🔄 [COTAÇÕES-FII] ${ticker}: Fallback 2 - URL simplificada`);
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            console.log(`📱✅ [COTAÇÕES-FII] ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (Fallback 2)`);
+            
+            dadosFii = {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || ticker,
+              dadosCompletos: quote,
+              fonte: 'BRAPI_MOBILE_FALLBACK_2'
+            };
+            dadosFiiObtidos = true;
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [COTAÇÕES-FII] ${ticker} (Fallback 2): ${error.message}`);
+      }
+    }
+
+    if (dadosFiiObtidos && dadosFii) {
+      return { ticker, cotacao: dadosFii };
     }
     
     console.log(`📱⚠️ [COTAÇÕES-FII] ${ticker}: Todas as estratégias falharam`);
     return { ticker, cotacao: null };
   };
 
-  // Executar todas as buscas sequencialmente (melhor para mobile)
+  // Executar todas as buscas sequencialmente (melhor para mobile FIIs)
   for (const ticker of tickers) {
     const resultado = await buscarCotacaoFII(ticker);
     if (resultado.cotacao) {
@@ -178,15 +238,29 @@ async function buscarCotacoesFIIsParalelas(tickers: string[], isMobile: boolean)
   }
 
   console.log(`📱📋 [COTAÇÕES-FII-MOBILE] Processados: ${cotacoesMap.size}/${tickers.length}`);
+  
+  // ✅ SALVAR NO CACHE SE OBTEVE DADOS
+  if (cotacoesMap.size > 0) {
+    setCachedData(cacheKey, Object.fromEntries(cotacoesMap));
+  }
+  
   return cotacoesMap;
 }
 
-// 🔄 FUNÇÃO PARA BUSCAR DY DE FIIs COM ESTRATÉGIA MOBILE/DESKTOP
+// 🔄 FUNÇÃO PARA BUSCAR DY DE FIIs COM ESTRATÉGIA MOBILE/DESKTOP (CORS RESOLVIDO)
 async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
   console.log(`📈 Iniciando busca DY para ${tickers.length} FIIs - Mobile: ${isMobile}`);
+  
+  // ✅ VERIFICAR CACHE GLOBAL PRIMEIRO
+  const cacheKey = `dy_fiis_${tickers.join(',')}_${isMobile}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) {
+    console.log('📋 FIIs DY: Usando cache global');
+    return new Map(Object.entries(cached));
+  }
   
   if (isMobile) {
     // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
@@ -194,43 +268,46 @@ async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean):
     
     for (const ticker of tickers) {
       let dyObtido = false;
+      let dadosDy = null;
       
-      // ESTRATÉGIA 1: User-Agent Desktop
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 1 - User-Agent Desktop`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
+      // 🎯 ESTRATÉGIA 1: DESKTOP STYLE (PRIORIDADE MÁXIMA - MESMO PARA MOBILE)
+      console.log(`📱🎯 [DY-FII] ${ticker}: Tentativa 1 - Estratégia Desktop (Unificada)`);
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // ✅ TIMEOUT MAIOR
+        
+        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
 
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Desktop UA)`);
-              dyObtido = true;
-            } else {
-              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (Desktop UA)`);
-            }
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+          
+          if (dy && dy > 0) {
+            dadosDy = `${(dy * 100).toFixed(2).replace('.', ',')}%`;
+            console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Estratégia Unificada)`);
+            dyObtido = true;
           }
-        } catch (error) {
-          console.log(`📱❌ [DY-FII] ${ticker} (Desktop UA): ${error.message}`);
         }
+      } catch (error) {
+        console.log(`📱❌ [DY-FII] ${ticker} (Estratégia Unificada): ${error.message}`);
       }
       
-      // ESTRATÉGIA 2: Sem User-Agent
+      // 🔄 FALLBACK 1: Sem User-Agent
       if (!dyObtido) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         try {
-          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          console.log(`📱🔄 [DY-FII] ${ticker}: Fallback 1 - Sem User-Agent`);
           
           const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
             method: 'GET',
@@ -244,22 +321,22 @@ async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean):
             const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
             
             if (dy && dy > 0) {
-              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Sem UA)`);
+              dadosDy = `${(dy * 100).toFixed(2).replace('.', ',')}%`;
+              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Fallback 1)`);
               dyObtido = true;
-            } else {
-              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (Sem UA)`);
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY-FII] ${ticker} (Sem UA): ${error.message}`);
+          console.log(`📱❌ [DY-FII] ${ticker} (Fallback 1): ${error.message}`);
         }
       }
       
-      // ESTRATÉGIA 3: URL simplificada
+      // 🔄 FALLBACK 2: URL simplificada
       if (!dyObtido) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         try {
-          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 3 - URL simplificada`);
+          console.log(`📱🔄 [DY-FII] ${ticker}: Fallback 2 - URL simplificada`);
           
           const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
             method: 'GET',
@@ -271,21 +348,22 @@ async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean):
             const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
             
             if (dy && dy > 0) {
-              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (URL simples)`);
+              dadosDy = `${(dy * 100).toFixed(2).replace('.', ',')}%`;
+              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Fallback 2)`);
               dyObtido = true;
-            } else {
-              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (URL simples)`);
             }
           }
         } catch (error) {
-          console.log(`📱❌ [DY-FII] ${ticker} (URL simples): ${error.message}`);
+          console.log(`📱❌ [DY-FII] ${ticker} (Fallback 2): ${error.message}`);
         }
       }
       
-      // Se ainda não obteve, manter vazio (será usado fallback do fii.dy)
-      if (!dyObtido) {
-        console.log(`📱⚠️ [DY-FII] ${ticker}: Todas as estratégias falharam, usará fallback`);
+      // Se obteve dados ou não, armazenar resultado
+      if (dyObtido && dadosDy) {
+        dyMap.set(ticker, dadosDy);
+      } else {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY-FII] ${ticker}: Todas as estratégias falharam, usando 0%`);
       }
       
       // ⭐ DELAY CRUCIAL: previne rate limiting para FIIs
@@ -300,7 +378,7 @@ async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean):
       const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout maior para FIIs
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // ✅ TIMEOUT MAIOR PARA FIIs
       
       const response = await fetch(url, {
         method: 'GET',
@@ -325,20 +403,31 @@ async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean):
             dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
             console.log(`✅ [DY-FII-DESKTOP] ${ticker}: ${(dy * 100).toFixed(2)}%`);
           } else {
+            dyMap.set(ticker, '0,00%');
             console.log(`❌ [DY-FII-DESKTOP] ${ticker}: DY não encontrado`);
           }
         });
         
       } else {
         console.log(`❌ [DY-FII-DESKTOP] Erro HTTP ${response.status}`);
+        // Fallback: definir 0% para todos
+        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
       }
       
     } catch (error) {
       console.error(`❌ [DY-FII-DESKTOP] Erro geral:`, error);
+      // Fallback: definir 0% para todos
+      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
     }
   }
   
   console.log(`📋 [DY-FII] Resultado final: ${dyMap.size} tickers processados`);
+  
+  // ✅ SALVAR NO CACHE
+  if (dyMap.size > 0) {
+    setCachedData(cacheKey, Object.fromEntries(dyMap));
+  }
+  
   return dyMap;
 }
 
