@@ -157,15 +157,16 @@ function useIndicesInternacionaisRealTime() {
 
 // 🔥 FUNÇÃO PARA CALCULAR O VIÉS AUTOMATICAMENTE
 function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: string): string {
+  // 🎯 PARA ETFs INTERNACIONAIS: Se não há preço teto, sempre COMPRA
   if (!precoTeto || precoAtual === 'N/A') {
-    return 'Aguardar';
+    return 'Compra'; // ✅ MUDANÇA: Era 'Aguardar', agora é 'Compra'
   }
   
   // Remover formatação e converter para números
   const precoAtualNum = parseFloat(precoAtual.replace('US$', '').replace(',', '.'));
   
   if (isNaN(precoAtualNum)) {
-    return 'Aguardar';
+    return 'Compra'; // ✅ MUDANÇA: Era 'Aguardar', agora é 'Compra'
   }
   
   // 🎯 LÓGICA PARA ETFs: Se preço atual está pelo menos 5% abaixo do teto, é COMPRA
