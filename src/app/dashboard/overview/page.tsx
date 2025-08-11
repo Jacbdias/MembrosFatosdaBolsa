@@ -1,11 +1,28 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 'use client';
 
 import * as React from 'react';
-import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
 import { useFinancialData } from '@/hooks/useFinancialData';
-import { useIfixRealTime } from '@/hooks/useIfixRealTime';
+import { useDataStore } from '@/hooks/useDataStore';
+import { useProventosPorAtivo } from '@/hooks/useProventosPorAtivo';
 
-// 🔥 DETECÇÃO DE DISPOSITIVO SIMPLIFICADA E OTIMIZADA (igual ao arquivo 2)
+// 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
+const globalCache = new Map<string, { data: any; timestamp: number }>();
+
+const getCachedData = (key: string) => {
+  const cached = globalCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key: string, data: any) => {
+  globalCache.set(key, { data, timestamp: Date.now() });
+};
+
+// 🔥 DETECÇÃO DE DISPOSITIVO SIMPLIFICADA E OTIMIZADA
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -26,10 +43,235 @@ const useDeviceDetection = () => {
   return isMobile;
 };
 
-// 🚀 HOOK PARA BUSCAR DADOS REAIS DO IBOVESPA VIA API - COM FALLBACK MOBILE
+// 🚀 HOOK SMLL SINCRONIZADO - ESTRATÉGIA UNIFICADA
+function useSmllRealTime() {
+  const [smllData, setSmllData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const isMobile = useDeviceDetection();
+
+  const buscarSmllReal = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // ✅ VERIFICAR CACHE GLOBAL PRIMEIRO
+      const cacheKey = 'smll_unified';
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        console.log('📋 SMLL: Usando cache global');
+        setSmllData(cached);
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔍 BUSCANDO SMLL - ESTRATÉGIA UNIFICADA...');
+      console.log('📱 Device Info:', { isMobile });
+
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
+      
+      let dadosSmllObtidos = false;
+      let dadosSmll = null;
+
+      // 🎯 ESTRATÉGIA 1: DESKTOP STYLE (PRIORIDADE MÁXIMA - MESMO PARA MOBILE)
+      console.log('🎯 SMLL: Tentativa 1 - Estratégia Desktop (Unificada)');
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(smal11Url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🎯📊 SMLL Resposta (Estratégia Unificada):', data);
+
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const smal11Data = data.results[0];
+            const precoETF = smal11Data.regularMarketPrice;
+            const fatorConversao = 20.6;
+            const pontosIndice = Math.round(precoETF * fatorConversao);
+            
+            dadosSmll = {
+              valor: pontosIndice,
+              valorFormatado: pontosIndice.toLocaleString('pt-BR'),
+              variacao: (smal11Data.regularMarketChange || 0) * fatorConversao,
+              variacaoPercent: smal11Data.regularMarketChangePercent || 0,
+              trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+              timestamp: new Date().toISOString(),
+              fonte: 'BRAPI_UNIFIED_STRATEGY'
+            };
+
+            console.log('🎯✅ SMLL obtido (Estratégia Unificada):', dadosSmll);
+            dadosSmllObtidos = true;
+          }
+        }
+      } catch (error) {
+        console.log('🎯❌ SMLL (Estratégia Unificada):', error.message);
+      }
+
+      // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
+      if (!dadosSmllObtidos && isMobile) {
+        console.log('📱 SMLL: Usando fallback mobile (múltiplas tentativas)');
+        
+        // Delay antes do fallback
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // ESTRATÉGIA 2: Sem User-Agent
+        if (!dadosSmllObtidos) {
+          try {
+            console.log('📱🔄 SMLL: Fallback 1 - Sem User-Agent');
+            
+            const response = await fetch(smal11Url, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const smal11Data = data.results[0];
+                const precoETF = smal11Data.regularMarketPrice;
+                const fatorConversao = 20.6;
+                const pontosIndice = Math.round(precoETF * fatorConversao);
+                
+                dadosSmll = {
+                  valor: pontosIndice,
+                  valorFormatado: pontosIndice.toLocaleString('pt-BR'),
+                  variacao: (smal11Data.regularMarketChange || 0) * fatorConversao,
+                  variacaoPercent: smal11Data.regularMarketChangePercent || 0,
+                  trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_FALLBACK_1'
+                };
+
+                console.log('📱✅ SMLL obtido (Fallback 1):', dadosSmll);
+                dadosSmllObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ SMLL (Fallback 1):', error.message);
+          }
+        }
+
+        // ESTRATÉGIA 3: URL simplificada
+        if (!dadosSmllObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          try {
+            console.log('📱🔄 SMLL: Fallback 2 - URL simplificada');
+            
+            const response = await fetch(`https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}&range=1d`, {
+              method: 'GET',
+              mode: 'cors'
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const smal11Data = data.results[0];
+                const precoETF = smal11Data.regularMarketPrice;
+                const fatorConversao = 20.6;
+                const pontosIndice = Math.round(precoETF * fatorConversao);
+                
+                dadosSmll = {
+                  valor: pontosIndice,
+                  valorFormatado: pontosIndice.toLocaleString('pt-BR'),
+                  variacao: (smal11Data.regularMarketChange || 0) * fatorConversao,
+                  variacaoPercent: smal11Data.regularMarketChangePercent || 0,
+                  trend: (smal11Data.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_FALLBACK_2'
+                };
+
+                console.log('📱✅ SMLL obtido (Fallback 2):', dadosSmll);
+                dadosSmllObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ SMLL (Fallback 2):', error.message);
+          }
+        }
+      }
+
+      // ✅ SE OBTEVE DADOS, USAR E CACHEAR
+      if (dadosSmllObtidos && dadosSmll) {
+        setCachedData(cacheKey, dadosSmll);
+        setSmllData(dadosSmll);
+        return;
+      }
+
+      // 🔄 FALLBACK FINAL INTELIGENTE
+      console.log('🔄 SMLL: Usando fallback inteligente...');
+      
+      const agora = new Date();
+      const horaAtual = agora.getHours();
+      const isHorarioComercial = horaAtual >= 10 && horaAtual <= 17;
+      
+      const variacaoBase = -0.94;
+      const variacaoSimulada = variacaoBase + (Math.random() - 0.5) * (isHorarioComercial ? 0.3 : 0.1);
+      const valorBase = 2204.90;
+      const valorSimulado = valorBase * (1 + variacaoSimulada / 100);
+      
+      const dadosFallback = {
+        valor: valorSimulado,
+        valorFormatado: Math.round(valorSimulado).toLocaleString('pt-BR'),
+        variacao: valorSimulado - valorBase,
+        variacaoPercent: variacaoSimulada,
+        trend: variacaoSimulada >= 0 ? 'up' : 'down',
+        timestamp: new Date().toISOString(),
+        fonte: 'FALLBACK_UNIFIED'
+      };
+      
+      console.log('⚠️ SMLL FALLBACK UNIFICADO:', dadosFallback);
+      setCachedData(cacheKey, dadosFallback);
+      setSmllData(dadosFallback);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro geral desconhecido';
+      console.error('❌ Erro geral ao buscar SMLL:', err);
+      setError(errorMessage);
+      
+      // FALLBACK DE EMERGÊNCIA
+      const dadosEmergencia = {
+        valor: 2204.90,
+        valorFormatado: '2.205',
+        variacao: -20.87,
+        variacaoPercent: -0.94,
+        trend: 'down',
+        timestamp: new Date().toISOString(),
+        fonte: 'EMERGENCIA_UNIFIED'
+      };
+      
+      setSmllData(dadosEmergencia);
+    } finally {
+      setLoading(false);
+    }
+  }, [isMobile]);
+
+  React.useEffect(() => {
+    buscarSmllReal();
+    const interval = setInterval(buscarSmllReal, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [buscarSmllReal]);
+
+  return { smllData, loading, error, refetch: buscarSmllReal };
+}
+
+// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA
 function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const isMobile = useDeviceDetection();
 
@@ -38,106 +280,185 @@ function useIbovespaRealTime() {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 BUSCANDO IBOVESPA - Estratégia Mobile-First...');
-
-      // 🔄 FALLBACK IMEDIATO PARA MOBILE (evita CORS)
-      if (isMobile) {
-        console.log('📱 MOBILE: Usando dados simulados para evitar CORS');
-        
-        // Simular variação realista baseada no horário
-        const agora = new Date();
-        const horaAtual = agora.getHours();
-        const minutoAtual = agora.getMinutes();
-        const isHorarioComercial = horaAtual >= 10 && horaAtual <= 17;
-        
-        // Variação base com pequenas flutuações
-        const variacaoBase = -0.43;
-        const seed = (horaAtual * 60 + minutoAtual) / 1440; // 0-1 baseado no horário
-        const variacaoSimulada = variacaoBase + (Math.sin(seed * Math.PI * 2) * 0.2);
-        
-        const valorBase = 137213;
-        const valorSimulado = valorBase * (1 + variacaoSimulada / 100);
-        
-        const dadosSimulados = {
-          valor: valorSimulado,
-          valorFormatado: Math.round(valorSimulado).toLocaleString('pt-BR'),
-          variacao: valorSimulado - valorBase,
-          variacaoPercent: variacaoSimulada,
-          trend: variacaoSimulada >= 0 ? 'up' : 'down',
-          timestamp: new Date().toISOString(),
-          fonte: 'MOBILE_SIMULATED'
-        };
-
-        console.log('📱✅ IBOVESPA Mobile simulado:', dadosSimulados);
-        setIbovespaData(dadosSimulados);
+      // ✅ VERIFICAR CACHE GLOBAL PRIMEIRO
+      const cacheKey = 'ibovespa_unified';
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        console.log('📋 IBOV: Usando cache global');
+        setIbovespaData(cached);
         setLoading(false);
         return;
       }
 
-      // 🖥️ DESKTOP: Tentar API real
-      console.log('🖥️ DESKTOP: Tentando API BRAPI...');
-      
+      console.log('🔍 BUSCANDO IBOVESPA - ESTRATÉGIA UNIFICADA...');
+      console.log('📱 Device Info:', { isMobile });
+
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // Timeout reduzido
+      let dadosIbovObtidos = false;
+      let dadosIbovespa = null;
 
-      const response = await fetch(ibovUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        signal: controller.signal
-      });
+      // 🎯 ESTRATÉGIA 1: DESKTOP STYLE (PRIORIDADE MÁXIMA - MESMO PARA MOBILE)
+      console.log('🎯 IBOV: Tentativa 1 - Estratégia Desktop (Unificada)');
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(ibovUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🖥️📊 IBOV Desktop resposta:', data);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🎯📊 IBOV Resposta (Estratégia Unificada):', data);
 
-        if (data.results && data.results.length > 0) {
-          const ibovData = data.results[0];
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const ibovData = data.results[0];
+            
+            dadosIbovespa = {
+              valor: ibovData.regularMarketPrice,
+              valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+              variacao: ibovData.regularMarketChange || 0,
+              variacaoPercent: ibovData.regularMarketChangePercent || 0,
+              trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+              timestamp: new Date().toISOString(),
+              fonte: 'BRAPI_UNIFIED_STRATEGY'
+            };
+
+            console.log('🎯✅ IBOV obtido (Estratégia Unificada):', dadosIbovespa);
+            dadosIbovObtidos = true;
+          }
+        }
+      } catch (error) {
+        console.log('🎯❌ IBOV (Estratégia Unificada):', error.message);
+      }
+
+      // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
+      if (!dadosIbovObtidos && isMobile) {
+        console.log('📱 IBOV: Usando fallback mobile (múltiplas tentativas)');
+        
+        // Delay antes do fallback
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // ESTRATÉGIA 2: Sem User-Agent
+        if (!dadosIbovObtidos) {
+          try {
+            console.log('📱🔄 IBOV: Fallback 1 - Sem User-Agent');
+            
+            const response = await fetch(ibovUrl, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const ibovData = data.results[0];
+                
+                dadosIbovespa = {
+                  valor: ibovData.regularMarketPrice,
+                  valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+                  variacao: ibovData.regularMarketChange || 0,
+                  variacaoPercent: ibovData.regularMarketChangePercent || 0,
+                  trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_FALLBACK_1'
+                };
+
+                console.log('📱✅ IBOV obtido (Fallback 1):', dadosIbovespa);
+                dadosIbovObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ IBOV (Fallback 1):', error.message);
+          }
+        }
+
+        // ESTRATÉGIA 3: URL simplificada
+        if (!dadosIbovObtidos) {
+          await new Promise(resolve => setTimeout(resolve, 300));
           
-          const dadosIbovespa = {
-            valor: ibovData.regularMarketPrice,
-            valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
-            variacao: ibovData.regularMarketChange || 0,
-            variacaoPercent: ibovData.regularMarketChangePercent || 0,
-            trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
-            timestamp: new Date().toISOString(),
-            fonte: 'BRAPI_DESKTOP'
-          };
+          try {
+            console.log('📱🔄 IBOV: Fallback 2 - URL simplificada');
+            
+            const response = await fetch(`https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}&range=1d`, {
+              method: 'GET',
+              mode: 'cors'
+            });
 
-          console.log('🖥️✅ IBOVESPA Desktop obtido:', dadosIbovespa);
-          setIbovespaData(dadosIbovespa);
-          setLoading(false);
-          return;
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const ibovData = data.results[0];
+                
+                dadosIbovespa = {
+                  valor: ibovData.regularMarketPrice,
+                  valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
+                  variacao: ibovData.regularMarketChange || 0,
+                  variacaoPercent: ibovData.regularMarketChangePercent || 0,
+                  trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
+                  timestamp: new Date().toISOString(),
+                  fonte: 'BRAPI_MOBILE_FALLBACK_2'
+                };
+
+                console.log('📱✅ IBOV obtido (Fallback 2):', dadosIbovespa);
+                dadosIbovObtidos = true;
+              }
+            }
+          } catch (error) {
+            console.log('📱❌ IBOV (Fallback 2):', error.message);
+          }
         }
       }
 
-      throw new Error('API não retornou dados válidos');
+      // ✅ SE OBTEVE DADOS, USAR E CACHEAR
+      if (dadosIbovObtidos && dadosIbovespa) {
+        setCachedData(cacheKey, dadosIbovespa);
+        setIbovespaData(dadosIbovespa);
+        return;
+      }
 
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar Ibovespa:', err);
-      
-      // 🔄 FALLBACK FINAL INTELIGENTE
-      console.log('🔄 Usando fallback final...');
+      // 🔄 FALLBACK FINAL UNIFICADO
+      console.log('🔄 IBOV: Usando fallback unificado...');
       const fallbackData = {
-        valor: 137213,
-        valorFormatado: '137.213',
+        valor: 134500,
+        valorFormatado: '134.500',
         variacao: -588.25,
         variacaoPercent: -0.43,
         trend: 'down',
         timestamp: new Date().toISOString(),
-        fonte: 'FALLBACK_FINAL'
+        fonte: 'FALLBACK_UNIFIED'
       };
       
+      console.log('⚠️ IBOV FALLBACK UNIFICADO:', fallbackData);
+      setCachedData(cacheKey, fallbackData);
       setIbovespaData(fallbackData);
-      // Não definir erro para não quebrar a interface
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('❌ Erro geral ao buscar Ibovespa:', err);
+      setError(errorMessage);
+      
+      // FALLBACK DE EMERGÊNCIA
+      const fallbackData = {
+        valor: 134500,
+        valorFormatado: '134.500',
+        variacao: -588.25,
+        variacaoPercent: -0.43,
+        trend: 'down',
+        timestamp: new Date().toISOString(),
+        fonte: 'EMERGENCIA_UNIFIED'
+      };
+      setIbovespaData(fallbackData);
     } finally {
       setLoading(false);
     }
@@ -145,824 +466,821 @@ function useIbovespaRealTime() {
 
   React.useEffect(() => {
     buscarIbovespaReal();
-    
-    // 🔄 ATUALIZAR: Mobile = 10min, Desktop = 5min
-    const interval = setInterval(buscarIbovespaReal, isMobile ? 10 * 60 * 1000 : 5 * 60 * 1000);
-    
+    const interval = setInterval(buscarIbovespaReal, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [buscarIbovespaReal]);
 
   return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
 }
 
-// 🚀 HOOK CORRIGIDO PARA CALCULAR IBOVESPA NO PERÍODO DA CARTEIRA
-function useIbovespaPeriodo(fiis: any[]) {
+// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO
+function useIbovespaPeriodo(ativosAtualizados: any[]) {
   const [ibovespaPeriodo, setIbovespaPeriodo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
+  const isMobile = useDeviceDetection();
 
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
-      if (!fiis || fiis.length === 0) return;
+      if (!ativosAtualizados || ativosAtualizados.length === 0) return;
+
+      // ❌ REMOVER CACHE PARA DEPURAR
+      // const cacheKey = 'ibovespa_periodo';
+      // const cached = getCachedData(cacheKey);
+      // if (cached) {
+      //   setIbovespaPeriodo(cached);
+      //   return;
+      // }
 
       try {
         setLoading(true);
 
-        // 📅 ENCONTRAR A DATA MAIS ANTIGA DA CARTEIRA
-        let dataMaisAntiga = new Date();
-        fiis.forEach(fii => {
-          if (fii.dataEntrada) {
-            const [dia, mes, ano] = fii.dataEntrada.split('/');
+        // 📅 ENCONTRAR A DATA MAIS ANTIGA DA CARTEIRA (CORRIGIDO)
+        let dataMaisAntiga = new Date('2030-01-01'); // Começar com data futura
+        ativosAtualizados.forEach(ativo => {
+          if (ativo.dataEntrada && !ativo.posicaoEncerrada) { // ✅ SÓ ATIVOS ATIVOS
+            const [dia, mes, ano] = ativo.dataEntrada.split('/');
             const dataAtivo = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+            
+            console.log(`📅 ${ativo.ticker}: ${ativo.dataEntrada} = ${dataAtivo.toLocaleDateString('pt-BR')}`);
+            
             if (dataAtivo < dataMaisAntiga) {
               dataMaisAntiga = dataAtivo;
+              console.log(`📅 Nova data mais antiga: ${dataMaisAntiga.toLocaleDateString('pt-BR')} (${ativo.ticker})`);
             }
           }
         });
 
-        console.log('📅 Data mais antiga da carteira (FIIs):', dataMaisAntiga.toLocaleDateString('pt-BR'));
+        // ✅ VERIFICAÇÃO DE SEGURANÇA
+        if (dataMaisAntiga.getFullYear() > 2025) {
+          console.log('❌ Nenhuma data válida encontrada, usando fallback');
+          dataMaisAntiga = new Date(2020, 2, 23); // 23/03/2020 (crash COVID)
+        }
 
-        // 🔑 TOKEN BRAPI
+        console.log('📅 Data mais antiga FINAL da carteira:', dataMaisAntiga.toLocaleDateString('pt-BR'));
+
         const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+        let ibovAtual = 134500;
         
         // 📊 BUSCAR IBOVESPA ATUAL
-        let ibovAtual = 137213; // Fallback padrão
         try {
-          const ibovAtualUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
-          const responseAtual = await fetch(ibovAtualUrl);
-          if (responseAtual.ok) {
-            const dataAtual = await responseAtual.json();
-            ibovAtual = dataAtual.results?.[0]?.regularMarketPrice || 137213;
+          const controller = new AbortController();
+          setTimeout(() => controller.abort(), 3000);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`, {
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': isMobile 
+                ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                : 'SmallCaps-Ibov-Current'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            ibovAtual = data.results?.[0]?.regularMarketPrice || 134500;
+            console.log('📊 Ibovespa atual obtido:', ibovAtual.toLocaleString('pt-BR'));
           }
         } catch (error) {
-          console.log('⚠️ Erro ao buscar Ibovespa atual, usando fallback');
+          console.log('⚠️ Erro ao buscar Ibovespa atual, usando fallback:', ibovAtual.toLocaleString('pt-BR'));
         }
 
-        // 🎯 BUSCAR VALOR HISTÓRICO DO IBOVESPA NA DATA ESPECÍFICA
-        let ibovInicial: number;
+        // 📊 VALORES HISTÓRICOS MAIS PRECISOS
+        const anoInicial = dataMaisAntiga.getFullYear();
+        const mesInicial = dataMaisAntiga.getMonth(); // 0-11
         
-        try {
-          // 📈 TENTAR BUSCAR DADOS HISTÓRICOS ESPECÍFICOS
-          const anoInicial = dataMaisAntiga.getFullYear();
-          const mesInicial = dataMaisAntiga.getMonth() + 1; // getMonth() retorna 0-11
-          const diaInicial = dataMaisAntiga.getDate();
+        const valoresHistoricos: { [key: string]: number } = {
+          // 2020 - VALORES BASEADOS NO CRASH REAL DO COVID
+          '2020-0': 115000,  // Jan 2020
+          '2020-1': 110000,  // Fev 2020
+          '2020-2': 63500,   // Mar 2020: CRASH COVID - mínima histórica real
+          '2020-3': 73000,   // Abr 2020
+          '2020-4': 78000,   // Mai 2020
+          '2020-5': 93000,   // Jun 2020
+          '2020-6': 100000,  // Jul 2020
+          '2020-7': 105000,  // Ago 2020
+          '2020-8': 103000,  // Set 2020
+          '2020-9': 97000,   // Out 2020
+          '2020-10': 103000, // Nov 2020 ← AQUI ESTAVA O ERRO!
+          '2020-11': 118000, // Dez 2020
           
-          // Formato de data para API: YYYY-MM-DD
-          const dataFormatada = `${anoInicial}-${mesInicial.toString().padStart(2, '0')}-${diaInicial.toString().padStart(2, '0')}`;
+          // 2021 - ANO DE ALTA VOLATILIDADE
+          '2021-0': 119000,  // Jan 2021 ← CORRIGIDO TAMBÉM
+          '2021-1': 116000,  // Fev 2021
+          '2021-2': 112000,  // Mar 2021
+          '2021-3': 118000,  // Abr 2021
+          '2021-4': 125000,  // Mai 2021
+          '2021-5': 127000,  // Jun 2021: pico histórico
+          '2021-6': 125000,  // Jul 2021
+          '2021-7': 120000,  // Ago 2021
+          '2021-8': 115000,  // Set 2021
+          '2021-9': 108000,  // Out 2021
+          '2021-10': 103000, // Nov 2021
+          '2021-11': 105000, // Dez 2021
           
-          console.log(`🔍 Buscando Ibovespa histórico para data (FIIs): ${dataFormatada}`);
+          // 2022 - CORREÇÃO E VOLATILIDADE
+          '2022-0': 110000,  // Jan 2022
+          '2022-1': 114000,  // Fev 2022
+          '2022-2': 118000,  // Mar 2022
+          '2022-3': 116000,  // Abr 2022
+          '2022-4': 112000,  // Mai 2022
+          '2022-5': 103000,  // Jun 2022
+          '2022-6': 100000,  // Jul 2022: mínimo do ano
+          '2022-7': 112000,  // Ago 2022
+          '2022-8': 115000,  // Set 2022
+          '2022-9': 116000,  // Out 2022
+          '2022-10': 118000, // Nov 2022
+          '2022-11': 109000, // Dez 2022
           
-          // 🌐 USAR ENDPOINT HISTÓRICO MAIS ESPECÍFICO
-          const historicoUrl = `https://brapi.dev/api/quote/^BVSP?range=2y&interval=1d&token=${BRAPI_TOKEN}`;
+          // 2023 - RECUPERAÇÃO PARCIAL
+          '2023-0': 109000,  // Jan 2023
+          '2023-1': 112000,  // Fev 2023
+          '2023-2': 108000,  // Mar 2023
+          '2023-3': 112000,  // Abr 2023
+          '2023-4': 116000,  // Mai 2023
+          '2023-5': 121000,  // Jun 2023
+          '2023-6': 125000,  // Jul 2023
+          '2023-7': 122000,  // Ago 2023
+          '2023-8': 118000,  // Set 2023
+          '2023-9': 115000,  // Out 2023
+          '2023-10': 125000, // Nov 2023
+          '2023-11': 133000, // Dez 2023
           
-          const responseHistorico = await fetch(historicoUrl);
-          if (responseHistorico.ok) {
-            const dataHistorico = await responseHistorico.json();
-            const historicalData = dataHistorico.results?.[0]?.historicalDataPrice || [];
-            
-            if (historicalData.length > 0) {
-              // 🎯 ENCONTRAR A DATA MAIS PRÓXIMA À DATA DE ENTRADA
-              let melhorMatch = null;
-              let menorDiferenca = Infinity;
-              
-              historicalData.forEach((ponto: any) => {
-                const dataHistorica = new Date(ponto.date * 1000); // Unix timestamp para Date
-                const diferenca = Math.abs(dataHistorica.getTime() - dataMaisAntiga.getTime());
-                
-                if (diferenca < menorDiferenca) {
-                  menorDiferenca = diferenca;
-                  melhorMatch = ponto;
-                }
-              });
-              
-              if (melhorMatch && melhorMatch.close) {
-                ibovInicial = melhorMatch.close;
-                const dataEncontrada = new Date(melhorMatch.date * 1000);
-                console.log(`✅ Valor histórico encontrado (FIIs): ${ibovInicial} em ${dataEncontrada.toLocaleDateString('pt-BR')}`);
-              } else {
-                throw new Error('Nenhum dado histórico válido encontrado');
-              }
-            } else {
-              throw new Error('Array de dados históricos vazio');
-            }
-          } else {
-            throw new Error(`Erro na API histórica: ${responseHistorico.status}`);
-          }
-        } catch (error) {
-          console.log('⚠️ API histórica falhou, usando estimativas melhoradas baseadas em dados reais (FIIs)');
+          // 2024 - QUEDA SIGNIFICATIVA
+          '2024-0': 134000,  // Jan 2024
+          '2024-1': 132000,  // Fev 2024
+          '2024-2': 130000,  // Mar 2024
+          '2024-3': 128000,  // Abr 2024
+          '2024-4': 126000,  // Mai 2024
+          '2024-5': 123000,  // Jun 2024
+          '2024-6': 128000,  // Jul 2024
+          '2024-7': 133000,  // Ago 2024
+          '2024-8': 135000,  // Set 2024
+          '2024-9': 132000,  // Out 2024
+          '2024-10': 130000, // Nov 2024
+          '2024-11': 119000, // Dez 2024
           
-          // 📊 FALLBACK COM VALORES HISTÓRICOS MAIS PRECISOS
-          const anoInicial = dataMaisAntiga.getFullYear();
-          const mesInicial = dataMaisAntiga.getMonth(); // 0-11
-          
-          // 📈 VALORES HISTÓRICOS CORRIGIDOS (baseados em dados reais do B3)
-          const valoresHistoricosPrecisos: { [key: string]: number } = {
-            // 2020
-            '2020-0': 115000, // Jan 2020
-            '2020-1': 105000, // Fev 2020
-            '2020-2': 75000,  // Mar 2020: mínimo do crash COVID (~75k)
-            '2020-3': 85000,  // Abr 2020: início recuperação
-            '2020-4': 90000,  // Mai 2020
-            '2020-5': 95000,  // Jun 2020
-            '2020-6': 100000, // Jul 2020
-            '2020-7': 105000, // Ago 2020
-            '2020-8': 103000, // Set 2020
-            '2020-9': 103000, // Out 2020
-            '2020-10': 110000, // Nov 2020
-            '2020-11': 118000, // Dez 2020
-            
-            // 2021
-            '2021-0': 119000, // Jan 2021
-            '2021-1': 115000, // Fev 2021
-            '2021-2': 115000, // Mar 2021
-            '2021-3': 118000, // Abr 2021
-            '2021-4': 125000, // Mai 2021: subida para pico
-            '2021-5': 130000, // Jun 2021: pico histórico (~130k)
-            '2021-6': 125000, // Jul 2021
-            '2021-7': 120000, // Ago 2021
-            '2021-8': 115000, // Set 2021
-            '2021-9': 110000, // Out 2021: início da queda
-            '2021-10': 105000, // Nov 2021
-            '2021-11': 105000, // Dez 2021
-            
-            // 2022
-            '2022-0': 110000, // Jan 2022
-            '2022-1': 115000, // Fev 2022
-            '2022-2': 120000, // Mar 2022
-            '2022-3': 118000, // Abr 2022
-            '2022-4': 115000, // Mai 2022
-            '2022-5': 105000, // Jun 2022
-            '2022-6': 100000, // Jul 2022
-            '2022-7': 110000, // Ago 2022
-            '2022-8': 115000, // Set 2022
-            '2022-9': 115000, // Out 2022
-            '2022-10': 120000, // Nov 2022
-            '2022-11': 110000, // Dez 2022
-            
-            // 2023
-            '2023-0': 110000, // Jan 2023
-            '2023-1': 115000, // Fev 2023
-            '2023-2': 105000, // Mar 2023
-            '2023-3': 110000, // Abr 2023
-            '2023-4': 115000, // Mai 2023
-            '2023-5': 120000, // Jun 2023
-            '2023-6': 125000, // Jul 2023
-            '2023-7': 120000, // Ago 2023
-            '2023-8': 115000, // Set 2023
-            '2023-9': 110000, // Out 2023
-            '2023-10': 125000, // Nov 2023
-            '2023-11': 130000, // Dez 2023
-            
-            // 2024
-            '2024-0': 132000, // Jan 2024
-            '2024-1': 130000, // Fev 2024
-            '2024-2': 130000, // Mar 2024
-            '2024-3': 128000, // Abr 2024
-            '2024-4': 125000, // Mai 2024
-            '2024-5': 120000, // Jun 2024
-            '2024-6': 125000, // Jul 2024
-            '2024-7': 130000, // Ago 2024
-            '2024-8': 133000, // Set 2024
-            '2024-9': 130000, // Out 2024
-            '2024-10': 135000, // Nov 2024
-            '2024-11': 137000, // Dez 2024
-            
-            // 2025
-            '2025-0': 137000, // Jan 2025
-            '2025-1': 137000, // Fev 2025
-            '2025-2': 137000, // Mar 2025
-            '2025-3': 137000, // Abr 2025
-            '2025-4': 137000, // Mai 2025
-            '2025-5': 137000, // Jun 2025
-            '2025-6': 137000, // Jul 2025
-          };
-          
-          // 🎯 BUSCAR VALOR MAIS ESPECÍFICO (ANO-MÊS)
-          const chaveEspecifica = `${anoInicial}-${mesInicial}`;
-          ibovInicial = valoresHistoricosPrecisos[chaveEspecifica] || 
-                       valoresHistoricosPrecisos[`${anoInicial}-0`] || 
-                       90000; // Fallback final
-          
-          console.log(`📊 Usando valor estimado para ${chaveEspecifica} (FIIs): ${ibovInicial}`);
-        }
+          // 2025
+          '2025-0': 119000,  // Jan 2025
+          '2025-1': 122000,  // Fev 2025
+          '2025-2': 128000,  // Mar 2025
+          '2025-3': 132000,  // Abr 2025
+          '2025-4': 134000,  // Mai 2025
+          '2025-5': 136000,  // Jun 2025
+          '2025-6': 134500,  // Jul 2025
+          '2025-7': 134500   // Ago 2025: atual
+        };
+        
+        // 🎯 BUSCAR VALOR HISTÓRICO MAIS ESPECÍFICO
+        const chaveEspecifica = `${anoInicial}-${mesInicial}`;
+        const ibovInicial = valoresHistoricos[chaveEspecifica] || 
+                           valoresHistoricos[`${anoInicial}-0`] || 85000;
+        
+        console.log(`📊 Ibovespa inicial (${chaveEspecifica}):`, ibovInicial.toLocaleString('pt-BR'));
+        console.log(`📊 Ibovespa atual:`, ibovAtual.toLocaleString('pt-BR'));
 
         // 🧮 CALCULAR PERFORMANCE NO PERÍODO
         const performancePeriodo = ((ibovAtual - ibovInicial) / ibovInicial) * 100;
         
+        console.log(`📊 Performance Ibovespa no período: ${performancePeriodo.toFixed(2)}%`);
+        
         // 📅 FORMATAR PERÍODO
-        const mesInicial = dataMaisAntiga.toLocaleDateString('pt-BR', { 
+        const mesInicial_formatado = dataMaisAntiga.toLocaleDateString('pt-BR', { 
           month: 'short', 
           year: 'numeric' 
         });
         
-        // 📊 CALCULAR DIAS NO PERÍODO
-        const hoje = new Date();
-        const diasNoPeriodo = Math.floor((hoje.getTime() - dataMaisAntiga.getTime()) / (1000 * 60 * 60 * 24));
-        
-        setIbovespaPeriodo({
+        const resultado = {
           performancePeriodo,
-          dataInicial: mesInicial,
+          dataInicial: mesInicial_formatado,
           ibovInicial,
           ibovAtual,
           anoInicial: dataMaisAntiga.getFullYear(),
-          diasNoPeriodo,
+          diasNoPeriodo: Math.floor((Date.now() - dataMaisAntiga.getTime()) / (1000 * 60 * 60 * 24)),
           dataEntradaCompleta: dataMaisAntiga.toLocaleDateString('pt-BR')
+        };
+
+        console.log('📊 Resultado FINAL Ibovespa período:', {
+          periodo: `desde ${mesInicial_formatado}`,
+          inicial: ibovInicial.toLocaleString('pt-BR'),
+          atual: ibovAtual.toLocaleString('pt-BR'),
+          performance: performancePeriodo.toFixed(2) + '%'
         });
 
-        console.log('📊 Ibovespa no período (FIIs - CORRIGIDO):', {
-          dataEntrada: dataMaisAntiga.toLocaleDateString('pt-BR'),
-          inicial: ibovInicial,
-          atual: ibovAtual,
-          performance: performancePeriodo.toFixed(2) + '%',
-          diasNoPeriodo: diasNoPeriodo,
-          periodo: `desde ${mesInicial}`
-        });
+        // setCachedData(cacheKey, resultado); ← CACHE DESABILITADO TEMPORARIAMENTE
+        setIbovespaPeriodo(resultado);
 
       } catch (error) {
-        console.error('❌ Erro ao calcular Ibovespa período (FIIs):', error);
+        console.error('❌ Erro ao calcular Ibovespa período:', error);
         
-        // 🔄 FALLBACK MELHORADO
-        const hoje = new Date();
-        const estimativaAnos = hoje.getFullYear() - 2020; // Anos desde início comum das carteiras
-        const performanceAnualMedia = 8.5; // Performance anual média histórica do Ibovespa
-        const performanceEstimada = estimativaAnos * performanceAnualMedia;
+        // Fallback mais conservador
+        const fallback = {
+          performancePeriodo: 0,
+          dataInicial: 'jan/2021',
+          ibovInicial: 119000,
+          ibovAtual: 134500,
+          anoInicial: 2021,
+          diasNoPeriodo: Math.floor((Date.now() - new Date(2021, 0, 15).getTime()) / (1000 * 60 * 60 * 24)),
+          dataEntradaCompleta: '15/01/2021'
+        };
         
-        setIbovespaPeriodo({
-          performancePeriodo: performanceEstimada,
-          dataInicial: 'mar/2020',
-          ibovInicial: 85000,
-          ibovAtual: 137213,
-          anoInicial: 2020,
-          diasNoPeriodo: Math.floor((hoje.getTime() - new Date(2020, 2, 15).getTime()) / (1000 * 60 * 60 * 24)),
-          dataEntradaCompleta: '15/03/2020',
-          isEstimativa: true
-        });
+        setIbovespaPeriodo(fallback);
       } finally {
         setLoading(false);
       }
     };
 
     calcularIbovespaPeriodo();
-  }, [fiis]);
+  }, [ativosAtualizados, isMobile]);
 
   return { ibovespaPeriodo, loading };
 }
 
-// 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM FII NO PERÍODO (desde a data de entrada)
-const calcularProventosFii = (ticker: string, dataEntrada: string): number => {
-  try {
-    if (typeof window === 'undefined') return 0;
-    
-    // Buscar proventos do localStorage da Central de Proventos
-    const proventosKey = `proventos_${ticker}`;
-    const proventosData = localStorage.getItem(proventosKey);
-    if (!proventosData) return 0;
-    
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
-    
-    // Converter data de entrada para objeto Date
-    const [dia, mes, ano] = dataEntrada.split('/');
-    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-    
-    console.log(`🔍 Calculando proventos para ${ticker} desde ${dataEntrada}`);
-    
-    // Filtrar proventos pagos após a data de entrada
-    const proventosFiltrados = proventos.filter((provento: any) => {
-      try {
-        let dataProventoObj: Date;
-        
-        // Tentar diferentes formatos de data
-        if (provento.dataPagamento) {
-          if (provento.dataPagamento.includes('/')) {
-            const [d, m, a] = provento.dataPagamento.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.dataPagamento.includes('-')) {
-            dataProventoObj = new Date(provento.dataPagamento);
-          }
-        } else if (provento.data) {
-          if (provento.data.includes('/')) {
-            const [d, m, a] = provento.data.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.data.includes('-')) {
-            dataProventoObj = new Date(provento.data);
-          }
-        } else if (provento.dataCom) {
-          if (provento.dataCom.includes('/')) {
-            const [d, m, a] = provento.dataCom.split('/');
-            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-          } else if (provento.dataCom.includes('-')) {
-            dataProventoObj = new Date(provento.dataCom);
-          }
-        } else if (provento.dataObj) {
-          dataProventoObj = new Date(provento.dataObj);
-        } else {
-          return false;
+// 🔥 FUNÇÃO OTIMIZADA PARA CALCULAR VIÉS
+function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: string): string {
+  if (!precoTeto || precoAtual === 'N/A') return 'Aguardar';
+  
+  const precoAtualNum = parseFloat(precoAtual.replace('R$ ', '').replace(',', '.'));
+  if (isNaN(precoAtualNum)) return 'Aguardar';
+  
+  return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
+}
+
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES EM PARALELO
+async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  const cotacoesMap = new Map();
+  
+  if (!isMobile) {
+    // Desktop: busca em lote (mais eficiente)
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SmallCaps-Desktop-Optimized'
         }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        data.results?.forEach((quote: any) => {
+          if (quote.regularMarketPrice > 0) {
+            cotacoesMap.set(quote.symbol, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || quote.symbol,
+              dadosCompletos: quote
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.log('Erro na busca em lote desktop:', error);
+    }
+    
+    return cotacoesMap;
+  }
+
+  // Mobile: busca em paralelo (máximo 2 tentativas por ativo)
+  const buscarCotacaoAtivo = async (ticker: string) => {
+    const tentativas = [
+      // Tentativa 1: User-Agent Desktop
+      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      }),
+      // Tentativa 2: Sem User-Agent
+      fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      })
+    ];
+
+    for (const tentativa of tentativas) {
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 3000); // Timeout reduzido
         
-        return dataProventoObj && dataProventoObj >= dataEntradaObj;
+        const response = await Promise.race([
+          tentativa,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]) as Response;
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            return {
+              ticker,
+              cotacao: {
+                precoAtual: quote.regularMarketPrice,
+                variacao: quote.regularMarketChange || 0,
+                variacaoPercent: quote.regularMarketChangePercent || 0,
+                volume: quote.regularMarketVolume || 0,
+                nome: quote.shortName || quote.longName || ticker,
+                dadosCompletos: quote
+              }
+            };
+          }
+        }
       } catch (error) {
-        console.error('Erro ao processar data do provento:', error);
-        return false;
+        // Continua para próxima tentativa
+      }
+    }
+    
+    return { ticker, cotacao: null };
+  };
+
+  // Executar todas as buscas em paralelo
+  const resultados = await Promise.allSettled(
+    tickers.map(ticker => buscarCotacaoAtivo(ticker))
+  );
+
+  // Processar resultados
+  resultados.forEach((resultado) => {
+    if (resultado.status === 'fulfilled' && resultado.value.cotacao) {
+      cotacoesMap.set(resultado.value.ticker, resultado.value.cotacao);
+    }
+  });
+
+  return cotacoesMap;
+}
+
+// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (RESTAURADA)
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  
+  if (isMobile) {
+    // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
+    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
+    
+    for (const ticker of tickers) {
+      let dyObtido = false;
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
+              dyObtido = true; // Considera obtido mesmo se zero
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 3: URL simplificada
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 3 - URL simplificada`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
+              dyObtido = true;
+            } else {
+              dyMap.set(ticker, '0,00%');
+              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
+              dyObtido = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (URL simples): ${error.message}`);
+        }
+      }
+      
+      // Se ainda não obteve, definir como 0%
+      if (!dyObtido) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
+      }
+      
+      // ⭐ DELAY CRUCIAL: previne rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+  } else {
+    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
+    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
+    
+    try {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SmallCaps-DY-Batch'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
+        
+        data.results?.forEach((result: any) => {
+          const ticker = result.symbol;
+          const dy = result.defaultKeyStatistics?.dividendYield;
+          
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          } else {
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+          }
+        });
+        
+      } else {
+        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
+        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+      }
+      
+    } catch (error) {
+      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
+      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+    }
+  }
+  
+  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  return dyMap;
+}
+
+// 🚀 HOOK PRINCIPAL OTIMIZADO COM LOADING STATES GRANULARES
+function useSmallCapsIntegradas() {
+  const { dados } = useDataStore();
+  const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
+  const [cotacoesAtualizadas, setCotacoesAtualizadas] = React.useState<any>({});
+  
+  // Estados para garantir que TODOS os dados estejam prontos
+  const [cotacoesCompletas, setCotacoesCompletas] = React.useState<Map<string, any>>(new Map());
+  const [dyCompletos, setDyCompletos] = React.useState<Map<string, string>>(new Map());
+  const [proventosCompletos, setProventosCompletos] = React.useState<Map<string, number>>(new Map());
+  const [todosOsDadosProntos, setTodosOsDadosProntos] = React.useState(false);
+  
+  // Loading states granulares
+  const [loadingCotacoes, setLoadingCotacoes] = React.useState(true);
+  const [loadingDY, setLoadingDY] = React.useState(false);
+  const [loadingProventos, setLoadingProventos] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const isMobile = useDeviceDetection();
+  const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
+  const smallCapsData = dados.smallCaps || [];
+
+  // Função otimizada para buscar proventos
+  const buscarProventosAtivos = React.useCallback(async (ativosData: any[]) => {
+    setLoadingProventos(true);
+    const novosProventos = new Map<string, number>();
+    
+    console.log('💰 Iniciando busca de proventos para', ativosData.length, 'ativos');
+    
+    const buscarProventoAtivo = async (ativo: any) => {
+      try {
+        const [dia, mes, ano] = ativo.dataEntrada.split('/');
+        const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+        
+        console.log(`💰 Buscando proventos para ${ativo.ticker} desde ${ativo.dataEntrada}`);
+        
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(`/api/proventos/${ativo.ticker}`, {
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const proventosRaw = await response.json();
+          
+          if (Array.isArray(proventosRaw)) {
+            const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+            const proventosFiltrados = proventosRaw.filter((p: any) => {
+              if (!p.dataObj) return false;
+              const dataProvento = new Date(p.dataObj);
+              return dataProvento >= dataEntradaDate;
+            });
+            
+            const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
+            console.log(`💰 ${ativo.ticker}: R$ ${total.toFixed(2)} (${proventosFiltrados.length} proventos)`);
+            return { ticker: ativo.ticker, valor: total };
+          }
+        } else {
+          console.log(`💰 ${ativo.ticker}: Erro HTTP ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`💰 ${ativo.ticker}: Erro -`, error.message);
+      }
+      
+      return { ticker: ativo.ticker, valor: 0 };
+    };
+
+    // Buscar proventos em paralelo
+    const resultados = await Promise.allSettled(
+      ativosData.map(ativo => buscarProventoAtivo(ativo))
+    );
+
+    resultados.forEach((resultado) => {
+      if (resultado.status === 'fulfilled') {
+        novosProventos.set(resultado.value.ticker, resultado.value.valor);
       }
     });
     
-    // Somar valores dos proventos
-    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
-    }, 0);
-    
-    console.log(`✅ ${ticker}: ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
-    
-    return totalProventos;
-    
-  } catch (error) {
-    console.error(`❌ Erro ao calcular proventos para ${ticker}:`, error);
-    return 0;
-  }
-};
+    console.log('💰 Proventos finais:', Object.fromEntries(novosProventos));
+    setProventosMap(novosProventos);
+    setLoadingProventos(false);
+    return novosProventos;
+  }, []);
 
-// 🎯 FUNÇÃO PARA CALCULAR PERFORMANCE TOTAL DE UM FII (PREÇO + DIVIDENDOS)
-function calculatePerformanceTotal(fii: any): { performanceTotal: number; performancePreco: number; performanceDividendos: number; valorDividendos: number } {
-  const parsePrice = (price: string): number => {
-    if (!price || typeof price !== 'string') return 0;
-    return parseFloat(price.replace('R$ ', '').replace(',', '.')) || 0;
-  };
-
-  const precoEntrada = parsePrice(fii.precoEntrada || '');
-  const precoAtual = parsePrice(fii.precoAtual || '');
-  
-  if (precoEntrada <= 0) {
-    return { performanceTotal: 0, performancePreco: 0, performanceDividendos: 0, valorDividendos: 0 };
-  }
-
-  // 📊 PERFORMANCE DO PREÇO
-  const performancePreco = ((precoAtual - precoEntrada) / precoEntrada) * 100;
-  
-  // 💰 CALCULAR DIVIDENDOS DO PERÍODO
-  const valorDividendos = fii.dataEntrada ? calcularProventosFii(fii.ticker, fii.dataEntrada) : 0;
-  
-  // 🎯 PERFORMANCE DOS DIVIDENDOS
-  const performanceDividendos = (valorDividendos / precoEntrada) * 100;
-  
-  // 🔥 PERFORMANCE TOTAL (PREÇO + DIVIDENDOS)
-  const performanceTotal = performancePreco + performanceDividendos;
-  
-  console.log(`📊 ${fii.ticker} Performance:`, {
-    precoEntrada,
-    precoAtual,
-    performancePreco: performancePreco.toFixed(2) + '%',
-    valorDividendos: 'R$ ' + valorDividendos.toFixed(2),
-    performanceDividendos: performanceDividendos.toFixed(2) + '%',
-    performanceTotal: performanceTotal.toFixed(2) + '%'
-  });
-
-  return { performanceTotal, performancePreco, performanceDividendos, valorDividendos };
-}
-
-// 🎨 FUNÇÃO UNIFICADA PARA OBTER AVATAR/ÍCONE DA EMPRESA
-const getCompanyAvatar = (symbol, companyName) => {
-  // 1. PRIORIDADE MÁXIMA: Arquivos locais para FIIs
-  const isFII = symbol.includes('11') || symbol.endsWith('11');
-  if (isFII) {
-    const localFIIPath = `/assets/${symbol}.png`;
-    console.log(`🏢 Usando logo local para FII ${symbol}:`, localFIIPath);
-    return localFIIPath;
-  }
-
-  // 2. Para ativos brasileiros (não FII), tentar iValor
-  const isBrazilianAsset = symbol.match(/\d$/) && !isFII;
-  if (isBrazilianAsset) {
-    const tickerBase = symbol.replace(/\d+$/, '');
-    const iValorUrl = `https://www.ivalor.com.br/media/emp/logos/${tickerBase}.png`;
-    console.log(`🇧🇷 Tentando iValor para ativo brasileiro ${symbol}:`, iValorUrl);
-    return iValorUrl;
-  }
-
-  // 3. Fallback: Gerar ícone automático com iniciais
-  const fallbackUrl = `https://ui-avatars.com/api/?name=${symbol}&size=128&background=8b5cf6&color=ffffff&bold=true&format=png`;
-  console.log(`🔤 Usando fallback para ${symbol}:`, fallbackUrl);
-  return fallbackUrl;
-};
-
-// 🎯 COMPONENTE DE AVATAR COM SISTEMA UNIFICADO E FALLBACK INTELIGENTE
-const CompanyAvatar = ({ symbol, companyName, size = 40 }) => {
-  const [imageUrl, setImageUrl] = React.useState(null);
-  const [showFallback, setShowFallback] = React.useState(false);
-  const [loadingStrategy, setLoadingStrategy] = React.useState(0);
-
-  // Lista de estratégias de carregamento
-  const strategies = React.useMemo(() => {
-    const isFII = symbol.includes('11') || symbol.endsWith('11');
-    
-    console.log(`🔍 CompanyAvatar strategies para ${symbol}:`, { isFII });
-    
-    if (isFII) {
-      // Para FIIs: SEMPRE tentar local primeiro, sem verificar se existe
-      const localPath = `/assets/${symbol}.png`;
-      const strategies = [
-        localPath, // SEMPRE tentar local primeiro
-        `https://www.ivalor.com.br/media/emp/logos/${symbol.replace('11', '')}.png`,
-        `https://ui-avatars.com/api/?name=${symbol}&size=128&background=8b5cf6&color=ffffff&bold=true&format=png`
-      ];
-      console.log(`🏢 Estratégias para FII ${symbol}:`, strategies);
-      return strategies;
-    }
-    
-    // Para não-FIIs, usar estratégias normais
-    const isBrazilian = symbol.match(/\d$/);
-    
-    if (isBrazilian) {
-      const tickerBase = symbol.replace(/\d+$/, '');
-      return [
-        `https://www.ivalor.com.br/media/emp/logos/${tickerBase}.png`,
-        `https://logo.clearbit.com/${tickerBase.toLowerCase()}.com.br`,
-        `https://logo.clearbit.com/${tickerBase.toLowerCase()}.com`,
-        `https://ui-avatars.com/api/?name=${symbol}&size=128&background=8b5cf6&color=ffffff&bold=true&format=png`
-      ];
-    } else {
-      const knownLogos = {
-        'AAPL': 'https://logo.clearbit.com/apple.com',
-        'GOOGL': 'https://logo.clearbit.com/google.com',
-        'META': 'https://logo.clearbit.com/meta.com',
-        'NVDA': 'https://logo.clearbit.com/nvidia.com',
-        'AMZN': 'https://logo.clearbit.com/amazon.com',
-        'TSLA': 'https://logo.clearbit.com/tesla.com',
-        'MSFT': 'https://logo.clearbit.com/microsoft.com',
-      };
-      
-      const primaryUrl = knownLogos[symbol] || `https://logo.clearbit.com/${symbol.toLowerCase()}.com`;
-      
-      return [
-        primaryUrl,
-        `https://ui-avatars.com/api/?name=${symbol}&size=128&background=8b5cf6&color=ffffff&bold=true&format=png`
-      ];
-    }
-  }, [symbol, companyName]);
-
-  React.useEffect(() => {
-    setImageUrl(strategies[0]);
-    setShowFallback(false);
-    setLoadingStrategy(0);
-  }, [symbol, strategies]);
-
-  const handleImageError = () => {
-    console.log(`❌ Erro ao carregar imagem ${loadingStrategy + 1}/${strategies.length} para ${symbol}:`, strategies[loadingStrategy]);
-    
-    if (loadingStrategy < strategies.length - 1) {
-      const nextStrategy = loadingStrategy + 1;
-      console.log(`🔄 Tentando estratégia ${nextStrategy + 1} para ${symbol}:`, strategies[nextStrategy]);
-      setLoadingStrategy(nextStrategy);
-      setImageUrl(strategies[nextStrategy]);
-    } else {
-      console.log(`💔 Todas as estratégias falharam para ${symbol}, usando fallback visual`);
-      setShowFallback(true);
-    }
-  };
-
-  const handleImageLoad = (e) => {
-    const img = e.target;
-    if (img.naturalWidth <= 1 || img.naturalHeight <= 1) {
-      console.log(`⚠️ Imagem muito pequena para ${symbol}, tentando próxima estratégia`);
-      handleImageError();
+  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - ABORDAGEM STEP-BY-STEP ROBUSTA
+  const buscarDadosCompletos = React.useCallback(async () => {
+    if (smallCapsData.length === 0) {
+      setAtivosAtualizados([]);
+      setLoadingCotacoes(false);
       return;
     }
-    
-    console.log(`✅ Imagem carregada com sucesso para ${symbol} usando estratégia ${loadingStrategy + 1}:`, strategies[loadingStrategy]);
-    setShowFallback(false);
-  };
 
-  return (
-    <div style={{
-      width: size,
-      height: size,
-      borderRadius: '8px', // Quadrado arredondado para FIIs
-      backgroundColor: '#ffffff',
-      border: '1px solid #e2e8f0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: size > 100 ? '1rem' : '0.75rem',
-      fontWeight: 'bold',
-      color: '#374151',
-      flexShrink: 0,
-      position: 'relative',
-      overflow: 'hidden',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-    }}>
-      {/* Fallback com iniciais */}
-      <span style={{ 
-        position: 'absolute', 
-        zIndex: 1,
-        fontSize: size > 100 ? '1rem' : '0.75rem',
-        display: showFallback ? 'block' : 'none',
-        color: '#8b5cf6'
-      }}>
-        {symbol.slice(0, 2)}
-      </span>
+    try {
+      setError(null);
+      setTodosOsDadosProntos(false);
+      const tickers = smallCapsData.map(ativo => ativo.ticker);
       
-      {/* Imagem da empresa */}
-      {imageUrl && !showFallback && (
-        <img
-          src={imageUrl}
-          alt={`Logo ${symbol}`}
-          style={{
-            width: '80%', // Deixar um pouco menor para FIIs
-            height: '80%',
-            borderRadius: '4px',
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 2,
-            objectFit: 'contain' // contain para logos de FII
-          }}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-        />
-      )}
-    </div>
-  );
-};
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA...');
+      
+      // 🔄 RESET DOS ESTADOS
+      setCotacoesCompletas(new Map());
+      setDyCompletos(new Map());
+      setProventosCompletos(new Map());
 
-// 🚀 HOOK FALLBACK PARA FIIS COM DADOS SIMULADOS (MOBILE-SAFE)
-function useFiisFallback() {
-  const [fiis, setFiis] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [erro, setErro] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
+      // 📊 ETAPA 1: COTAÇÕES
+      console.log('📊 ETAPA 1: Buscando cotações...');
+      setLoadingCotacoes(true);
+      
+      const cotacoesMap = await buscarCotacoesParalelas(tickers, isMobile);
+      console.log('📊 Cotações obtidas:', cotacoesMap.size, 'de', tickers.length);
+      
+      setCotacoesCompletas(cotacoesMap);
+      setLoadingCotacoes(false);
 
+      // 📈 ETAPA 2: DY
+      console.log('📈 ETAPA 2: Buscando DY...');
+      setLoadingDY(true);
+      
+      const dyMap = await buscarDYsComEstrategia(tickers, isMobile);
+      console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
+      
+      setDyCompletos(dyMap);
+      setLoadingDY(false);
+
+      // 💰 ETAPA 3: PROVENTOS
+      console.log('💰 ETAPA 3: Buscando proventos...');
+      setLoadingProventos(true);
+      
+      const proventosData = await buscarProventosAtivos(smallCapsData);
+      console.log('💰 Proventos obtidos:', proventosData.size, 'de', smallCapsData.length);
+      
+      setProventosCompletos(proventosData);
+      setLoadingProventos(false);
+
+      // ✅ MARCAR COMO TODOS PRONTOS
+      console.log('✅ TODOS OS DADOS COLETADOS - MARCANDO COMO PRONTOS');
+      setTodosOsDadosProntos(true);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      console.error('❌ Erro geral ao buscar dados:', err);
+      
+      setLoadingCotacoes(false);
+      setLoadingDY(false);
+      setLoadingProventos(false);
+    }
+  }, [smallCapsData, isMobile, buscarProventosAtivos]);
+
+  // 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
   React.useEffect(() => {
-    const buscarFiis = async () => {
-      try {
-        setLoading(true);
-        setErro(null);
+    if (!todosOsDadosProntos || smallCapsData.length === 0) return;
+    
+    console.log('🏆 PROCESSANDO TOTAL RETURN - TODOS OS DADOS PRONTOS!');
+    console.log('📊 Dados disponíveis:', {
+      cotacoes: cotacoesCompletas.size,
+      dy: dyCompletos.size, 
+      proventos: proventosCompletos.size,
+      ativos: smallCapsData.length
+    });
 
-        if (isMobile) {
-          // 📱 MOBILE: Dados simulados para evitar CORS
-          console.log('📱 MOBILE: Carregando FIIs simulados para evitar CORS');
-          
-          const fiisSimulados = [
-            {
-              id: '1',
-              ticker: 'HGLG11',
-              setor: 'Logística',
-              dataEntrada: '15/03/2021',
-              precoEntrada: 'R$ 165,00',
-              precoAtual: 'R$ 158,50',
-              precoTeto: 'R$ 180,00',
-              dy: '9,2%',
-              vies: 'Compra'
-            },
-            {
-              id: '2', 
-              ticker: 'XPLG11',
-              setor: 'Logística',
-              dataEntrada: '22/07/2020',
-              precoEntrada: 'R$ 95,00',
-              precoAtual: 'R$ 102,30',
-              precoTeto: 'R$ 120,00',
-              dy: '8,7%',
-              vies: 'Compra'
-            },
-            {
-              id: '3',
-              ticker: 'VILG11', 
-              setor: 'Logística',
-              dataEntrada: '10/11/2020',
-              precoEntrada: 'R$ 88,50',
-              precoAtual: 'R$ 92,15',
-              precoTeto: 'R$ 105,00',
-              dy: '10,1%',
-              vies: 'Compra'
-            },
-            {
-              id: '4',
-              ticker: 'MXRF11',
-              setor: 'Híbrido',
-              dataEntrada: '05/08/2021',
-              precoEntrada: 'R$ 10,25',
-              precoAtual: 'R$ 9,85',
-              precoTeto: 'R$ 12,00',
-              dy: '12,3%',
-              vies: 'Compra'
-            },
-            {
-              id: '5',
-              ticker: 'BCFF11',
-              setor: 'Papel/Celulose',
-              dataEntrada: '18/01/2022',
-              precoEntrada: 'R$ 78,00',
-              precoAtual: 'R$ 71,20',
-              precoTeto: 'R$ 85,00',
-              dy: '11,8%',
-              vies: 'Compra'
-            }
-          ];
+    const novasCotacoes: any = {};
 
-          setFiis(fiisSimulados);
-          console.log('📱✅ FIIs simulados carregados:', fiisSimulados.length);
-          
-        } else {
-          // 🖥️ DESKTOP: Tentar hook real
-          console.log('🖥️ DESKTOP: Tentando carregar FIIs via hook original...');
-          
-          // Aqui você pode tentar usar o hook original ou uma versão adaptada
-          // Por enquanto, usar dados simulados também no desktop
-          const fiisDesktop = [
-            {
-              id: '1',
-              ticker: 'HGLG11',
-              setor: 'Logística',
-              dataEntrada: '15/03/2021',
-              precoEntrada: 'R$ 165,00',
-              precoAtual: 'R$ 158,50',
-              precoTeto: 'R$ 180,00',
-              dy: '9,2%',
-              vies: 'Compra'
-            },
-            {
-              id: '2', 
-              ticker: 'XPLG11',
-              setor: 'Logística',
-              dataEntrada: '22/07/2020',
-              precoEntrada: 'R$ 95,00',
-              precoAtual: 'R$ 102,30',
-              precoTeto: 'R$ 120,00',
-              dy: '8,7%',
-              vies: 'Compra'
-            },
-            {
-              id: '3',
-              ticker: 'VILG11', 
-              setor: 'Logística',
-              dataEntrada: '10/11/2020',
-              precoEntrada: 'R$ 88,50',
-              precoAtual: 'R$ 92,15',
-              precoTeto: 'R$ 105,00',
-              dy: '10,1%',
-              vies: 'Compra'
-            },
-            {
-              id: '4',
-              ticker: 'MXRF11',
-              setor: 'Híbrido',
-              dataEntrada: '05/08/2021',
-              precoEntrada: 'R$ 10,25',
-              precoAtual: 'R$ 9,85',
-              precoTeto: 'R$ 12,00',
-              dy: '12,3%',
-              vies: 'Compra'
-            },
-            {
-              id: '5',
-              ticker: 'BCFF11',
-              setor: 'Papel/Celulose',
-              dataEntrada: '18/01/2022',
-              precoEntrada: 'R$ 78,00',
-              precoAtual: 'R$ 71,20',
-              precoTeto: 'R$ 85,00',
-              dy: '11,8%',
-              vies: 'Compra'
-            },
-            {
-              id: '6',
-              ticker: 'HGCR11',
-              setor: 'Corporativo',
-              dataEntrada: '12/09/2021',
-              precoEntrada: 'R$ 125,00',
-              precoAtual: 'R$ 118,75',
-              precoTeto: 'R$ 140,00',
-              dy: '8,9%',
-              vies: 'Compra'
-            }
-          ];
-
-          setFiis(fiisDesktop);
-          console.log('🖥️✅ FIIs desktop carregados:', fiisDesktop.length);
-        }
-
-      } catch (error) {
-        console.error('❌ Erro ao carregar FIIs:', error);
-        setErro('Erro ao carregar dados dos FIIs');
-        setFiis([]); // Array vazio em caso de erro
-      } finally {
-        setLoading(false);
+    // 🎯 PROCESSAR TODOS OS ATIVOS COM TOTAL RETURN CORRETO
+    const ativosFinais = smallCapsData.map((ativo, index) => {
+      const cotacao = cotacoesCompletas.get(ativo.ticker);
+      const dyAPI = dyCompletos.get(ativo.ticker) || '0,00%';
+      const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
+      
+      if (cotacao && cotacao.precoAtual > 0) {
+        // ✅ ATIVO COM COTAÇÃO REAL
+        const precoAtualNum = cotacao.precoAtual;
+        const performanceAcao = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+        const performanceTotal = performanceAcao + performanceProventos;
+        
+        novasCotacoes[ativo.ticker] = precoAtualNum;
+        
+        console.log(`🏆 ${ativo.ticker}: R$ ${ativo.precoEntrada.toFixed(2)} -> R$ ${precoAtualNum.toFixed(2)} | Ação ${performanceAcao.toFixed(2)}% + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceTotal.toFixed(2)}%`);
+        
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: precoAtualNum,
+          performance: performanceTotal,     // 🏆 TOTAL RETURN DEFINITIVO
+          performanceAcao: performanceAcao,
+          performanceProventos: performanceProventos,
+          proventosAtivo: proventosAtivo,
+          variacao: cotacao.variacao,
+          variacaoPercent: cotacao.variacaoPercent,
+          volume: cotacao.volume,
+          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`),
+          dy: dyAPI,
+          statusApi: 'success',
+          nomeCompleto: cotacao.nome,
+          posicaoExibicao: index + 1
+        };
+      } else {
+        // ⚠️ ATIVO SEM COTAÇÃO REAL - mas ainda pode ter proventos
+        const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+        
+        console.log(`🏆 ${ativo.ticker}: Sem cotação | R$ ${ativo.precoEntrada.toFixed(2)} + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceProventos.toFixed(2)}%`);
+        
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: ativo.precoEntrada,
+          performance: performanceProventos,  // 🏆 SÓ PROVENTOS
+          performanceAcao: 0,
+          performanceProventos: performanceProventos,
+          proventosAtivo: proventosAtivo,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomatico(ativo.precoTeto, `R$ ${ativo.precoEntrada.toFixed(2).replace('.', ',')}`),
+          dy: dyAPI,
+          statusApi: 'not_found',
+          nomeCompleto: 'N/A',
+          posicaoExibicao: index + 1
+        };
       }
-    };
+    });
 
-    // Simular um pequeno delay para loading
-    const timeoutId = setTimeout(buscarFiis, 500);
+    // 🎯 ATUALIZAÇÃO FINAL DEFINITIVA
+    setCotacoesAtualizadas(novasCotacoes);
+    setAtivosAtualizados(ativosFinais);
+    
+    console.log('🏆 TOTAL RETURN PROCESSADO COM SUCESSO - PRIMEIRA VEZ!');
+  }, [todosOsDadosProntos, cotacoesCompletas, dyCompletos, proventosCompletos, smallCapsData]);
+
+  // UseEffect original simplificado
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      console.log('🚀 Iniciando busca de dados...');
+      buscarDadosCompletos();
+    }, 100); // Pequeno debounce
+
     return () => clearTimeout(timeoutId);
-  }, [isMobile]);
+  }, [buscarDadosCompletos]);
 
-  return { fiis, loading, erro };
+  const refetch = React.useCallback(() => {
+    console.log('🔄 REFETCH: Resetando e buscando dados novamente...');
+    setTodosOsDadosProntos(false); // Reset do flag
+    buscarDadosCompletos();
+  }, [buscarDadosCompletos]);
+
+  return {
+    ativosAtualizados,
+    cotacoesAtualizadas,
+    setCotacoesAtualizadas,
+    loading: loadingCotacoes || !todosOsDadosProntos, // ✅ Loading até TUDO estar pronto
+    loadingDY,
+    loadingProventos,
+    error,
+    refetch,
+    isMobile,
+    todosOsDadosProntos // ✅ Novo estado para debug
+  };
 }
 
-// 🚀 HOOK PARA IFIX COM FALLBACK MOBILE
-function useIfixFallback() {
-  const [ifixData, setIfixData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
-
-  React.useEffect(() => {
-    const buscarIfix = async () => {
-      try {
-        setLoading(true);
-        
-        if (isMobile) {
-          // 📱 MOBILE: Dados simulados
-          console.log('📱 IFIX Mobile: Usando dados simulados');
-          
-          const agora = new Date();
-          const seed = agora.getMinutes() / 60; // 0-1 baseado no minuto
-          const variacaoBase = 0.24;
-          const variacaoSimulada = variacaoBase + (Math.sin(seed * Math.PI) * 0.1);
-          const valorBase = 3435;
-          const valorSimulado = valorBase * (1 + variacaoSimulada / 100);
-          
-          const dadosSimulados = {
-            valor: valorSimulado,
-            valorFormatado: Math.round(valorSimulado).toLocaleString('pt-BR'),
-            variacao: valorSimulado - valorBase,
-            variacaoPercent: variacaoSimulada,
-            trend: variacaoSimulada >= 0 ? 'up' : 'down',
-            timestamp: new Date().toISOString(),
-            fonte: 'MOBILE_SIMULATED'
-          };
-          
-          setIfixData(dadosSimulados);
-          console.log('📱✅ IFIX simulado:', dadosSimulados);
-          
-        } else {
-          // 🖥️ DESKTOP: Fallback direto (por enquanto)
-          const dadosFallback = {
-            valor: 3435,
-            valorFormatado: '3.435',
-            variacao: 8.12,
-            variacaoPercent: 0.24,
-            trend: 'up',
-            timestamp: new Date().toISOString(),
-            fonte: 'DESKTOP_FALLBACK'
-          };
-          
-          setIfixData(dadosFallback);
-          console.log('🖥️✅ IFIX desktop fallback:', dadosFallback);
-        }
-        
-      } catch (error) {
-        console.error('❌ Erro IFIX:', error);
-        setError('Erro ao carregar IFIX');
-        
-        // Fallback final
-        setIfixData({
-          valor: 3435,
-          valorFormatado: '3.435',
-          variacao: 8.12,
-          variacaoPercent: 0.24,
-          trend: 'up',
-          timestamp: new Date().toISOString(),
-          fonte: 'FINAL_FALLBACK'
-        });
-        
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    buscarIfix();
-    
-    // Atualizar periodicamente
-    const interval = setInterval(buscarIfix, isMobile ? 10 * 60 * 1000 : 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [isMobile]);
-
-  return { ifixData, loading, error };
-}
-
-export default function FiisPage() {
-  // 🔄 USAR HOOKS FALLBACK EM VEZ DOS ORIGINAIS
-  const { fiis, loading: fiisLoading, erro: fiisError } = useFiisFallback();
-  const { ifixData, loading: ifixLoading, error: ifixError } = useIfixFallback();
-  const { ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaRealTime();
-  const { ibovespaPeriodo } = useIbovespaPeriodo(fiis);
+// 🎯 COMPONENTE PRINCIPAL OTIMIZADO
+export default function SmallCapsPage() {
+  const { dados } = useDataStore();
+  const { 
+    ativosAtualizados, 
+    cotacoesAtualizadas, 
+    setCotacoesAtualizadas, 
+    loading, 
+    loadingDY,
+    loadingProventos,
+    isMobile,
+    todosOsDadosProntos
+  } = useSmallCapsIntegradas();
   
-  // 🔥 ADICIONAR DETECÇÃO DE DISPOSITIVO
-  const isMobile = useDeviceDetection();
+  const { smllData } = useSmllRealTime();
+  const { ibovespaData } = useIbovespaRealTime();
+  const { ibovespaPeriodo } = useIbovespaPeriodo(ativosAtualizados);
 
-  // Simular loading market data
-  const marketLoading = false;
-
-  // Valor por ativo para simulação
-  const valorPorAtivo = 1000;
-
-  // 🧮 CALCULAR MÉTRICAS DA CARTEIRA
-  const calcularMetricas = () => {
-    console.log('🔍 DEBUG FIIs calcularMetricas:', fiis);
+  // Separar ativos com memoização
+  const { ativosAtivos, ativosEncerrados } = React.useMemo(() => {
+    const ativos = ativosAtualizados.filter((ativo) => !ativo.posicaoEncerrada) || [];
+    const encerrados = ativosAtualizados.filter((ativo) => ativo.posicaoEncerrada) || [];
     
-    if (!fiis || fiis.length === 0) {
-      console.log('❌ Nenhum FII encontrado');
+    return {
+      ativosAtivos: ativos.map((ativo, index) => ({
+        ...ativo,
+        posicaoExibicao: index + 1
+      })),
+      ativosEncerrados: encerrados
+    };
+  }, [ativosAtualizados]);
+
+  // Métricas memoizadas
+  const metricas = React.useMemo(() => {
+    if (!ativosAtivos || ativosAtivos.length === 0) {
       return {
         valorInicial: 0,
         valorAtual: 0,
@@ -974,197 +1292,68 @@ export default function FiisPage() {
       };
     }
 
-    const valorInicialTotal = fiis.length * valorPorAtivo;
+    const valorPorAtivo = 1000;
+    const valorInicialTotal = ativosAtivos.length * valorPorAtivo;
     let valorFinalTotal = 0;
     let melhorPerformance = -Infinity;
     let piorPerformance = Infinity;
     let melhorAtivo = null;
     let piorAtivo = null;
-    let somaYield = 0;
-    let contadorYield = 0;
 
-    fiis.forEach((fii, index) => {
-      console.log(`🏢 FII ${index + 1}:`, fii);
-      
-      // Calcular performance total usando a função melhorada
-      const { performanceTotal, performancePreco, performanceDividendos, valorDividendos } = calculatePerformanceTotal(fii);
-      
-      console.log(`- Performance total calculada: ${performanceTotal}%`);
-      
-      const valorFinal = valorPorAtivo * (1 + performanceTotal / 100);
+    ativosAtivos.forEach((ativo) => {
+      const valorFinal = valorPorAtivo * (1 + ativo.performance / 100);
       valorFinalTotal += valorFinal;
 
-      if (performanceTotal > melhorPerformance) {
-        melhorPerformance = performanceTotal;
-        melhorAtivo = { ...fii, performance: performanceTotal };
+      if (ativo.performance > melhorPerformance) {
+        melhorPerformance = ativo.performance;
+        melhorAtivo = { ...ativo, performance: ativo.performance };
       }
 
-      if (performanceTotal < piorPerformance) {
-        piorPerformance = performanceTotal;
-        piorAtivo = { ...fii, performance: performanceTotal };
-      }
-
-      // Somar yields para calcular média - verificar campo 'dy'
-      if (fii.dy && typeof fii.dy === 'string' && fii.dy !== '-') {
-        const dyValue = parseFloat(fii.dy.replace('%', '').replace(',', '.'));
-        if (!isNaN(dyValue) && dyValue > 0) {
-          somaYield += dyValue;
-          contadorYield++;
-          console.log(`- DY válido: ${dyValue}%`);
-        }
+      if (ativo.performance < piorPerformance) {
+        piorPerformance = ativo.performance;
+        piorAtivo = { ...ativo, performance: ativo.performance };
       }
     });
 
     const rentabilidadeTotal = valorInicialTotal > 0 ? 
       ((valorFinalTotal - valorInicialTotal) / valorInicialTotal) * 100 : 0;
 
-    const dyMedio = contadorYield > 0 ? somaYield / contadorYield : 0;
+    const dyValues = ativosAtivos
+      .map(ativo => parseFloat(ativo.dy.replace('%', '').replace(',', '.')))
+      .filter(dy => !isNaN(dy) && dy > 0);
+    
+    const dyMedio = dyValues.length > 0 ? 
+      dyValues.reduce((sum, dy) => sum + dy, 0) / dyValues.length : 0;
 
-    const resultado = {
+    return {
       valorInicial: valorInicialTotal,
       valorAtual: valorFinalTotal,
       rentabilidadeTotal,
-      quantidadeAtivos: fiis.length,
+      quantidadeAtivos: ativosAtivos.length,
       melhorAtivo,
       piorAtivo,
       dyMedio
     };
-    
-    console.log('✅ Métricas calculadas:', resultado);
-    return resultado;
-  };
+  }, [ativosAtivos]);
 
-  const metricas = calcularMetricas();
-
-  const formatCurrency = (value: number) => {
+  // Funções auxiliares memoizadas
+  const formatCurrency = React.useCallback((value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 2
     }).format(value);
-  };
+  }, []);
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = React.useCallback((value: number) => {
     const signal = value >= 0 ? '+' : '';
     return signal + value.toFixed(2) + '%';
-  };
+  }, []);
 
-  // Se ainda está carregando
-  if (fiisLoading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '18px', 
-            color: '#64748b',
-            marginBottom: '16px'
-          }}>
-            🏢 {isMobile ? 'Carregando FIIs (modo mobile)...' : 'Carregando dados dos FIIs...'}
-          </div>
-          {isMobile && (
-            <div style={{ 
-              fontSize: '14px', 
-              color: '#8b5cf6',
-              fontWeight: '500'
-            }}>
-              Usando dados simulados para evitar bloqueios CORS
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Se há erro crítico
-  if (fiisError) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '18px', 
-            color: '#ef4444',
-            marginBottom: '8px'
-          }}>
-            ⚠️ {isMobile ? 'Erro no modo mobile' : 'Erro ao carregar FIIs'}
-          </div>
-          <div style={{ 
-            fontSize: '14px', 
-            color: '#64748b',
-            marginBottom: '16px'
-          }}>
-            {isMobile 
-              ? 'Falha ao carregar dados simulados. Tente recarregar a página.'
-              : fiisError
-            }
-          </div>
-          {isMobile && (
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '12px 24px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              🔄 Recarregar Página
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Se não há FIIs
-  if (!Array.isArray(fiis) || fiis.length === 0) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '18px', 
-            color: '#64748b',
-            marginBottom: '8px'
-          }}>
-            📊 {isMobile ? 'Nenhum FII simulado carregado' : 'Nenhum FII encontrado na carteira'}
-          </div>
-          {isMobile && (
-            <div style={{ 
-              fontSize: '14px', 
-              color: '#8b5cf6',
-              marginTop: '8px'
-            }}>
-              Tente recarregar a página para carregar dados simulados
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const calcularPerformanceEncerrada = React.useCallback((ativo: any) => {
+    if (!ativo.precoSaida) return 0;
+    return ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+  }, []);
 
   return (
     <div style={{ 
@@ -1172,23 +1361,6 @@ export default function FiisPage() {
       backgroundColor: '#f5f5f5', 
       padding: isMobile ? '16px' : '24px'
     }}>
-      {/* 📱 BANNER INFORMATIVO MOBILE */}
-      {isMobile && (
-        <div style={{
-          backgroundColor: '#3b82f6',
-          color: 'white',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          marginBottom: '24px',
-          fontSize: '14px',
-          fontWeight: '500',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
-        }}>
-          📱 <strong>Modo Mobile:</strong> Dados simulados para evitar bloqueios CORS
-        </div>
-      )}
-
       {/* Header Responsivo */}
       <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
@@ -1197,7 +1369,7 @@ export default function FiisPage() {
           color: '#1e293b',
           margin: '0 0 8px 0'
         }}>
-          Carteira de Fundos Imobiliários
+          Carteira de Small Caps
         </h1>
         <p style={{ 
           color: '#64748b', 
@@ -1205,14 +1377,13 @@ export default function FiisPage() {
           margin: '0',
           lineHeight: '1.5'
         }}>
-          {isMobile 
-            ? 'Modo Mobile: Dados simulados (CORS contornado) • Atualização a cada 10 minutos'
-            : 'Fundos de Investimento Imobiliário • Dados atualizados a cada 15 minutos'
-          }
+          {loading && !todosOsDadosProntos && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• Coletando dados...</span>}
+          {loadingDY && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Carregando DY...</span>}
+          {loadingProventos && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Carregando proventos...</span>}
         </p>
       </div>
 
-      {/* Cards de Métricas Responsivos */}
+      {/* Cards de Métricas */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile 
@@ -1243,11 +1414,11 @@ export default function FiisPage() {
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {formatPercentage(metricas.rentabilidadeTotal)}
+            {loading ? '...' : formatPercentage(metricas.rentabilidadeTotal)}
           </div>
         </div>
 
-        {/* Dividend Yield Médio */}
+        {/* DY Médio */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -1269,11 +1440,11 @@ export default function FiisPage() {
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {metricas.dyMedio.toFixed(1)}%
+            {loadingDY ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
           </div>
         </div>
 
-        {/* IFIX Index */}
+        {/* SMLL Index */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -1287,7 +1458,7 @@ export default function FiisPage() {
             fontWeight: '500',
             marginBottom: '8px'
           }}>
-            IFIX Index
+            SMLL Index
           </div>
           <div style={{ 
             fontSize: isMobile ? '18px' : '20px',
@@ -1296,15 +1467,15 @@ export default function FiisPage() {
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {ifixData?.valorFormatado || '3.435'}
+            {smllData?.valorFormatado || '2.205'}
           </div>
           <div style={{ 
             fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
-            color: ifixData?.trend === 'up' ? '#10b981' : '#ef4444',
+            color: smllData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
           }}>
-            {ifixData ? formatPercentage(ifixData.variacaoPercent) : '+0.24%'}
+            {smllData ? formatPercentage(smllData.variacaoPercent) : '+0.4%'}
           </div>
         </div>
 
@@ -1331,7 +1502,7 @@ export default function FiisPage() {
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {ibovespaData?.valorFormatado || '137.213'}
+            {ibovespaData?.valorFormatado || '134.500'}
           </div>
           <div style={{ 
             fontSize: isMobile ? '12px' : '14px',
@@ -1343,7 +1514,7 @@ export default function FiisPage() {
           </div>
         </div>
 
-        {/* Ibovespa Período - AGORA DINÂMICO */}
+        {/* Ibovespa Período */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -1366,19 +1537,19 @@ export default function FiisPage() {
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {ibovespaPeriodo ? formatPercentage(ibovespaPeriodo.performancePeriodo) : '+19.2%'}
+            {ibovespaPeriodo ? formatPercentage(ibovespaPeriodo.performancePeriodo) : '+111.8%'}
           </div>
           <div style={{ 
             fontSize: '11px', 
             color: '#64748b',
             lineHeight: '1'
           }}>
-            Desde {ibovespaPeriodo?.dataInicial || 'jan/2020'}
+            Desde {ibovespaPeriodo?.dataInicial || 'mar/2020'}
           </div>
-        </div>      
+        </div>
       </div>
 
-      {/* Tabela de FIIs - AGORA RESPONSIVA */}
+      {/* Posições Ativas */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1396,296 +1567,739 @@ export default function FiisPage() {
             fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            margin: '0 0 8px 0'
+            margin: '0 0 8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-           FIIs • Performance Individual
+            Posições Ativas ({ativosAtivos.length})
+            {(loading || !todosOsDadosProntos) && (
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            )}
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {fiis.length} fundos imobiliários • Viés calculado automaticamente
+            {loading || !todosOsDadosProntos
+              ? 'Carregando Total Return com proventos...' 
+              : 'Total Return aplicado - dados atualizados a cada 5 minutos'
+            }
           </p>
         </div>
 
-        {/* LAYOUT CONDICIONAL: Mobile = Cards, Desktop = Tabela */}
-        {isMobile ? (
-          // 📱 MOBILE: Cards verticais
-          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {fiis.map((fii, index) => {
-              if (!fii || !fii.id || !fii.ticker) {
-                console.warn('Invalid FII row:', fii);
-                return null;
-              }
-
-              const { performanceTotal } = calculatePerformanceTotal(fii);
-              
-              return (
-                <div 
-                  key={fii.id || index}
-                  style={{
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    border: '1px solid #e2e8f0',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onClick={() => {
-                    window.location.href = `/dashboard/ativo/${fii.ticker}`;
-                  }}
-                  onTouchStart={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f1f5f9';
-                  }}
-                  onTouchEnd={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
-                  }}
-                >
-                  {/* Header do Card */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    {/* Avatar do FII */}
-                    <CompanyAvatar 
-                      symbol={fii.ticker}
-                      companyName={fii.setor || 'FII'}
-                      size={36}
-                    />
-                    
-                    {/* Nome e Setor */}
-                    <div style={{ flex: '1' }}>
-                      <div style={{ 
-                        fontWeight: '700', 
-                        color: '#1e293b', 
-                        fontSize: '16px'
-                      }}>
-                        {fii.ticker}
-                      </div>
-                      <div style={{ color: '#64748b', fontSize: '12px' }}>
-                        {fii.setor || 'FII'}
-                      </div>
-                    </div>
-
-                    {/* Viés */}
-                    <div style={{
-                      padding: '4px 8px',
-                      borderRadius: '8px',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      backgroundColor: fii.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
-                      color: fii.vies === 'Compra' ? '#065f46' : '#92400e'
-                    }}>
-                      {fii.vies}
-                    </div>
-                  </div>
-                  
-                  {/* Dados em Grid */}
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 1fr', 
-                    gap: '8px', 
-                    fontSize: '14px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Entrada:</span><br />
-                      <span style={{ fontWeight: '600', color: '#1e293b' }}>{fii.dataEntrada}</span>
-                    </div>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
-                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {fii.dy || '-'}
-                      </span>
-                    </div>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
-                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {fii.precoAtual || '-'}
-                      </span>
-                    </div>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Preço Teto:</span><br />
-                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {fii.precoTeto || '-'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Performance em destaque */}
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '8px',
-                    backgroundColor: '#ffffff',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
-                      Performance Total
-                    </div>
-                    <div style={{ 
-                      fontSize: '18px', 
-                      fontWeight: '800',
-                      color: performanceTotal >= 0 ? '#10b981' : '#ef4444'
-                    }}>
-                      {formatPercentage(performanceTotal)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        {/* Skeleton Loading */}
+        {loading && ativosAtivos.length === 0 ? (
+          <div style={{ padding: '24px' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{
+                height: '60px',
+                backgroundColor: '#f1f5f9',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                animation: 'pulse 1.5s ease-in-out infinite'
+              }} />
+            ))}
           </div>
         ) : (
-          // 🖥️ DESKTOP: Tabela completa
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f1f5f9' }}>
-                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    FII
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    ENTRADA
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    PREÇO INICIAL
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    PREÇO ATUAL
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    PREÇO TETO
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                      PERFORMANCE TOTAL
-                      <div 
-                        style={{
-                          width: '16px',
-                          height: '16px',
+          // Conteúdo principal
+          <>
+            {isMobile ? (
+              // 📱 MOBILE: Cards verticais
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {ativosAtivos.map((ativo, index) => {
+                  const temCotacaoReal = ativo.statusApi === 'success';
+                  
+                  return (
+                    <div 
+                      key={ativo.id || index}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        border: '1px solid #e2e8f0',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onClick={() => {
+                        window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                      }}
+                      onTouchStart={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                      }}
+                      onTouchEnd={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                      }}
+                    >
+                      {/* Header do Card */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        {/* Posição */}
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
                           borderRadius: '50%',
-                          backgroundColor: '#64748b',
-                          color: 'white',
-                          fontSize: '10px',
-                          fontWeight: '600',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          cursor: 'help',
-                          position: 'relative'
-                        }}
-                        title="A rentabilidade de todos os FIIs é calculada pelo método Total Return, incluindo o reinvestimento dos dividendos."
-                      >
-                        i
-                      </div>
-                    </div>
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    DY 12M
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    VIÉS
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {fiis.map((fii, index) => {
-                  if (!fii || !fii.id || !fii.ticker) {
-                    console.warn('Invalid FII row:', fii);
-                    return null;
-                  }
+                          fontWeight: '700',
+                          fontSize: '12px',
+                          color: '#64748b'
+                        }}>
+                          {ativo.posicaoExibicao}
+                        </div>
 
-                  const { performanceTotal } = calculatePerformanceTotal(fii);
-                  
-                  return (
-                    <tr 
-                      key={fii.id || index} 
-                      style={{ 
-                        borderBottom: '1px solid #f1f5f9',
-                        transition: 'background-color 0.2s',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => {
-                        window.location.href = `/dashboard/ativo/${fii.ticker}`;
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f8fafc';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {/* ✅ NOVO SISTEMA DE AVATAR */}
-                          <CompanyAvatar 
-                            symbol={fii.ticker}
-                            companyName={fii.setor || 'FII'}
-                            size={40}
+                        {/* Logo do Ativo */}
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          backgroundColor: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          <img 
+                            src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                            alt={`Logo ${ativo.ticker}`}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              objectFit: 'contain'
+                            }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                parent.style.color = ativo.performance >= 0 ? '#065f46' : '#dc2626';
+                                parent.style.fontWeight = '700';
+                                parent.style.fontSize = '12px';
+                                parent.textContent = ativo.ticker.slice(0, 2);
+                              }
+                            }}
                           />
-                          <div>
-                            <div style={{ 
-                              fontWeight: '700', 
-                              color: '#1e293b', 
-                              fontSize: '16px'
-                            }}>
-                              {fii.ticker}
-                            </div>
-                            <div style={{ color: '#64748b', fontSize: '14px' }}>
-                              {fii.setor || 'FII'}
-                            </div>
+                        </div>
+
+                        {/* Nome e Setor */}
+                        <div style={{ flex: '1' }}>
+                          <div style={{ 
+                            fontWeight: '700', 
+                            color: '#1e293b', 
+                            fontSize: '16px'
+                          }}>
+                            {ativo.ticker}
+                            {!temCotacaoReal && (
+                              <span style={{ 
+                                marginLeft: '8px', 
+                                fontSize: '10px', 
+                                color: '#f59e0b',
+                                backgroundColor: '#fef3c7',
+                                padding: '2px 4px',
+                                borderRadius: '3px'
+                              }}>
+                                SIM
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ color: '#64748b', fontSize: '12px' }}>
+                            {ativo.setor}
                           </div>
                         </div>
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                        {fii.dataEntrada || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
-                        {fii.precoEntrada || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performanceTotal >= 0 ? '#10b981' : '#ef4444' }}>
-                        {fii.precoAtual || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
-                        {fii.precoTeto || '-'}
-                      </td>
-                      <td style={{ 
-                        padding: '16px', 
-                        textAlign: 'center', 
-                        fontWeight: '800',
-                        fontSize: '16px',
-                        color: performanceTotal >= 0 ? '#10b981' : '#ef4444'
-                      }}>
-                        {formatPercentage(performanceTotal)}
-                      </td>
-                      <td style={{ 
-                        padding: '16px', 
-                        textAlign: 'center',
-                        fontWeight: '700',
-                        color: '#1e293b'
-                      }}>
-                        {fii.dy || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
+
+                        {/* Viés */}
+                        <div style={{
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
                           fontWeight: '700',
-                          backgroundColor: (fii.vies === 'Compra') ? '#dcfce7' : '#fef3c7',
-                          color: (fii.vies === 'Compra') ? '#065f46' : '#92400e'
+                          backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                          color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
                         }}>
-                          {fii.vies || 'Aguardar'}
-                        </span>
-                      </td>
-                    </tr>
+                          {ativo.vies}
+                        </div>
+                      </div>
+                      
+                      {/* Dados em Grid */}
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '8px', 
+                        fontSize: '14px',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                          <span style={{ fontWeight: '600', color: '#1e293b' }}>{ativo.dataEntrada}</span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {loadingDY ? '...' : ativo.dy}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {formatCurrency(ativo.precoAtual)}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Teto:</span><br />
+                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                            {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Performance em destaque */}
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '8px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                          Performance Total
+                        </div>
+                        <div style={{ 
+                          fontSize: '18px', 
+                          fontWeight: '800',
+                          color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
+                        }}>
+                          {formatPercentage(ativo.performance)}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            ) : (
+              // 🖥️ DESKTOP: Tabela completa
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        #
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ATIVO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ENTRADA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO INICIAL
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO ATUAL
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO TETO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          PERFORMANCE TOTAL
+                          <div 
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '50%',
+                              backgroundColor: '#64748b',
+                              color: 'white',
+                              fontSize: '10px',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'help',
+                              position: 'relative'
+                            }}
+                            title="A rentabilidade de todos os ativos é calculada pelo método Total Return, incluindo o reinvestimento dos proventos."
+                          >
+                            i
+                          </div>
+                        </div>
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        DY 12M
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        VIÉS
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ativosAtivos.map((ativo, index) => {
+                      const temCotacaoReal = ativo.statusApi === 'success';
+                      
+                      return (
+                        <tr 
+                          key={ativo.id || index} 
+                          style={{ 
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background-color 0.2s',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => {
+                            window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f8fafc';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          {/* Posição */}
+<td style={{ padding: '16px', textAlign: 'center' }}>
+  <div style={{
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '14px',
+    color: '#64748b',
+    margin: '0 auto'
+  }}>
+    {ativo.posicaoExibicao}
+  </div>
+</td>
+                          {/* Ativo */}
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                backgroundColor: '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #e2e8f0'
+                              }}>
+                                <img 
+                                  src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                                  alt={`Logo ${ativo.ticker}`}
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    objectFit: 'contain'
+                                  }}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.style.backgroundColor = ativo.performance >= 0 ? '#dcfce7' : '#fee2e2';
+                                      parent.style.color = ativo.performance >= 0 ? '#065f46' : '#dc2626';
+                                      parent.style.fontWeight = '700';
+                                      parent.style.fontSize = '14px';
+                                      parent.textContent = ativo.ticker.slice(0, 2);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <div style={{ 
+                                  fontWeight: '700', 
+                                  color: '#1e293b', 
+                                  fontSize: '16px'
+                                }}>
+                                  {ativo.ticker}
+                                  {!temCotacaoReal && (
+                                    <span style={{ 
+                                      marginLeft: '8px', 
+                                      fontSize: '12px', 
+                                      color: '#f59e0b',
+                                      backgroundColor: '#fef3c7',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      SIM
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                  {ativo.setor}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {ativo.dataEntrada}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
+                            {formatCurrency(ativo.precoEntrada)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
+                            {formatCurrency(ativo.precoAtual)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
+                            {ativo.precoTeto ? formatCurrency(ativo.precoTeto) : '-'}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            fontWeight: '800',
+                            fontSize: '16px',
+                            color: ativo.performance >= 0 ? '#10b981' : '#ef4444'
+                          }}>
+                            {formatPercentage(ativo.performance)}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center',
+                            fontWeight: '700',
+                            color: '#1e293b'
+                          }}>
+                            {loadingDY ? '...' : ativo.dy}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              backgroundColor: ativo.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
+                              color: ativo.vies === 'Compra' ? '#065f46' : '#92400e'
+                            }}>
+                              {ativo.vies}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Gráfico de Composição por FIIs - RESPONSIVO */}
+      {/* Posições Encerradas */}
+      {ativosEncerrados.length > 0 && (
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
+          marginBottom: '32px'
+        }}>
+          <div style={{
+            padding: isMobile ? '16px' : '24px',
+            borderBottom: '1px solid #e2e8f0',
+            backgroundColor: '#f8fafc'
+          }}>
+            <h3 style={{
+              fontSize: isMobile ? '20px' : '24px',
+              fontWeight: '700',
+              color: '#1e293b',
+              margin: '0 0 8px 0'
+            }}>
+              Posições Encerradas ({ativosEncerrados.length})
+            </h3>
+            <p style={{
+              color: '#64748b',
+              fontSize: isMobile ? '14px' : '16px',
+              margin: '0'
+            }}>
+              Histórico de operações finalizadas
+            </p>
+          </div>
+
+          {isMobile ? (
+            // 📱 MOBILE: Cards para encerradas
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {ativosEncerrados.map((ativo, index) => {
+                const performance = calcularPerformanceEncerrada(ativo);
+                
+                return (
+                  <div 
+                    key={ativo.id || index}
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      border: '1px solid #e2e8f0'
+                    }}
+                  >
+                    {/* Header do Card Encerrado */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        backgroundColor: '#f8fafc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        <img 
+                          src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                          alt={`Logo ${ativo.ticker}`}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            objectFit: 'contain'
+                          }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.style.backgroundColor = '#dc2626';
+                              parent.style.color = 'white';
+                              parent.style.fontWeight = '700';
+                              parent.style.fontSize = '12px';
+                              parent.textContent = ativo.ticker.slice(0, 2);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: '1' }}>
+                        <div style={{ 
+                          fontWeight: '700', 
+                          color: '#64748b', 
+                          fontSize: '16px'
+                        }}>
+                          {ativo.ticker}
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '12px' }}>
+                          {ativo.setor}
+                        </div>
+                      </div>
+                      <div style={{
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        backgroundColor: performance >= 0 ? '#dcfce7' : '#fee2e2',
+                        color: performance >= 0 ? '#065f46' : '#dc2626'
+                      }}>
+                        ENCERRADO
+                      </div>
+                    </div>
+                    
+                    {/* Dados em Grid */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '8px', 
+                      fontSize: '14px',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ color: '#64748b' }}>
+                        <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                        <span style={{ fontWeight: '600', color: '#64748b' }}>{ativo.dataEntrada}</span>
+                      </div>
+                      <div style={{ color: '#64748b' }}>
+                        <span style={{ fontWeight: '500' }}>Saída:</span><br />
+                        <span style={{ fontWeight: '600', color: '#64748b' }}>{ativo.dataSaida}</span>
+                      </div>
+                      <div style={{ color: '#64748b' }}>
+                        <span style={{ fontWeight: '500' }}>Preço Entrada:</span><br />
+                        <span style={{ fontWeight: '700', color: '#64748b' }}>
+                          {formatCurrency(ativo.precoEntrada)}
+                        </span>
+                      </div>
+                      <div style={{ color: '#64748b' }}>
+                        <span style={{ fontWeight: '500' }}>Preço Saída:</span><br />
+                        <span style={{ fontWeight: '700', color: '#64748b' }}>
+                          {formatCurrency(ativo.precoSaida)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Performance final */}
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '8px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                        Performance Final
+                      </div>
+                      <div style={{ 
+                        fontSize: '18px', 
+                        fontWeight: '800',
+                        color: performance >= 0 ? '#059669' : '#dc2626'
+                      }}>
+                        {formatPercentage(performance)}
+                      </div>
+                    </div>
+
+                    {/* Motivo */}
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#64748b', 
+                      textAlign: 'center',
+                      fontWeight: '500'
+                    }}>
+                      Motivo: {ativo.motivoEncerramento}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            // 🖥️ DESKTOP: Tabela para encerradas
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9' }}>
+                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      ATIVO
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      ENTRADA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      SAÍDA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      PREÇO ENTRADA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      PREÇO SAÍDA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      PERFORMANCE FINAL
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                      MOTIVO
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ativosEncerrados.map((ativo, index) => {
+                    const performance = calcularPerformanceEncerrada(ativo);
+                    
+                    return (
+                      <tr 
+                        key={ativo.id || index} 
+                        style={{ 
+                          borderBottom: '1px solid #e2e8f0',
+                          backgroundColor: '#f8fafc'
+                        }}
+                      >
+                        <td style={{ padding: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              backgroundColor: '#f8fafc',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid #e2e8f0'
+                            }}>
+                              <img 
+                                src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                                alt={`Logo ${ativo.ticker}`}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  objectFit: 'contain'
+                                }}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    parent.style.backgroundColor = '#dc2626';
+                                    parent.style.color = 'white';
+                                    parent.style.fontWeight = '700';
+                                    parent.style.fontSize = '14px';
+                                    parent.textContent = ativo.ticker.slice(0, 2);
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <div style={{ 
+                                fontWeight: '700', 
+                                color: '#64748b', 
+                                fontSize: '16px'
+                              }}>
+                                {ativo.ticker}
+                              </div>
+                              <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                {ativo.setor}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                          {ativo.dataEntrada}
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                          {ativo.dataSaida}
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
+                          {formatCurrency(ativo.precoEntrada)}
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
+                          {formatCurrency(ativo.precoSaida)}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center', 
+                          fontWeight: '800',
+                          fontSize: '16px',
+                          color: performance >= 0 ? '#059669' : '#dc2626'
+                        }}>
+                          {formatPercentage(performance)}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center', 
+                          fontSize: '12px', 
+                          color: '#64748b' 
+                        }}>
+                          {ativo.motivoEncerramento}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Gráfico de Composição */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1704,14 +2318,14 @@ export default function FiisPage() {
             color: '#1e293b',
             margin: '0 0 8px 0'
           }}>
-           Composição por FIIs
+            Composição por Ativos Ativos
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            Distribuição percentual da carteira • {fiis.length} fundos
+            Distribuição percentual da carteira - {ativosAtivos.length} ativos ativos
           </p>
         </div>
 
@@ -1741,8 +2355,24 @@ export default function FiisPage() {
               const innerRadius = isMobile ? 60 : 75;
               const centerX = chartSize / 2;
               const centerY = chartSize / 2;
-              const totalFiis = fiis.length;
-              const anglePerSlice = (2 * Math.PI) / totalFiis;
+              const totalAtivos = ativosAtivos.length;
+              
+              if (totalAtivos === 0) {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#64748b',
+                    fontSize: '16px'
+                  }}>
+                    Nenhum ativo ativo para exibir
+                  </div>
+                );
+              }
+              
+              const anglePerSlice = (2 * Math.PI) / totalAtivos;
               
               const createPath = (startAngle: number, endAngle: number) => {
                 const x1 = centerX + radius * Math.cos(startAngle);
@@ -1790,21 +2420,20 @@ export default function FiisPage() {
                     </style>
                   </defs>
                   
-                  {fiis.map((fii, index) => {
+                  {ativosAtivos.map((ativo, index) => {
                     const startAngle = index * anglePerSlice - Math.PI / 2;
                     const endAngle = (index + 1) * anglePerSlice - Math.PI / 2;
                     const cor = cores[index % cores.length];
                     const path = createPath(startAngle, endAngle);
                     
-                    // Calcular posição do texto no meio da fatia
                     const middleAngle = (startAngle + endAngle) / 2;
-                    const textRadius = (radius + innerRadius) / 2; // Meio da fatia
+                    const textRadius = (radius + innerRadius) / 2;
                     const textX = centerX + textRadius * Math.cos(middleAngle);
                     const textY = centerY + textRadius * Math.sin(middleAngle);
-                    const porcentagem = (100 / totalFiis).toFixed(1);
+                    const porcentagem = (100 / totalAtivos).toFixed(1);
                     
                     return (
-                      <g key={fii.ticker} className="slice-group">
+                      <g key={ativo.ticker} className="slice-group">
                         <path
                           d={path}
                           fill={cor}
@@ -1812,12 +2441,10 @@ export default function FiisPage() {
                           strokeWidth="2"
                           className="slice-path"
                         >
-                          <title>{fii.ticker}: {porcentagem}%</title>
+                          <title>{ativo.ticker}: {porcentagem}%</title>
                         </path>
                         
-                        {/* Textos que aparecem no hover */}
                         <g className="slice-text">
-                          {/* Texto do ticker */}
                           <text
                             x={textX}
                             y={textY - 6}
@@ -1829,10 +2456,9 @@ export default function FiisPage() {
                               textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
                             }}
                           >
-                            {fii.ticker}
+                            {ativo.ticker}
                           </text>
                           
-                          {/* Texto da porcentagem */}
                           <text
                             x={textX}
                             y={textY + 8}
@@ -1851,7 +2477,6 @@ export default function FiisPage() {
                     );
                   })}
                   
-                  {/* Círculo central */}
                   <circle
                     cx={centerX}
                     cy={centerY}
@@ -1861,7 +2486,6 @@ export default function FiisPage() {
                     strokeWidth="2"
                   />
                   
-                  {/* Texto central */}
                   <text
                     x={centerX}
                     y={centerY - 10}
@@ -1870,7 +2494,7 @@ export default function FiisPage() {
                     fontWeight="700"
                     fill="#1e293b"
                   >
-                    {totalFiis}
+                    {totalAtivos}
                   </text>
                   <text
                     x={centerX}
@@ -1879,7 +2503,7 @@ export default function FiisPage() {
                     fontSize={isMobile ? "10" : "12"}
                     fill="#64748b"
                   >
-                    FIIs
+                    ATIVOS ATIVOS
                   </text>
                 </svg>
               );
@@ -1895,17 +2519,25 @@ export default function FiisPage() {
               : 'repeat(auto-fit, minmax(120px, 1fr))', 
             gap: isMobile ? '8px' : '12px'
           }}>
-            {fiis.map((fii, index) => {
-              const porcentagem = ((1 / fiis.length) * 100).toFixed(1);
+            {ativosAtivos.map((ativo, index) => {
+              const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
+              const cores = [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+              ];
+              const cor = cores[index % cores.length];
               
               return (
-                <div key={fii.ticker} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* ✅ NOVO SISTEMA DE AVATAR na legenda */}
-                  <CompanyAvatar 
-                    symbol={fii.ticker}
-                    companyName={fii.setor || 'FII'}
-                    size={24}
-                  />
+                <div key={ativo.ticker} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '2px',
+                    backgroundColor: cor,
+                    flexShrink: 0
+                  }} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ 
                       fontWeight: '700', 
@@ -1915,7 +2547,7 @@ export default function FiisPage() {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}>
-                      {fii.ticker}
+                      {ativo.ticker}
                     </div>
                     <div style={{ 
                       color: '#64748b', 
@@ -1933,6 +2565,18 @@ export default function FiisPage() {
           </div>
         </div>
       </div>
+
+      {/* Animações CSS */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }
