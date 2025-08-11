@@ -1417,32 +1417,6 @@ export default function FiisPage() {
           </div>
         </div>
 
-        {/* DY Médio */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
-            color: '#64748b', 
-            fontWeight: '500',
-            marginBottom: '8px'
-          }}>
-            DY médio 12M
-          </div>
-          <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '700', 
-            color: '#1e293b',
-            lineHeight: '1'
-          }}>
-            {loadingDY ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
-          </div>
-        </div>
-
         {/* IFIX Index */}
         <div style={{
           backgroundColor: '#ffffff',
