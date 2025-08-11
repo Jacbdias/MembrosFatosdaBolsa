@@ -176,8 +176,232 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   }
 }
 
-// 🎯 FUNÇÃO PARA CALCULAR DY DOS ÚLTIMOS 12 MESES BASEADO NOS PROVENTOS UPLOADADOS
-function calcularDY12Meses(ticker: string, precoAtual: number): string {
+// 🚀 FUNÇÃO PARA BUSCAR DY 12 MESES VIA YAHOO FINANCE API (ADAPTADA DO EXTERIOR STOCKS)
+async function buscarDY12MesesAPI(ticker: string, precoAtual: number): Promise<string> {
+  try {
+    if (!ticker || precoAtual <= 0) return '0,00%';
+    
+    console.log(`🔍 Buscando DY via API para ${ticker}...`);
+    
+    // 📊 MÉTODO 1: TENTAR VIA BRAPI (PODE TER DADOS DE DIVIDENDOS)
+    try {
+      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+      const brapiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(brapiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'DY-Calculator-App'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 Resposta BRAPI para ${ticker}:`, data);
+        
+        if (data.results && data.results.length > 0) {
+          const quote = data.results[0];
+          
+          // Verificar se tem dados de dividendos
+          if (quote.dividendYield && quote.dividendYield > 0) {
+            const dyPercent = quote.dividendYield * 100;
+            console.log(`✅ DY encontrado via BRAPI para ${ticker}: ${dyPercent.toFixed(2)}%`);
+            return `${dyPercent.toFixed(2).replace('.', ',')}%`;
+          }
+          
+          // Verificar dados fundamentais
+          if (quote.summaryProfile?.dividendYield) {
+            const dyPercent = quote.summaryProfile.dividendYield * 100;
+            console.log(`✅ DY encontrado via BRAPI (fundamental) para ${ticker}: ${dyPercent.toFixed(2)}%`);
+            return `${dyPercent.toFixed(2).replace('.', ',')}%`;
+          }
+        }
+      }
+    } catch (brapiError) {
+      console.warn(`⚠️ Erro BRAPI para ${ticker}:`, brapiError);
+    }
+    
+    // 📊 MÉTODO 2: TENTAR VIA YAHOO FINANCE DIRETO (COM CORS PROXY)
+    try {
+      // Usar um proxy CORS público para acessar Yahoo Finance
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&events=div`;
+      
+      const proxyUrl = corsProxy + encodeURIComponent(yahooUrl);
+      
+      const controller2 = new AbortController();
+      const timeoutId2 = setTimeout(() => controller2.abort(), 8000);
+      
+      const response2 = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller2.signal
+      });
+      
+      clearTimeout(timeoutId2);
+      
+      if (response2.ok) {
+        const data = await response2.json();
+        console.log(`📊 Resposta Yahoo Finance para ${ticker}:`, data);
+        
+        if (data.chart && data.chart.result && data.chart.result.length > 0) {
+          const result = data.chart.result[0];
+          
+          // Verificar se tem eventos de dividendos
+          if (result.events && result.events.dividends) {
+            const dividendos = Object.values(result.events.dividends) as any[];
+            
+            // Calcular data de 12 meses atrás
+            const hoje = new Date();
+            const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+            const timestampUmAnoAtras = Math.floor(umAnoAtras.getTime() / 1000);
+            
+            // Filtrar dividendos dos últimos 12 meses
+            const dividendosUltimos12Meses = dividendos.filter((div: any) => 
+              div.date && div.date >= timestampUmAnoAtras
+            );
+            
+            if (dividendosUltimos12Meses.length > 0) {
+              // Somar todos os dividendos dos últimos 12 meses
+              const totalDividendos = dividendosUltimos12Meses.reduce((total: number, div: any) => 
+                total + (div.amount || 0), 0
+              );
+              
+              if (totalDividendos > 0) {
+                // Calcular DY: (Total Dividendos / Preço Atual) * 100
+                const dy = (totalDividendos / precoAtual) * 100;
+                console.log(`✅ DY calculado via Yahoo Finance para ${ticker}: ${dy.toFixed(2)}% (${totalDividendos} USD em dividendos)`);
+                return `${dy.toFixed(2).replace('.', ',')}%`;
+              }
+            }
+          }
+        }
+      }
+    } catch (yahooError) {
+      console.warn(`⚠️ Erro Yahoo Finance para ${ticker}:`, yahooError);
+    }
+    
+    // 📊 MÉTODO 3: TENTAR VIA FINANCIAL MODELING PREP (GRATUITO ATÉ 250 CALLS/DIA)
+    try {
+      // API Key demo da Financial Modeling Prep (substituir por uma própria se necessário)
+      const fmpUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${ticker}?apikey=demo`;
+      
+      const controller3 = new AbortController();
+      const timeoutId3 = setTimeout(() => controller3.abort(), 5000);
+      
+      const response3 = await fetch(fmpUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller3.signal
+      });
+      
+      clearTimeout(timeoutId3);
+      
+      if (response3.ok) {
+        const data = await response3.json();
+        console.log(`📊 Resposta FMP para ${ticker}:`, data);
+        
+        if (data.historical && Array.isArray(data.historical)) {
+          // Calcular data de 12 meses atrás
+          const hoje = new Date();
+          const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+          
+          // Filtrar dividendos dos últimos 12 meses
+          const dividendosUltimos12Meses = data.historical.filter((div: any) => {
+            const dataDividendo = new Date(div.date);
+            return dataDividendo >= umAnoAtras && dataDividendo <= hoje;
+          });
+          
+          if (dividendosUltimos12Meses.length > 0) {
+            // Somar todos os dividendos dos últimos 12 meses
+            const totalDividendos = dividendosUltimos12Meses.reduce((total: number, div: any) => 
+              total + (div.dividend || 0), 0
+            );
+            
+            if (totalDividendos > 0) {
+              // Calcular DY: (Total Dividendos / Preço Atual) * 100
+              const dy = (totalDividendos / precoAtual) * 100;
+              console.log(`✅ DY calculado via FMP para ${ticker}: ${dy.toFixed(2)}% (${totalDividendos} USD em dividendos)`);
+              return `${dy.toFixed(2).replace('.', ',')}%`;
+            }
+          }
+        }
+      }
+    } catch (fmpError) {
+      console.warn(`⚠️ Erro FMP para ${ticker}:`, fmpError);
+    }
+    
+    // 📊 MÉTODO 4: FALLBACK - TENTAR BUSCAR DIVIDEND YIELD ATUAL VIA QUOTE
+    try {
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
+      const yahooQuoteUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics,summaryDetail`;
+      const proxyQuoteUrl = corsProxy + encodeURIComponent(yahooQuoteUrl);
+      
+      const controller4 = new AbortController();
+      const timeoutId4 = setTimeout(() => controller4.abort(), 5000);
+      
+      const response4 = await fetch(proxyQuoteUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller4.signal
+      });
+      
+      clearTimeout(timeoutId4);
+      
+      if (response4.ok) {
+        const data = await response4.json();
+        console.log(`📊 Resposta Yahoo Quote para ${ticker}:`, data);
+        
+        if (data.quoteSummary && data.quoteSummary.result && data.quoteSummary.result.length > 0) {
+          const result = data.quoteSummary.result[0];
+          
+          // Tentar vários campos de dividend yield
+          const possiveisCampos = [
+            result.summaryDetail?.dividendYield?.raw,
+            result.summaryDetail?.trailingAnnualDividendYield?.raw,
+            result.defaultKeyStatistics?.dividendYield?.raw,
+            result.defaultKeyStatistics?.trailingAnnualDividendYield?.raw
+          ];
+          
+          for (const dy of possiveisCampos) {
+            if (dy && dy > 0) {
+              const dyPercent = dy * 100;
+              console.log(`✅ DY encontrado via Yahoo Quote para ${ticker}: ${dyPercent.toFixed(2)}%`);
+              return `${dyPercent.toFixed(2).replace('.', ',')}%`;
+            }
+          }
+        }
+      }
+    } catch (quoteError) {
+      console.warn(`⚠️ Erro Yahoo Quote para ${ticker}:`, quoteError);
+    }
+    
+    console.log(`❌ Nenhum método funcionou para ${ticker}, usando fallback localStorage`);
+    
+    // 📊 MÉTODO 5: FALLBACK PARA LOCALSTORAGE (MÉTODO ORIGINAL)
+    return calcularDY12MesesLocalStorage(ticker, precoAtual);
+    
+  } catch (error) {
+    console.error(`❌ Erro geral ao buscar DY para ${ticker}:`, error);
+    return calcularDY12MesesLocalStorage(ticker, precoAtual);
+  }
+}
+
+// 🎯 FUNÇÃO ORIGINAL RENOMEADA PARA FALLBACK
+function calcularDY12MesesLocalStorage(ticker: string, precoAtual: number): string {
   try {
     if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
     
@@ -431,26 +655,61 @@ function useProjetoAmericaIntegradas() {
 
       console.log(`✅ Total processado: ${cotacoesMap.size} sucessos de ${tickers.length} tentativas`);
 
-      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS
-      const ativosComCotacoes = projetoAmericaData.map((ativo, index) => {
-        const cotacao = cotacoesMap.get(ativo.ticker);
-        
-        console.log(`\n🔄 Processando ${ativo.ticker}:`);
-        console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
-        console.log(`🎯 Preço teto: ${ativo.precoTeto}`);
-        
-        if (cotacao && cotacao.precoAtual > 0) {
-          // 📊 PREÇO E PERFORMANCE REAIS
-          const precoAtualNum = cotacao.precoAtual;
-          const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS E DY VIA API
+      const ativosComCotacoes = await Promise.all(
+        projetoAmericaData.map(async (ativo, index) => {
+          const cotacao = cotacoesMap.get(ativo.ticker);
           
-          console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
-          console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+          console.log(`\n🔄 Processando ${ativo.ticker}:`);
+          console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
+          console.log(`🎯 Preço teto: ${ativo.precoTeto}`);
           
-          // VALIDAR SE O PREÇO FAZ SENTIDO (para ações americanas, usar limite maior)
-          const diferencaPercent = Math.abs(performance);
-          if (diferencaPercent > 1000) {
-            console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+          if (cotacao && cotacao.precoAtual > 0) {
+            // 📊 PREÇO E PERFORMANCE REAIS
+            const precoAtualNum = cotacao.precoAtual;
+            const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+            
+            console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
+            console.log(`📈 Performance: ${performance.toFixed(2)}%`);
+            
+            // VALIDAR SE O PREÇO FAZ SENTIDO (para ações americanas, usar limite maior)
+            const diferencaPercent = Math.abs(performance);
+            if (diferencaPercent > 1000) {
+              console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+              return {
+                ...ativo,
+                id: String(ativo.id || index + 1),
+                precoAtual: ativo.precoEntrada,
+                performance: 0,
+                variacao: 0,
+                variacaoPercent: 0,
+                volume: 0,
+                vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+                dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
+                statusApi: 'suspicious_price',
+                nomeCompleto: cotacao.nome,
+                rank: (index + 1) + '°'
+              };
+            }
+            
+            return {
+              ...ativo,
+              id: String(ativo.id || index + 1),
+              precoAtual: precoAtualNum,
+              performance: performance,
+              variacao: cotacao.variacao,
+              variacaoPercent: cotacao.variacaoPercent,
+              volume: cotacao.volume,
+              vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
+              dy: await buscarDY12MesesAPI(ativo.ticker, precoAtualNum), // 🚀 USAR API
+              statusApi: 'success',
+              nomeCompleto: cotacao.nome,
+              rank: (index + 1) + '°'
+            };
+          } else {
+            // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
+            console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
+            
             return {
               ...ativo,
               id: String(ativo.id || index + 1),
@@ -460,47 +719,14 @@ function useProjetoAmericaIntegradas() {
               variacaoPercent: 0,
               volume: 0,
               vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-              dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-              statusApi: 'suspicious_price',
-              nomeCompleto: cotacao.nome,
+              dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
+              statusApi: 'not_found',
+              nomeCompleto: 'N/A',
               rank: (index + 1) + '°'
             };
           }
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: precoAtualNum,
-            performance: performance,
-            variacao: cotacao.variacao,
-            variacaoPercent: cotacao.variacaoPercent,
-            volume: cotacao.volume,
-            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
-            dy: calcularDY12Meses(ativo.ticker, precoAtualNum),
-            statusApi: 'success',
-            nomeCompleto: cotacao.nome,
-            rank: (index + 1) + '°'
-          };
-        } else {
-          // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
-          console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
-          
-          return {
-            ...ativo,
-            id: String(ativo.id || index + 1),
-            precoAtual: ativo.precoEntrada,
-            performance: 0,
-            variacao: 0,
-            variacaoPercent: 0,
-            volume: 0,
-            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-            dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-            statusApi: 'not_found',
-            nomeCompleto: 'N/A',
-            rank: (index + 1) + '°'
-          };
-        }
-      });
+        })
+      );
 
       // 📊 ESTATÍSTICAS FINAIS
       const sucessos = ativosComCotacoes.filter(a => a.statusApi === 'success').length;
@@ -528,20 +754,22 @@ function useProjetoAmericaIntegradas() {
       
       // 🔄 FALLBACK: USAR DADOS DO DATASTORE SEM COTAÇÕES
       console.log('🔄 Usando fallback com dados do DataStore...');
-      const ativosFallback = projetoAmericaData.map((ativo, index) => ({
-        ...ativo,
-        id: String(ativo.id || index + 1),
-        precoAtual: ativo.precoEntrada,
-        performance: 0,
-        variacao: 0,
-        variacaoPercent: 0,
-        volume: 0,
-        vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-        dy: calcularDY12Meses(ativo.ticker, ativo.precoEntrada),
-        statusApi: 'error',
-        nomeCompleto: 'Erro',
-        rank: (index + 1) + '°'
-      }));
+      const ativosFallback = await Promise.all(
+        projetoAmericaData.map(async (ativo, index) => ({
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: ativo.precoEntrada,
+          performance: 0,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+          dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API MESMO NO FALLBACK
+          statusApi: 'error',
+          nomeCompleto: 'Erro',
+          rank: (index + 1) + '°'
+        }))
+      );
       setAtivosAtualizados(ativosFallback);
     } finally {
       setLoading(false);
@@ -572,9 +800,9 @@ function useProjetoAmericaIntegradas() {
 
 export default function ProjetoAmericaPage() {
   const { dados } = useDataStore();
-  const { ativosAtualizados, loading } = useProjetoAmericaIntegradas();
+  const { ativosAtualizados, loading, refetch } = useProjetoAmericaIntegradas(); // ✅ USAR O HOOK ATUALIZADO
   const { indicesData } = useIndicesInternacionaisRealTime();
-  const isMobile = useDeviceDetection(); // ✅ ADICIONADO DETECÇÃO DE MOBILE
+  const isMobile = useDeviceDetection(); // ✅ DETECÇÃO DE MOBILE
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
@@ -1105,10 +1333,10 @@ export default function ProjetoAmericaPage() {
                         PERFORMANCE
                       </th>
                       <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                        VIÉS
+                        DY 12M
                       </th>
                       <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                        DY 12M
+                        VIÉS
                       </th>
                     </tr>
                   </thead>
@@ -1229,6 +1457,14 @@ export default function ProjetoAmericaPage() {
                           }}>
                             {formatPercentage(ativo.performance)}
                           </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center',
+                            fontWeight: '700',
+                            color: '#1e293b'
+                          }}>
+                            {ativo.dy || '0,00%'}
+                          </td>
                           <td style={{ padding: '16px', textAlign: 'center' }}>
                             <span style={{
                               padding: '4px 12px',
@@ -1240,14 +1476,6 @@ export default function ProjetoAmericaPage() {
                             }}>
                               {ativo.vies}
                             </span>
-                          </td>
-                          <td style={{ 
-                            padding: '16px', 
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#1e293b'
-                          }}>
-                            {ativo.dy || '0,00%'}
                           </td>
                         </tr>
                       );
