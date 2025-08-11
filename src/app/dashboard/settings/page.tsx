@@ -4,103 +4,7 @@ import * as React from 'react';
 import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useIfixRealTime } from '@/hooks/useIfixRealTime';
-
-// 🚀 HOOK PARA BUSCAR DADOS REAIS DO IBOVESPA VIA API
-function useIbovespaRealTime() {
-  const [ibovespaData, setIbovespaData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const buscarIbovespaReal = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🔍 BUSCANDO IBOVESPA REAL VIA BRAPI...');
-
-      // 🔑 TOKEN BRAPI VALIDADO
-      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-      // 📊 BUSCAR IBOVESPA (^BVSP) VIA BRAPI COM TIMEOUT
-      const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
-      
-      console.log('🌐 Buscando Ibovespa:', ibovUrl.replace(BRAPI_TOKEN, 'TOKEN_OCULTO'));
-
-      // 🔥 ADICIONAR TIMEOUT DE 5 SEGUNDOS
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(ibovUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Ibovespa-Real-Time-App'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Resposta IBOVESPA:', data);
-
-        if (data.results && data.results.length > 0) {
-          const ibovData = data.results[0];
-          
-          const dadosIbovespa = {
-            valor: ibovData.regularMarketPrice,
-            valorFormatado: Math.round(ibovData.regularMarketPrice).toLocaleString('pt-BR'),
-            variacao: ibovData.regularMarketChange || 0,
-            variacaoPercent: ibovData.regularMarketChangePercent || 0,
-            trend: (ibovData.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down',
-            timestamp: new Date().toISOString(),
-            fonte: 'BRAPI_REAL'
-          };
-
-          console.log('✅ IBOVESPA PROCESSADO:', dadosIbovespa);
-          setIbovespaData(dadosIbovespa);
-          
-        } else {
-          throw new Error('Sem dados do Ibovespa na resposta');
-        }
-      } else {
-        throw new Error(`Erro HTTP ${response.status}`);
-      }
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar Ibovespa:', err);
-      setError(errorMessage);
-      
-      // 🔄 FALLBACK CORRIGIDO: Usar valor atual baseado na pesquisa
-      console.log('🔄 Usando fallback com valor atual do Ibovespa...');
-      const fallbackData = {
-        valor: 137213,
-        valorFormatado: '137.213',
-        variacao: -588.25,
-        variacaoPercent: -0.43,
-        trend: 'down',
-        timestamp: new Date().toISOString(),
-        fonte: 'FALLBACK_B3'
-      };
-      setIbovespaData(fallbackData);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    buscarIbovespaReal();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS
-    const interval = setInterval(buscarIbovespaReal, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, []); // 🔥 ARRAY VAZIO PARA EVITAR LOOP INFINITO
-
-  return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
-}
+import { useIbovespaUnificado, useIfixUnificado, useDeviceDetection } from '@/hooks/useUnifiedAPI';
 
 // 🚀 HOOK CORRIGIDO PARA CALCULAR IBOVESPA NO PERÍODO DA CARTEIRA
 function useIbovespaPeriodo(fiis: any[]) {
@@ -635,9 +539,13 @@ const CompanyAvatar = ({ symbol, companyName, size = 40 }) => {
 export default function FiisPage() {
   const { fiis, loading: fiisLoading, erro: fiisError } = useFiisCotacoesBrapi();
   const { marketData, loading: marketLoading, error: marketError } = useFinancialData();
-  const { ifixData, loading: ifixLoading, error: ifixError } = useIfixRealTime();
-  const { ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaRealTime();
+  
+  // ✅ NOVOS HOOKS UNIFICADOS
+  const { data: ifixData, loading: ifixLoading, error: ifixError } = useIfixUnificado();
+  const { data: ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaUnificado();
+  
   const { ibovespaPeriodo } = useIbovespaPeriodo(fiis);
+  const isMobile = useDeviceDetection(); // ✅ NOVO: detectar mobile
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
@@ -668,7 +576,7 @@ export default function FiisPage() {
     let somaYield = 0;
     let contadorYield = 0;
 
-    fiis.forEach((fii, index) => {
+    fiis.forEach((fii: any, index: number) => {
       console.log(`🏢 FII ${index + 1}:`, fii);
       
       // Calcular performance total usando a função melhorada
@@ -740,7 +648,7 @@ export default function FiisPage() {
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px', // ✅ RESPONSIVO
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -753,6 +661,9 @@ export default function FiisPage() {
           }}>
             🏢 Carregando dados dos FIIs...
           </div>
+          {/* ✅ ADICIONAR INDICADOR DE STATUS */}
+          {ibovLoading && <div style={{ fontSize: '14px', color: '#3b82f6' }}>📊 Carregando Ibovespa...</div>}
+          {ifixLoading && <div style={{ fontSize: '14px', color: '#10b981' }}>🏢 Carregando IFIX...</div>}
         </div>
       </div>
     );
@@ -764,7 +675,7 @@ export default function FiisPage() {
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -783,6 +694,9 @@ export default function FiisPage() {
           }}>
             {fiisError}
           </div>
+          {/* ✅ ADICIONAR STATUS DAS APIS */}
+          {ibovError && <div style={{ fontSize: '12px', color: '#f59e0b', marginTop: '8px' }}>Ibovespa: {ibovError}</div>}
+          {ifixError && <div style={{ fontSize: '12px', color: '#f59e0b', marginTop: '4px' }}>IFIX: {ifixError}</div>}
         </div>
       </div>
     );
@@ -794,7 +708,7 @@ export default function FiisPage() {
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -815,12 +729,12 @@ export default function FiisPage() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '16px' : '24px' // ✅ RESPONSIVO
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      {/* Header Responsivo */}
+      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', // ✅ RESPONSIVO
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
@@ -829,31 +743,36 @@ export default function FiisPage() {
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '18px',
+          fontSize: isMobile ? '16px' : '18px', // ✅ RESPONSIVO
           margin: '0',
           lineHeight: '1.5'
         }}>
-          Fundos de Investimento Imobiliário • Dados atualizados a cada 15 minutos.
+          Fundos de Investimento Imobiliário • Dados atualizados a cada {isMobile ? '10' : '5'} minutos.
+          {/* ✅ INDICADORES DE STATUS DAS APIs */}
+          {ibovLoading && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Atualizando Ibovespa...</span>}
+          {ifixLoading && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Atualizando IFIX...</span>}
         </p>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Cards de Métricas Responsivos */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '12px',
+        gridTemplateColumns: isMobile 
+          ? 'repeat(auto-fit, minmax(140px, 1fr))'  // ✅ MOBILE
+          : 'repeat(auto-fit, minmax(180px, 1fr))', // ✅ DESKTOP
+        gap: isMobile ? '8px' : '12px',
         marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px', // ✅ RESPONSIVO
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -861,7 +780,7 @@ export default function FiisPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px', // ✅ RESPONSIVO
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -874,12 +793,12 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -887,7 +806,7 @@ export default function FiisPage() {
             DY médio 12M
           </div>
           <div style={{ 
-            fontSize: '24px', 
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
@@ -900,12 +819,12 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -913,16 +832,17 @@ export default function FiisPage() {
             IFIX Index
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
             marginBottom: '4px'
           }}>
+            {/* ✅ USAR DADOS UNIFICADOS */}
             {ifixData?.valorFormatado || '3.435'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
             color: ifixData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -935,12 +855,12 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -948,16 +868,17 @@ export default function FiisPage() {
             Ibovespa
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
             marginBottom: '4px'
           }}>
-            {ibovespaData?.valorFormatado || '137.213'}
+            {/* ✅ USAR DADOS UNIFICADOS */}
+            {ibovespaData?.valorFormatado || '134.500'}
           </div>
           <div style={{ 
-            fontSize: '14px', 
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600', 
             color: ibovespaData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -966,16 +887,16 @@ export default function FiisPage() {
           </div>
         </div>
 
-        {/* Ibovespa Período - AGORA DINÂMICO */}
+        {/* Ibovespa Período */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: '16px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: '12px', 
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -983,7 +904,7 @@ export default function FiisPage() {
             Ibovespa período
           </div>
           <div style={{ 
-            fontSize: '20px', 
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '700', 
             color: ibovespaPeriodo?.performancePeriodo >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1',
