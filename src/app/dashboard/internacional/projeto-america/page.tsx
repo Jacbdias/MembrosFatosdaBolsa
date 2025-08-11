@@ -5,10 +5,12 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 
-// 🔥 DETECÇÃO DE DISPOSITIVO (ADICIONADO)
+// 🔥 DETECÇÃO DE DISPOSITIVO PARA UI - DUAS ESTRATÉGIAS SEPARADAS
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
+      // 📱 SÓ CONSIDERA MOBILE PARA UI: largura <= 768px (telefones)
+      // iPad será tratado como desktop para mostrar tabela
       return window.innerWidth <= 768;
     }
     return false;
@@ -16,14 +18,79 @@ const useDeviceDetection = () => {
 
   React.useEffect(() => {
     const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // 📱 INTERFACE MOBILE apenas para telefones (largura <= 768px)
+      // iPad, tablets e desktop mostram tabela
+      const shouldBeMobile = window.innerWidth <= 768;
+      
+      console.log('📱 Device Detection (UI):', {
+        width: window.innerWidth,
+        isMobile: shouldBeMobile,
+        userAgent: navigator.userAgent.substring(0, 50) + '...'
+      });
+      
+      setIsMobile(shouldBeMobile);
     };
 
+    // 🔄 VERIFICAR NO RESIZE E ORIENTAÇÃO
     window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
+    window.addEventListener('orientationchange', checkDevice);
+    
+    // ✅ VERIFICAÇÃO INICIAL APÓS MOUNT
+    checkDevice();
+    
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      window.removeEventListener('orientationchange', checkDevice);
+    };
   }, []);
 
   return isMobile;
+};
+
+// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE
+const useApiDetection = () => {
+  const [isApiMobile, setIsApiMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
+      // - É telefone (<=768px) OU
+      // - É iPad/iPadOS (precisa da estratégia sequencial)
+      return isMobileWidth || isIpad || isIpadOS;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkApiDevice = () => {
+      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+      const isIpadOS = /iPad/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobileWidth = window.innerWidth <= 768;
+      
+      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
+      
+      console.log('🌐 API Detection:', {
+        width: window.innerWidth,
+        isIpad,
+        isIpadOS,
+        isApiMobile: shouldBeApiMobile
+      });
+      
+      setIsApiMobile(shouldBeApiMobile);
+    };
+
+    window.addEventListener('resize', checkApiDevice);
+    checkApiDevice();
+    
+    return () => window.removeEventListener('resize', checkApiDevice);
+  }, []);
+
+  return isApiMobile;
 };
 
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DE ÍNDICES INTERNACIONAIS
@@ -472,12 +539,12 @@ function calcularDY12MesesLocalStorage(ticker: string, precoAtual: number): stri
   }
 }
 
-// 🚀 FUNÇÃO PARA BUSCAR COTAÇÕES EM PARALELO (ADAPTADA DO EXTERIOR STOCKS)
-async function buscarCotacoesProjetoAmericaParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+// 🚀 FUNÇÃO PARA BUSCAR COTAÇÕES EM PARALELO (CORRIGIDA PARA USAR isApiMobile)
+async function buscarCotacoesProjetoAmericaParalelas(tickers: string[], isApiMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  if (!isMobile) {
+  if (!isApiMobile) {
     // 🖥️ DESKTOP: busca em lote (mais eficiente)
     try {
       const controller = new AbortController();
@@ -516,8 +583,8 @@ async function buscarCotacoesProjetoAmericaParalelas(tickers: string[], isMobile
     return cotacoesMap;
   }
 
-  // 📱 MOBILE: busca individual com estratégias múltiplas
-  console.log('📱 MOBILE: Iniciando busca individual para', tickers.length, 'tickers');
+  // 📱 MOBILE/iPad: busca individual com estratégias múltiplas
+  console.log('📱 MOBILE/iPad: Iniciando busca individual para', tickers.length, 'tickers');
   
   const buscarCotacaoAtivo = async (ticker: string) => {
     const estrategias = [
@@ -619,13 +686,15 @@ async function buscarCotacoesProjetoAmericaParalelas(tickers: string[], isMobile
   return cotacoesMap;
 }
 
-// 🚀 HOOK ATUALIZADO PARA BUSCAR COTAÇÕES COM ESTRATÉGIA MOBILE/DESKTOP
+// 🚀 HOOK ATUALIZADO PARA BUSCAR COTAÇÕES COM ESTRATÉGIA MOBILE/DESKTOP (CORRIGIDO)
 function useProjetoAmericaIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection(); // ✅ USAR DETECÇÃO DE MOBILE
+  
+  const isMobile = useDeviceDetection(); // ✅ PARA UI (tabela vs cards)
+  const isApiMobile = useApiDetection(); // 🔥 ADICIONAR: para APIs
 
   // 📊 OBTER DADOS DA CARTEIRA PROJETO AMÉRICA DO DATASTORE
   const projetoAmericaData = dados.projetoAmerica || [];
@@ -636,7 +705,7 @@ function useProjetoAmericaIntegradas() {
       setError(null);
 
       console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA PROJETO AMÉRICA - ESTRATÉGIA MOBILE/DESKTOP');
-      console.log('📱 Device Info:', { isMobile });
+      console.log('📱 Device Info:', { isMobile, isApiMobile }); // 🔥 ADICIONAR isApiMobile no log
       console.log('📋 Ativos do DataStore:', projetoAmericaData);
 
       if (projetoAmericaData.length === 0) {
@@ -650,8 +719,8 @@ function useProjetoAmericaIntegradas() {
       const tickers = projetoAmericaData.map(ativo => ativo.ticker);
       console.log('🎯 Tickers para buscar:', tickers.join(', '));
 
-      // 🔄 USAR FUNÇÃO ADAPTADA COM ESTRATÉGIAS MOBILE/DESKTOP
-      const cotacoesMap = await buscarCotacoesProjetoAmericaParalelas(tickers, isMobile);
+      // 🔄 USAR FUNÇÃO ADAPTADA COM ESTRATÉGIAS MOBILE/DESKTOP (CORRIGIDO)
+      const cotacoesMap = await buscarCotacoesProjetoAmericaParalelas(tickers, isApiMobile); // 🔥 MUDANÇA: usar isApiMobile
 
       console.log(`✅ Total processado: ${cotacoesMap.size} sucessos de ${tickers.length} tentativas`);
 
@@ -774,7 +843,7 @@ function useProjetoAmericaIntegradas() {
     } finally {
       setLoading(false);
     }
-  }, [dados.projetoAmerica, isMobile]); // 🔥 DEPENDÊNCIA DOS DADOS DO DATASTORE E MOBILE
+  }, [projetoAmericaData, isApiMobile]); // 🔥 MUDANÇA: adicionar isApiMobile na dependência
 
   // 🔄 EXECUTAR QUANDO OS DADOS DO DATASTORE MUDAREM
   React.useEffect(() => {
@@ -795,14 +864,14 @@ function useProjetoAmericaIntegradas() {
     loading,
     error,
     refetch,
+    isMobile, // ✅ Para UI (tabela vs cards)
   };
 }
 
 export default function ProjetoAmericaPage() {
   const { dados } = useDataStore();
-  const { ativosAtualizados, loading, refetch } = useProjetoAmericaIntegradas(); // ✅ USAR O HOOK ATUALIZADO
+  const { ativosAtualizados, loading, refetch, isMobile } = useProjetoAmericaIntegradas(); // ✅ isMobile do hook
   const { indicesData } = useIndicesInternacionaisRealTime();
-  const isMobile = useDeviceDetection(); // ✅ DETECÇÃO DE MOBILE
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
