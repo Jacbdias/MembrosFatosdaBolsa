@@ -1,0 +1,650 @@
+// 📁 /hooks/useFiisIntegradas.ts
+'use client';
+
+import * as React from 'react';
+import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
+
+// 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
+const globalCache = new Map<string, { data: any; timestamp: number }>();
+
+const getCachedData = (key: string) => {
+  const cached = globalCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key: string, data: any) => {
+  globalCache.set(key, { data, timestamp: Date.now() });
+};
+
+// 🔥 DETECÇÃO DE DISPOSITIVO PARA RESPONSIVIDADE
+const useDeviceDetection = () => {
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  return isMobile;
+};
+
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES DE FIIs EM PARALELO
+async function buscarCotacoesFIIsParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  const cotacoesMap = new Map();
+  
+  console.log(`📊 Iniciando busca cotações para ${tickers.length} FIIs - Mobile: ${isMobile}`);
+  
+  if (!isMobile) {
+    // 🖥️ DESKTOP: busca em lote (mais eficiente para FIIs)
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 6000); // Timeout maior para FIIs
+      
+      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'FII-Desktop-Batch-Fetcher'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 [COTAÇÕES-FII-DESKTOP] Resposta para ${data.results?.length || 0} FIIs`);
+        
+        data.results?.forEach((quote: any) => {
+          if (quote.regularMarketPrice > 0) {
+            cotacoesMap.set(quote.symbol, {
+              precoAtual: quote.regularMarketPrice,
+              variacao: quote.regularMarketChange || 0,
+              variacaoPercent: quote.regularMarketChangePercent || 0,
+              volume: quote.regularMarketVolume || 0,
+              nome: quote.shortName || quote.longName || quote.symbol,
+              dadosCompletos: quote,
+              fonte: 'BRAPI_DESKTOP_BATCH'
+            });
+            console.log(`✅ [COTAÇÕES-FII-DESKTOP] ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
+          }
+        });
+      } else {
+        console.log(`❌ [COTAÇÕES-FII-DESKTOP] Erro HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.log('❌ [COTAÇÕES-FII-DESKTOP] Erro na busca em lote:', error);
+    }
+    
+    return cotacoesMap;
+  }
+
+  // 📱 MOBILE: busca individual com múltiplas estratégias para FIIs
+  const buscarCotacaoFII = async (ticker: string) => {
+    const estrategias = [
+      // Estratégia 1: User-Agent Desktop
+      {
+        nome: 'Desktop UA',
+        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        })
+      },
+      // Estratégia 2: Sem User-Agent
+      {
+        nome: 'Sem UA',
+        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        })
+      },
+      // Estratégia 3: URL simplificada
+      {
+        nome: 'URL Simples',
+        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
+          method: 'GET',
+          mode: 'cors'
+        })
+      }
+    ];
+
+    for (const estrategia of estrategias) {
+      try {
+        console.log(`📱🔄 [COTAÇÕES-FII] ${ticker}: Tentando ${estrategia.nome}`);
+        
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 4000);
+        
+        const response = await Promise.race([
+          estrategia.request,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+        ]) as Response;
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results?.[0]?.regularMarketPrice > 0) {
+            const quote = data.results[0];
+            console.log(`📱✅ [COTAÇÕES-FII] ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (${estrategia.nome})`);
+            
+            return {
+              ticker,
+              cotacao: {
+                precoAtual: quote.regularMarketPrice,
+                variacao: quote.regularMarketChange || 0,
+                variacaoPercent: quote.regularMarketChangePercent || 0,
+                volume: quote.regularMarketVolume || 0,
+                nome: quote.shortName || quote.longName || ticker,
+                dadosCompletos: quote,
+                fonte: `BRAPI_MOBILE_${estrategia.nome.replace(' ', '_').toUpperCase()}`
+              }
+            };
+          }
+        }
+      } catch (error) {
+        console.log(`📱❌ [COTAÇÕES-FII] ${ticker} (${estrategia.nome}): ${error.message}`);
+      }
+      
+      // Delay entre estratégias para o mesmo FII
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    console.log(`📱⚠️ [COTAÇÕES-FII] ${ticker}: Todas as estratégias falharam`);
+    return { ticker, cotacao: null };
+  };
+
+  // Executar todas as buscas sequencialmente (melhor para mobile)
+  for (const ticker of tickers) {
+    const resultado = await buscarCotacaoFII(ticker);
+    if (resultado.cotacao) {
+      cotacoesMap.set(resultado.ticker, resultado.cotacao);
+    }
+    
+    // Delay entre FIIs para evitar rate limiting
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+
+  console.log(`📱📋 [COTAÇÕES-FII-MOBILE] Processados: ${cotacoesMap.size}/${tickers.length}`);
+  return cotacoesMap;
+}
+
+// 🔄 FUNÇÃO PARA BUSCAR DY DE FIIs COM ESTRATÉGIA MOBILE/DESKTOP
+async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
+  
+  console.log(`📈 Iniciando busca DY para ${tickers.length} FIIs - Mobile: ${isMobile}`);
+  
+  if (isMobile) {
+    // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
+    console.log('📱 [DY-FII-MOBILE] Buscando DY individualmente no mobile');
+    
+    for (const ticker of tickers) {
+      let dyObtido = false;
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Desktop UA)`);
+              dyObtido = true;
+            } else {
+              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (Desktop UA)`);
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY-FII] ${ticker} (Desktop UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Sem UA)`);
+              dyObtido = true;
+            } else {
+              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (Sem UA)`);
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY-FII] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      // ESTRATÉGIA 3: URL simplificada
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 3 - URL simplificada`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
+            
+            if (dy && dy > 0) {
+              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
+              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (URL simples)`);
+              dyObtido = true;
+            } else {
+              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (URL simples)`);
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY-FII] ${ticker} (URL simples): ${error.message}`);
+        }
+      }
+      
+      // Se ainda não obteve, manter vazio (será usado fallback do fii.dy)
+      if (!dyObtido) {
+        console.log(`📱⚠️ [DY-FII] ${ticker}: Todas as estratégias falharam, usará fallback`);
+      }
+      
+      // ⭐ DELAY CRUCIAL: previne rate limiting para FIIs
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+  } else {
+    // 🖥️ DESKTOP: Requisição em lote para FIIs
+    console.log('🖥️ [DY-FII-DESKTOP] Buscando DY em lote no desktop');
+    
+    try {
+      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout maior para FIIs
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'FII-DY-Batch-Fetcher'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 [DY-FII-DESKTOP] Resposta recebida para ${data.results?.length || 0} FIIs`);
+        
+        data.results?.forEach((result: any) => {
+          const ticker = result.symbol;
+          const dy = result.defaultKeyStatistics?.dividendYield;
+          
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY-FII-DESKTOP] ${ticker}: ${(dy * 100).toFixed(2)}%`);
+          } else {
+            console.log(`❌ [DY-FII-DESKTOP] ${ticker}: DY não encontrado`);
+          }
+        });
+        
+      } else {
+        console.log(`❌ [DY-FII-DESKTOP] Erro HTTP ${response.status}`);
+      }
+      
+    } catch (error) {
+      console.error(`❌ [DY-FII-DESKTOP] Erro geral:`, error);
+    }
+  }
+  
+  console.log(`📋 [DY-FII] Resultado final: ${dyMap.size} tickers processados`);
+  return dyMap;
+}
+
+// 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM FII NO PERÍODO (desde a data de entrada)
+const calcularProventosFii = (ticker: string, dataEntrada: string): number => {
+  try {
+    if (typeof window === 'undefined') return 0;
+    
+    // Buscar proventos do localStorage da Central de Proventos
+    const proventosKey = `proventos_${ticker}`;
+    const proventosData = localStorage.getItem(proventosKey);
+    if (!proventosData) return 0;
+    
+    const proventos = JSON.parse(proventosData);
+    if (!Array.isArray(proventos) || proventos.length === 0) return 0;
+    
+    // Converter data de entrada para objeto Date
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    
+    console.log(`🔍 Calculando proventos para ${ticker} desde ${dataEntrada}`);
+    
+    // Filtrar proventos pagos após a data de entrada
+    const proventosFiltrados = proventos.filter((provento: any) => {
+      try {
+        let dataProventoObj: Date;
+        
+        // Tentar diferentes formatos de data
+        if (provento.dataPagamento) {
+          if (provento.dataPagamento.includes('/')) {
+            const [d, m, a] = provento.dataPagamento.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.dataPagamento.includes('-')) {
+            dataProventoObj = new Date(provento.dataPagamento);
+          }
+        } else if (provento.data) {
+          if (provento.data.includes('/')) {
+            const [d, m, a] = provento.data.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.data.includes('-')) {
+            dataProventoObj = new Date(provento.data);
+          }
+        } else if (provento.dataCom) {
+          if (provento.dataCom.includes('/')) {
+            const [d, m, a] = provento.dataCom.split('/');
+            dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+          } else if (provento.dataCom.includes('-')) {
+            dataProventoObj = new Date(provento.dataCom);
+          }
+        } else if (provento.dataObj) {
+          dataProventoObj = new Date(provento.dataObj);
+        } else {
+          return false;
+        }
+        
+        return dataProventoObj && dataProventoObj >= dataEntradaObj;
+      } catch (error) {
+        console.error('Erro ao processar data do provento:', error);
+        return false;
+      }
+    });
+    
+    // Somar valores dos proventos
+    const totalProventos = proventosFiltrados.reduce((total: number, provento: any) => {
+      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
+      return total + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    console.log(`✅ ${ticker}: ${proventosFiltrados.length} proventos = R$ ${totalProventos.toFixed(2)}`);
+    
+    return totalProventos;
+    
+  } catch (error) {
+    console.error(`❌ Erro ao calcular proventos para ${ticker}:`, error);
+    return 0;
+  }
+};
+
+// 🔥 FUNÇÃO OTIMIZADA PARA CALCULAR VIÉS DE FIIs
+function calcularViesAutomaticoFII(precoTeto: number | undefined, precoAtual: number): string {
+  if (!precoTeto || !precoAtual || precoAtual <= 0) return 'Aguardar';
+  return precoAtual < precoTeto ? 'Compra' : 'Aguardar';
+}
+
+// 🚀 HOOK PRINCIPAL UNIFICADO - ESTRATÉGIA ROBUSTA PARA FIIs
+export function useFiisIntegradas() {
+  const { fiis: fiisOriginais, loading: fiisLoadingOriginal, erro: fiisError } = useFiisCotacoesBrapi();
+  const [fiisAtualizados, setFiisAtualizados] = React.useState<any[]>([]);
+  const [cotacoesCompletas, setCotacoesCompletas] = React.useState<Map<string, any>>(new Map());
+  const [dyCompletos, setDyCompletos] = React.useState<Map<string, string>>(new Map());
+  const [proventosCompletos, setProventosCompletos] = React.useState<Map<string, number>>(new Map());
+  const [todosOsDadosProntos, setTodosOsDadosProntos] = React.useState(false);
+  
+  // Loading states granulares
+  const [loadingCotacoes, setLoadingCotacoes] = React.useState(true);
+  const [loadingDY, setLoadingDY] = React.useState(false);
+  const [loadingProventos, setLoadingProventos] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const isMobile = useDeviceDetection();
+
+  // Função para buscar proventos dos FIIs
+  const buscarProventosFIIs = React.useCallback(async (fiisData: any[]) => {
+    setLoadingProventos(true);
+    const novosProventos = new Map<string, number>();
+    
+    console.log('💰 Iniciando busca de proventos para', fiisData.length, 'FIIs');
+    
+    for (const fii of fiisData) {
+      try {
+        if (!fii.dataEntrada) {
+          novosProventos.set(fii.ticker, 0);
+          continue;
+        }
+
+        const valorProventos = calcularProventosFii(fii.ticker, fii.dataEntrada);
+        novosProventos.set(fii.ticker, valorProventos);
+        console.log(`💰 ${fii.ticker}: R$ ${valorProventos.toFixed(2)}`);
+        
+        // Pequeno delay entre buscas
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.log(`💰 ${fii.ticker}: Erro -`, error.message);
+        novosProventos.set(fii.ticker, 0);
+      }
+    }
+    
+    console.log('💰 Proventos FIIs finais:', Object.fromEntries(novosProventos));
+    setProventosCompletos(novosProventos);
+    setLoadingProventos(false);
+    return novosProventos;
+  }, []);
+
+  // 🎯 FUNÇÃO PRINCIPAL STEP-BY-STEP ROBUSTA PARA FIIs
+  const buscarDadosCompletosFIIs = React.useCallback(async () => {
+    if (!fiisOriginais || fiisOriginais.length === 0) {
+      setFiisAtualizados([]);
+      setLoadingCotacoes(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      setTodosOsDadosProntos(false);
+      const tickers = fiisOriginais.map(fii => fii.ticker).filter(Boolean);
+      
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA PARA FIIs...');
+      
+      // 🔄 RESET DOS ESTADOS
+      setCotacoesCompletas(new Map());
+      setDyCompletos(new Map());
+      setProventosCompletos(new Map());
+
+      // 📊 ETAPA 1: COTAÇÕES
+      console.log('📊 ETAPA 1: Buscando cotações FIIs...');
+      setLoadingCotacoes(true);
+      
+      const cotacoesMap = await buscarCotacoesFIIsParalelas(tickers, isMobile);
+      console.log('📊 Cotações FIIs obtidas:', cotacoesMap.size, 'de', tickers.length);
+      
+      setCotacoesCompletas(cotacoesMap);
+      setLoadingCotacoes(false);
+
+      // 📈 ETAPA 2: DY
+      console.log('📈 ETAPA 2: Buscando DY FIIs...');
+      setLoadingDY(true);
+      
+      const dyMap = await buscarDYsFiisComEstrategia(tickers, isMobile);
+      console.log('📈 DY FIIs obtidos:', dyMap.size, 'de', tickers.length);
+      
+      setDyCompletos(dyMap);
+      setLoadingDY(false);
+
+      // 💰 ETAPA 3: PROVENTOS
+      console.log('💰 ETAPA 3: Buscando proventos FIIs...');
+      setLoadingProventos(true);
+      
+      const proventosData = await buscarProventosFIIs(fiisOriginais);
+      console.log('💰 Proventos FIIs obtidos:', proventosData.size, 'de', fiisOriginais.length);
+      
+      setProventosCompletos(proventosData);
+      setLoadingProventos(false);
+
+      // ✅ MARCAR COMO TODOS PRONTOS
+      console.log('✅ TODOS OS DADOS FIIs COLETADOS - MARCANDO COMO PRONTOS');
+      setTodosOsDadosProntos(true);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      console.error('❌ Erro geral ao buscar dados FIIs:', err);
+      
+      setLoadingCotacoes(false);
+      setLoadingDY(false);
+      setLoadingProventos(false);
+    }
+  }, [fiisOriginais, isMobile, buscarProventosFIIs]);
+
+  // 🏆 USEEFFECT QUE PROCESSA QUANDO TODOS OS DADOS ESTÃO PRONTOS
+  React.useEffect(() => {
+    if (!todosOsDadosProntos || !fiisOriginais || fiisOriginais.length === 0) return;
+    
+    console.log('🏆 PROCESSANDO TOTAL RETURN FIIs - TODOS OS DADOS PRONTOS!');
+    console.log('📊 Dados FIIs disponíveis:', {
+      cotacoes: cotacoesCompletas.size,
+      dy: dyCompletos.size, 
+      proventos: proventosCompletos.size,
+      fiis: fiisOriginais.length
+    });
+
+    // 🎯 PROCESSAR TODOS OS FIIs COM TOTAL RETURN CORRETO
+    const fiisFinais = fiisOriginais.map((fii, index) => {
+      const cotacao = cotacoesCompletas.get(fii.ticker);
+      const dyAPI = dyCompletos.get(fii.ticker);
+      const proventosFII = proventosCompletos.get(fii.ticker) || 0;
+      
+      if (cotacao && cotacao.precoAtual > 0) {
+        // ✅ FII COM COTAÇÃO REAL DA API
+        const precoAtualNum = cotacao.precoAtual;
+        const precoEntradaNum = parseFloat(fii.precoEntrada?.toString().replace('R$ ', '').replace(',', '.') || '0');
+        
+        const performancePreco = precoEntradaNum > 0 ? ((precoAtualNum - precoEntradaNum) / precoEntradaNum) * 100 : 0;
+        const performanceProventos = precoEntradaNum > 0 ? (proventosFII / precoEntradaNum) * 100 : 0;
+        const performanceTotal = performancePreco + performanceProventos;
+        
+        console.log(`🏆 ${fii.ticker}: R$ ${precoEntradaNum.toFixed(2)} -> R$ ${precoAtualNum.toFixed(2)} | Preço ${performancePreco.toFixed(2)}% + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceTotal.toFixed(2)}%`);
+        
+        return {
+          ...fii,
+          id: String(fii.id || index + 1),
+          precoAtual: `R$ ${precoAtualNum.toFixed(2).replace('.', ',')}`,
+          precoAtualNum: precoAtualNum,
+          performance: performanceTotal,
+          performancePreco: performancePreco,
+          performanceProventos: performanceProventos,
+          proventosFII: proventosFII,
+          variacao: cotacao.variacao,
+          variacaoPercent: cotacao.variacaoPercent,
+          volume: cotacao.volume,
+          vies: calcularViesAutomaticoFII(fii.precoTeto, precoAtualNum),
+          dy: dyAPI || fii.dy || '-',
+          statusApi: 'success',
+          nomeCompleto: cotacao.nome,
+          posicaoExibicao: index + 1
+        };
+      } else {
+        // ⚠️ FII SEM COTAÇÃO REAL - usar dados originais + proventos
+        const precoEntradaNum = parseFloat(fii.precoEntrada?.toString().replace('R$ ', '').replace(',', '.') || '0');
+        const performanceProventos = precoEntradaNum > 0 ? (proventosFII / precoEntradaNum) * 100 : 0;
+        
+        console.log(`🏆 ${fii.ticker}: Sem cotação API | R$ ${precoEntradaNum.toFixed(2)} + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceProventos.toFixed(2)}%`);
+        
+        return {
+          ...fii,
+          id: String(fii.id || index + 1),
+          precoAtual: fii.precoAtual || fii.precoEntrada || 'N/A',
+          precoAtualNum: precoEntradaNum,
+          performance: performanceProventos,
+          performancePreco: 0,
+          performanceProventos: performanceProventos,
+          proventosFII: proventosFII,
+          variacao: 0,
+          variacaoPercent: 0,
+          volume: 0,
+          vies: calcularViesAutomaticoFII(fii.precoTeto, precoEntradaNum),
+          dy: dyAPI || fii.dy || '-',
+          statusApi: 'not_found',
+          nomeCompleto: 'N/A',
+          posicaoExibicao: index + 1
+        };
+      }
+    });
+
+    // 🎯 ATUALIZAÇÃO FINAL DEFINITIVA
+    setFiisAtualizados(fiisFinais);
+    
+    console.log('🏆 TOTAL RETURN FIIs PROCESSADO COM SUCESSO!');
+  }, [todosOsDadosProntos, cotacoesCompletas, dyCompletos, proventosCompletos, fiisOriginais]);
+
+  // UseEffect principal
+  React.useEffect(() => {
+    if (fiisOriginais && fiisOriginais.length > 0) {
+      const timeoutId = setTimeout(() => {
+        console.log('🚀 Iniciando busca de dados FIIs...');
+        buscarDadosCompletosFIIs();
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [buscarDadosCompletosFIIs]);
+
+  const refetch = React.useCallback(() => {
+    console.log('🔄 REFETCH FIIs: Resetando e buscando dados novamente...');
+    setTodosOsDadosProntos(false);
+    buscarDadosCompletosFIIs();
+  }, [buscarDadosCompletosFIIs]);
+
+  return {
+    fiis: fiisAtualizados,
+    loading: loadingCotacoes || !todosOsDadosProntos,
+    loadingCotacoes,
+    loadingDY,
+    loadingProventos,
+    error: error || fiisError,
+    refetch,
+    isMobile,
+    todosOsDadosProntos
+  };
+}

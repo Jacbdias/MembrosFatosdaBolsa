@@ -5,350 +5,6 @@ import { useFiisCotacoesBrapi } from '@/hooks/useFiisCotacoesBrapi';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useIfixRealTime } from '@/hooks/useIfixRealTime';
 
-// 🎯 PÁGINA DE FIIs RESPONSIVA COM ESTRATÉGIA ROBUSTA COMPLETA
-// ✅ Mantém todos os hooks específicos de FIIs
-// ✅ Responsividade mobile/desktop
-// ✅ Busca DY via API com estratégias mobile/desktop
-// ✅ Busca cotações robusta igual Small Caps
-// ✅ Cache global sincronizado
-// ✅ Loading states granulares
-
-// 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS
-const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
-const globalCache = new Map<string, { data: any; timestamp: number }>();
-
-const getCachedData = (key: string) => {
-  const cached = globalCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
-  }
-  return null;
-};
-
-const setCachedData = (key: string, data: any) => {
-  globalCache.set(key, { data, timestamp: Date.now() });
-};
-
-// 🔥 DETECÇÃO DE DISPOSITIVO PARA RESPONSIVIDADE
-const useDeviceDetection = () => {
-  const [isMobile, setIsMobile] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth <= 768;
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []);
-
-  return isMobile;
-};
-
-// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES DE FIIs EM PARALELO
-async function buscarCotacoesFIIsParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
-  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-  const cotacoesMap = new Map();
-  
-  console.log(`📊 Iniciando busca cotações para ${tickers.length} FIIs - Mobile: ${isMobile}`);
-  
-  if (!isMobile) {
-    // 🖥️ DESKTOP: busca em lote (mais eficiente para FIIs)
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 6000); // Timeout maior para FIIs
-      
-      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'FII-Desktop-Batch-Fetcher'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 [COTAÇÕES-FII-DESKTOP] Resposta para ${data.results?.length || 0} FIIs`);
-        
-        data.results?.forEach((quote: any) => {
-          if (quote.regularMarketPrice > 0) {
-            cotacoesMap.set(quote.symbol, {
-              precoAtual: quote.regularMarketPrice,
-              variacao: quote.regularMarketChange || 0,
-              variacaoPercent: quote.regularMarketChangePercent || 0,
-              volume: quote.regularMarketVolume || 0,
-              nome: quote.shortName || quote.longName || quote.symbol,
-              dadosCompletos: quote,
-              fonte: 'BRAPI_DESKTOP_BATCH'
-            });
-            console.log(`✅ [COTAÇÕES-FII-DESKTOP] ${quote.symbol}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
-          }
-        });
-      } else {
-        console.log(`❌ [COTAÇÕES-FII-DESKTOP] Erro HTTP ${response.status}`);
-      }
-    } catch (error) {
-      console.log('❌ [COTAÇÕES-FII-DESKTOP] Erro na busca em lote:', error);
-    }
-    
-    return cotacoesMap;
-  }
-
-  // 📱 MOBILE: busca individual com múltiplas estratégias para FIIs
-  const buscarCotacaoFII = async (ticker: string) => {
-    const estrategias = [
-      // Estratégia 1: User-Agent Desktop
-      {
-        nome: 'Desktop UA',
-        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        })
-      },
-      // Estratégia 2: Sem User-Agent
-      {
-        nome: 'Sem UA',
-        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        })
-      },
-      // Estratégia 3: URL simplificada
-      {
-        nome: 'URL Simples',
-        request: fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
-          method: 'GET',
-          mode: 'cors'
-        })
-      }
-    ];
-
-    for (const estrategia of estrategias) {
-      try {
-        console.log(`📱🔄 [COTAÇÕES-FII] ${ticker}: Tentando ${estrategia.nome}`);
-        
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 4000);
-        
-        const response = await Promise.race([
-          estrategia.request,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-        ]) as Response;
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results?.[0]?.regularMarketPrice > 0) {
-            const quote = data.results[0];
-            console.log(`📱✅ [COTAÇÕES-FII] ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)} (${estrategia.nome})`);
-            
-            return {
-              ticker,
-              cotacao: {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || ticker,
-                dadosCompletos: quote,
-                fonte: `BRAPI_MOBILE_${estrategia.nome.replace(' ', '_').toUpperCase()}`
-              }
-            };
-          }
-        }
-      } catch (error) {
-        console.log(`📱❌ [COTAÇÕES-FII] ${ticker} (${estrategia.nome}): ${error.message}`);
-      }
-      
-      // Delay entre estratégias para o mesmo FII
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    console.log(`📱⚠️ [COTAÇÕES-FII] ${ticker}: Todas as estratégias falharam`);
-    return { ticker, cotacao: null };
-  };
-
-  // Executar todas as buscas sequencialmente (melhor para mobile)
-  for (const ticker of tickers) {
-    const resultado = await buscarCotacaoFII(ticker);
-    if (resultado.cotacao) {
-      cotacoesMap.set(resultado.ticker, resultado.cotacao);
-    }
-    
-    // Delay entre FIIs para evitar rate limiting
-    await new Promise(resolve => setTimeout(resolve, 300));
-  }
-
-  console.log(`📱📋 [COTAÇÕES-FII-MOBILE] Processados: ${cotacoesMap.size}/${tickers.length}`);
-  return cotacoesMap;
-}
-async function buscarDYsFiisComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
-  const dyMap = new Map<string, string>();
-  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-  
-  console.log(`📈 Iniciando busca DY para ${tickers.length} FIIs - Mobile: ${isMobile}`);
-  
-  if (isMobile) {
-    // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
-    console.log('📱 [DY-FII-MOBILE] Buscando DY individualmente no mobile');
-    
-    for (const ticker of tickers) {
-      let dyObtido = false;
-      
-      // ESTRATÉGIA 1: User-Agent Desktop
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 1 - User-Agent Desktop`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Desktop UA)`);
-              dyObtido = true;
-            } else {
-              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (Desktop UA)`);
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY-FII] ${ticker} (Desktop UA): ${error.message}`);
-        }
-      }
-      
-      // ESTRATÉGIA 2: Sem User-Agent
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 2 - Sem User-Agent`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (Sem UA)`);
-              dyObtido = true;
-            } else {
-              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (Sem UA)`);
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY-FII] ${ticker} (Sem UA): ${error.message}`);
-        }
-      }
-      
-      // ESTRATÉGIA 3: URL simplificada
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY-FII] ${ticker}: Tentativa 3 - URL simplificada`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
-            method: 'GET',
-            mode: 'cors'
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY-FII] ${ticker}: ${(dy * 100).toFixed(2)}% (URL simples)`);
-              dyObtido = true;
-            } else {
-              console.log(`📱❌ [DY-FII] ${ticker}: DY zero/inválido (URL simples)`);
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY-FII] ${ticker} (URL simples): ${error.message}`);
-        }
-      }
-      
-      // Se ainda não obteve, manter vazio (será usado fallback do fii.dy)
-      if (!dyObtido) {
-        console.log(`📱⚠️ [DY-FII] ${ticker}: Todas as estratégias falharam, usará fallback`);
-      }
-      
-      // ⭐ DELAY CRUCIAL: previne rate limiting para FIIs
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-    
-  } else {
-    // 🖥️ DESKTOP: Requisição em lote para FIIs
-    console.log('🖥️ [DY-FII-DESKTOP] Buscando DY em lote no desktop');
-    
-    try {
-      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout maior para FIIs
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'FII-DY-Batch-Fetcher'
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 [DY-FII-DESKTOP] Resposta recebida para ${data.results?.length || 0} FIIs`);
-        
-        data.results?.forEach((result: any) => {
-          const ticker = result.symbol;
-          const dy = result.defaultKeyStatistics?.dividendYield;
-          
-          if (dy && dy > 0) {
-            dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
-            console.log(`✅ [DY-FII-DESKTOP] ${ticker}: ${(dy * 100).toFixed(2)}%`);
-          } else {
-            console.log(`❌ [DY-FII-DESKTOP] ${ticker}: DY não encontrado`);
-          }
-        });
-        
-      } else {
-        console.log(`❌ [DY-FII-DESKTOP] Erro HTTP ${response.status}`);
-      }
-      
-    } catch (error) {
-      console.error(`❌ [DY-FII-DESKTOP] Erro geral:`, error);
-    }
-  }
-  
-  console.log(`📋 [DY-FII] Resultado final: ${dyMap.size} tickers processados`);
-  return dyMap;
-}
-
 // 🚀 HOOK PARA BUSCAR DADOS REAIS DO IBOVESPA VIA API
 function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
@@ -976,65 +632,8 @@ const CompanyAvatar = ({ symbol, companyName, size = 40 }) => {
   );
 };
 
-// 🚀 HOOK PARA BUSCAR DY DOS FIIs VIA API
-function useFiisDY(fiis: any[]) {
-  const [dyData, setDyData] = React.useState<Map<string, string>>(new Map());
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const isMobile = useDeviceDetection();
-
-  const buscarDYs = React.useCallback(async () => {
-    if (!fiis || fiis.length === 0) {
-      setDyData(new Map());
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const tickers = fiis.map(fii => fii.ticker).filter(Boolean);
-      console.log('📈 Iniciando busca DY para FIIs:', tickers);
-      
-      const dyMap = await buscarDYsFiisComEstrategia(tickers, isMobile);
-      setDyData(dyMap);
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao buscar DY';
-      console.error('❌ Erro ao buscar DY dos FIIs:', err);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [fiis, isMobile]);
-
-  React.useEffect(() => {
-    if (fiis && fiis.length > 0) {
-      // Delay para evitar conflito com outras chamadas
-      const timeoutId = setTimeout(() => {
-        buscarDYs();
-      }, 1000);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [buscarDYs]);
-
-  return { dyData, loading, error, refetch: buscarDYs };
-}
-
 export default function FiisPage() {
-  const { 
-    fiis, 
-    loading, 
-    loadingCotacoes,
-    loadingDY, 
-    loadingProventos,
-    error,
-    refetch,
-    isMobile,
-    todosOsDadosProntos
-  } = useFiisIntegradas();
-  
+  const { fiis, loading: fiisLoading, erro: fiisError } = useFiisCotacoesBrapi();
   const { marketData, loading: marketLoading, error: marketError } = useFinancialData();
   const { ifixData, loading: ifixLoading, error: ifixError } = useIfixRealTime();
   const { ibovespaData, loading: ibovLoading, error: ibovError } = useIbovespaRealTime();
@@ -1043,7 +642,7 @@ export default function FiisPage() {
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
 
-  // 🧮 CALCULAR MÉTRICAS DA CARTEIRA USANDO DADOS UNIFICADOS
+  // 🧮 CALCULAR MÉTRICAS DA CARTEIRA
   const calcularMetricas = () => {
     console.log('🔍 DEBUG FIIs calcularMetricas:', fiis);
     
@@ -1072,10 +671,10 @@ export default function FiisPage() {
     fiis.forEach((fii, index) => {
       console.log(`🏢 FII ${index + 1}:`, fii);
       
-      // Performance já vem calculada do hook unificado
-      const performanceTotal = fii.performance || 0;
+      // Calcular performance total usando a função melhorada
+      const { performanceTotal, performancePreco, performanceDividendos, valorDividendos } = calculatePerformanceTotal(fii);
       
-      console.log(`- Performance total (hook unificado): ${performanceTotal}%`);
+      console.log(`- Performance total calculada: ${performanceTotal}%`);
       
       const valorFinal = valorPorAtivo * (1 + performanceTotal / 100);
       valorFinalTotal += valorFinal;
@@ -1090,13 +689,13 @@ export default function FiisPage() {
         piorAtivo = { ...fii, performance: performanceTotal };
       }
 
-      // 📈 DY já vem processado do hook unificado
+      // Somar yields para calcular média - verificar campo 'dy'
       if (fii.dy && typeof fii.dy === 'string' && fii.dy !== '-') {
         const dyValue = parseFloat(fii.dy.replace('%', '').replace(',', '.'));
         if (!isNaN(dyValue) && dyValue > 0) {
           somaYield += dyValue;
           contadorYield++;
-          console.log(`- DY válido para média: ${dyValue}%`);
+          console.log(`- DY válido: ${dyValue}%`);
         }
       }
     });
@@ -1116,7 +715,7 @@ export default function FiisPage() {
       dyMedio
     };
     
-    console.log('✅ Métricas calculadas (dados unificados):', resultado);
+    console.log('✅ Métricas calculadas:', resultado);
     return resultado;
   };
 
@@ -1136,12 +735,12 @@ export default function FiisPage() {
   };
 
   // Se ainda está carregando
-  if (loading || marketLoading) {
+  if (fiisLoading || marketLoading) {
     return (
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
+        padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -1154,21 +753,18 @@ export default function FiisPage() {
           }}>
             🏢 Carregando dados dos FIIs...
           </div>
-          {loadingCotacoes && <div style={{ fontSize: '14px', color: '#3b82f6' }}>📊 Buscando cotações...</div>}
-          {loadingDY && <div style={{ fontSize: '14px', color: '#10b981' }}>📈 Buscando DY...</div>}
-          {loadingProventos && <div style={{ fontSize: '14px', color: '#f59e0b' }}>💰 Buscando proventos...</div>}
         </div>
       </div>
     );
   }
 
   // Se há erro crítico
-  if (error) {
+  if (fiisError) {
     return (
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
+        padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -1185,7 +781,7 @@ export default function FiisPage() {
             fontSize: '14px', 
             color: '#64748b'
           }}>
-            {error}
+            {fiisError}
           </div>
         </div>
       </div>
@@ -1198,7 +794,7 @@ export default function FiisPage() {
       <div style={{ 
         minHeight: '100vh', 
         backgroundColor: '#f5f5f5', 
-        padding: isMobile ? '16px' : '24px',
+        padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -1219,12 +815,12 @@ export default function FiisPage() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: isMobile ? '16px' : '24px'
+      padding: '24px' 
     }}>
-      {/* Header Responsivo */}
-      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '32px' }}>
         <h1 style={{ 
-          fontSize: isMobile ? '28px' : '48px',
+          fontSize: '48px', 
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
@@ -1233,36 +829,31 @@ export default function FiisPage() {
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: isMobile ? '16px' : '18px',
+          fontSize: '18px',
           margin: '0',
           lineHeight: '1.5'
         }}>
-          Fundos de Investimento Imobiliário • Estratégia robusta mobile/desktop • Total Return com proventos
-          {loadingCotacoes && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Carregando cotações...</span>}
-          {loadingDY && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Carregando DY...</span>}
-          {loadingProventos && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• Carregando proventos...</span>}
+          Fundos de Investimento Imobiliário • Dados atualizados a cada 15 minutos.
         </p>
       </div>
 
-      {/* Cards de Métricas Responsivos */}
+      {/* Cards de Métricas */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile 
-          ? 'repeat(auto-fit, minmax(140px, 1fr))'
-          : 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: isMobile ? '8px' : '12px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '12px',
         marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
+            fontSize: '12px', 
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1270,7 +861,7 @@ export default function FiisPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
+            fontSize: '24px', 
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -1283,12 +874,12 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
+            fontSize: '12px', 
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1296,12 +887,12 @@ export default function FiisPage() {
             DY médio 12M
           </div>
           <div style={{ 
-            fontSize: isMobile ? '20px' : '24px',
+            fontSize: '24px', 
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1'
           }}>
-                        {metricas.dyMedio.toFixed(1)}%
+            {metricas.dyMedio.toFixed(1)}%
           </div>
         </div>
 
@@ -1309,12 +900,12 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
+            fontSize: '12px', 
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1322,7 +913,7 @@ export default function FiisPage() {
             IFIX Index
           </div>
           <div style={{ 
-            fontSize: isMobile ? '18px' : '20px',
+            fontSize: '20px', 
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -1331,7 +922,7 @@ export default function FiisPage() {
             {ifixData?.valorFormatado || '3.435'}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: '14px', 
             fontWeight: '600', 
             color: ifixData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -1344,12 +935,12 @@ export default function FiisPage() {
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
+            fontSize: '12px', 
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1357,7 +948,7 @@ export default function FiisPage() {
             Ibovespa
           </div>
           <div style={{ 
-            fontSize: isMobile ? '18px' : '20px',
+            fontSize: '20px', 
             fontWeight: '700', 
             color: '#1e293b',
             lineHeight: '1',
@@ -1366,7 +957,7 @@ export default function FiisPage() {
             {ibovespaData?.valorFormatado || '137.213'}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: '14px', 
             fontWeight: '600', 
             color: ibovespaData?.trend === 'up' ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -1375,16 +966,16 @@ export default function FiisPage() {
           </div>
         </div>
 
-        {/* Ibovespa Período - DINÂMICO */}
+        {/* Ibovespa Período - AGORA DINÂMICO */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px',
+          padding: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '12px',
+            fontSize: '12px', 
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1392,7 +983,7 @@ export default function FiisPage() {
             Ibovespa período
           </div>
           <div style={{ 
-            fontSize: isMobile ? '18px' : '20px',
+            fontSize: '20px', 
             fontWeight: '700', 
             color: ibovespaPeriodo?.performancePeriodo >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1',
@@ -1410,7 +1001,7 @@ export default function FiisPage() {
         </div>      
       </div>
 
-      {/* Tabela de FIIs Responsiva */}
+      {/* Tabela de FIIs */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1420,12 +1011,12 @@ export default function FiisPage() {
         marginBottom: '32px'
       }}>
         <div style={{
-          padding: isMobile ? '16px' : '24px',
+          padding: '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: isMobile ? '20px' : '24px',
+            fontSize: '24px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1434,316 +1025,208 @@ export default function FiisPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: isMobile ? '14px' : '16px',
+            fontSize: '16px',
             margin: '0'
           }}>
-            {fiis.length} fundos imobiliários • Total Return com proventos • Cotações e DY via API
+            {fiis.length} fundos imobiliários • Viés calculado automaticamente
           </p>
         </div>
 
-        {/* Conteúdo Responsivo */}
-        {isMobile ? (
-          // 📱 MOBILE: Cards verticais
-          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {fiis.map((fii, index) => {
-              if (!fii || !fii.id || !fii.ticker) {
-                console.warn('Invalid FII row:', fii);
-                return null;
-              }
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f1f5f9' }}>
+                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  FII
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  ENTRADA
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PREÇO INICIAL
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PREÇO ATUAL
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  PREÇO TETO
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    PERFORMANCE TOTAL
+                    <div 
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: '#64748b',
+                        color: 'white',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'help',
+                        position: 'relative'
+                      }}
+                      onMouseEnter={(e) => {
+                        const tooltip = document.createElement('div');
+                        tooltip.id = 'performance-tooltip';
+                        tooltip.innerHTML = 'A rentabilidade de todos os FIIs é calculada pelo método "Total Return", ou seja, incluindo o reinvestimento dos dividendos.';
+                        tooltip.style.cssText = `
+                          position: absolute;
+                          top: 25px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: #ffffff;
+                          color: #1f2937;
+                          border: 1px solid #e5e7eb;
+                          padding: 12px 16px;
+                          border-radius: 8px;
+                          font-size: 14px;
+                          font-weight: 500;
+                          max-width: 450px;
+                          width: max-content;
+                          white-space: normal;
+                          line-height: 1.5;
+                          z-index: 1000;
+                          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        `;
+                        // Adicionar seta
+                        const arrow = document.createElement('div');
+                        arrow.style.cssText = `
+                          position: absolute;
+                          top: -8px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          width: 0;
+                          height: 0;
+                          border-left: 8px solid transparent;
+                          border-right: 8px solid transparent;
+                          border-bottom: 8px solid #ffffff;
+                        `;
+                        tooltip.appendChild(arrow);
+                        e.currentTarget.appendChild(tooltip);
+                      }}
+                      onMouseLeave={(e) => {
+                        const tooltip = e.currentTarget.querySelector('#performance-tooltip');
+                        if (tooltip) {
+                          tooltip.remove();
+                        }
+                      }}
+                    >
+                      i
+                    </div>
+                  </div>
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  DY 12M
+                </th>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                  VIÉS
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {fiis.map((fii, index) => {
+                if (!fii || !fii.id || !fii.ticker) {
+                  console.warn('Invalid FII row:', fii);
+                  return null;
+                }
 
-              const { performanceTotal } = { performanceTotal: fii.performance || 0 };
-              const temCotacaoReal = fii.statusApi === 'success';
-              
-              return (
-                <div 
-                  key={fii.id || index}
-                  style={{
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    border: '1px solid #e2e8f0',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onClick={() => {
-                    window.location.href = `/dashboard/ativo/${fii.ticker}`;
-                  }}
-                  onTouchStart={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f1f5f9';
-                  }}
-                  onTouchEnd={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
-                  }}
-                >
-                  {/* Header do Card */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    {/* Logo do FII */}
-                    <CompanyAvatar 
-                      symbol={fii.ticker}
-                      companyName={fii.setor || 'FII'}
-                      size={36}
-                    />
-
-                    {/* Nome e Setor */}
-                    <div style={{ flex: '1' }}>
-                      <div style={{ 
-                        fontWeight: '700', 
-                        color: '#1e293b', 
-                        fontSize: '16px'
-                      }}>
-                        {fii.ticker}
-                        {!temCotacaoReal && (
-                          <span style={{ 
-                            marginLeft: '8px', 
-                            fontSize: '10px', 
-                            color: '#f59e0b',
-                            backgroundColor: '#fef3c7',
-                            padding: '2px 4px',
-                            borderRadius: '3px'
+                const { performanceTotal } = calculatePerformanceTotal(fii);
+                
+                return (
+                  <tr 
+                    key={fii.id || index} 
+                    style={{ 
+                      borderBottom: '1px solid #f1f5f9',
+                      transition: 'background-color 0.2s',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      // Navegar para página de detalhes do FII
+                      window.location.href = `/dashboard/ativo/${fii.ticker}`;
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* ✅ NOVO SISTEMA DE AVATAR */}
+                        <CompanyAvatar 
+                          symbol={fii.ticker}
+                          companyName={fii.setor || 'FII'}
+                          size={40}
+                        />
+                        <div>
+                          <div style={{ 
+                            fontWeight: '700', 
+                            color: '#1e293b', 
+                            fontSize: '16px'
                           }}>
-                            SIM
-                          </span>
-                        )}
+                            {fii.ticker}
+                          </div>
+                          <div style={{ color: '#64748b', fontSize: '14px' }}>
+                            {fii.setor || 'FII'}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ color: '#64748b', fontSize: '12px' }}>
-                        {fii.setor || 'FII'}
-                      </div>
-                    </div>
-
-                    {/* Viés */}
-                    <div style={{
-                      padding: '4px 8px',
-                      borderRadius: '8px',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      backgroundColor: fii.vies === 'Compra' ? '#dcfce7' : '#fef3c7',
-                      color: fii.vies === 'Compra' ? '#065f46' : '#92400e'
-                    }}>
-                      {fii.vies}
-                    </div>
-                  </div>
-                  
-                  {/* Dados em Grid */}
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 1fr', 
-                    gap: '8px', 
-                    fontSize: '14px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Entrada:</span><br />
-                      <span style={{ fontWeight: '600', color: '#1e293b' }}>{fii.dataEntrada}</span>
-                    </div>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
-                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {loadingDY ? '...' : (fii.dy || '-')}
-                      </span>
-                    </div>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
-                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {fii.precoAtual || '-'}
-                      </span>
-                    </div>
-                    <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Preço Teto:</span><br />
-                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {fii.precoTeto || '-'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Performance em destaque */}
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '8px',
-                    backgroundColor: '#ffffff',
-                    borderRadius: '6px',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
-                      Performance Total
-                    </div>
-                    <div style={{ 
-                      fontSize: '18px', 
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                      {fii.dataEntrada || '-'}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
+                      {fii.precoEntrada || '-'}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performanceTotal >= 0 ? '#10b981' : '#ef4444' }}>
+                      {fii.precoAtual || '-'}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
+                      {fii.precoTeto || '-'}
+                    </td>
+                    <td style={{ 
+                      padding: '16px', 
+                      textAlign: 'center', 
                       fontWeight: '800',
+                      fontSize: '16px',
                       color: performanceTotal >= 0 ? '#10b981' : '#ef4444'
                     }}>
                       {formatPercentage(performanceTotal)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          // 🖥️ DESKTOP: Tabela completa
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f1f5f9' }}>
-                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    FII
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    ENTRADA
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    PREÇO INICIAL
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    PREÇO ATUAL
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    PREÇO TETO
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                      PERFORMANCE TOTAL
-                      <div 
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '50%',
-                          backgroundColor: '#64748b',
-                          color: 'white',
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'help',
-                          position: 'relative'
-                        }}
-                        title="A rentabilidade de todos os FIIs é calculada pelo método Total Return, incluindo o reinvestimento dos dividendos."
-                      >
-                        i
-                      </div>
-                    </div>
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    DY 12M
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                    VIÉS
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {fiis.map((fii, index) => {
-                  if (!fii || !fii.id || !fii.ticker) {
-                    console.warn('Invalid FII row:', fii);
-                    return null;
-                  }
-
-                  const { performanceTotal } = { performanceTotal: fii.performance || 0 };
-                  const temCotacaoReal = fii.statusApi === 'success';
-                  
-                  return (
-                    <tr 
-                      key={fii.id || index} 
-                      style={{ 
-                        borderBottom: '1px solid #f1f5f9',
-                        transition: 'background-color 0.2s',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => {
-                        window.location.href = `/dashboard/ativo/${fii.ticker}`;
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f8fafc';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {/* ✅ NOVO SISTEMA DE AVATAR */}
-                          <CompanyAvatar 
-                            symbol={fii.ticker}
-                            companyName={fii.setor || 'FII'}
-                            size={40}
-                          />
-                          <div>
-                            <div style={{ 
-                              fontWeight: '700', 
-                              color: '#1e293b', 
-                              fontSize: '16px'
-                            }}>
-                              {fii.ticker}
-                              {!temCotacaoReal && (
-                                <span style={{ 
-                                  marginLeft: '8px', 
-                                  fontSize: '12px', 
-                                  color: '#f59e0b',
-                                  backgroundColor: '#fef3c7',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px'
-                                }}>
-                                  SIM
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ color: '#64748b', fontSize: '14px' }}>
-                              {fii.setor || 'FII'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                        {fii.dataEntrada || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
-                        {fii.precoEntrada || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performanceTotal >= 0 ? '#10b981' : '#ef4444' }}>
-                        {fii.precoAtual || '-'}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
-                        {fii.precoTeto || '-'}
-                      </td>
-                      <td style={{ 
-                        padding: '16px', 
-                        textAlign: 'center', 
-                        fontWeight: '800',
-                        fontSize: '16px',
-                        color: performanceTotal >= 0 ? '#10b981' : '#ef4444'
-                      }}>
-                        {formatPercentage(performanceTotal)}
-                      </td>
-                      <td style={{ 
-                        padding: '16px', 
-                        textAlign: 'center',
+                    </td>
+                    <td style={{ 
+                      padding: '16px', 
+                      textAlign: 'center',
+                      fontWeight: '700',
+                      color: '#1e293b'
+                    }}>
+                      {fii.dy || '-'}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
                         fontWeight: '700',
-                        color: '#1e293b'
+                        backgroundColor: (fii.vies === 'Compra') ? '#dcfce7' : '#fef3c7',
+                        color: (fii.vies === 'Compra') ? '#065f46' : '#92400e'
                       }}>
-                        {loadingDY ? '...' : (fii.dy || '-')}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          backgroundColor: (fii.vies === 'Compra') ? '#dcfce7' : '#fef3c7',
-                          color: (fii.vies === 'Compra') ? '#065f46' : '#92400e'
-                        }}>
-                          {fii.vies || 'Aguardar'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        {fii.vies || 'Aguardar'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Gráfico de Composição por FIIs Responsivo */}
+      {/* Gráfico de Composição por FIIs */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1752,12 +1235,12 @@ export default function FiisPage() {
         overflow: 'hidden'
       }}>
         <div style={{
-          padding: isMobile ? '16px' : '24px',
+          padding: '24px',
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: isMobile ? '20px' : '24px',
+            fontSize: '24px',
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -1766,26 +1249,16 @@ export default function FiisPage() {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: isMobile ? '14px' : '16px',
+            fontSize: '16px',
             margin: '0'
           }}>
             Distribuição percentual da carteira • {fiis.length} fundos
           </p>
         </div>
 
-        <div style={{ 
-          padding: isMobile ? '16px' : '32px',
-          display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? '16px' : '32px',
-          alignItems: 'center' 
-        }}>
-          {/* Gráfico SVG Responsivo */}
-          <div style={{ 
-            flex: isMobile ? '1' : '0 0 400px',
-            height: isMobile ? '300px' : '400px',
-            position: 'relative' 
-          }}>
+        <div style={{ padding: '32px', display: 'flex', flexDirection: 'row', gap: '32px', alignItems: 'center' }}>
+          {/* Gráfico SVG */}
+          <div style={{ flex: '0 0 400px', height: '400px', position: 'relative' }}>
             {(() => {
               const cores = [
                 '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
@@ -1794,11 +1267,10 @@ export default function FiisPage() {
                 '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
               ];
               
-              const chartSize = isMobile ? 300 : 400;
-              const radius = isMobile ? 120 : 150;
-              const innerRadius = isMobile ? 60 : 75;
-              const centerX = chartSize / 2;
-              const centerY = chartSize / 2;
+              const radius = 150;
+              const innerRadius = 75;
+              const centerX = 200;
+              const centerY = 200;
               const totalFiis = fiis.length;
               const anglePerSlice = (2 * Math.PI) / totalFiis;
               
@@ -1819,12 +1291,7 @@ export default function FiisPage() {
               };
               
               return (
-                <svg 
-                  width={chartSize} 
-                  height={chartSize} 
-                  viewBox={`0 0 ${chartSize} ${chartSize}`} 
-                  style={{ width: '100%', height: '100%' }}
-                >
+                <svg width="400" height="400" viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
                   <defs>
                     <style>
                       {`
@@ -1880,7 +1347,7 @@ export default function FiisPage() {
                             x={textX}
                             y={textY - 6}
                             textAnchor="middle"
-                            fontSize={isMobile ? "10" : "11"}
+                            fontSize="11"
                             fontWeight="700"
                             fill="#ffffff"
                             style={{ 
@@ -1895,7 +1362,7 @@ export default function FiisPage() {
                             x={textX}
                             y={textY + 8}
                             textAnchor="middle"
-                            fontSize={isMobile ? "9" : "10"}
+                            fontSize="10"
                             fontWeight="600"
                             fill="#ffffff"
                             style={{ 
@@ -1924,7 +1391,7 @@ export default function FiisPage() {
                     x={centerX}
                     y={centerY - 10}
                     textAnchor="middle"
-                    fontSize={isMobile ? "14" : "16"}
+                    fontSize="16"
                     fontWeight="700"
                     fill="#1e293b"
                   >
@@ -1934,7 +1401,7 @@ export default function FiisPage() {
                     x={centerX}
                     y={centerY + 10}
                     textAnchor="middle"
-                    fontSize={isMobile ? "10" : "12"}
+                    fontSize="12"
                     fill="#64748b"
                   >
                     FIIs
@@ -1944,15 +1411,8 @@ export default function FiisPage() {
             })()}
           </div>
           
-          {/* Legenda Responsiva */}
-          <div style={{ 
-            flex: '1', 
-            display: 'grid', 
-            gridTemplateColumns: isMobile 
-              ? 'repeat(auto-fit, minmax(100px, 1fr))'
-              : 'repeat(auto-fit, minmax(120px, 1fr))', 
-            gap: isMobile ? '8px' : '12px'
-          }}>
+          {/* Legenda */}
+          <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
             {fiis.map((fii, index) => {
               const porcentagem = ((1 / fiis.length) * 100).toFixed(1);
               
@@ -1968,7 +1428,7 @@ export default function FiisPage() {
                     <div style={{ 
                       fontWeight: '700', 
                       color: '#1e293b', 
-                      fontSize: isMobile ? '12px' : '14px',
+                      fontSize: '14px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
@@ -1977,7 +1437,7 @@ export default function FiisPage() {
                     </div>
                     <div style={{ 
                       color: '#64748b', 
-                      fontSize: isMobile ? '10px' : '12px',
+                      fontSize: '12px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
