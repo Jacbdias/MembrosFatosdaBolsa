@@ -631,55 +631,55 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         </button>
       </div>
       
-      {/* Cards de Métricas - IGUAL AO CÓDIGO 3 */}
+      {/* Cards de Métricas - Mais Elegantes */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile 
-          ? 'repeat(auto-fit, minmax(140px, 1fr))' // ✅ IGUAL AO CÓDIGO 3
-          : 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: isMobile ? '8px' : '24px', // ✅ RESPONSIVO
+          ? 'repeat(auto-fit, minmax(140px, 1fr))' 
+          : 'repeat(auto-fit, minmax(180px, 1fr))', // ✅ REDUZIDO DE 280px PARA 180px
+        gap: isMobile ? '8px' : '12px', // ✅ REDUZIDO DE 24px PARA 12px
         marginBottom: '32px'
       }}>
         {/* Rentabilidade Total Return */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
-          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
+          borderRadius: isMobile ? '8px' : '8px', // ✅ BORDAS MENORES
+          padding: isMobile ? '12px' : '16px', // ✅ PADDING REDUZIDO DE 32px PARA 16px
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid ' + (metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444'),
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '12px' }}>
             <span style={{ 
               color: '#64748b', 
-              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '10px' : '12px', // ✅ TAMANHO REDUZIDO
               fontWeight: '600', 
               textTransform: 'uppercase' 
             }}>
               TOTAL RETURN (MÉTODO MAIS RETORNO)
             </span>
-            <span style={{ fontSize: isMobile ? '24px' : '32px' }}> {/* ✅ RESPONSIVO */}
+            <span style={{ fontSize: isMobile ? '24px' : '24px' }}> {/* ✅ TAMANHO REDUZIDO */}
               {metricas.rentabilidadeTotal >= 0 ? '💎' : '📉'}
             </span>
           </div>
           <div style={{ 
-            fontSize: isMobile ? '24px' : '42px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '24px' : '28px', // ✅ TAMANHO REDUZIDO DE 42px PARA 28px
             fontWeight: '900', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
-            marginBottom: isMobile ? '8px' : '12px',
+            marginBottom: isMobile ? '8px' : '8px',
             lineHeight: '1'
           }}>
             {formatPercentage(metricas.rentabilidadeTotal)}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '12px' : '14px', // ✅ TAMANHO REDUZIDO
             color: '#64748b', 
-            marginBottom: isMobile ? '4px' : '8px' 
+            marginBottom: isMobile ? '4px' : '6px' 
           }}>
             Anualizada: {formatPercentage(metricas.rentabilidadeAnualizada)}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '11px' : '12px', // ✅ TAMANHO REDUZIDO
             color: '#059669', 
             fontWeight: '600' 
           }}>
@@ -690,43 +690,43 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {/* Rentabilidade Apenas Ações */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
-          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
+          borderRadius: isMobile ? '8px' : '8px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid ' + (metricas.rentabilidadeSemProventos >= 0 ? '#3b82f6' : '#ef4444'),
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '12px' }}>
             <span style={{ 
               color: '#64748b', 
-              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '10px' : '12px',
               fontWeight: '600', 
               textTransform: 'uppercase' 
             }}>
               APENAS VALORIZAÇÃO DAS AÇÕES
             </span>
-            <span style={{ fontSize: isMobile ? '24px' : '32px' }}> {/* ✅ RESPONSIVO */}
+            <span style={{ fontSize: isMobile ? '24px' : '24px' }}>
               {metricas.rentabilidadeSemProventos >= 0 ? '📈' : '📉'}
             </span>
           </div>
           <div style={{ 
-            fontSize: isMobile ? '24px' : '42px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '24px' : '28px',
             fontWeight: '900', 
             color: metricas.rentabilidadeSemProventos >= 0 ? '#3b82f6' : '#ef4444',
-            marginBottom: isMobile ? '8px' : '12px',
+            marginBottom: isMobile ? '8px' : '8px',
             lineHeight: '1'
           }}>
             {formatPercentage(metricas.rentabilidadeSemProventos || 0)}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '12px' : '14px',
             color: '#64748b', 
-            marginBottom: isMobile ? '4px' : '8px' 
+            marginBottom: isMobile ? '4px' : '6px' 
           }}>
             Sem considerar proventos
           </div>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b' 
           }}>
             Apenas price appreciation
@@ -736,41 +736,41 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {/* Valor Total Return */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
-          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
+          borderRadius: isMobile ? '8px' : '8px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid #3b82f6',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '12px' }}>
             <span style={{ 
               color: '#64748b', 
-              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '10px' : '12px',
               fontWeight: '600', 
               textTransform: 'uppercase' 
             }}>
               VALOR TOTAL RETURN
             </span>
-            <span style={{ fontSize: isMobile ? '24px' : '32px' }}>💰</span> {/* ✅ RESPONSIVO */}
+            <span style={{ fontSize: isMobile ? '24px' : '24px' }}>💰</span>
           </div>
           <div style={{ 
-            fontSize: isMobile ? '18px' : '32px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '18px' : '22px',
             fontWeight: '800', 
             color: '#1e293b', 
-            marginBottom: isMobile ? '4px' : '8px',
+            marginBottom: isMobile ? '4px' : '6px',
             lineHeight: '1'
           }}>
             {formatCurrency(metricas.valorFinalTotal || valorTotalAtual, carteiraConfig?.moeda)}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '12px' : '13px',
             color: '#64748b', 
-            marginBottom: isMobile ? '4px' : '8px' 
+            marginBottom: isMobile ? '4px' : '6px' 
           }}>
             Investido: {formatCurrency(valorTotalInvestido, carteiraConfig?.moeda)}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '12px' : '13px',
             fontWeight: '600',
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444'
           }}>
@@ -782,41 +782,41 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {metricas.melhorAtivo && (
           <div style={{
             backgroundColor: '#f0fdf4',
-            borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
-            padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
+            borderRadius: isMobile ? '8px' : '8px',
+            padding: isMobile ? '12px' : '16px',
             border: '1px solid #10b981',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '12px' }}>
               <span style={{ 
                 color: '#065f46', 
-                fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+                fontSize: isMobile ? '10px' : '12px',
                 fontWeight: '600', 
                 textTransform: 'uppercase' 
               }}>
                 DESTAQUE POSITIVO
               </span>
-              <span style={{ fontSize: isMobile ? '24px' : '32px' }}>🏆</span> {/* ✅ RESPONSIVO */}
+              <span style={{ fontSize: isMobile ? '24px' : '24px' }}>🏆</span>
             </div>
             <div style={{ 
-              fontSize: isMobile ? '20px' : '28px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '20px' : '24px',
               fontWeight: '800', 
               color: '#065f46', 
-              marginBottom: isMobile ? '4px' : '8px',
+              marginBottom: isMobile ? '4px' : '6px',
               lineHeight: '1'
             }}>
               {metricas.melhorAtivo.ticker}
             </div>
             <div style={{ 
-              fontSize: isMobile ? '14px' : '18px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '14px' : '16px',
               fontWeight: '700', 
               color: '#10b981', 
-              marginBottom: isMobile ? '4px' : '8px' 
+              marginBottom: isMobile ? '4px' : '6px' 
             }}>
               {formatPercentage(metricas.melhorAtivo.performance)}
             </div>
             <div style={{ 
-              fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '11px' : '12px',
               color: '#065f46' 
             }}>
               {metricas.melhorAtivo.setor}
@@ -827,41 +827,41 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {/* Diversificação */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
-          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
+          borderRadius: isMobile ? '8px' : '8px',
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid ' + (carteiraConfig?.color || '#f59e0b'),
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '12px' }}>
             <span style={{ 
               color: '#64748b', 
-              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontSize: isMobile ? '10px' : '12px',
               fontWeight: '600', 
               textTransform: 'uppercase' 
             }}>
               DIVERSIFICAÇÃO
             </span>
-            <span style={{ fontSize: isMobile ? '24px' : '32px' }}>{carteiraConfig?.icon || '🎯'}</span> {/* ✅ RESPONSIVO */}
+            <span style={{ fontSize: isMobile ? '24px' : '24px' }}>{carteiraConfig?.icon || '🎯'}</span>
           </div>
           <div style={{ 
-            fontSize: isMobile ? '24px' : '42px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '24px' : '28px',
             fontWeight: '900', 
             color: carteiraConfig?.color || '#f59e0b', 
-            marginBottom: isMobile ? '4px' : '8px',
+            marginBottom: isMobile ? '4px' : '6px',
             lineHeight: '1'
           }}>
             {metricas.quantidadeAtivos}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '12px' : '13px',
             color: '#64748b', 
-            marginBottom: isMobile ? '4px' : '8px' 
+            marginBottom: isMobile ? '4px' : '6px' 
           }}>
             Ativos na carteira {nomeCarteira}
           </div>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '11px' : '12px',
             color: '#92400e', 
             fontWeight: '600' 
           }}>
@@ -999,7 +999,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                     </div>
                   </div>
                   
-                  {/* Dados em Grid */}
+                  {/* Dados em Grid - Expandido para incluir Valor Simulado */}
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: '1fr 1fr', 
@@ -1022,10 +1022,41 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                       </span>
                     </div>
                     <div style={{ color: '#64748b' }}>
-                      <span style={{ fontWeight: '500' }}>Proventos:</span><br />
-                      <span style={{ fontWeight: '700', color: proventosAtivo > 0 ? '#059669' : '#64748b' }}>
-                        {proventosAtivo > 0 ? formatCurrency(proventosAtivo, carteiraConfig?.moeda) : '-'}
+                      <span style={{ fontWeight: '500' }}>Valor Simulado:</span><br />
+                      <span style={{ 
+                        fontWeight: '700', 
+                        color: '#1e293b',
+                        backgroundColor: performanceComProventos >= 0 ? '#f0fdf4' : '#fef2f2',
+                        padding: '2px 4px',
+                        borderRadius: '4px'
+                      }}>
+                        {formatCurrency(valorAtualSimulado, carteiraConfig?.moeda)}
                       </span>
+                    </div>
+                  </div>
+                  
+                  {/* Linha adicional para Proventos */}
+                  <div style={{ 
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#64748b', 
+                      fontWeight: '500',
+                      marginBottom: '4px'
+                    }}>
+                      Proventos Recebidos:
+                    </div>
+                    <div style={{ 
+                      fontWeight: '700', 
+                      color: proventosAtivo > 0 ? '#059669' : '#64748b',
+                      fontSize: '14px'
+                    }}>
+                      {proventosAtivo > 0 ? formatCurrency(proventosAtivo, carteiraConfig?.moeda) : 'Sem proventos no período'}
                     </div>
                   </div>
                   
@@ -1367,7 +1398,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                       </div>
                     </div>
                     
-                    {/* Dados em Grid */}
+                    {/* Dados em Grid - Posições Encerradas */}
                     <div style={{ 
                       display: 'grid', 
                       gridTemplateColumns: '1fr 1fr', 
@@ -1393,6 +1424,34 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                         <span style={{ fontWeight: '500' }}>Preço Saída:</span><br />
                         <span style={{ fontWeight: '700', color: '#991b1b' }}>
                           {formatCurrency(ativo.precoSaida, carteiraConfig?.moeda)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Linha para Proventos e Valor Final */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '8px', 
+                      fontSize: '14px',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ color: '#991b1b' }}>
+                        <span style={{ fontWeight: '500' }}>Proventos:</span><br />
+                        <span style={{ fontWeight: '700', color: proventosAtivo > 0 ? '#059669' : '#991b1b' }}>
+                          {proventosAtivo > 0 ? formatCurrency(proventosAtivo, carteiraConfig?.moeda) : 'Sem proventos'}
+                        </span>
+                      </div>
+                      <div style={{ color: '#991b1b' }}>
+                        <span style={{ fontWeight: '500' }}>Valor Final:</span><br />
+                        <span style={{ 
+                          fontWeight: '700', 
+                          color: '#1e293b',
+                          backgroundColor: performanceComProventos >= 0 ? '#f0fdf4' : '#fef2f2',
+                          padding: '2px 4px',
+                          borderRadius: '4px'
+                        }}>
+                          {formatCurrency(valorFinalSimulado, carteiraConfig?.moeda)}
                         </span>
                       </div>
                     </div>
