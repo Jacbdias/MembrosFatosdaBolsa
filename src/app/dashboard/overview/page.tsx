@@ -2343,54 +2343,62 @@ export default function SmallCapsPage() {
           </div>
           
           {/* Legenda Responsiva */}
+<div style={{ 
+  flex: '1', 
+  display: 'grid', 
+  // 🔥 MUDANÇA AQUI: Forçar 2 colunas no mobile
+  gridTemplateColumns: isMobile 
+    ? 'repeat(2, 1fr)'  // ✅ 2 colunas fixas no mobile
+    : 'repeat(auto-fit, minmax(120px, 1fr))', 
+  gap: isMobile ? '8px' : '12px'
+}}>
+  {ativosAtivos.map((ativo, index) => {
+    const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
+    const cores = [
+      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+      '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+      '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+      '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+    ];
+    const cor = cores[index % cores.length];
+    
+    return (
+      <div key={ativo.ticker} style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px',
+        // 🔥 MUDANÇA AQUI: Melhor quebra de linha no mobile
+        minWidth: isMobile ? '0' : 'auto'
+      }}>
+        <div style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '2px',
+          backgroundColor: cor,
+          flexShrink: 0
+        }} />
+        <div style={{ minWidth: 0 }}>
           <div style={{ 
-            flex: '1', 
-            display: 'grid', 
-gridTemplateColumns: isMobile 
-  ? ativosAtivos.length > 12 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'
-  : 'repeat(auto-fit, minmax(120px, 1fr))'
+            fontWeight: '700', 
+            color: '#1e293b', 
+            fontSize: isMobile ? '12px' : '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
           }}>
-            {ativosAtivos.map((ativo, index) => {
-              const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
-              const cores = [
-                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
-                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
-                '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
-                '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
-              ];
-              const cor = cores[index % cores.length];
-              
-              return (
-                <div key={ativo.ticker} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '2px',
-                    backgroundColor: cor,
-                    flexShrink: 0
-                  }} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ 
-                      fontWeight: '700', 
-                      color: '#1e293b', 
-                      fontSize: isMobile ? '12px' : '14px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {ativo.ticker}
-                    </div>
-                    <div style={{ 
-                      color: '#64748b', 
-                      fontSize: isMobile ? '10px' : '12px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {porcentagem}%
-                    </div>
-                  </div>
-                </div>
+            {ativo.ticker}
+          </div>
+          <div style={{ 
+            color: '#64748b', 
+            fontSize: isMobile ? '10px' : '12px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {porcentagem}%
+          </div>
+        </div>
+      </div>
               );
             })}
           </div>
