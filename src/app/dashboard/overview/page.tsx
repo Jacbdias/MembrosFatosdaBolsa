@@ -720,14 +720,14 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
   return cotacoesMap;
 }
 
-// 🔄 FUNÇÃO PARA BUSCAR DY COM CÁLCULO MANUAL - ESTRATÉGIA MOBILE/DESKTOP
+// 🔄 FUNÇÃO PARA BUSCAR DY - VERSÃO CORRETA (IGUAL AO SEU CÓDIGO QUE FUNCIONAVA)
 async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  console.log('📈 [OTIMIZADO] Buscando DY para', tickers.length, 'tickers EM PARALELO...');
+  console.log('📈 [CORRETO] Buscando DY para', tickers.length, 'tickers EM PARALELO...');
   
-  // ✅ BATCH REQUEST para DY também
+  // ✅ BATCH REQUEST - IGUAL AO SEU CÓDIGO ANTERIOR QUE FUNCIONAVA
   try {
     const batchUrl = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
     const response = await Promise.race([
@@ -740,15 +740,18 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
       if (data.results && data.results.length > 0) {
         console.log('✅ DY BATCH SUCCESS:', data.results.length, 'DYs em 1 só request');
         
-        data.results.forEach((ativo: any) => {
-          const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
-          const currentPrice = ativo.regularMarketPrice;
+        data.results.forEach((result: any) => {
+          const ticker = result.symbol;
+          // ✅ CAMPO CORRETO QUE JÁ FUNCIONAVA
+          const dy = result.defaultKeyStatistics?.dividendYield;
           
-          if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
-            const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
-            dyMap.set(ativo.symbol, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+          if (dy && dy > 0) {
+            // ✅ SEM MULTIPLICAR POR 100 - API JÁ RETORNA COMO PORCENTAGEM
+            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY] ${ticker}: ${dy.toFixed(2)}%`);
           } else {
-            dyMap.set(ativo.symbol, '0,00%');
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY] ${ticker}: DY não encontrado`);
           }
         });
         
@@ -759,7 +762,7 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
     console.log('❌ DY Batch falhou, usando paralelo individual');
   }
   
-  // ✅ PARALELO INDIVIDUAL para DY (SEM DELAYS!)
+  // ✅ PARALELO INDIVIDUAL - IGUAL AO SEU CÓDIGO ANTERIOR
   const promises = tickers.map(async (ticker) => {
     try {
       const response = await Promise.race([
@@ -771,16 +774,17 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
 
       if (response.ok) {
         const data = await response.json();
-        const ativo = data.results?.[0];
+        const result = data.results?.[0];
         
-        const lastDividend = ativo?.defaultKeyStatistics?.lastDividendValue;
-        const currentPrice = ativo?.regularMarketPrice;
+        // ✅ MESMO CAMPO E CÁLCULO QUE FUNCIONAVA
+        const dy = result?.defaultKeyStatistics?.dividendYield;
         
-        if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
-          const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
-          dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+        if (dy && dy > 0) {
+          dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
+          console.log(`✅ [DY] ${ticker}: ${dy.toFixed(2)}%`);
         } else {
           dyMap.set(ticker, '0,00%');
+          console.log(`❌ [DY] ${ticker}: DY não encontrado`);
         }
       }
     } catch (error) {
@@ -797,7 +801,8 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
     }
   });
   
-  console.log('✅ [DY-PARALELO] Concluído:', dyMap.size, 'de', tickers.length);
+  console.log('✅ [DY-CORRETO] Concluído:', dyMap.size, 'de', tickers.length);
+  console.log('📊 DY Final Map:', Object.fromEntries(dyMap));
   return dyMap;
 }
 
