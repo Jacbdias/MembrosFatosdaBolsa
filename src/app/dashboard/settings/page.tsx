@@ -1162,16 +1162,39 @@ export default function FiisPage() {
         }}>
           Carteira de FIIs - Estratégia Mobile Universal
         </h1>
-        <p style={{ 
+        <div style={{ 
           color: '#64748b', 
           fontSize: isMobile ? '16px' : '18px',
           margin: '0',
-          lineHeight: '1.5'
+          lineHeight: '1.5',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
         }}>
-          {loading && !todosOsDadosProntos && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• Coletando dados...</span>}
-          {loadingDY && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Carregando DY...</span>}
-          {loadingProventos && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Carregando proventos...</span>}
-        </p>
+          {loading && !todosOsDadosProntos ? (
+            <>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <span style={{ 
+                color: '#3b82f6', 
+                fontWeight: '600',
+                fontSize: isMobile ? '14px' : '16px'
+              }}>
+                Atualizando carteira em tempo real...
+              </span>
+            </>
+          ) : (
+            <span>
+              Dados atualizados a cada 5 minutos • Total Return aplicado
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Cards de Métricas */}
@@ -1332,32 +1355,16 @@ export default function FiisPage() {
             fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            margin: '0 0 8px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            margin: '0 0 8px 0'
           }}>
             Posições Ativas ({ativosAtivos.length})
-            {(loading || !todosOsDadosProntos) && (
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #e2e8f0',
-                borderTop: '2px solid #3b82f6',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-            )}
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {loading || !todosOsDadosProntos
-              ? 'Carregando Total Return com proventos...' 
-              : 'Total Return aplicado - dados atualizados a cada 5 minutos'
-            }
+            Total Return aplicado com reinvestimento de proventos
           </p>
         </div>
 
@@ -1512,7 +1519,7 @@ export default function FiisPage() {
                         <div style={{ color: '#64748b' }}>
                           <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
                           <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                            {loadingDY ? '...' : ativo.dy}
+                            {loading && !todosOsDadosProntos ? '--' : ativo.dy}
                           </span>
                         </div>
                         <div style={{ color: '#64748b' }}>
@@ -1768,10 +1775,13 @@ export default function FiisPage() {
       
       {/* Animações CSS */}
       <style jsx>{`
+        /* Spinner de Loading Unificado */
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        
+        /* Animação de Pulse para Skeletons */
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
