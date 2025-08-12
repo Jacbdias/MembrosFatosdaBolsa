@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '../../../../hooks/useDataStore';
-import AnalisesTrimesestrais from '@/components/AnalisesTrimesestrais';
-import ETFHoldings from '@/components/ETFHoldings';
+
+// ✅ LAZY LOADING DE COMPONENTES PESADOS
+const AnalisesTrimesestrais = lazy(() => import('@/components/AnalisesTrimesestrais'));
+const ETFHoldings = lazy(() => import('@/components/ETFHoldings'));
+const ETFMetricCards = lazy(() => import('@/components/ETFMetricCards'));
+
+// ✅ IMPORTS BÁSICOS (mantidos síncronos)
 import { useAgendaCorporativaTicker } from '@/hooks/ativo/useAgendaCorporativaTicker';
 import { useDividendYieldIntegrado } from '@/hooks/ativo/useDividendYieldIntegrado';
 import { useProventosIntegrado } from '../../../../hooks/ativo/useProventosIntegrado';
@@ -12,7 +17,6 @@ import { useBDRDataAPI } from '../../../../hooks/ativo/useBDRDataAPI';
 import { useHGBrasilFII } from '../../../../hooks/ativo/useHGBrasilFII';
 import { useCotacaoCompleta } from '../../../../hooks/ativo/useCotacaoCompleta';
 import { useBRAPIETF } from '@/hooks/useBRAPIETF';
-import ETFMetricCards from '@/components/ETFMetricCards';
 import { useRelatoriosEstatisticas } from '@/hooks/useRelatoriosAPI';
 
 // ✅ IMPORT ÚNICO CORRIGIDO
@@ -33,24 +37,79 @@ import {
   Relatorio 
 } from '../../../../hooks/useAtivoDetalhes';
 
-
-// 🏢 FUNÇÃO PARA DETECTAR ETFs (ADICIONAR AQUI)
-const isETF = (ticker: string): boolean => {
-  if (!ticker) return false;
+// ✅ CACHE INTELIGENTE UTILITÁRIO
+const cacheUtils = {
+  set: (key, data, ttl = 5 * 60 * 1000) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now(),
+        ttl
+      };
+      sessionStorage.setItem(`ativo_cache_${key}`, JSON.stringify(cacheData));
+    } catch (error) {
+      console.warn('Cache set error:', error);
+    }
+  },
   
-  const etfsConhecidos: string[] = [
-    'QQQ', 'SPY', 'VTI', 'VEA', 'VWO', 'QUAL', 'SOXX', 'XLF', 'XLK', 'XLV', 'XLE',
-    'HERO', 'MCHI', 'TFLO', 'TLT', 'IEF', 'SHY', 'NOBL', 'VNQ', 'SCHP', 'VTEB',
-    'VOO', 'IVV', 'VXUS', 'BND', 'AGG', 'LQD', 'HYG', 'EMB', 'VB', 'VTV', 'VUG',
-    'IWM', 'IWN', 'IWO', 'IJH', 'IJR', 'IJK', 'IJJ', 'IJS', 'IWV', 'ITOT',
-    'XLC', 'XLI', 'XLB', 'XLRE', 'XLP', 'XLY', 'XLU', 'GLD', 'SLV', 'IAU',
-    'PDBC', 'DBA', 'USO', 'UNG', 'ARKK', 'ARKQ', 'ARKW', 'ARKG', 'ARKF'
-  ];
+  get: (key) => {
+    try {
+      const cached = sessionStorage.getItem(`ativo_cache_${key}`);
+      if (cached) {
+        const { data, timestamp, ttl } = JSON.parse(cached);
+        if (Date.now() - timestamp < ttl) {
+          return data;
+        }
+      }
+    } catch (error) {
+      console.warn('Cache get error:', error);
+    }
+    return null;
+  },
   
-  return etfsConhecidos.includes(ticker.toUpperCase());
+  clear: (key) => {
+    try {
+      sessionStorage.removeItem(`ativo_cache_${key}`);
+    } catch (error) {
+      console.warn('Cache clear error:', error);
+    }
+  }
 };
 
-// 🔥 HOOK RESPONSIVO CENTRALIZADO
+// ✅ INTERSECTION OBSERVER HOOK
+const useInView = (options = {}) => {
+  const [inView, setInView] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.1, rootMargin: '50px', ...options }
+    );
+
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, inView];
+};
+
+// ✅ FUNÇÃO PARA DETECTAR ETFs (OTIMIZADA)
+const ETF_LIST = new Set([
+  'QQQ', 'SPY', 'VTI', 'VEA', 'VWO', 'QUAL', 'SOXX', 'XLF', 'XLK', 'XLV', 'XLE',
+  'HERO', 'MCHI', 'TFLO', 'TLT', 'IEF', 'SHY', 'NOBL', 'VNQ', 'SCHP', 'VTEB',
+  'VOO', 'IVV', 'VXUS', 'BND', 'AGG', 'LQD', 'HYG', 'EMB', 'VB', 'VTV', 'VUG',
+  'IWM', 'IWN', 'IWO', 'IJH', 'IJR', 'IJK', 'IJJ', 'IJS', 'IWV', 'ITOT',
+  'XLC', 'XLI', 'XLB', 'XLRE', 'XLP', 'XLY', 'XLU', 'GLD', 'SLV', 'IAU',
+  'PDBC', 'DBA', 'USO', 'UNG', 'ARKK', 'ARKQ', 'ARKW', 'ARKG', 'ARKF'
+]);
+
+const isETF = (ticker) => {
+  if (!ticker) return false;
+  return ETF_LIST.has(ticker.toUpperCase());
+};
+
+// ✅ HOOK RESPONSIVO OTIMIZADO
 const useResponsive = () => {
   const [screenSize, setScreenSize] = useState(() => {
     if (typeof window === 'undefined') return 'desktop';
@@ -80,30 +139,36 @@ const useResponsive = () => {
       else setScreenSize('desktop');
     };
 
-    // Debounce resize para performance
+    // ✅ DEBOUNCE OTIMIZADO PARA MOBILE
     let timeoutId;
     const debouncedResize = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(handleResize, 150);
+      // Debounce maior para mobile (menos re-renders)
+      const delay = window.innerWidth <= 768 ? 300 : 150;
+      timeoutId = setTimeout(handleResize, delay);
     };
 
-    window.addEventListener('resize', debouncedResize);
+    window.addEventListener('resize', debouncedResize, { passive: true });
     return () => {
       window.removeEventListener('resize', debouncedResize);
       clearTimeout(timeoutId);
     };
   }, []);
 
-  return {
-    screenSize,
+  // ✅ MEMOIZE COMPUTED VALUES
+  const computedValues = useMemo(() => ({
     isMobile: screenSize === 'mobile',
     isTablet: screenSize === 'tablet',
     isLaptop: screenSize === 'laptop',
     isDesktop: screenSize === 'desktop',
-    isMobileOrTablet: screenSize === 'mobile' || screenSize === 'tablet',
+    isMobileOrTablet: screenSize === 'mobile' || screenSize === 'tablet'
+  }), [screenSize]);
+
+  return {
+    screenSize,
+    ...computedValues,
     width: dimensions.width,
     height: dimensions.height,
-    // Breakpoints úteis
     breakpoints: {
       mobile: 480,
       tablet: 768,
@@ -113,34 +178,41 @@ const useResponsive = () => {
   };
 };
 
-// 🔥 HOOK DE LOADING UNIFICADO
-const useLoadingState = (loadingStates = [], minLoadingTime = 300) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingStartTime] = useState(Date.now());
+// ✅ HOOK DE LOADING PROGRESSIVO
+const useProgressiveLoading = (dependencies = []) => {
+  const [stages, setStages] = useState({
+    stage1: true,  // Header + dados básicos
+    stage2: true,  // Métricas financeiras
+    stage3: true   // Componentes pesados
+  });
 
   useEffect(() => {
-    const anyLoading = loadingStates.some(state => state === true);
+    const anyLoading = dependencies.some(dep => dep === true);
     
     if (!anyLoading) {
-      const elapsed = Date.now() - loadingStartTime;
-      const remainingTime = Math.max(0, minLoadingTime - elapsed);
+      // Stage 1: Dados básicos
+      setStages(prev => ({ ...prev, stage1: false }));
       
+      // Stage 2: Métricas (com delay mínimo)
       setTimeout(() => {
-        setIsLoading(false);
-      }, remainingTime);
-    } else {
-      setIsLoading(true);
+        setStages(prev => ({ ...prev, stage2: false }));
+      }, 100);
+      
+      // Stage 3: Componentes pesados
+      setTimeout(() => {
+        setStages(prev => ({ ...prev, stage3: false }));
+      }, 200);
     }
-  }, [loadingStates, loadingStartTime, minLoadingTime]);
+  }, dependencies);
 
-  return isLoading;
+  return stages;
 };
 
-// 🔥 COMPONENTE DE SKELETON LOADING RESPONSIVO
-const SkeletonLoader = ({ variant = 'card', count = 1, className = '' }) => {
-  const { isMobile, isTablet } = useResponsive();
+// ✅ SKELETON LOADER OTIMIZADO
+const SkeletonLoader = React.memo(({ variant = 'card', count = 1, className = '' }) => {
+  const { isMobile } = useResponsive();
   
-  const getSkeletonStyle = () => {
+  const skeletonStyles = useMemo(() => {
     const baseStyle = {
       backgroundColor: '#e2e8f0',
       borderRadius: '8px',
@@ -148,53 +220,39 @@ const SkeletonLoader = ({ variant = 'card', count = 1, className = '' }) => {
       marginBottom: '16px'
     };
 
-    switch (variant) {
-      case 'header':
-        return {
-          ...baseStyle,
-          height: isMobile ? '120px' : '180px',
-          borderRadius: '12px'
-        };
-      case 'card':
-        return {
-          ...baseStyle,
-          height: isMobile ? '120px' : '160px',
-          width: '100%'
-        };
-      case 'metric':
-        return {
-          ...baseStyle,
-          height: isMobile ? '80px' : '100px',
-          width: '100%'
-        };
-      case 'table-row':
-        return {
-          ...baseStyle,
-          height: '40px',
-          marginBottom: '8px'
-        };
-      case 'text':
-        return {
-          ...baseStyle,
-          height: '20px',
-          width: '60%'
-        };
-      default:
-        return baseStyle;
-    }
-  };
+    const variants = {
+      header: { ...baseStyle, height: isMobile ? '120px' : '180px', borderRadius: '12px' },
+      card: { ...baseStyle, height: isMobile ? '120px' : '160px', width: '100%' },
+      metric: { ...baseStyle, height: isMobile ? '80px' : '100px', width: '100%' },
+      'table-row': { ...baseStyle, height: '40px', marginBottom: '8px' },
+      text: { ...baseStyle, height: '20px', width: '60%' }
+    };
+
+    return variants[variant] || baseStyle;
+  }, [variant, isMobile]);
 
   return (
     <div className={className}>
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} style={getSkeletonStyle()} />
+        <div key={i} style={skeletonStyles} />
       ))}
     </div>
   );
+});
+
+// ✅ LAZY COMPONENT WRAPPER
+const LazyComponent = ({ children, fallback, condition = true }) => {
+  if (!condition) return fallback || <SkeletonLoader />;
+  
+  return (
+    <Suspense fallback={fallback || <SkeletonLoader />}>
+      {children}
+    </Suspense>
+  );
 };
 
-// 🔥 GRID RESPONSIVO INTELIGENTE
-const ResponsiveGrid = ({ children, minCardWidth = 250, gap = 20, className = '' }) => {
+// ✅ GRID RESPONSIVO INTELIGENTE (MEMOIZADO)
+const ResponsiveGrid = React.memo(({ children, minCardWidth = 250, gap = 20, className = '' }) => {
   const { width, isMobile } = useResponsive();
   
   const gridStyle = useMemo(() => {
@@ -214,9 +272,9 @@ const ResponsiveGrid = ({ children, minCardWidth = 250, gap = 20, className = ''
       {children}
     </div>
   );
-};
+});
 
-// 🔥 UTILITÁRIOS CENTRALIZADOS
+// ✅ UTILITÁRIOS CENTRALIZADOS (MEMOIZADOS)
 const formatUtils = {
   currency: (value, currency = 'BRL') => {
     if (!value || isNaN(value)) return 'N/A';
@@ -236,15 +294,9 @@ const formatUtils = {
   compactNumber: (value, suffix = '') => {
     if (!value || isNaN(value)) return 'N/A';
     
-    if (value >= 1000000000) {
-      return `${(value / 1000000000).toFixed(1)}B${suffix}`;
-    }
-    if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M${suffix}`;
-    }
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}K${suffix}`;
-    }
+    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B${suffix}`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M${suffix}`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}K${suffix}`;
     
     return `${value.toFixed(0)}${suffix}`;
   },
@@ -266,56 +318,7 @@ const formatUtils = {
   }
 };
 
-// 🔥 HOOK DE MÉTRICAS FINANCEIRAS CENTRALIZADO
-const useFinancialMetrics = (ticker, dadosFinanceiros, dadosHGBrasil, dadosYahoo) => {
-  return useMemo(() => {
-    const isInternational = !ticker?.match(/\d$/);
-    const isBrazilian = ticker?.match(/\d$/) && !ticker.includes('11');
-    
-    // Lógica P/L otimizada
-    const getPL = () => {
-      if (isBrazilian) {
-        return dadosHGBrasil?.pl || dadosFinanceiros?.pl || dadosYahoo?.pl || null;
-      }
-      if (isInternational) {
-        return dadosYahoo?.pl || dadosHGBrasil?.pl || dadosFinanceiros?.pl || null;
-      }
-      return dadosHGBrasil?.pl || dadosFinanceiros?.pl || dadosYahoo?.pl || null;
-    };
-    
-    // Lógica P/VP otimizada
-    const getPVP = () => {
-      return dadosYahoo?.pvp || dadosHGBrasil?.pvp || null;
-    };
-    
-    // Fonte das métricas
-    const getSource = (metric) => {
-      if (metric === 'pl') {
-        if (isBrazilian && dadosHGBrasil?.pl) return 'HG Brasil';
-        if (isInternational && dadosYahoo?.pl) return 'Yahoo Finance';
-        if (dadosFinanceiros?.pl) return 'BRAPI';
-        return 'N/A';
-      }
-      
-      if (metric === 'pvp') {
-        if (dadosYahoo?.pvp) return 'Yahoo Finance';
-        if (dadosHGBrasil?.pvp) return 'HG Brasil';
-        return 'N/A';
-      }
-      
-      return 'N/A';
-    };
-    
-    return {
-      pl: getPL(),
-      pvp: getPVP(),
-      getSource,
-      isValid: (value) => value && value > 0 && value < 999
-    };
-  }, [ticker, dadosFinanceiros, dadosHGBrasil, dadosYahoo]);
-};
-
-// 🔥 COMPONENTE CARD MÉTRICA OTIMIZADO E RESPONSIVO
+// ✅ COMPONENTE CARD MÉTRICA OTIMIZADO
 const MetricCard = React.memo(({ 
   title, 
   value, 
@@ -327,26 +330,24 @@ const MetricCard = React.memo(({
 }) => {
   const { isMobile } = useResponsive();
   
+  const cardStyles = useMemo(() => ({
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    padding: isMobile ? '16px' : '20px',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    textAlign: 'center',
+    height: '100%',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    cursor: 'default'
+  }), [isMobile]);
+  
   if (loading) {
     return <SkeletonLoader variant="metric" />;
   }
 
   return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      borderRadius: '12px',
-      padding: isMobile ? '16px' : '20px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      textAlign: 'center',
-      height: '100%',
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      cursor: 'default',
-      ':hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-      }
-    }}>
+    <div style={cardStyles}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -391,58 +392,56 @@ const MetricCard = React.memo(({
   );
 });
 
-// Função auxiliar para obter nome da empresa
+// ✅ NOMES E DESCRIÇÕES (MEMOIZADOS)
+const COMPANY_NAMES = {
+  'AAPL': 'Apple Inc.',
+  'GOOGL': 'Alphabet Inc. (Google)',
+  'META': 'Meta Platforms Inc.',
+  'NVDA': 'NVIDIA Corporation',
+  'AMZN': 'Amazon.com Inc.',
+  'TSLA': 'Tesla Inc.',
+  'MSFT': 'Microsoft Corporation',
+  'VALE3': 'Vale S.A.',
+  'PETR4': 'Petróleo Brasileiro S.A.',
+  'BBAS3': 'Banco do Brasil S.A.',
+  'ALOS3': 'Allos S.A.',
+  'TUPY3': 'Tupy S.A.',
+  'RECV3': 'PetroRecôncavo S.A.',
+  'PRIO3': 'PetroRio S.A.'
+};
+
+const COMPANY_DESCRIPTIONS = {
+  'AAPL': 'Empresa americana de tecnologia especializada em eletrônicos de consumo, software e serviços online.',
+  'GOOGL': 'Empresa multinacional americana especializada em serviços e produtos relacionados à internet.',
+  'META': 'Empresa americana de tecnologia que desenvolve produtos e serviços de redes sociais.',
+  'NVDA': 'Empresa americana de tecnologia especializada em processadores gráficos e inteligência artificial.',
+  'AMZN': 'Empresa americana de comércio eletrônico e computação em nuvem.',
+  'TSLA': 'Empresa americana de veículos elétricos e energia limpa.',
+  'MSFT': 'Empresa americana de tecnologia que desenvolve, licencia e vende software, serviços e dispositivos.',
+  'VALE3': 'Empresa brasileira multinacional de mineração.',
+  'PETR4': 'Empresa brasileira de energia, atuando principalmente na exploração e produção de petróleo.',
+  'BBAS3': 'Banco brasileiro, uma das maiores instituições financeiras do país.',
+  'ALOS3': 'Empresa brasileira do setor imobiliário, focada em desenvolvimento de empreendimentos.',
+  'TUPY3': 'Empresa brasileira de fundição, produzindo blocos e cabeçotes para motores.',
+  'RECV3': 'Empresa brasileira de exploração e produção de petróleo e gás natural.',
+  'PRIO3': 'Empresa brasileira independente de exploração e produção de petróleo e gás.'
+};
+
 const getNomeEmpresa = (ticker, setor) => {
-  const nomes = {
-    'AAPL': 'Apple Inc.',
-    'GOOGL': 'Alphabet Inc. (Google)',
-    'META': 'Meta Platforms Inc.',
-    'NVDA': 'NVIDIA Corporation',
-    'AMZN': 'Amazon.com Inc.',
-    'TSLA': 'Tesla Inc.',
-    'MSFT': 'Microsoft Corporation',
-    'VALE3': 'Vale S.A.',
-    'PETR4': 'Petróleo Brasileiro S.A.',
-    'BBAS3': 'Banco do Brasil S.A.',
-    'ALOS3': 'Allos S.A.',
-    'TUPY3': 'Tupy S.A.',
-    'RECV3': 'PetroRecôncavo S.A.',
-    'PRIO3': 'PetroRio S.A.'
-  };
-  
-  return nomes[ticker] || `${ticker} - ${setor}`;
+  return COMPANY_NAMES[ticker] || `${ticker} - ${setor}`;
 };
 
-// Função auxiliar para obter descrição da empresa
 const getDescricaoEmpresa = (ticker, setor) => {
-  const descricoes = {
-    'AAPL': 'Empresa americana de tecnologia especializada em eletrônicos de consumo, software e serviços online.',
-    'GOOGL': 'Empresa multinacional americana especializada em serviços e produtos relacionados à internet.',
-    'META': 'Empresa americana de tecnologia que desenvolve produtos e serviços de redes sociais.',
-    'NVDA': 'Empresa americana de tecnologia especializada em processadores gráficos e inteligência artificial.',
-    'AMZN': 'Empresa americana de comércio eletrônico e computação em nuvem.',
-    'TSLA': 'Empresa americana de veículos elétricos e energia limpa.',
-    'MSFT': 'Empresa americana de tecnologia que desenvolve, licencia e vende software, serviços e dispositivos.',
-    'VALE3': 'Empresa brasileira multinacional de mineração.',
-    'PETR4': 'Empresa brasileira de energia, atuando principalmente na exploração e produção de petróleo.',
-    'BBAS3': 'Banco brasileiro, uma das maiores instituições financeiras do país.',
-    'ALOS3': 'Empresa brasileira do setor imobiliário, focada em desenvolvimento de empreendimentos.',
-    'TUPY3': 'Empresa brasileira de fundição, produzindo blocos e cabeçotes para motores.',
-    'RECV3': 'Empresa brasileira de exploração e produção de petróleo e gás natural.',
-    'PRIO3': 'Empresa brasileira independente de exploração e produção de petróleo e gás.'
-  };
-  
-  return descricoes[ticker] || `Empresa do setor ${setor}.`;
+  return COMPANY_DESCRIPTIONS[ticker] || `Empresa do setor ${setor}.`;
 };
 
-// 🎯 COMPONENTE DE AVATAR COM SISTEMA UNIFICADO E FALLBACK INTELIGENTE
-const CompanyAvatar = ({ symbol, companyName, size = 120 }) => {
+// ✅ COMPONENTE DE AVATAR OTIMIZADO
+const CompanyAvatar = React.memo(({ symbol, companyName, size = 120 }) => {
   const [imageUrl, setImageUrl] = React.useState(null);
   const [showFallback, setShowFallback] = React.useState(false);
   const [loadingStrategy, setLoadingStrategy] = React.useState(0);
 
-  // Lista de estratégias de carregamento
-  const strategies = React.useMemo(() => {
+  const strategies = useMemo(() => {
     const isFII = symbol.includes('11') || symbol.endsWith('11');
     
     if (isFII) {
@@ -490,7 +489,7 @@ const CompanyAvatar = ({ symbol, companyName, size = 120 }) => {
     setLoadingStrategy(0);
   }, [symbol, strategies]);
 
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
     if (loadingStrategy < strategies.length - 1) {
       const nextStrategy = loadingStrategy + 1;
       setLoadingStrategy(nextStrategy);
@@ -498,34 +497,36 @@ const CompanyAvatar = ({ symbol, companyName, size = 120 }) => {
     } else {
       setShowFallback(true);
     }
-  };
+  }, [loadingStrategy, strategies]);
 
-  const handleImageLoad = (e) => {
+  const handleImageLoad = useCallback((e) => {
     const img = e.target;
     if (img.naturalWidth <= 1 || img.naturalHeight <= 1) {
       handleImageError();
       return;
     }
     setShowFallback(false);
-  };
+  }, [handleImageError]);
+
+  const containerStyle = useMemo(() => ({
+    width: size,
+    height: size,
+    borderRadius: '50%',
+    backgroundColor: '#ffffff',
+    border: '3px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: size > 100 ? '2rem' : '1.5rem',
+    fontWeight: 'bold',
+    color: '#374151',
+    flexShrink: 0,
+    position: 'relative',
+    overflow: 'hidden'
+  }), [size]);
 
   return (
-    <div style={{
-      width: size,
-      height: size,
-      borderRadius: '50%',
-      backgroundColor: '#ffffff',
-      border: '3px solid #e2e8f0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: size > 100 ? '2rem' : '1.5rem',
-      fontWeight: 'bold',
-      color: '#374151',
-      flexShrink: 0,
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <div style={containerStyle}>
       <span style={{ 
         position: 'absolute', 
         zIndex: 1,
@@ -555,62 +556,21 @@ const CompanyAvatar = ({ symbol, companyName, size = 120 }) => {
       )}
     </div>
   );
+});
+
+// ✅ MAPEAMENTO BDR OTIMIZADO
+const BDR_MAPPING = {
+  'NVDA': 'NVDC34', 'AAPL': 'AAPL34', 'AMZN': 'AMZO34', 'GOOGL': 'GOGL34',
+  'GOOG': 'GOGL34', 'META': 'M1TA34', 'TSLA': 'TSLA34', 'MSFT': 'MSFT34',
+  'AMD': 'A1MD34', 'NFLX': 'NFLX34', 'UBER': 'UBER34', 'PYPL': 'PYPL34',
+  'CRM': 'SSFO34', 'ADBE': 'ADBE34', 'INTC': 'I1NT34', 'ORCL': 'ORCL34'
 };
 
-// Função para mapear ticker americano para BDR brasileiro
 function getBDRFromAmericano(tickerAmericano) {
-  const mapeamento = {
-    'NVDA': 'NVDC34',
-    'AAPL': 'AAPL34', 
-    'AMZN': 'AMZO34',
-    'GOOGL': 'GOGL34',
-    'GOOG': 'GOGL34',
-    'META': 'M1TA34',
-    'TSLA': 'TSLA34',
-    'MSFT': 'MSFT34',
-    'AMD': 'A1MD34',
-    'NFLX': 'NFLX34',
-    'UBER': 'UBER34',
-    'PYPL': 'PYPL34',
-    'CRM': 'SSFO34',
-    'ADBE': 'ADBE34',
-    'INTC': 'I1NT34',
-    'ORCL': 'ORCL34',
-    'PEP': 'PEPB34',
-    'KO': 'COCA34',
-    'JNJ': 'JNJB34',
-    'V': 'VISA34',
-    'MA': 'MAST34',
-    'JPM': 'JPMC34',
-    'BAC': 'BOAC34',
-    'WMT': 'WALM34',
-    'DIS': 'DISB34',
-    'HD': 'HOME34',
-    'COST': 'COWC34',
-    'XOM': 'EXXO34',
-    'CVX': 'CHVX34',
-    'PFE': 'PFIZ34',
-    'MRK': 'MERK34',
-    'ABT': 'ABTT34',
-    'TMO': 'TMOG34',
-    'UNH': 'UNHH34',
-    'NKE': 'NIKE34',
-    'MCD': 'MCDC34',
-    'VZ': 'VERZ34',
-    'T': 'ATTB34',
-    'IBM': 'IBMB34',
-    'GE': 'GEOO34',
-    'F': 'FORD34',
-    'GM': 'GMCO34',
-    'CAT': 'CATC34',
-    'BA': 'BOEI34',
-    'MMM': 'MMMC34'
-  };
-  
-  return mapeamento[tickerAmericano] || null;
+  return BDR_MAPPING[tickerAmericano] || null;
 }
 
-// Função para calcular o viés baseado no preço teto vs preço atual
+// ✅ FUNÇÕES DE CÁLCULO OTIMIZADAS
 const calcularVies = (precoTeto, precoAtual, precoEntrada) => {
   const teto = typeof precoTeto === 'string' ? 
     parseFloat(precoTeto.replace(',', '.').replace('R$', '').trim()) : 
@@ -633,7 +593,6 @@ const calcularVies = (precoTeto, precoAtual, precoEntrada) => {
   }
 };
 
-// 🔥 FUNÇÃO PARA CALCULAR VIÉS BDR
 const calcularViesBDR = (precoTetoBDR, precoBDR, cotacaoUSD) => {
   if (!precoTetoBDR || !precoBDR) {
     return { vies: 'N/A', cor: '#6b7280', explicacao: 'Dados insuficientes' };
@@ -663,36 +622,31 @@ const calcularViesBDR = (precoTetoBDR, precoBDR, cotacaoUSD) => {
   }
 };
 
-// 🏢 COMPONENTE DE CARDS ESPECÍFICOS PARA FII
+// ✅ COMPONENTES ESPECÍFICOS (COM LAZY LOADING INTERNO)
+
+// FII Cards com In-View Loading
 const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
   const { isMobile, isMobileOrTablet } = useResponsive();
+  const [containerRef, inView] = useInView();
   const ehFII = isFII || ticker.includes('11') || ticker.endsWith('11');
   
-  if (!ehFII) {
-    return null;
-  }
+  if (!ehFII) return null;
 
-  const formatarValor = (valor, tipo = 'currency') => {
+  const formatarValor = useCallback((valor, tipo = 'currency') => {
     if (!valor || isNaN(valor)) return 'N/A';
     
     switch (tipo) {
-      case 'currency':
-        return `R$ ${valor.toFixed(2).replace('.', ',')}`;
-      case 'percentage':
-        return `${valor.toFixed(2)}%`;
-      case 'billions':
-        return `R$ ${(valor / 1000000000).toFixed(1)} B`;
-      case 'millions':
-        return `R$ ${(valor / 1000000).toFixed(1)} M`;
-      case 'number':
-        return valor.toFixed(2).replace('.', ',');
-      default:
-        return valor.toString();
+      case 'currency': return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+      case 'percentage': return `${valor.toFixed(2)}%`;
+      case 'billions': return `R$ ${(valor / 1000000000).toFixed(1)} B`;
+      case 'millions': return `R$ ${(valor / 1000000).toFixed(1)} M`;
+      case 'number': return valor.toFixed(2).replace('.', ',');
+      default: return valor.toString();
     }
-  };
+  }, []);
 
   return (
-    <div style={{
+    <div ref={containerRef} style={{
       backgroundColor: '#ffffff',
       borderRadius: '16px',
       padding: isMobile ? '16px' : '24px',
@@ -713,27 +667,16 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
         🏢 Informações sobre o FII
       </h3>
 
-      {loading ? (
+      {!inView ? (
+        <SkeletonLoader variant="card" count={3} />
+      ) : loading ? (
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(3, 1fr)', 
           gap: isMobile ? '12px' : '16px'
         }}>          
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} style={{
-              backgroundColor: 'white',
-              padding: isMobile ? '16px' : '20px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'center'
-            }}>
-              <div style={{ 
-                height: '20px', 
-                backgroundColor: '#e2e8f0', 
-                borderRadius: '4px',
-                animation: 'pulse 2s infinite'
-              }} />
-            </div>
+            <SkeletonLoader key={i} variant="metric" />
           ))}
         </div>
       ) : dadosFII ? (
@@ -742,92 +685,21 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
           gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(3, 1fr)', 
           gap: isMobile ? '12px' : '16px'
         }}>
-          <div style={{ 
-            backgroundColor: 'white', 
-            padding: isMobile ? '16px' : '20px', 
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-            textAlign: 'center'
-          }}>
-            <h4 style={{ 
-              fontSize: isMobile ? '20px' : '24px', 
-              fontWeight: '700', 
-              color: '#1e293b', 
-              margin: '0',
-              lineHeight: '1'
-            }}>
-              {dadosFII.dividendYield12m ? 
-                formatarValor(dadosFII.dividendYield12m, 'percentage') : 'N/A'}
-            </h4>
-            <p style={{ 
-              fontSize: isMobile ? '10px' : '12px', 
-              color: '#64748b', 
-              margin: '4px 0 0 0',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              Dividend Yield
-            </p>
-          </div>
-
-          <div style={{ 
-            backgroundColor: 'white', 
-            padding: isMobile ? '16px' : '20px', 
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-            textAlign: 'center'
-          }}>
-            <h4 style={{ 
-              fontSize: isMobile ? '20px' : '24px', 
-              fontWeight: '700', 
-              color: '#1e293b', 
-              margin: '0',
-              lineHeight: '1'
-            }}>
-              {dadosFII.ultimoRendimento ? 
-                formatarValor(dadosFII.ultimoRendimento) : 'N/A'}
-            </h4>
-            <p style={{ 
-              fontSize: isMobile ? '10px' : '12px', 
-              color: '#64748b', 
-              margin: '4px 0 0 0',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              Último Rendimento
-            </p>
-          </div>
-
-          <div style={{ 
-            backgroundColor: 'white', 
-            padding: isMobile ? '16px' : '20px', 
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-            textAlign: 'center'
-          }}>
-            <h4 style={{ 
-              fontSize: isMobile ? '20px' : '24px', 
-              fontWeight: '700', 
-              color: '#1e293b', 
-              margin: '0',
-              lineHeight: '1'
-            }}>
-              {dadosFII.patrimonioLiquido ? 
-                formatarValor(dadosFII.patrimonioLiquido, 'billions') : 'N/A'}
-            </h4>
-            <p style={{ 
-              fontSize: isMobile ? '10px' : '12px', 
-              color: '#64748b', 
-              margin: '4px 0 0 0',
-              fontWeight: '600',
-              textTransform: 'uppercase'
-            }}>
-              Patrimônio Líquido
-            </p>
-          </div>
+          <MetricCard
+            title="Dividend Yield"
+            value={dadosFII.dividendYield12m ? formatarValor(dadosFII.dividendYield12m, 'percentage') : 'N/A'}
+            loading={false}
+          />
+          <MetricCard
+            title="Último Rendimento"
+            value={dadosFII.ultimoRendimento ? formatarValor(dadosFII.ultimoRendimento) : 'N/A'}
+            loading={false}
+          />
+          <MetricCard
+            title="Patrimônio Líquido"
+            value={dadosFII.patrimonioLiquido ? formatarValor(dadosFII.patrimonioLiquido, 'billions') : 'N/A'}
+            loading={false}
+          />
         </div>
       ) : (
         <div style={{ 
@@ -835,68 +707,64 @@ const FIISpecificCards = React.memo(({ ticker, dadosFII, loading, isFII }) => {
           gridTemplateColumns: isMobileOrTablet ? '1fr' : 'repeat(3, 1fr)',  
           gap: isMobile ? '12px' : '16px'
         }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{ 
-              backgroundColor: 'white', 
-              padding: isMobile ? '16px' : '20px', 
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-              textAlign: 'center'
-            }}>
-              <h4 style={{ 
-                fontSize: isMobile ? '20px' : '24px', 
-                fontWeight: '700', 
-                color: '#6b7280', 
-                margin: '0',
-                lineHeight: '1'
-              }}>
-                N/A
-              </h4>
-              <p style={{ 
-                fontSize: isMobile ? '10px' : '12px', 
-                color: '#64748b', 
-                margin: '4px 0 0 0',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
-                {i === 1 ? 'Dividend Yield' : i === 2 ? 'Último Rendimento' : 'Patrimônio Líquido'}
-              </p>
-            </div>
-          ))}
+          <MetricCard title="Dividend Yield" value="N/A" loading={false} />
+          <MetricCard title="Último Rendimento" value="N/A" loading={false} />
+          <MetricCard title="Patrimônio Líquido" value="N/A" loading={false} />
         </div>
       )}
     </div>
   );
 });
 
-// Agenda Corporativa
+// Agenda Corporativa com Loading Condicional
 const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
-  const { eventos, loading, error, refetch } = useAgendaCorporativaTicker(ticker);
+  const [containerRef, inView] = useInView();
+  const { eventos, loading, error, refetch } = useAgendaCorporativaTicker(ticker || '');
 
-  const calcularDiasAteEvento = (dataEvento) => {
+  const calcularDiasAteEvento = useCallback((dataEvento) => {
+    if (!dataEvento) return 0;
+    
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const evento = new Date(dataEvento);
+    
+    const evento = dataEvento instanceof Date ? dataEvento : new Date(dataEvento);
+    if (isNaN(evento.getTime())) return 0;
+    
     evento.setHours(0, 0, 0, 0);
     
     const diffTime = evento.getTime() - hoje.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     return diffDays;
-  };
+  }, []);
 
-  const formatarProximidade = (dias) => {
+  const formatarProximidade = useCallback((dias) => {
     if (dias < 0) return 'Passou';
     if (dias === 0) return 'Hoje';
     if (dias === 1) return 'Amanhã';
     if (dias <= 7) return `Em ${dias} dias`;
     if (dias <= 30) return `Em ${Math.ceil(dias / 7)} semanas`;
     return `Em ${Math.ceil(dias / 30)} meses`;
-  };
+  }, []);
+
+  // Só renderiza se estiver na view e com ticker válido
+  if (!inView || !ticker) {
+    return (
+      <div ref={containerRef} style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        marginBottom: '32px'
+      }}>
+        <SkeletonLoader variant="card" count={2} />
+      </div>
+    );
+  }
 
   return (
-    <div style={{
+    <div ref={containerRef} style={{
       backgroundColor: '#ffffff',
       borderRadius: '16px',
       padding: '24px',
@@ -904,9 +772,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       marginBottom: '32px'
     }}>
-      <div style={{
-        marginBottom: '20px'
-      }}>
+      <div style={{ marginBottom: '20px' }}>
         <h3 style={{
           fontSize: '20px',
           fontWeight: '700',
@@ -917,7 +783,9 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
         </h3>
       </div>
 
-      {loading ? (
+      {!ticker ? (
+        <SkeletonLoader variant="card" count={2} />
+      ) : loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
           <div style={{ color: '#64748b', textAlign: 'center' }}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
@@ -1005,7 +873,11 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
                       color: diasAteEvento <= 7 ? '#f59e0b' : diasAteEvento < 0 ? '#6b7280' : '#3b82f6',
                       lineHeight: '1'
                     }}>
-                      {evento.dataObj.getDate()}
+                      {evento.dataObj ? (
+                        evento.dataObj instanceof Date ? 
+                          evento.dataObj.getDate() :
+                          new Date(evento.dataObj).getDate()
+                      ) : 'N/A'}
                     </div>
                     <div style={{ 
                       fontSize: '14px',
@@ -1014,10 +886,11 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px'
                     }}>
-                      {evento.dataObj.toLocaleDateString('pt-BR', {
-                        month: 'short',
-                        year: 'numeric'
-                      })}
+                      {evento.dataObj ? (
+                        evento.dataObj instanceof Date ? 
+                          evento.dataObj.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) :
+                          new Date(evento.dataObj).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+                      ) : 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -1030,7 +903,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
   );
 });
 
-// Dados da Posição Expandidos
+// Dados da Posição com Memoização
 const DadosPosicaoExpandidos = React.memo(({ 
   empresa, 
   dadosFinanceiros, 
@@ -1042,6 +915,10 @@ const DadosPosicaoExpandidos = React.memo(({
 }) => {
   const { isMobile, isMobileOrTablet } = useResponsive();
   const precoAtual = dadosFinanceiros?.precoAtual || null;
+
+  const viesCalculado = useMemo(() => {
+    return calcularVies(empresa.precoTeto, precoAtual, empresa.precoEntrada);
+  }, [empresa.precoTeto, precoAtual, empresa.precoEntrada]);
 
   return (
     <div style={{ 
@@ -1159,10 +1036,7 @@ const DadosPosicaoExpandidos = React.memo(({
           }}>
             <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Viés Calculado</span>
             <span style={{
-              backgroundColor: (() => {
-                const { cor } = calcularVies(empresa.precoTeto, precoAtual, empresa.precoEntrada);
-                return cor;
-              })(),
+              backgroundColor: viesCalculado.cor,
               color: 'white',
               padding: '4px 8px',
               borderRadius: '4px',
@@ -1170,10 +1044,7 @@ const DadosPosicaoExpandidos = React.memo(({
               fontWeight: '600',
               alignSelf: isMobile ? 'flex-start' : 'auto'
             }}>
-              {(() => {
-                const { vies } = calcularVies(empresa.precoTeto, precoAtual, empresa.precoEntrada);
-                return vies;
-              })()}
+              {viesCalculado.vies}
             </span>
           </div>
           <div style={{ 
@@ -1234,41 +1105,33 @@ const DadosPosicaoExpandidos = React.memo(({
   );
 });
 
+// Histórico de Dividendos com Virtual Scrolling
 const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) => {
+  const [containerRef, inView] = useInView();
   const [proventos, setProventos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fonte, setFonte] = useState('');
-  
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 10;
   
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth <= 768;
-    }
-    return false;
-  });
+  const { isMobile } = useResponsive();
 
   useEffect(() => {
-    const checkDevice = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
+    if (!inView || !ticker) return;
 
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []);
-
-  useEffect(() => {
     const carregarProventos = async () => {
-      if (!ticker) {
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         
+        // Tentar cache primeiro
+        const cached = cacheUtils.get(`proventos_${ticker}`);
+        if (cached) {
+          setProventos(cached);
+          setFonte('cache');
+          setLoading(false);
+          return;
+        }
+
         let proventosEncontrados = [];
         let fonteAtual = '';
 
@@ -1325,6 +1188,11 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
         setFonte(fonteAtual || 'sem dados');
         setPaginaAtual(1);
         
+        // Cache os dados válidos
+        if (proventosValidos.length > 0) {
+          cacheUtils.set(`proventos_${ticker}`, proventosValidos);
+        }
+        
       } catch (error) {
         console.error('Erro geral:', error);
         setProventos([]);
@@ -1335,7 +1203,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
     };
 
     carregarProventos();
-  }, [ticker, isFII]);
+  }, [ticker, isFII, inView]);
 
   const { totalProventos, mediaProvento, ultimoProvento } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + (item.valor || 0), 0);
@@ -1355,7 +1223,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
   const proventosExibidos = proventos.slice(indiceInicio, indiceFim);
 
   return (
-    <div style={{
+    <div ref={containerRef} style={{
       backgroundColor: '#ffffff',
       borderRadius: '16px',
       padding: isMobile ? '16px' : '24px',
@@ -1394,7 +1262,9 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
         )}
       </div>
 
-      {loading ? (
+      {!inView ? (
+        <SkeletonLoader variant="card" count={3} />
+      ) : loading ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <div style={{ marginBottom: '16px', fontSize: '24px' }}>⏳</div>
           <p>Carregando proventos de {ticker}...</p>
@@ -1407,107 +1277,33 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
         </div>
       ) : (
         <>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: isMobile 
-              ? 'repeat(2, 1fr)' 
-              : 'repeat(4, 1fr)', 
-            gap: isMobile ? '12px' : '16px', 
-            marginBottom: '24px' 
-          }}>
-            <div style={{ 
-              textAlign: 'center', 
-              padding: isMobile ? '12px' : '16px',
-              backgroundColor: '#f0f9ff', 
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <h4 style={{ 
-                fontSize: isMobile ? '16px' : '20px',
-                fontWeight: '700', 
-                color: '#0ea5e9', 
-                margin: '0' 
-              }}>
-                {proventos.length}
-              </h4>
-              <p style={{ 
-                fontSize: isMobile ? '11px' : '12px',
-                margin: '4px 0 0 0' 
-              }}>
-                {isMobile ? 'Pagamentos' : 'Nº de Pagamentos'}
-              </p>
-            </div>
-            
-            <div style={{ 
-              textAlign: 'center', 
-              padding: isMobile ? '12px' : '16px', 
-              backgroundColor: '#f0fdf4', 
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <h4 style={{ 
-                fontSize: isMobile ? '16px' : '20px', 
-                fontWeight: '700', 
-                color: '#22c55e', 
-                margin: '0' 
-              }}>
-                R$ {totalProventos.toFixed(2).replace('.', ',')}
-              </h4>
-              <p style={{ 
-                fontSize: isMobile ? '11px' : '12px', 
-                margin: '4px 0 0 0' 
-              }}>
-                Total
-              </p>
-            </div>
-            
-            <div style={{ 
-              textAlign: 'center', 
-              padding: isMobile ? '12px' : '16px', 
-              backgroundColor: '#fefce8', 
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <h4 style={{ 
-                fontSize: isMobile ? '16px' : '20px', 
-                fontWeight: '700', 
-                color: '#eab308', 
-                margin: '0' 
-              }}>
-                R$ {mediaProvento.toFixed(2).replace('.', ',')}
-              </h4>
-              <p style={{ 
-                fontSize: isMobile ? '11px' : '12px', 
-                margin: '4px 0 0 0' 
-              }}>
-                Média
-              </p>
-            </div>
-            
-            <div style={{ 
-              textAlign: 'center', 
-              padding: isMobile ? '12px' : '16px', 
-              backgroundColor: '#fdf4ff', 
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              <h4 style={{ 
-                fontSize: isMobile ? '16px' : '20px', 
-                fontWeight: '700', 
-                color: '#a855f7', 
-                margin: '0' 
-              }}>
-                {ultimoProvento ? 
-                  ultimoProvento.dataObj.toLocaleDateString('pt-BR').replace(/\/\d{4}/, '') : 'N/A'}
-              </h4>
-              <p style={{ 
-                fontSize: isMobile ? '11px' : '12px', 
-                margin: '4px 0 0 0' 
-              }}>
-                Último
-              </p>
-            </div>
-          </div>
+          <ResponsiveGrid minCardWidth={200} gap={16}>
+            <MetricCard
+              title={isMobile ? 'Pagamentos' : 'Nº de Pagamentos'}
+              value={proventos.length.toString()}
+              color="#0ea5e9"
+            />
+            <MetricCard
+              title="Total"
+              value={`R$ ${totalProventos.toFixed(2).replace('.', ',')}`}
+              color="#22c55e"
+            />
+            <MetricCard
+              title="Média"
+              value={`R$ ${mediaProvento.toFixed(2).replace('.', ',')}`}
+              color="#eab308"
+            />
+            <MetricCard
+              title="Último"
+              value={ultimoProvento && ultimoProvento.dataObj ? 
+                (ultimoProvento.dataObj instanceof Date ? 
+                  ultimoProvento.dataObj.toLocaleDateString('pt-BR').replace(/\/\d{4}/, '') : 
+                  new Date(ultimoProvento.dataObj).toLocaleDateString('pt-BR').replace(/\/\d{4}/, '')
+                ) : 'N/A'
+              }
+              color="#a855f7"
+            />
+          </ResponsiveGrid>
 
           <div style={{
             backgroundColor: 'white',
@@ -1520,9 +1316,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
               borderCollapse: 'collapse',
               minWidth: isMobile ? '600px' : '100%'
             }}>
-              <thead style={{ 
-                backgroundColor: '#f8fafc'
-              }}>
+              <thead style={{ backgroundColor: '#f8fafc' }}>
                 <tr>
                   <th style={{ 
                     padding: isMobile ? '10px 8px' : '12px',
@@ -1562,9 +1356,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
                 {proventosExibidos.map((provento, index) => (
                   <tr 
                     key={`${provento.id || provento.data}-${index}`} 
-                    style={{ 
-                      borderBottom: '1px solid #f1f5f9'
-                    }}
+                    style={{ borderBottom: '1px solid #f1f5f9' }}
                   >
                     <td style={{ 
                       padding: isMobile ? '10px 8px' : '12px',
@@ -1588,7 +1380,11 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
                       fontWeight: '500',
                       fontSize: isMobile ? '12px' : '14px'
                     }}>
-                      {provento.dataObj?.toLocaleDateString('pt-BR') || 'N/A'}
+                      {provento.dataObj ? (
+                        provento.dataObj instanceof Date ? 
+                          provento.dataObj.toLocaleDateString('pt-BR') :
+                          new Date(provento.dataObj).toLocaleDateString('pt-BR')
+                      ) : 'N/A'}
                     </td>
                     <td style={{ 
                       padding: isMobile ? '10px 8px' : '12px',
@@ -1666,7 +1462,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
   );
 });
 
-// 🇺🇸➡️🇧🇷 COMPONENTE BDR AMERICANO
+// BDR Americano Info com Lazy Loading
 const BDRAmericanoInfo = React.memo(({ 
   ticker, 
   bdrCorrespondente, 
@@ -1684,8 +1480,10 @@ const BDRAmericanoInfo = React.memo(({
     return null;
   }
 
-  const viesBDR = precoTetoBDR && bdrData?.price ? 
-    calcularViesBDR(precoTetoBDR, bdrData.price, cotacaoUSD) : null;
+  const viesBDR = useMemo(() => {
+    return precoTetoBDR && bdrData?.price ? 
+      calcularViesBDR(precoTetoBDR, bdrData.price, cotacaoUSD) : null;
+  }, [precoTetoBDR, bdrData?.price, cotacaoUSD]);
 
   return (
     <div style={{
@@ -1718,92 +1516,46 @@ const BDRAmericanoInfo = React.memo(({
         </span>
       </h3>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '16px', 
-          borderRadius: '8px',
-          border: '1px solid #bbf7d0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
-          <h4 style={{ fontSize: '14px', color: '#64748b', margin: '0 0 8px 0' }}>Ativo Original (EUA)</h4>
-          <p style={{ fontSize: '18px', fontWeight: '700', color: '#15803d', margin: '0' }}>
-            {ticker}
-          </p>
-          <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
-            Mercado Americano
-          </p>
-        </div>
-
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '16px', 
-          borderRadius: '8px',
-          border: '1px solid #bbf7d0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
-          <h4 style={{ fontSize: '14px', color: '#64748b', margin: '0 0 8px 0' }}>BDR Brasileiro</h4>
-          <p style={{ fontSize: '18px', fontWeight: '700', color: '#15803d', margin: '0' }}>
-            {bdrCorrespondente}
-          </p>
-          <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
-            Negociado na B3
-          </p>
-        </div>
+      <ResponsiveGrid minCardWidth={200} gap={16}>
+        <MetricCard
+          title="Ativo Original (EUA)"
+          value={ticker}
+          subtitle="Mercado Americano"
+          color="#15803d"
+        />
+        
+        <MetricCard
+          title="BDR Brasileiro"
+          value={bdrCorrespondente}
+          subtitle="Negociado na B3"
+          color="#15803d"
+        />
 
         {bdrData && bdrData.price && (
           <>
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: '16px', 
-              borderRadius: '8px',
-              border: '1px solid #bbf7d0',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-            }}>
-              <h4 style={{ fontSize: '14px', color: '#64748b', margin: '0 0 8px 0' }}>Preço BDR (R$)</h4>
-              <p style={{ fontSize: '18px', fontWeight: '700', color: '#22c55e', margin: '0' }}>
-                R$ {bdrData.price.toFixed(2).replace('.', ',')}
-              </p>
-            </div>
+            <MetricCard
+              title="Preço BDR (R$)"
+              value={`R$ ${bdrData.price.toFixed(2).replace('.', ',')}`}
+              color="#22c55e"
+            />
 
-            <div style={{ 
-              backgroundColor: 'white', 
-              padding: '16px', 
-              borderRadius: '8px',
-              border: '1px solid #bbf7d0',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-            }}>
-              <h4 style={{ fontSize: '14px', color: '#64748b', margin: '0 0 8px 0' }}>Variação BDR</h4>
-              <p style={{ 
-                fontSize: '18px', 
-                fontWeight: '700', 
-                color: (bdrData.changePercent || 0) >= 0 ? '#22c55e' : '#ef4444',
-                margin: '0' 
-              }}>
-                {(bdrData.changePercent || 0) >= 0 ? '+' : ''}{(bdrData.changePercent || 0).toFixed(2)}%
-              </p>
-            </div>
+            <MetricCard
+              title="Variação BDR"
+              value={`${(bdrData.changePercent || 0) >= 0 ? '+' : ''}${(bdrData.changePercent || 0).toFixed(2)}%`}
+              color={(bdrData.changePercent || 0) >= 0 ? '#22c55e' : '#ef4444'}
+            />
           </>
         )}
 
         {cotacaoUSD && (
-          <div style={{ 
-            backgroundColor: 'white', 
-            padding: '16px', 
-            borderRadius: '8px',
-            border: '1px solid #bbf7d0',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-          }}>
-            <h4 style={{ fontSize: '14px', color: '#64748b', margin: '0 0 8px 0' }}>USD/BRL</h4>
-            <p style={{ fontSize: '18px', fontWeight: '700', color: '#6366f1', margin: '0' }}>
-              R$ {cotacaoUSD.toFixed(2).replace('.', ',')}
-            </p>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
-              Dólar hoje
-            </p>
-          </div>
+          <MetricCard
+            title="USD/BRL"
+            value={`R$ ${cotacaoUSD.toFixed(2).replace('.', ',')}`}
+            subtitle="Dólar hoje"
+            color="#6366f1"
+          />
         )}
-      </div>
+      </ResponsiveGrid>
 
       {bdrLoading && (
         <div style={{ 
@@ -1821,8 +1573,9 @@ const BDRAmericanoInfo = React.memo(({
   );
 });
 
+// Gerenciador de Relatórios com In-View Loading
 const GerenciadorRelatorios = React.memo(({ ticker }) => {
-  // 🔄 USAR HOOK DA API EM VEZ DO SISTEMA ANTIGO
+  const [containerRef, inView] = useInView();
   const { 
     estatisticas, 
     loading, 
@@ -1830,7 +1583,6 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
     carregarEstatisticas 
   } = useRelatoriosEstatisticas();
 
-  // 📊 FILTRAR RELATÓRIOS DO TICKER ESPECÍFICO
   const relatoriosDoTicker = useMemo(() => {
     if (!ticker || !estatisticas.relatorios) return [];
     
@@ -1844,145 +1596,16 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
       .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime());
   }, [ticker, estatisticas.relatorios]);
 
-  // ✅ CARREGAR DADOS AO MONTAR COMPONENTE
   useEffect(() => {
-    carregarEstatisticas();
-  }, [carregarEstatisticas]);
+    if (inView) {
+      carregarEstatisticas();
+    }
+  }, [inView, carregarEstatisticas]);
 
-  const getIconePorTipo = (tipo) => {
-    switch (tipo) {
-      case 'iframe': return '🖼️';
-      case 'canva': return '🎨';
-      case 'link': return '🔗';
-      case 'pdf': return '📄';
-      default: return '📄';
-    }
-  };
-
-const visualizarRelatorio = (relatorio) => {
-  // Se tem PDF disponível, priorizar o PDF em vez de link externo
-  if (relatorio.arquivoPdf && relatorio.tipoPdf === 'base64') {
-    console.log('📄 Abrindo PDF em vez do link externo');
-    
-    try {
-      // Usar a mesma lógica do download, mas para visualização
-      const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
-      const binaryString = atob(base64Clean);
-      const bytes = new Uint8Array(binaryString.length);
-      
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      
-      // Abrir PDF em nova aba para visualização
-      const newWindow = window.open(url, '_blank');
-      
-      if (newWindow) {
-        console.log('✅ PDF aberto para visualização');
-        
-        // Limpar URL após um tempo
-        setTimeout(() => URL.revokeObjectURL(url), 30000); // 30 segundos
-        
-        // Detectar mobile e mostrar instruções se necessário
-        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-          setTimeout(() => {
-            alert('📱 PDF aberto para visualização!\n\nPara salvar: use o botão de compartilhar (📤) do navegador');
-          }, 1000);
-        }
-      } else {
-        alert('🚫 Popup bloqueado! Permita popups para visualizar o PDF.');
-      }
-      
-      return; // Sair da função - PDF foi aberto
-      
-    } catch (error) {
-      console.error('❌ Erro ao abrir PDF para visualização:', error);
-      // Se der erro com PDF, continuar com os links abaixo
-    }
-  }
-  
-  // Se não tem PDF ou deu erro, usar os links
-  if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
-    window.open(relatorio.linkExterno, '_blank');
-    return;
-  }
-  
-  if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
-    // Opção 1: Tentar abrir PDF primeiro, depois Canva
-    if (relatorio.arquivoPdf) {
-      // Já tentou PDF acima e não funcionou
-      console.log('📄 PDF não disponível, abrindo Canva...');
-    }
-    
-    // Detectar se é mobile e avisar sobre o app
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // No mobile, avisar que pode abrir o app
-      if (confirm('🎨 Abrir no Canva?\n\n📱 Pode abrir o app do Canva se instalado.\n\nClique OK para continuar ou Cancelar para tentar outra opção.')) {
-        window.open(relatorio.linkCanva, '_blank');
-      } else {
-        alert('💡 Alternativa: Use o botão "📥 PDF" para baixar a versão em PDF se disponível.');
-      }
-    } else {
-      // No desktop, abrir normalmente
-      window.open(relatorio.linkCanva, '_blank');
-    }
-    return;
-  }
-  
-  // Fallback para outros links
-  if (relatorio.linkExterno) {
-    window.open(relatorio.linkExterno, '_blank');
-  } else if (relatorio.linkCanva) {
-    window.open(relatorio.linkCanva, '_blank');
-  } else {
-    alert('📋 Link de visualização não disponível para este relatório');
-  }
-};
-
-// 🆕 FUNÇÃO PARA DOWNLOAD DE PDF - VERSÃO CORRIGIDA
-const downloadPDF = (relatorio) => {
-  if (!relatorio.arquivoPdf || relatorio.tipoPdf !== 'base64') {
-    if (relatorio.tipoPdf === 'referencia') {
-      alert('📋 PDF grande - solicite re-upload na Central de Relatórios');
-    } else {
-      alert('📋 PDF não disponível para este relatório');
-    }
-    return;
-  }
-
-  try {
-    console.log('📄 Iniciando download PDF:', relatorio.nome);
-    
-    // Detectar dispositivo
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-    const isMobile = isIOS || isAndroid;
-    
-    // Nome do arquivo
-    const nomeArquivo = relatorio.nomeArquivoPdf || `${relatorio.ticker}_${relatorio.nome}.pdf`;
-    
-    // Validar se o base64 está correto
-    if (!relatorio.arquivoPdf.startsWith('data:application/pdf;base64,')) {
-      console.error('❌ Base64 inválido');
-      alert('❌ Formato de PDF inválido. Tente fazer re-upload do arquivo.');
-      return;
-    }
-    
-    if (isMobile) {
-      // MÉTODO MOBILE: Converter para blob e usar URL.createObjectURL
-      console.log('📱 Usando método mobile...');
-      
+  const visualizarRelatorio = useCallback((relatorio) => {
+    if (relatorio.arquivoPdf && relatorio.tipoPdf === 'base64') {
       try {
-        // Extrair base64 limpo
         const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
-        
-        // Converter para blob
         const binaryString = atob(base64Clean);
         const bytes = new Uint8Array(binaryString.length);
         
@@ -1993,18 +1616,137 @@ const downloadPDF = (relatorio) => {
         const blob = new Blob([bytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         
-        if (isIOS) {
-          // iOS: Abrir em nova aba com instruções
-          const newWindow = window.open(url, '_blank');
-          if (newWindow) {
+        const newWindow = window.open(url, '_blank');
+        
+        if (newWindow) {
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          
+          const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile) {
             setTimeout(() => {
-              alert('📱 PDF aberto em nova aba!\n\nPara salvar no iPhone:\n1. Toque no ícone de compartilhar (📤)\n2. Escolha "Salvar em Arquivos"');
+              alert('📱 PDF aberto para visualização!\n\nPara salvar: use o botão de compartilhar (📤) do navegador');
             }, 1000);
-          } else {
-            alert('🚫 Popup bloqueado! Permita popups nas configurações do Safari.');
           }
         } else {
-          // Android: Tentar download direto
+          alert('🚫 Popup bloqueado! Permita popups para visualizar o PDF.');
+        }
+        
+        return;
+        
+      } catch (error) {
+        console.error('❌ Erro ao abrir PDF para visualização:', error);
+      }
+    }
+    
+    if (relatorio.tipoVisualizacao === 'link' && relatorio.linkExterno) {
+      window.open(relatorio.linkExterno, '_blank');
+      return;
+    }
+    
+    if (relatorio.tipoVisualizacao === 'canva' && relatorio.linkCanva) {
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        if (confirm('🎨 Abrir no Canva?\n\n📱 Pode abrir o app do Canva se instalado.\n\nClique OK para continuar ou Cancelar para tentar outra opção.')) {
+          window.open(relatorio.linkCanva, '_blank');
+        } else {
+          alert('💡 Alternativa: Use o botão "📥 PDF" para baixar a versão em PDF se disponível.');
+        }
+      } else {
+        window.open(relatorio.linkCanva, '_blank');
+      }
+      return;
+    }
+    
+    if (relatorio.linkExterno) {
+      window.open(relatorio.linkExterno, '_blank');
+    } else if (relatorio.linkCanva) {
+      window.open(relatorio.linkCanva, '_blank');
+    } else {
+      alert('📋 Link de visualização não disponível para este relatório');
+    }
+  }, []);
+
+  const downloadPDF = useCallback((relatorio) => {
+    if (!relatorio.arquivoPdf || relatorio.tipoPdf !== 'base64') {
+      if (relatorio.tipoPdf === 'referencia') {
+        alert('📋 PDF grande - solicite re-upload na Central de Relatórios');
+      } else {
+        alert('📋 PDF não disponível para este relatório');
+      }
+      return;
+    }
+
+    try {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      const isMobile = isIOS || isAndroid;
+      
+      const nomeArquivo = relatorio.nomeArquivoPdf || `${relatorio.ticker}_${relatorio.nome}.pdf`;
+      
+      if (!relatorio.arquivoPdf.startsWith('data:application/pdf;base64,')) {
+        alert('❌ Formato de PDF inválido. Tente fazer re-upload do arquivo.');
+        return;
+      }
+      
+      if (isMobile) {
+        try {
+          const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
+          const binaryString = atob(base64Clean);
+          const bytes = new Uint8Array(binaryString.length);
+          
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          
+          if (isIOS) {
+            const newWindow = window.open(url, '_blank');
+            if (newWindow) {
+              setTimeout(() => {
+                alert('📱 PDF aberto em nova aba!\n\nPara salvar no iPhone:\n1. Toque no ícone de compartilhar (📤)\n2. Escolha "Salvar em Arquivos"');
+              }, 1000);
+            } else {
+              alert('🚫 Popup bloqueado! Permita popups nas configurações do Safari.');
+            }
+          } else {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeArquivo;
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            setTimeout(() => {
+              if (confirm('📱 Se o download não apareceu, deseja abrir o PDF em nova aba?')) {
+                window.open(url, '_blank');
+              }
+            }, 2000);
+          }
+          
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          
+        } catch (error) {
+          alert('❌ Erro ao processar PDF no mobile. Tente fazer re-upload do arquivo.');
+        }
+        
+      } else {
+        try {
+          const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
+          const binaryString = atob(base64Clean);
+          const bytes = new Uint8Array(binaryString.length);
+          
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          
           const link = document.createElement('a');
           link.href = url;
           link.download = nomeArquivo;
@@ -2014,120 +1756,57 @@ const downloadPDF = (relatorio) => {
           link.click();
           document.body.removeChild(link);
           
-          // Verificar se funcionou
-          setTimeout(() => {
-            if (confirm('📱 Se o download não apareceu, deseja abrir o PDF em nova aba?')) {
-              window.open(url, '_blank');
-            }
-          }, 2000);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          
+        } catch (error) {
+          alert('❌ Erro ao processar PDF. Verifique se o arquivo não está corrompido.');
         }
-        
-        // Limpar URL após uso
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-        
-      } catch (error) {
-        console.error('❌ Erro no método mobile:', error);
-        alert('❌ Erro ao processar PDF no mobile. Tente fazer re-upload do arquivo.');
       }
       
-    } else {
-      // MÉTODO DESKTOP: Blob download
-      console.log('🖥️ Usando método desktop...');
-      
-      try {
-        const base64Clean = relatorio.arquivoPdf.replace('data:application/pdf;base64,', '');
-        const binaryString = atob(base64Clean);
-        const bytes = new Uint8Array(binaryString.length);
-        
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = nomeArquivo;
-        link.style.display = 'none';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        console.log('✅ Download iniciado no desktop');
-        
-      } catch (error) {
-        console.error('❌ Erro no método desktop:', error);
-        alert('❌ Erro ao processar PDF. Verifique se o arquivo não está corrompido.');
-      }
+    } catch (error) {
+      alert('❌ Erro ao baixar PDF: ' + error.message);
     }
-    
-  } catch (error) {
-    console.error('❌ Erro geral no download:', error);
-    alert('❌ Erro ao baixar PDF: ' + error.message);
-  }
-};
+  }, []);
 
- // 🔄 LOADING STATE
-  if (loading) {
-    return (
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        padding: '20px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        marginBottom: '24px'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px', 
-          marginBottom: '16px' 
+  return (
+    <div ref={containerRef} style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      padding: '20px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      marginBottom: '24px'
+    }}>
+      <div style={{ marginBottom: '16px' }}>
+        <h3 style={{
+          fontSize: '18px',
+          fontWeight: '700',
+          color: '#1e293b',
+          margin: '0 0 4px 0'
         }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '700',
-            color: '#1e293b',
-            margin: '0'
-          }}>
-            📊 Relatórios da Empresa
-          </h3>
-        </div>
-        
-        <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+          📊 Relatórios da Empresa
+        </h3>
+      </div>
+
+      {!inView ? (
+        <SkeletonLoader variant="card" count={2} />
+      ) : loading ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '24px',
+          color: '#64748b'
+        }}>
           <div style={{ marginBottom: '12px', fontSize: '24px' }}>⏳</div>
           <p style={{ fontSize: '14px', margin: '0' }}>
             Carregando relatórios de {ticker}...
           </p>
         </div>
-      </div>
-    );
-  }
-
-  // ❌ ERROR STATE
-  if (error) {
-    return (
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        padding: '20px',
-        border: '1px solid #fecaca',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        marginBottom: '24px'
-      }}>
-        <h3 style={{
-          fontSize: '18px',
-          fontWeight: '700',
-          color: '#1e293b',
-          margin: '0 0 16px 0'
+      ) : error ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '24px',
+          color: '#dc2626'
         }}>
-          📊 Relatórios da Empresa
-        </h3>
-        
-        <div style={{ textAlign: 'center', padding: '24px', color: '#dc2626' }}>
           <div style={{ marginBottom: '12px', fontSize: '24px' }}>⚠️</div>
           <p style={{ fontSize: '14px', margin: '0 0 8px 0' }}>
             <strong>Erro ao carregar relatórios</strong>
@@ -2150,34 +1829,7 @@ const downloadPDF = (relatorio) => {
             🔄 Tentar Novamente
           </button>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      borderRadius: '16px',
-      padding: '20px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      marginBottom: '24px'
-    }}>
-      {/* 📱 HEADER MOBILE OTIMIZADO */}
-      <div style={{ 
-        marginBottom: '16px' 
-      }}>
-        <h3 style={{
-          fontSize: '18px',
-          fontWeight: '700',
-          color: '#1e293b',
-          margin: '0 0 4px 0'
-        }}>
-          📊 Relatórios da Empresa
-        </h3>
-      </div>
-
-      {relatoriosDoTicker.length === 0 ? (
+      ) : relatoriosDoTicker.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
           <div style={{ marginBottom: '16px', fontSize: '48px' }}>📭</div>
           <h4 style={{ 
@@ -2203,7 +1855,6 @@ const downloadPDF = (relatorio) => {
         </div>
       ) : (
         <div>
-          {/* 📱 LISTA DE RELATÓRIOS MOBILE */}
           {relatoriosDoTicker.map((relatorio, index) => (
             <div key={relatorio.id || index} style={{ 
               border: '1px solid #e2e8f0', 
@@ -2212,7 +1863,6 @@ const downloadPDF = (relatorio) => {
               backgroundColor: 'white',
               padding: '16px'
             }}>
-              {/* 📱 HEADER DO CARD */}
               <div style={{ marginBottom: '12px' }}>
                 <h4 style={{ 
                   margin: '0 0 4px 0', 
@@ -2240,13 +1890,11 @@ const downloadPDF = (relatorio) => {
                 )}
               </div>
               
-              {/* 📱 BOTÕES DE AÇÃO MOBILE */}
               <div style={{ 
                 display: 'flex', 
                 gap: '8px',
                 justifyContent: 'center'
               }}>
-                {/* 🆕 BOTÃO PDF - APENAS SE DISPONÍVEL */}
                 {relatorio.arquivoPdf && relatorio.tipoPdf === 'base64' && (
                   <button
                     onClick={() => downloadPDF(relatorio)}
@@ -2270,7 +1918,6 @@ const downloadPDF = (relatorio) => {
                   </button>
                 )}
                 
-                {/* 🔗 BOTÃO VISUALIZAR */}
                 <button
                   onClick={() => visualizarRelatorio(relatorio)}
                   style={{
@@ -2293,7 +1940,6 @@ const downloadPDF = (relatorio) => {
                 </button>
               </div>
 
-              {/* 📅 DATA DE ADIÇÃO */}
               <div style={{ 
                 fontSize: '10px', 
                 color: '#94a3b8',
@@ -2311,7 +1957,7 @@ const downloadPDF = (relatorio) => {
 });
 
 // ========================================
-// COMPONENTE PRINCIPAL
+// COMPONENTE PRINCIPAL OTIMIZADO
 // ========================================
 export default function AtivoPage() {
   const params = useParams();
@@ -2326,62 +1972,99 @@ export default function AtivoPage() {
   const ticker = params?.ticker?.toString().toUpperCase();
   const { isMobile, isMobileOrTablet } = useResponsive();
   
-  // ✅ 1. ESTADOS BÁSICOS PRIMEIRO
+  // ✅ VERIFICAÇÃO PRECOCE DO TICKER
+  if (!ticker) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f8fafc', 
+        padding: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>
+            Ticker não informado
+          </h2>
+        </div>
+      </div>
+    );
+  }
+  
+  // ✅ ESTADOS BÁSICOS
   const [ativo, setAtivo] = useState(null);
   const [carteira, setCarteira] = useState(null);
   const [loading, setLoading] = useState(true);
 
-// ✅ HOOK BRAPI ETF com conditional call
-const {
-  etfData: etfBRAPIData,
-  loading: loadingETFBRAPI,
-  error: errorETFBRAPI,
-  refetch: refetchETFBRAPI,
-  isETFSupported
-} = useBRAPIETF(ticker && typeof ticker === 'string' ? ticker : '');
+  // ✅ DETECTORES DE TIPO DE ATIVO (MEMOIZADOS) - Só executa se ticker existe
+  const tipoAtivo = useMemo(() => {
+    const ehBDREstrangeiro = isBDREstrangeiro(ticker);
+    const tickerEstrangeiro = ehBDREstrangeiro ? getEstrangeiroFromBDR(ticker) : null;
+    const bdrCorrespondente = getBDRFromAmericano(ticker);
+    const temBDR = !!bdrCorrespondente;
+    const ehETF = isETF(ticker);
+    const ehFII = ticker.includes('11') || ticker.endsWith('11');
+    
+    return {
+      ehBDREstrangeiro,
+      tickerEstrangeiro,
+      bdrCorrespondente,
+      temBDR,
+      ehETF,
+      ehFII
+    };
+  }, [ticker]);
 
-  // ✅ 2. HOOKS BÁSICOS (independentes)
+  // ✅ HOOKS CONDICIONAIS OTIMIZADOS (sempre chamados, mas com parâmetros condicionais)
   const { cotacaoUSD, loading: loadingUSD, ultimaAtualizacao: atualizacaoUSD, refetch: refetchUSD } = useCotacaoUSD();
-  const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
-  const { dadosFII: dadosFIIHGBrasil, loading: loadingFIIHGBrasil } = useHGBrasilFII(ticker);
-  const { dadosHGBrasil, loading: loadingHGBrasil, error: errorHGBrasil } = useHGBrasilAcoes(ticker);
-  const { dadosYahoo, loading: loadingYahoo, error: errorYahoo } = useYahooFinanceInternacional(ticker);
-
-  // ✅ 3. VARIÁVEIS BDR (dependem das funções importadas)
-  const ehBDREstrangeiro = ticker ? isBDREstrangeiro(ticker) : false;
-  const tickerEstrangeiro = ehBDREstrangeiro ? getEstrangeiroFromBDR(ticker) : null;
-  const { bdrData, bdrLoading, bdrError, refetchBDR } = useDadosBDR(ehBDREstrangeiro ? ticker : null);
   
-  const bdrCorrespondente = ticker ? getBDRFromAmericano(ticker) : null;
-  const temBDR = !!bdrCorrespondente;
-  const { bdrData: bdrDataAPI, bdrLoading: bdrLoadingAPI } = useBDRDataAPI(bdrCorrespondente);
+  // Dados básicos sempre carregados
+  const { dadosFinanceiros, loading: dadosLoading, error: dadosError, ultimaAtualizacao, refetch } = useDadosFinanceiros(ticker);
+  const { cotacaoCompleta, loading: loadingCotacao, error: errorCotacao } = useCotacaoCompleta(ticker, tipoAtivo.ehBDREstrangeiro);
+  
+  // Dados condicionais baseados no tipo (sempre chamados, mas podem retornar null)
+  const { dadosFII: dadosFIIHGBrasil, loading: loadingFIIHGBrasil } = useHGBrasilFII(
+    tipoAtivo.ehFII ? ticker : ''
+  );
+  
+  const { dadosHGBrasil, loading: loadingHGBrasil } = useHGBrasilAcoes(
+    (ticker?.match(/\d$/) && !ticker.includes('11')) ? ticker : ''
+  );
+  
+  const { dadosYahoo, loading: loadingYahoo } = useYahooFinanceInternacional(
+    (!ticker?.match(/\d$/) || tipoAtivo.ehBDREstrangeiro) ? ticker : ''
+  );
+  
+  const { bdrData, bdrLoading } = useDadosBDR(
+    tipoAtivo.ehBDREstrangeiro ? ticker : ''
+  );
+  
+  const { bdrData: bdrDataAPI, bdrLoading: bdrLoadingAPI } = useBDRDataAPI(
+    tipoAtivo.temBDR ? tipoAtivo.bdrCorrespondente : ''
+  );
+  
+  const { etfData: etfBRAPIData, loading: loadingETFBRAPI } = useBRAPIETF(
+    tipoAtivo.ehETF ? ticker : ''
+  );
 
-  // ✅ 4. HOOKS INTEGRADOS (após definições BDR)
-  const { dy12Meses, dyFormatado, loading: loadingDY, fonte: fonteDY, refetch: refetchDY } = useDividendYieldIntegrado(ticker);
-  const { valorProventos, performanceProventos, loading: loadingProventos, fonte: fonteProventos, refetch: refetchProventos } = useProventosIntegrado(ticker, ativo?.dataEntrada || '', ativo?.precoEntrada);
-  const { cotacaoCompleta, loading: loadingCotacao, error: errorCotacao, deviceDetected } = useCotacaoCompleta(ticker, ehBDREstrangeiro);
+  // ✅ HOOKS INTEGRADOS (sempre chamados)
+  const { dy12Meses, dyFormatado, loading: loadingDY, fonte: fonteDY } = useDividendYieldIntegrado(ticker);
+  const { valorProventos, performanceProventos, loading: loadingProventos, fonte: fonteProventos } = useProventosIntegrado(
+    ticker, 
+    ativo?.dataEntrada || '', 
+    ativo?.precoEntrada
+  );
 
-  // ✅ 5. LOADING STATE UNIFICADO
-  const isGlobalLoading = useLoadingState([
-    loading, 
-    dadosLoading && !dadosFinanceiros, 
-    loadingFIIHGBrasil && !dadosFIIHGBrasil,
+  // ✅ LOADING PROGRESSIVO
+  const loadingStages = useProgressiveLoading([
+    loading,
+    dadosLoading && !dadosFinanceiros,
     loadingCotacao && !cotacaoCompleta
-  ], 800);
+  ]);
 
-  // ✅ 6. FUNÇÕES OTIMIZADAS
-  const calcularPercentualCarteira = useCallback((nomeCarteira) => {
-    if (!dados || !dados[nomeCarteira]) return 'N/A';
-    
-    const ativosCarteira = dados[nomeCarteira];
-    const numeroAtivos = Array.isArray(ativosCarteira) ? ativosCarteira.length : 0;
-    
-    if (numeroAtivos === 0) return '0%';
-    
-    const percentual = (100 / numeroAtivos).toFixed(1);
-    return `${percentual}%`;
-  }, [dados]);
-
+  // ✅ FUNÇÃO PARA OBTER PREÇO TETO BDR (MEMOIZADA)
   const obterPrecoTetoBDR = useCallback(() => {
     if (!ativo || !carteira) return null;
 
@@ -2406,13 +2089,21 @@ const {
 
   const precoTetoBDR = obterPrecoTetoBDR();
 
-  // ✅ 7. useEffect (após todas as definições)
-  useEffect(() => {
-    if (!ticker) {
-      setLoading(false);
-      return;
-    }
+  // ✅ FUNÇÃO CALCULAR PERCENTUAL CARTEIRA (MEMOIZADA)
+  const calcularPercentualCarteira = useCallback((nomeCarteira) => {
+    if (!dados || !dados[nomeCarteira]) return 'N/A';
+    
+    const ativosCarteira = dados[nomeCarteira];
+    const numeroAtivos = Array.isArray(ativosCarteira) ? ativosCarteira.length : 0;
+    
+    if (numeroAtivos === 0) return '0%';
+    
+    const percentual = (100 / numeroAtivos).toFixed(1);
+    return `${percentual}%`;
+  }, [dados]);
 
+  // ✅ EFFECT PARA BUSCAR DADOS BÁSICOS (OTIMIZADO)
+  useEffect(() => {
     if (!dados || Object.keys(dados).length === 0) {
       const timer = setTimeout(() => {
         setLoading(false);
@@ -2421,70 +2112,95 @@ const {
       return () => clearTimeout(timer);
     }
 
-    // BUSCA EM MÚLTIPLAS CARTEIRAS
-    let ativoEncontrado = null;
-    let carteiraEncontrada = null;
-    const carteirasComAtivo = [];
-    const dadosDetalhados = {};
+    // Função para buscar dados
+    const buscarDadosAtivo = () => {
+      // Cache para dados do ativo
+      const cached = cacheUtils.get(`ativo_${ticker}`);
+      
+      if (cached) {
+        setAtivo(cached.ativo);
+        setCarteira(cached.carteira);
+        setLoading(false);
+        return;
+      }
 
-    Object.entries(dados).forEach(([nomeCarteira, ativos]) => {
-      if (Array.isArray(ativos)) {
-        const ativoNaCarteira = ativos.find(a => a?.ticker === ticker);
-        if (ativoNaCarteira) {
-          if (!ativoEncontrado) {
-            ativoEncontrado = { ...ativoNaCarteira };
-            carteiraEncontrada = nomeCarteira;
+      // BUSCA EM MÚLTIPLAS CARTEIRAS
+      let ativoEncontrado = null;
+      let carteiraEncontrada = null;
+      const carteirasComAtivo = [];
+      const dadosDetalhados = {};
+
+      Object.entries(dados).forEach(([nomeCarteira, ativos]) => {
+        if (Array.isArray(ativos)) {
+          const ativoNaCarteira = ativos.find(a => a?.ticker === ticker);
+          if (ativoNaCarteira) {
+            if (!ativoEncontrado) {
+              ativoEncontrado = { ...ativoNaCarteira };
+              carteiraEncontrada = nomeCarteira;
+            }
+            
+            carteirasComAtivo.push({
+              nome: nomeCarteira,
+              config: CARTEIRAS_CONFIG[nomeCarteira],
+              dados: ativoNaCarteira
+            });
+            
+            dadosDetalhados[nomeCarteira] = ativoNaCarteira;
           }
+        }
+      });
+
+      if (ativoEncontrado && carteiraEncontrada) {
+        if (carteirasComAtivo.length > 1) {
+          ativoEncontrado.multiplePortfolios = true;
+          ativoEncontrado.portfoliosList = carteirasComAtivo.map(c => c.nome);
+          ativoEncontrado.portfoliosData = dadosDetalhados;
           
-          carteirasComAtivo.push({
-            nome: nomeCarteira,
-            config: CARTEIRAS_CONFIG[nomeCarteira],
-            dados: ativoNaCarteira
+          const prioridades = {
+            'internacional': 1,
+            'acoes': 2,
+            'fiis': 3,
+            'cripto': 4,
+            'renda_fixa': 5
+          };
+          
+          carteirasComAtivo.sort((a, b) => {
+            const prioA = prioridades[a.nome] || 99;
+            const prioB = prioridades[b.nome] || 99;
+            return prioA - prioB;
           });
           
-          dadosDetalhados[nomeCarteira] = ativoNaCarteira;
+          const carteiraPrincipal = carteirasComAtivo[0];
+          carteiraEncontrada = carteiraPrincipal.nome;
+          
+        } else {
+          ativoEncontrado.multiplePortfolios = false;
+          ativoEncontrado.portfoliosList = [carteiraEncontrada];
         }
-      }
-    });
 
-    if (ativoEncontrado && carteiraEncontrada) {
-      if (carteirasComAtivo.length > 1) {
-        ativoEncontrado.multiplePortfolios = true;
-        ativoEncontrado.portfoliosList = carteirasComAtivo.map(c => c.nome);
-        ativoEncontrado.portfoliosData = dadosDetalhados;
+        setAtivo(ativoEncontrado);
+        setCarteira(carteiraEncontrada);
         
-        const prioridades = {
-          'internacional': 1,
-          'acoes': 2,
-          'fiis': 3,
-          'cripto': 4,
-          'renda_fixa': 5
+        // Cache os dados encontrados
+        const cacheData = {
+          ativo: ativoEncontrado,
+          carteira: carteiraEncontrada
         };
         
-        carteirasComAtivo.sort((a, b) => {
-          const prioA = prioridades[a.nome] || 99;
-          const prioB = prioridades[b.nome] || 99;
-          return prioA - prioB;
-        });
-        
-        const carteiraPrincipal = carteirasComAtivo[0];
-        carteiraEncontrada = carteiraPrincipal.nome;
-        
-      } else {
-        ativoEncontrado.multiplePortfolios = false;
-        ativoEncontrado.portfoliosList = [carteiraEncontrada];
+        cacheUtils.set(`ativo_${ticker}`, cacheData);
       }
 
-      setAtivo(ativoEncontrado);
-      setCarteira(carteiraEncontrada);
-    }
+      setLoading(false);
+    };
 
-    setLoading(false);
-  }, [ticker, dados, buscarCotacoes, cotacoes, ehBDREstrangeiro, tickerEstrangeiro, deviceDetected]);
+    buscarDadosAtivo();
+  }, [ticker, dados, CARTEIRAS_CONFIG]);
 
-  const calcularPerformance = () => {
-    if (!ativo) return { total: 0, acao: 0, proventos: 0, valorProventos: 0 };
+  // ✅ CÁLCULOS MEMOIZADOS
+  const calculatedData = useMemo(() => {
+    if (!ativo) return {};
     
+    // Calcular performance
     let performanceAcao = 0;
     
     if (ativo.posicaoEncerrada && ativo.precoSaida) {
@@ -2498,33 +2214,118 @@ const {
       }
     }
     
-    const performanceProventosIntegrada = performanceProventos || 0;
-    const valorProventosIntegrado = valorProventos || 0;
-    const performanceTotal = performanceAcao + performanceProventosIntegrada;
+    const performanceTotal = performanceAcao + (performanceProventos || 0);
     
-    return {
-      total: performanceTotal,
-      acao: performanceAcao,
-      proventos: performanceProventosIntegrada,
-      valorProventos: valorProventosIntegrado
+    // Preço atual formatado
+    const precoAtual = cotacaoCompleta?.regularMarketPrice || 
+                      (cotacoes[ticker] && typeof cotacoes[ticker] === 'object' ? cotacoes[ticker].regularMarketPrice : cotacoes[ticker]);
+    
+    const precoAtualFormatado = ativo.posicaoEncerrada && ativo.precoSaida ? 
+      formatCurrency(ativo.precoSaida, CARTEIRAS_CONFIG[carteira]?.moeda || 'BRL') :
+      (precoAtual ? formatCurrency(precoAtual, CARTEIRAS_CONFIG[carteira]?.moeda || 'BRL') : formatCurrency(ativo.precoEntrada, CARTEIRAS_CONFIG[carteira]?.moeda || 'BRL'));
+
+    // Distância do preço teto
+    const distanciaPrecoTeto = (() => {
+      if (!ativo.precoTeto || ativo.posicaoEncerrada) {
+        return null;
+      }
+      
+      const precoReferencia = precoAtual || ativo.precoEntrada;
+      return ((ativo.precoTeto - precoReferencia) / precoReferencia) * 100;
+    })();
+
+    // Percentual da carteira
+    const percentualCarteira = (() => {
+      if (ativo?.multiplePortfolios) {
+        const percentuais = {};
+        ativo.portfoliosList.forEach(nomeCarteira => {
+          percentuais[nomeCarteira] = calcularPercentualCarteira(nomeCarteira);
+        });
+        
+        const principal = percentuais[carteira];
+        const outros = Object.entries(percentuais)
+          .filter(([nome]) => nome !== carteira)
+          .map(([nome, valor]) => `${CARTEIRAS_CONFIG[nome]?.nome || nome}: ${valor}`)
+          .join(', ');
+        
+        return `${principal} (principal)${outros ? ` + ${outros}` : ''}`;
+      }
+      
+      return calcularPercentualCarteira(carteira);
+    })();
+
+    // Dados de variação
+    const getVariationData = () => {
+      if (ativo.posicaoEncerrada) {
+        return {
+          value: Math.abs(performanceTotal).toFixed(2),
+          isPositive: performanceTotal >= 0,
+          icon: performanceTotal >= 0 ? '▲' : '▼'
+        };
+      }
+      
+      if (cotacaoCompleta?.regularMarketChangePercent !== undefined) {
+        const variation = cotacaoCompleta.regularMarketChangePercent;
+        return {
+          value: Math.abs(variation).toFixed(2),
+          isPositive: variation >= 0,
+          icon: variation >= 0 ? '▲' : '▼'
+        };
+      }
+      
+      const cotacaoGlobal = cotacoes[ticker];
+      if (cotacaoGlobal?.regularMarketChangePercent !== undefined) {
+        const variation = cotacaoGlobal.regularMarketChangePercent;
+        return {
+          value: Math.abs(variation).toFixed(2),
+          isPositive: variation >= 0,
+          icon: variation >= 0 ? '▲' : '▼'
+        };
+      }
+      
+      return {
+        value: 'N/A',
+        isPositive: true,
+        icon: '•'
+      };
     };
-  };
 
-  const calcularPercentuaisTodasCarteiras = () => {
-    if (!ativo?.multiplePortfolios || !ativo?.portfoliosList) {
-      return { [carteira]: calcularPercentualCarteira(carteira) };
-    }
-    
-    const percentuais = {};
-    ativo.portfoliosList.forEach(nomeCarteira => {
-      percentuais[nomeCarteira] = calcularPercentualCarteira(nomeCarteira);
-    });
-    
-    return percentuais;
-  };
+    // Background gradient
+    const getBackgroundGradient = () => {
+      if (tipoAtivo.ehFII) return 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+      if (tipoAtivo.ehBDREstrangeiro) return 'linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%)';
+      if (carteira === 'acoes') return 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)';
+      return 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
+    };
 
-  // Estados de carregamento e erro
-  if (loading) {
+    return {
+      performanceData: {
+        total: performanceTotal,
+        acao: performanceAcao,
+        proventos: performanceProventos || 0,
+        valorProventos: valorProventos || 0
+      },
+      precoAtualFormatado,
+      distanciaPrecoTeto,
+      percentualCarteira,
+      variationData: getVariationData(),
+      backgroundGradient: getBackgroundGradient()
+    };
+  }, [
+    ativo, 
+    carteira, 
+    cotacaoCompleta, 
+    cotacoes, 
+    ticker, 
+    performanceProventos, 
+    valorProventos, 
+    calcularPercentualCarteira, 
+    CARTEIRAS_CONFIG,
+    tipoAtivo
+  ]);
+
+  // Estados de carregamento e erro (com stages)
+  if (loadingStages.stage1) {
     return (
       <div style={{ 
         minHeight: '100vh', 
@@ -2592,84 +2393,6 @@ const {
   }
 
   const carteiraConfig = CARTEIRAS_CONFIG[carteira];
-  const performanceData = calcularPerformance();
-  const performance = performanceData.total;
-  
-  const precoAtual = cotacaoCompleta?.regularMarketPrice || 
-                    (cotacoes[ticker] && typeof cotacoes[ticker] === 'object' ? cotacoes[ticker].regularMarketPrice : cotacoes[ticker]);
-
-  const distanciaPrecoTeto = (() => {
-    if (!ativo.precoTeto || ativo.posicaoEncerrada) {
-      return null;
-    }
-    
-    const precoReferencia = precoAtual || ativo.precoEntrada;
-    return ((ativo.precoTeto - precoReferencia) / precoReferencia) * 100;
-  })();
-
-  const isFII = ativo?.tipo === 'FII';
-  const precoAtualFormatado = ativo.posicaoEncerrada && ativo.precoSaida ? 
-    formatCurrency(ativo.precoSaida, carteiraConfig.moeda) :
-    (precoAtual ? formatCurrency(precoAtual, carteiraConfig.moeda) : formatCurrency(ativo.precoEntrada, carteiraConfig.moeda));
-
-  const percentualCarteira = (() => {
-    if (ativo?.multiplePortfolios) {
-      const percentuais = calcularPercentuaisTodasCarteiras();
-      const principal = percentuais[carteira];
-      const outros = Object.entries(percentuais)
-        .filter(([nome]) => nome !== carteira)
-        .map(([nome, valor]) => `${CARTEIRAS_CONFIG[nome]?.nome || nome}: ${valor}`)
-        .join(', ');
-      
-      return `${principal} (principal)${outros ? ` + ${outros}` : ''}`;
-    }
-    
-    return calcularPercentualCarteira(carteira);
-  })();
-
-  const getBackgroundGradient = () => {
-    if (isFII) return 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
-    if (ehBDREstrangeiro) return 'linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%)';
-    if (carteira === 'acoes') return 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)';
-    return 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
-  };
-
-  const getVariationData = () => {
-    if (ativo.posicaoEncerrada) {
-      return {
-        value: Math.abs(performance).toFixed(2),
-        isPositive: performance >= 0,
-        icon: performance >= 0 ? '▲' : '▼'
-      };
-    }
-    
-    if (cotacaoCompleta?.regularMarketChangePercent !== undefined) {
-      const variation = cotacaoCompleta.regularMarketChangePercent;
-      return {
-        value: Math.abs(variation).toFixed(2),
-        isPositive: variation >= 0,
-        icon: variation >= 0 ? '▲' : '▼'
-      };
-    }
-    
-    const cotacaoGlobal = cotacoes[ticker];
-    if (cotacaoGlobal?.regularMarketChangePercent !== undefined) {
-      const variation = cotacaoGlobal.regularMarketChangePercent;
-      return {
-        value: Math.abs(variation).toFixed(2),
-        isPositive: variation >= 0,
-        icon: variation >= 0 ? '▲' : '▼'
-      };
-    }
-    
-    return {
-      value: 'N/A',
-      isPositive: true,
-      icon: '•'
-    };
-  };
-
-  const variationData = getVariationData();
 
   return (
     <div style={{ 
@@ -2702,7 +2425,7 @@ const {
       {/* Header Principal */}
       <div style={{
         marginBottom: '32px',
-        background: getBackgroundGradient(),
+        background: calculatedData.backgroundGradient,
         borderRadius: '12px',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         overflow: 'hidden'
@@ -2818,8 +2541,8 @@ const {
                 marginBottom: '12px'
               }}>
                 {carteiraConfig?.moeda || 'BRL'} • {ativo.setor}
-                {isFII && ' • Fundo Imobiliário'}
-                {ehBDREstrangeiro && ` • Mercado: ${getMercadoOrigem(tickerEstrangeiro)}`}
+                {tipoAtivo.ehFII && ' • Fundo Imobiliário'}
+                {tipoAtivo.ehBDREstrangeiro && ` • Mercado: ${getMercadoOrigem(tipoAtivo.tickerEstrangeiro)}`}
               </div>
               
               {/* Descrição da empresa */}
@@ -2862,11 +2585,11 @@ const {
                 lineHeight: 1,
                 marginBottom: '8px'
               }}>
-                {precoAtualFormatado}
+                {calculatedData.precoAtualFormatado}
               </div>
               
               <div style={{ 
-                color: variationData.isPositive ? '#22c55e' : '#ef4444', 
+                color: calculatedData.variationData?.isPositive ? '#22c55e' : '#ef4444', 
                 fontWeight: 700, 
                 fontSize: isMobile ? '0.9rem' : isMobileOrTablet ? '1.1rem' : '1.2rem',
                 display: 'flex',
@@ -2875,10 +2598,10 @@ const {
                 gap: '8px'
               }}>
                 <span style={{ fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
-                  {variationData.icon}
+                  {calculatedData.variationData?.icon}
                 </span>
                 <span>
-                  {variationData.value}%
+                  {calculatedData.variationData?.value}%
                 </span>
               </div>
             </div>
@@ -2886,259 +2609,224 @@ const {
         </div>
       </div>
 
-      {/* Para ativos americanos com BDR disponível */}
-      {temBDR && bdrCorrespondente && (
-        <BDRAmericanoInfo 
-          ticker={ticker}
-          bdrCorrespondente={bdrCorrespondente}
-          temBDR={temBDR}
-          bdrData={bdrDataAPI}
-          bdrLoading={bdrLoadingAPI}
-          precoTetoBDR={precoTetoBDR}
-          cotacaoUSD={cotacaoUSD}
-          loadingUSD={loadingUSD}
-          atualizacaoUSD={atualizacaoUSD}
-          refetchUSD={refetchUSD}
-        />
-      )}
+      {/* STAGE 2: COMPONENTES CONDICIONAIS */}
+      {!loadingStages.stage2 && (
+        <>
+          {/* Para ativos americanos com BDR disponível */}
+          {tipoAtivo.temBDR && tipoAtivo.bdrCorrespondente && (
+            <BDRAmericanoInfo 
+              ticker={ticker}
+              bdrCorrespondente={tipoAtivo.bdrCorrespondente}
+              temBDR={tipoAtivo.temBDR}
+              bdrData={bdrDataAPI}
+              bdrLoading={bdrLoadingAPI}
+              precoTetoBDR={precoTetoBDR}
+              cotacaoUSD={cotacaoUSD}
+              loadingUSD={loadingUSD}
+              atualizacaoUSD={atualizacaoUSD}
+              refetchUSD={refetchUSD}
+            />
+          )}
 
-      {/* Dados Específicos de FII */}
-      {(isFII || ticker.includes('11')) && (
-        <FIISpecificCards 
-          ticker={ticker}
-          dadosFII={dadosFIIHGBrasil}
-          loading={loadingFIIHGBrasil}
-          isFII={isFII}
-        />
-      )}
+          {/* Dados Específicos de FII */}
+          {tipoAtivo.ehFII && (
+            <FIISpecificCards 
+              ticker={ticker}
+              dadosFII={dadosFIIHGBrasil}
+              loading={loadingFIIHGBrasil}
+              isFII={tipoAtivo.ehFII}
+            />
+          )}
 
-{/* Grid de Cards de Métricas - ATUALIZADO PARA ETFs */}
-      {isETF(ticker) ? (
-        // Cards específicos para ETFs com dados da BRAPI
-        <ETFMetricCards 
-          ticker={ticker}
-          etfData={etfBRAPIData}
-          loading={loadingETFBRAPI}
-        />
-      ) : !isFII && !ticker.includes('11') ? (
-        // Cards existentes para ações normais
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: isMobile ? '16px' : '20px',
-          marginBottom: '32px'
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: isMobile ? '16px' : '20px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            textAlign: 'center',
-            height: '100%'
-          }}>
-            <h4 style={{
-              fontSize: isMobile ? '11px' : '12px',
-              fontWeight: '700',
-              color: '#64748b',
-              margin: '0 0 8px 0',
-              textTransform: 'uppercase'
-            }}>
-              PERFORMANCE TOTAL
-            </h4>
-            
-            {loadingProventos ? (
-              <div style={{ color: '#64748b', fontSize: '18px' }}>⏳</div>
-            ) : (
-              <>
-                <p style={{
-                  fontSize: isMobile ? '20px' : '24px',
-                  fontWeight: '800',
-                  color: (performanceData.acao + performanceProventos) >= 0 ? '#22c55e' : '#ef4444',
-                  margin: '0 0 4px 0'
-                }}>
-                  {(performanceData.acao + performanceProventos) >= 0 ? '+' : ''}{(performanceData.acao + performanceProventos).toFixed(2)}%
-                </p>
+          {/* Grid de Cards de Métricas */}
+          {tipoAtivo.ehETF ? (
+            <LazyComponent 
+              condition={!loadingStages.stage2}
+              fallback={<SkeletonLoader variant="card" count={4} />}
+            >
+              <ETFMetricCards 
+                ticker={ticker}
+                etfData={etfBRAPIData}
+                loading={loadingETFBRAPI}
+              />
+            </LazyComponent>
+          ) : !tipoAtivo.ehFII && (
+            <ResponsiveGrid minCardWidth={200} gap={20}>
+              <MetricCard
+                title="PERFORMANCE TOTAL"
+                value={`${calculatedData.performanceData?.total >= 0 ? '+' : ''}${calculatedData.performanceData?.total.toFixed(2)}%`}
+                subtitle={`Ação: ${calculatedData.performanceData?.acao.toFixed(1)}% • Proventos: ${(performanceProventos || 0).toFixed(1)}%`}
+                color={calculatedData.performanceData?.total >= 0 ? '#22c55e' : '#ef4444'}
+                loading={loadingProventos}
+              />
+
+              <MetricCard 
+                title="P/L" 
+                value={(() => {
+                  if (ticker.match(/\d$/) && !ticker.includes('11')) {
+                    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+                      return dadosHGBrasil.pl.toFixed(2);
+                    }
+                    if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+                      return dadosFinanceiros.pl.toFixed(2);
+                    }
+                    if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+                      return dadosYahoo.pl.toFixed(2);
+                    }
+                    return 'N/A';
+                  }
+                  
+                  else if (!ticker.match(/\d$/)) {
+                    if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+                      return dadosYahoo.pl.toFixed(2);
+                    }
+                    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+                      return dadosHGBrasil.pl.toFixed(2);
+                    }
+                    if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+                      return dadosFinanceiros.pl.toFixed(2);
+                    }
+                    return 'N/A';
+                  }
+                  
+                  else {
+                    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0) {
+                      return dadosHGBrasil.pl.toFixed(2);
+                    }
+                    if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0) {
+                      return dadosFinanceiros.pl.toFixed(2);
+                    }
+                    if (dadosYahoo?.pl && dadosYahoo.pl > 0) {
+                      return dadosYahoo.pl.toFixed(2);
+                    }
+                    return 'N/A';
+                  }
+                })()}
                 
-                <p style={{
-                  fontSize: isMobile ? '10px' : '12px',
-                  color: '#64748b',
-                  margin: '0',
-                  lineHeight: '1.4'
-                }}>
-                  Ação: {performanceData.acao.toFixed(1)}% • Proventos: {performanceProventos.toFixed(1)}%
-                  <br/>
-                  <span style={{ 
-                    fontSize: isMobile ? '9px' : '10px',
-                    backgroundColor: fonteProventos === 'API' ? '#22c55e' : fonteProventos === 'localStorage' ? '#f59e0b' : '#6b7280',
-                    color: 'white',
-                    padding: '1px 4px',
-                    borderRadius: '3px',
-                    marginTop: '2px',
-                    display: 'inline-block'
-                  }}>
-                    {fonteProventos}
-                  </span>
-                </p>
-              </>
-            )}
-          </div>    
+                subtitle={(() => {
+                  if (ticker.match(/\d$/) && !ticker.includes('11')) {
+                    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+                      return "HG Brasil";
+                    }
+                    if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+                      return "BRAPI";
+                    }
+                    if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+                      return "Yahoo";
+                    }
+                  } else if (!ticker.match(/\d$/)) {
+                    if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
+                      return dadosYahoo.fonte || "International";
+                    }
+                    if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
+                      return "HG Brasil";
+                    }
+                    if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
+                      return "BRAPI";
+                    }
+                  }
+                  
+                  return "indisponível";
+                })()}
+                
+                loading={dadosLoading || loadingHGBrasil || loadingYahoo}
+              />
+              
+              <MetricCard 
+                title="DIVIDEND YIELD" 
+                value={(() => {
+                  if (dy12Meses > 0) {
+                    return dyFormatado;
+                  }
+                  if (dadosYahoo?.dividendYield && dadosYahoo.dividendYield > 0) {
+                    return `${dadosYahoo.dividendYield.toFixed(2)}%`;
+                  }
+                  if (dadosHGBrasil?.dividendYield12m) {
+                    return `${dadosHGBrasil.dividendYield12m.toFixed(2)}%`;
+                  }
+                  return 'N/A';
+                })()}
+                subtitle={(() => {
+                  if (dy12Meses > 0) {
+                    return fonteDY || "BRAPI-Estratégia";
+                  }
+                  if (dadosYahoo?.dividendYield && dadosYahoo.dividendYield > 0) {
+                    return dadosYahoo.fonte || "International";
+                  }
+                  if (dadosHGBrasil?.dividendYield12m) {
+                    return "HG Brasil";
+                  }
+                  return "indisponível";
+                })()}
+                loading={loadingDY || loadingHGBrasil || loadingYahoo}
+              />
+              
+              <MetricCard 
+                title="P/VP" 
+                value={(() => {
+                  if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
+                    return dadosYahoo.pvp.toFixed(2);
+                  }
+                  if (dadosHGBrasil?.pvp) {
+                    return dadosHGBrasil.pvp.toFixed(2);
+                  }
+                  return 'N/A';
+                })()}
+                subtitle={(() => {
+                  if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
+                    return dadosYahoo.fonte || "International";
+                  }
+                  if (dadosHGBrasil?.pvp) {
+                    return "HG Brasil";
+                  }
+                  return "indisponível";
+                })()}
+                loading={loadingHGBrasil || loadingYahoo}
+              />
+            </ResponsiveGrid>
+          )}
+        </>
+      )}
 
-          <MetricCard 
-            title="P/L" 
-            value={(() => {
-              if (ticker.match(/\d$/) && !ticker.includes('11')) {
-                if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
-                  return dadosHGBrasil.pl.toFixed(2);
-                }
-                if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
-                  return dadosFinanceiros.pl.toFixed(2);
-                }
-                if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
-                  return dadosYahoo.pl.toFixed(2);
-                }
-                return 'N/A';
-              }
-              
-              else if (!ticker.match(/\d$/)) {
-                if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
-                  return dadosYahoo.pl.toFixed(2);
-                }
-                if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
-                  return dadosHGBrasil.pl.toFixed(2);
-                }
-                if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
-                  return dadosFinanceiros.pl.toFixed(2);
-                }
-                return 'N/A';
-              }
-              
-              else {
-                if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0) {
-                  return dadosHGBrasil.pl.toFixed(2);
-                }
-                if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0) {
-                  return dadosFinanceiros.pl.toFixed(2);
-                }
-                if (dadosYahoo?.pl && dadosYahoo.pl > 0) {
-                  return dadosYahoo.pl.toFixed(2);
-                }
-                return 'N/A';
-              }
-            })()}
-            
-            subtitle={(() => {
-              if (ticker.match(/\d$/) && !ticker.includes('11')) {
-                if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
-                  return "HG Brasil";
-                }
-                if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
-                  return "BRAPI";
-                }
-                if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
-                  return "Yahoo";
-                }
-              } else if (!ticker.match(/\d$/)) {
-                if (dadosYahoo?.pl && dadosYahoo.pl > 0 && dadosYahoo.pl < 999) {
-                  return dadosYahoo.fonte || "International";
-                }
-                if (dadosHGBrasil?.pl && dadosHGBrasil.pl > 0 && dadosHGBrasil.pl < 1000) {
-                  return "HG Brasil";
-                }
-                if (dadosFinanceiros?.pl && dadosFinanceiros.pl > 0 && dadosFinanceiros.pl < 1000) {
-                  return "BRAPI";
-                }
-              }
-              
-              return "indisponível";
-            })()}
-            
-            loading={dadosLoading || loadingHGBrasil || loadingYahoo}
-          />    
+      {/* STAGE 3: COMPONENTES PESADOS COM LAZY LOADING */}
+      {!loadingStages.stage3 && (
+        <>
+          <LazyComponent 
+            condition={!loadingStages.stage3}
+            fallback={<SkeletonLoader variant="card" count={2} />}
+          >
+            <ETFHoldings 
+              ticker={ticker}
+              dadosYahoo={dadosYahoo}
+              dadosBRAPI={etfBRAPIData}
+              loading={loadingYahoo || loadingETFBRAPI}
+            />
+          </LazyComponent>
+
+          <LazyComponent 
+            condition={!loadingStages.stage3}
+            fallback={<SkeletonLoader variant="card" count={2} />}
+          >
+            <AnalisesTrimesestrais ticker={ticker} />
+          </LazyComponent>
+
+          <GerenciadorRelatorios ticker={ticker} />
           
-          <MetricCard 
-            title="DIVIDEND YIELD" 
-            value={(() => {
-              if (dy12Meses > 0) {
-                return dyFormatado;
-              }
-              if (dadosYahoo?.dividendYield && dadosYahoo.dividendYield > 0) {
-                return `${dadosYahoo.dividendYield.toFixed(2)}%`;
-              }
-              if (dadosHGBrasil?.dividendYield12m) {
-                return `${dadosHGBrasil.dividendYield12m.toFixed(2)}%`;
-              }
-              return 'N/A';
-            })()}
-            subtitle={(() => {
-              if (dy12Meses > 0) {
-                return fonteDY || "BRAPI-Estratégia";
-              }
-              if (dadosYahoo?.dividendYield && dadosYahoo.dividendYield > 0) {
-                return dadosYahoo.fonte || "International";
-              }
-              if (dadosHGBrasil?.dividendYield12m) {
-                return "HG Brasil";
-              }
-              return "indisponível";
-            })()}
-            loading={loadingDY || loadingHGBrasil || loadingYahoo}
+          <AgendaCorporativa ticker={ticker} isFII={tipoAtivo.ehFII} />
+
+          <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={tipoAtivo.ehFII} />
+
+          <DadosPosicaoExpandidos 
+            empresa={ativo} 
+            dadosFinanceiros={dadosFinanceiros}
+            precoAtualFormatado={calculatedData.precoAtualFormatado}
+            isFII={tipoAtivo.ehFII}
+            distanciaPrecoTeto={calculatedData.distanciaPrecoTeto}
+            percentualCarteira={calculatedData.percentualCarteira}
+            carteiraConfig={carteiraConfig}
           />
-          
-          <MetricCard 
-            title="P/VP" 
-            value={(() => {
-              if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
-                return dadosYahoo.pvp.toFixed(2);
-              }
-              if (dadosHGBrasil?.pvp) {
-                return dadosHGBrasil.pvp.toFixed(2);
-              }
-              return 'N/A';
-            })()}
-            subtitle={(() => {
-              if (dadosYahoo?.pvp && dadosYahoo.pvp > 0 && dadosYahoo.pvp < 999) {
-                return dadosYahoo.fonte || "International";
-              }
-              if (dadosHGBrasil?.pvp) {
-                return "HG Brasil";
-              }
-              return "indisponível";
-            })()}
-            loading={loadingHGBrasil || loadingYahoo}
-          />
-        </div>
-      ) : null}
-
-<ETFHoldings 
-  ticker={ticker}
-  dadosYahoo={dadosYahoo}
-  dadosBRAPI={etfBRAPIData} // ← NOVA PROP (opcional)
-  loading={loadingYahoo || loadingETFBRAPI}
-/>
-
-      {/* Análises Trimestrais */}
-      <AnalisesTrimesestrais ticker={ticker} />
-
-      {/* Relatórios */}
-      <GerenciadorRelatorios ticker={ticker} />
-      
-      {/* Agenda Corporativa */}
-      <AgendaCorporativa ticker={ticker} isFII={isFII} />
-
-      {/* Histórico de Dividendos */}
-      <HistoricoDividendos ticker={ticker} dataEntrada={ativo.dataEntrada} isFII={isFII} />
-
-      {/* Dados da Posição Expandidos */}
-      <DadosPosicaoExpandidos 
-        empresa={ativo} 
-        dadosFinanceiros={dadosFinanceiros}
-        precoAtualFormatado={precoAtualFormatado}
-        isFII={isFII}
-        distanciaPrecoTeto={distanciaPrecoTeto}
-        percentualCarteira={percentualCarteira}
-        carteiraConfig={carteiraConfig}
-      />
+        </>
+      )}
     </div>
   );
 }
