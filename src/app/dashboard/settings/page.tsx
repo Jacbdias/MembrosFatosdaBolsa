@@ -693,35 +693,24 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  console.log('⚡ [OTIMIZADO] Cotações em lotes paralelos para', tickers.length, 'tickers');
-  
-  // 📦 DIVIDIR EM LOTES DE 4 (em vez de 1 por vez)
-  const lotes = [];
-  for (let i = 0; i < tickers.length; i += 4) {
-    lotes.push(tickers.slice(i, i + 4));
-  }
-  
-  for (let loteIndex = 0; loteIndex < lotes.length; loteIndex++) {
-    const lote = lotes[loteIndex];
-    console.log(`📦 Lote ${loteIndex + 1}/${lotes.length}: ${lote.join(', ')}`);
+  if (isMobile) {
+    // 📱 MOBILE: ESTRATÉGIA SEQUENCIAL (CONFIÁVEL)
+    console.log('📱 [MOBILE] Cotações sequenciais para', tickers.length, 'tickers');
     
-    // ⚡ PROCESSAR 4 TICKERS EM PARALELO
-    const resultados = await Promise.allSettled(
-      lote.map(async (ticker) => {
-        // ✅ CACHE DE SESSÃO (30s)
-        const cacheKey = `${ticker}_cotacao_quick`;
-        const cached = getCachedData ? getCachedData(cacheKey, 'session') : null;
-        if (cached) {
-          console.log(`💾 ${ticker}: Cache hit`);
-          return { ticker, dados: cached, sucesso: true };
-        }
-
+    for (const ticker of tickers) {
+      let cotacaoObtida = false;
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!cotacaoObtida) {
         try {
+          console.log(`📱🔄 [${ticker}] Tentativa 1 - User-Agent Desktop`);
+          
           const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache'
             }
           });
 
@@ -729,44 +718,131 @@ async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Pr
             const data = await response.json();
             if (data.results?.[0]?.regularMarketPrice > 0) {
               const quote = data.results[0];
-              const dadosCotacao = {
+              cotacoesMap.set(ticker, {
                 precoAtual: quote.regularMarketPrice,
                 variacao: quote.regularMarketChange || 0,
                 variacaoPercent: quote.regularMarketChangePercent || 0,
                 volume: quote.regularMarketVolume || 0,
                 nome: quote.shortName || quote.longName || ticker,
                 dadosCompletos: quote
-              };
-              
-              // ✅ SALVAR NO CACHE (30s)
-              if (setCachedData) setCachedData(cacheKey, dadosCotacao, 'session');
-              
-              console.log(`✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
-              return { ticker, dados: dadosCotacao, sucesso: true };
+              });
+              console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
+              cotacaoObtida = true;
             }
           }
         } catch (error) {
-          console.log(`❌ ${ticker}: ${error.message}`);
+          console.log(`📱❌ [${ticker}] (Desktop UA): ${error.message}`);
         }
-        
-        return { ticker, sucesso: false };
-      })
-    );
-    
-    // 📊 PROCESSAR RESULTADOS DO LOTE
-    resultados.forEach((resultado) => {
-      if (resultado.status === 'fulfilled' && resultado.value.sucesso) {
-        cotacoesMap.set(resultado.value.ticker, resultado.value.dados);
       }
-    });
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!cotacaoObtida) {
+        try {
+          console.log(`📱🔄 [${ticker}] Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results?.[0]?.regularMarketPrice > 0) {
+              const quote = data.results[0];
+              cotacoesMap.set(ticker, {
+                precoAtual: quote.regularMarketPrice,
+                variacao: quote.regularMarketChange || 0,
+                variacaoPercent: quote.regularMarketChangePercent || 0,
+                volume: quote.regularMarketVolume || 0,
+                nome: quote.shortName || quote.longName || ticker,
+                dadosCompletos: quote
+              });
+              console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
+              cotacaoObtida = true;
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [${ticker}] (Sem UA): ${error.message}`);
+        }
+      }
+      
+      if (!cotacaoObtida) {
+        console.log(`📱⚠️ [${ticker}]: Todas as estratégias falharam`);
+      }
+      
+      // ⭐ DELAY OTIMIZADO: 200ms → 100ms
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     
-    // ⏰ DELAY REDUZIDO: 200ms → 50ms
-    if (loteIndex < lotes.length - 1) {
+  } else {
+    // 🖥️ DESKTOP: ESTRATÉGIA PARALELA COM CACHE
+    console.log('🖥️ [DESKTOP] Cotações em lotes paralelos para', tickers.length, 'tickers');
+    
+    const lotes = [];
+    for (let i = 0; i < tickers.length; i += 4) {
+      lotes.push(tickers.slice(i, i + 4));
+    }
+    
+    for (let loteIndex = 0; loteIndex < lotes.length; loteIndex++) {
+      const lote = lotes[loteIndex];
+      console.log(`📦 Lote ${loteIndex + 1}/${lotes.length}: ${lote.join(', ')}`);
+      
+      const resultados = await Promise.allSettled(
+        lote.map(async (ticker) => {
+          // ✅ CACHE APENAS NO DESKTOP
+          const cacheKey = `${ticker}_cotacao_desktop`;
+          const cached = getCachedData ? getCachedData(cacheKey, 'session') : null;
+          if (cached) {
+            console.log(`💾 ${ticker}: Cache hit`);
+            return { ticker, dados: cached, sucesso: true };
+          }
+
+          try {
+            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]?.regularMarketPrice > 0) {
+                const quote = data.results[0];
+                const dadosCotacao = {
+                  precoAtual: quote.regularMarketPrice,
+                  variacao: quote.regularMarketChange || 0,
+                  variacaoPercent: quote.regularMarketChangePercent || 0,
+                  volume: quote.regularMarketVolume || 0,
+                  nome: quote.shortName || quote.longName || ticker,
+                  dadosCompletos: quote
+                };
+                
+                if (setCachedData) setCachedData(cacheKey, dadosCotacao, 'session');
+                console.log(`✅ ${ticker}: R$ ${quote.regularMarketPrice.toFixed(2)}`);
+                return { ticker, dados: dadosCotacao, sucesso: true };
+              }
+            }
+          } catch (error) {
+            console.log(`❌ ${ticker}: ${error.message}`);
+          }
+          
+          return { ticker, sucesso: false };
+        })
+      );
+      
+      resultados.forEach((resultado) => {
+        if (resultado.status === 'fulfilled' && resultado.value.sucesso) {
+          cotacoesMap.set(resultado.value.ticker, resultado.value.dados);
+        }
+      });
+      
       await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
 
-  console.log('⚡ [OTIMIZADO] Cotações concluídas:', cotacoesMap.size, 'de', tickers.length);
+  console.log(`⚡ Cotações concluídas: ${cotacoesMap.size} de ${tickers.length}`);
   return cotacoesMap;
 }
 
@@ -775,35 +851,25 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  console.log('⚡ [OTIMIZADO] DY em lotes paralelos para', tickers.length, 'tickers');
-  
-  // 📦 DIVIDIR EM LOTES DE 4
-  const lotes = [];
-  for (let i = 0; i < tickers.length; i += 4) {
-    lotes.push(tickers.slice(i, i + 4));
-  }
-  
-  for (let loteIndex = 0; loteIndex < lotes.length; loteIndex++) {
-    const lote = lotes[loteIndex];
-    console.log(`📦 DY Lote ${loteIndex + 1}/${lotes.length}: ${lote.join(', ')}`);
+  if (isMobile) {
+    // 📱 MOBILE: ESTRATÉGIA SEQUENCIAL CONFIÁVEL
+    console.log('📱 [MOBILE] DY sequencial para', tickers.length, 'tickers');
     
-    // ⚡ PROCESSAR 4 DYs EM PARALELO
-    const resultados = await Promise.allSettled(
-      lote.map(async (ticker) => {
-        // ✅ CACHE DE SESSÃO DY (30s)
-        const cacheKey = `${ticker}_dy_quick`;
-        const cached = getCachedData ? getCachedData(cacheKey, 'session') : null;
-        if (cached) {
-          console.log(`💾 ${ticker}: DY cache hit`);
-          return { ticker, dy: cached, sucesso: true };
-        }
-
+    for (const ticker of tickers) {
+      let dyObtido = false;
+      
+      // ESTRATÉGIA 1: User-Agent Desktop
+      if (!dyObtido) {
         try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
+          
           const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
             }
           });
 
@@ -812,47 +878,144 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
             const ativo = data.results?.[0];
             
             if (ativo) {
-              // 🧮 CÁLCULO MANUAL DO DY
               const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
               const currentPrice = ativo.regularMarketPrice;
               
-              let dy = '0,00%';
+              console.log(`🔍 [CALC-DEBUG] ${ticker}:`);
+              console.log(`  - lastDividendValue: ${lastDividend} (tipo: ${typeof lastDividend})`);
+              console.log(`  - regularMarketPrice: ${currentPrice} (tipo: ${typeof currentPrice})`);
+              
               if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
                 const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
-                dy = `${dyCalculado.toFixed(2).replace('.', ',')}%`;
-                console.log(`✅ ${ticker}: DY ${dy} (${lastDividend} * 12 / ${currentPrice.toFixed(2)})`);
+                dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+                console.log(`📱✅ [DY] ${ticker}: ${dyCalculado.toFixed(2)}% (calculado: R$ ${lastDividend} * 12 / R$ ${currentPrice.toFixed(2)})`);
+                dyObtido = true;
               } else {
-                console.log(`⚠️ ${ticker}: DY 0% (dividend: ${lastDividend}, price: ${currentPrice})`);
+                dyMap.set(ticker, '0,00%');
+                console.log(`📱❌ [DY] ${ticker}: Dados insuficientes (dividend: ${lastDividend}, price: ${currentPrice})`);
+                dyObtido = true;
               }
-              
-              // ✅ SALVAR NO CACHE DY (30s)
-              if (setCachedData) setCachedData(cacheKey, dy, 'session');
-              
-              return { ticker, dy, sucesso: true };
             }
           }
         } catch (error) {
-          console.log(`❌ ${ticker} DY: ${error.message}`);
+          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${error.message}`);
         }
-        
-        return { ticker, dy: '0,00%', sucesso: false };
-      })
-    );
-    
-    // 📊 PROCESSAR RESULTADOS DY DO LOTE
-    resultados.forEach((resultado) => {
-      if (resultado.status === 'fulfilled') {
-        dyMap.set(resultado.value.ticker, resultado.value.dy);
       }
-    });
+      
+      // ESTRATÉGIA 2: Sem User-Agent
+      if (!dyObtido) {
+        try {
+          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
+          
+          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const ativo = data.results?.[0];
+            
+            if (ativo) {
+              const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+              const currentPrice = ativo.regularMarketPrice;
+              
+              if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+                const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+                dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+                console.log(`📱✅ [DY] ${ticker}: ${dyCalculado.toFixed(2)}% (sem UA)`);
+                dyObtido = true;
+              } else {
+                dyMap.set(ticker, '0,00%');
+                console.log(`📱❌ [DY] ${ticker}: Dados insuficientes (Fallback 1)`);
+                dyObtido = true;
+              }
+            }
+          }
+        } catch (error) {
+          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${error.message}`);
+        }
+      }
+      
+      if (!dyObtido) {
+        dyMap.set(ticker, '0,00%');
+        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
+      }
+      
+      // ⭐ DELAY OTIMIZADO: 200ms → 100ms
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     
-    // ⏰ DELAY REDUZIDO: 200ms → 50ms
-    if (loteIndex < lotes.length - 1) {
+  } else {
+    // 🖥️ DESKTOP: ESTRATÉGIA PARALELA COM CACHE
+    console.log('🖥️ [DESKTOP] DY em lotes paralelos para', tickers.length, 'tickers');
+    
+    const lotes = [];
+    for (let i = 0; i < tickers.length; i += 4) {
+      lotes.push(tickers.slice(i, i + 4));
+    }
+    
+    for (let loteIndex = 0; loteIndex < lotes.length; loteIndex++) {
+      const lote = lotes[loteIndex];
+      console.log(`📦 DY Lote ${loteIndex + 1}/${lotes.length}: ${lote.join(', ')}`);
+      
+      const resultados = await Promise.allSettled(
+        lote.map(async (ticker) => {
+          // ✅ CACHE APENAS NO DESKTOP
+          const cacheKey = `${ticker}_dy_desktop`;
+          const cached = getCachedData ? getCachedData(cacheKey, 'session') : null;
+          if (cached) {
+            console.log(`💾 ${ticker}: DY cache hit`);
+            return { ticker, dy: cached, sucesso: true };
+          }
+
+          try {
+            const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const ativo = data.results?.[0];
+              
+              if (ativo) {
+                const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+                const currentPrice = ativo.regularMarketPrice;
+                
+                let dy = '0,00%';
+                if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+                  const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+                  dy = `${dyCalculado.toFixed(2).replace('.', ',')}%`;
+                  console.log(`✅ ${ticker}: DY ${dy}`);
+                }
+                
+                if (setCachedData) setCachedData(cacheKey, dy, 'session');
+                return { ticker, dy, sucesso: true };
+              }
+            }
+          } catch (error) {
+            console.log(`❌ ${ticker} DY: ${error.message}`);
+          }
+          
+          return { ticker, dy: '0,00%', sucesso: false };
+        })
+      );
+      
+      resultados.forEach((resultado) => {
+        if (resultado.status === 'fulfilled') {
+          dyMap.set(resultado.value.ticker, resultado.value.dy);
+        }
+      });
+      
       await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
   
-  console.log('⚡ [OTIMIZADO] DY concluídos:', dyMap.size, 'de', tickers.length);
+  console.log(`⚡ DY concluídos: ${dyMap.size} de ${tickers.length}`);
   return dyMap;
 }
 
