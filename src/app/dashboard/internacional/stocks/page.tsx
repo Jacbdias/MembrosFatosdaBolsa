@@ -5,12 +5,26 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 
-// 🔥 DETECÇÃO DE DISPOSITIVO PARA UI (PADRONIZADO)
+// 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
+const globalCache = new Map<string, { data: any; timestamp: number }>();
+
+const getCachedData = (key: string) => {
+  const cached = globalCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key: string, data: any) => {
+  globalCache.set(key, { data, timestamp: Date.now() });
+};
+
+// 🔥 DETECÇÃO DE DISPOSITIVO SIMPLIFICADA E OTIMIZADA
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
-      // 📱 SÓ CONSIDERA MOBILE PARA UI: largura <= 768px (telefones)
-      // iPad será tratado como desktop para mostrar tabela
       return window.innerWidth <= 768;
     }
     return false;
@@ -18,175 +32,178 @@ const useDeviceDetection = () => {
 
   React.useEffect(() => {
     const checkDevice = () => {
-      // 📱 INTERFACE MOBILE apenas para telefones (largura <= 768px)
-      // iPad, tablets e desktop mostram tabela
-      const shouldBeMobile = window.innerWidth <= 768;
-      
-      console.log('📱 Device Detection (UI):', {
-        width: window.innerWidth,
-        isMobile: shouldBeMobile,
-        userAgent: navigator.userAgent.substring(0, 50) + '...'
-      });
-      
-      setIsMobile(shouldBeMobile);
+      setIsMobile(window.innerWidth <= 768);
     };
 
-    // 🔄 VERIFICAR NO RESIZE E ORIENTAÇÃO
     window.addEventListener('resize', checkDevice);
-    window.addEventListener('orientationchange', checkDevice);
-    
-    // ✅ VERIFICAÇÃO INICIAL APÓS MOUNT
-    checkDevice();
-    
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-      window.removeEventListener('orientationchange', checkDevice);
-    };
+    return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
   return isMobile;
 };
 
-// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE
-const useApiDetection = () => {
-  const [isApiMobile, setIsApiMobile] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
-      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
-      const isIpadOS = /iPad/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isMobileWidth = window.innerWidth <= 768;
-      
-      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
-      // - É telefone (<=768px) OU
-      // - É iPad/iPadOS (precisa da estratégia sequencial)
-      return isMobileWidth || isIpad || isIpadOS;
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const checkApiDevice = () => {
-      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
-      const isIpadOS = /iPad/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isMobileWidth = window.innerWidth <= 768;
-      
-      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
-      
-      console.log('🌐 API Detection:', {
-        width: window.innerWidth,
-        isIpad,
-        isIpadOS,
-        isApiMobile: shouldBeApiMobile
-      });
-      
-      setIsApiMobile(shouldBeApiMobile);
-    };
-
-    window.addEventListener('resize', checkApiDevice);
-    checkApiDevice();
-    
-    return () => window.removeEventListener('resize', checkApiDevice);
-  }, []);
-
-  return isApiMobile;
-};
-
-// 🚀 HOOK PARA BUSCAR DADOS REAIS DE ÍNDICES INTERNACIONAIS
+// 🚀 HOOK PARA ÍNDICES INTERNACIONAIS SINCRONIZADO
 function useIndicesInternacionaisRealTime() {
   const [indicesData, setIndicesData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const isMobile = useDeviceDetection();
 
   const buscarIndicesReal = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 BUSCANDO ÍNDICES INTERNACIONAIS REAIS...');
+      // ✅ VERIFICAR CACHE GLOBAL PRIMEIRO
+      const cacheKey = 'indices_internacionais_unified';
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        console.log('📋 ÍNDICES: Usando cache global');
+        setIndicesData(cached);
+        setLoading(false);
+        return;
+      }
 
-      // 🔑 TOKEN BRAPI FUNCIONANDO
+      console.log('🔍 BUSCANDO ÍNDICES INTERNACIONAIS - ESTRATÉGIA UNIFICADA...');
+      console.log('📱 Device Info:', { isMobile });
+
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-
-      // 📊 BUSCAR S&P 500 E NASDAQ VIA BRAPI COM TIMEOUT
       const indices = ['^GSPC', '^IXIC']; // S&P 500 e NASDAQ
       const indicesUrl = `https://brapi.dev/api/quote/${indices.join(',')}?token=${BRAPI_TOKEN}`;
       
-      console.log('🌐 Buscando índices internacionais...');
+      let dadosIndicesObtidos = false;
+      let dadosIndices = null;
 
-      // 🔥 ADICIONAR TIMEOUT DE 5 SEGUNDOS
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      // 🎯 ESTRATÉGIA 1: DESKTOP STYLE (PRIORIDADE MÁXIMA)
+      console.log('🎯 ÍNDICES: Tentativa 1 - Estratégia Desktop (Unificada)');
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(indicesUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
 
-      const response = await fetch(indicesUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'International-Indices-App'
-        },
-        signal: controller.signal
-      });
+        clearTimeout(timeoutId);
 
-      clearTimeout(timeoutId);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🎯📊 ÍNDICES Resposta (Estratégia Unificada):', data);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Resposta Índices Internacionais:', data);
+          if (data.results && data.results.length > 0) {
+            const dadosProcessados = {
+              sp500: null,
+              nasdaq: null
+            };
 
-        if (data.results && data.results.length > 0) {
-          const dadosIndices = {
-            sp500: null,
-            nasdaq: null
-          };
+            data.results.forEach((indice: any) => {
+              if (indice.symbol === '^GSPC') {
+                dadosProcessados.sp500 = {
+                  valor: indice.regularMarketPrice,
+                  valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  }),
+                  variacao: indice.regularMarketChange || 0,
+                  variacaoPercent: indice.regularMarketChangePercent || 0,
+                  trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
+                };
+              } else if (indice.symbol === '^IXIC') {
+                dadosProcessados.nasdaq = {
+                  valor: indice.regularMarketPrice,
+                  valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  }),
+                  variacao: indice.regularMarketChange || 0,
+                  variacaoPercent: indice.regularMarketChangePercent || 0,
+                  trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
+                };
+              }
+            });
 
-          data.results.forEach((indice: any) => {
-            console.log('🔍 Processando índice:', indice.symbol, indice.regularMarketPrice);
-            
-            if (indice.symbol === '^GSPC') {
-              dadosIndices.sp500 = {
-                valor: indice.regularMarketPrice,
-                valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
-                  minimumFractionDigits: 2, 
-                  maximumFractionDigits: 2 
-                }),
-                variacao: indice.regularMarketChange || 0,
-                variacaoPercent: indice.regularMarketChangePercent || 0,
-                trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
-              };
-              console.log('✅ S&P 500 processado:', dadosIndices.sp500);
-            } else if (indice.symbol === '^IXIC') {
-              dadosIndices.nasdaq = {
-                valor: indice.regularMarketPrice,
-                valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
-                  minimumFractionDigits: 2, 
-                  maximumFractionDigits: 2 
-                }),
-                variacao: indice.regularMarketChange || 0,
-                variacaoPercent: indice.regularMarketChangePercent || 0,
-                trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
-              };
-              console.log('✅ NASDAQ processado:', dadosIndices.nasdaq);
-            }
-          });
-
-          console.log('✅ ÍNDICES INTERNACIONAIS PROCESSADOS:', dadosIndices);
-          setIndicesData(dadosIndices);
-          
-        } else {
-          throw new Error('Sem dados dos índices na resposta');
+            dadosIndices = dadosProcessados;
+            console.log('🎯✅ ÍNDICES obtidos (Estratégia Unificada):', dadosIndices);
+            dadosIndicesObtidos = true;
+          }
         }
-      } else {
-        throw new Error(`Erro HTTP ${response.status}`);
+      } catch (error) {
+        console.log('🎯❌ ÍNDICES (Estratégia Unificada):', error instanceof Error ? error.message : 'Erro desconhecido');
       }
 
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      console.error('❌ Erro ao buscar índices internacionais:', err);
-      setError(errorMessage);
-      
-      // 🔄 FALLBACK CORRIGIDO
-      console.log('🔄 Usando fallback para índices internacionais...');
+      // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
+      if (!dadosIndicesObtidos && isMobile) {
+        console.log('📱 ÍNDICES: Usando fallback mobile');
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        try {
+          console.log('📱🔄 ÍNDICES: Fallback - Sem User-Agent');
+          
+          const response = await fetch(indicesUrl, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+              const dadosProcessados = {
+                sp500: null,
+                nasdaq: null
+              };
+
+              data.results.forEach((indice: any) => {
+                if (indice.symbol === '^GSPC') {
+                  dadosProcessados.sp500 = {
+                    valor: indice.regularMarketPrice,
+                    valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    }),
+                    variacao: indice.regularMarketChange || 0,
+                    variacaoPercent: indice.regularMarketChangePercent || 0,
+                    trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
+                  };
+                } else if (indice.symbol === '^IXIC') {
+                  dadosProcessados.nasdaq = {
+                    valor: indice.regularMarketPrice,
+                    valorFormatado: indice.regularMarketPrice.toLocaleString('en-US', { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    }),
+                    variacao: indice.regularMarketChange || 0,
+                    variacaoPercent: indice.regularMarketChangePercent || 0,
+                    trend: (indice.regularMarketChangePercent || 0) >= 0 ? 'up' : 'down'
+                  };
+                }
+              });
+
+              dadosIndices = dadosProcessados;
+              console.log('📱✅ ÍNDICES obtidos (Fallback):', dadosIndices);
+              dadosIndicesObtidos = true;
+            }
+          }
+        } catch (error) {
+          console.log('📱❌ ÍNDICES (Fallback):', error instanceof Error ? error.message : 'Erro desconhecido');
+        }
+      }
+
+      // ✅ SE OBTEVE DADOS, USAR E CACHEAR
+      if (dadosIndicesObtidos && dadosIndices) {
+        setCachedData(cacheKey, dadosIndices);
+        setIndicesData(dadosIndices);
+        return;
+      }
+
+      // 🔄 FALLBACK FINAL UNIFICADO
+      console.log('🔄 ÍNDICES: Usando fallback unificado...');
       const fallbackData = {
         sp500: {
           valor: 5970.80,
@@ -203,21 +220,45 @@ function useIndicesInternacionaisRealTime() {
           trend: 'up'
         }
       };
+      
+      console.log('⚠️ ÍNDICES FALLBACK UNIFICADO:', fallbackData);
+      setCachedData(cacheKey, fallbackData);
       setIndicesData(fallbackData);
-      console.log('✅ Fallback aplicado:', fallbackData);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro geral desconhecido';
+      console.error('❌ Erro geral ao buscar índices:', err);
+      setError(errorMessage);
+      
+      // FALLBACK DE EMERGÊNCIA
+      const dadosEmergencia = {
+        sp500: {
+          valor: 5970.80,
+          valorFormatado: '5,970.80',
+          variacao: 35.2,
+          variacaoPercent: 0.59,
+          trend: 'up'
+        },
+        nasdaq: {
+          valor: 19400.00,
+          valorFormatado: '19,400.00',
+          variacao: 156.3,
+          variacaoPercent: 0.81,
+          trend: 'up'
+        }
+      };
+      
+      setIndicesData(dadosEmergencia);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isMobile]);
 
   React.useEffect(() => {
     buscarIndicesReal();
-    
-    // 🔄 ATUALIZAR A CADA 5 MINUTOS
     const interval = setInterval(buscarIndicesReal, 5 * 60 * 1000);
-    
     return () => clearInterval(interval);
-  }, []); // 🔥 ARRAY VAZIO PARA EVITAR LOOP INFINITO
+  }, [buscarIndicesReal]);
 
   return { indicesData, loading, error, refetch: buscarIndicesReal };
 }
@@ -228,341 +269,36 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
     return 'Aguardar';
   }
   
-  // Remover formatação e converter para números
   const precoAtualNum = parseFloat(precoAtual.replace('US$', '').replace(',', '.'));
   
   if (isNaN(precoAtualNum)) {
     return 'Aguardar';
   }
   
-  // 🎯 LÓGICA CORRETA: Preço Atual < Preço Teto = COMPRA (ação está barata)
-  if (precoAtualNum < precoTeto) {
-    return 'Compra';
-  } else {
-    return 'Aguardar';
-  }
+  return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
 }
 
-// 🚀 FUNÇÃO PARA BUSCAR DY 12 MESES VIA YAHOO FINANCE API
-async function buscarDY12MesesAPI(ticker: string, precoAtual: number): Promise<string> {
-  try {
-    if (!ticker || precoAtual <= 0) return '0,00%';
-    
-    console.log(`🔍 Buscando DY via API para ${ticker}...`);
-    
-    // 📊 MÉTODO 1: TENTAR VIA BRAPI (PODE TER DADOS DE DIVIDENDOS)
-    try {
-      const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
-      const brapiUrl = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&fundamental=true&dividends=true`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(brapiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'DY-Calculator-App'
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 Resposta BRAPI para ${ticker}:`, data);
-        
-        if (data.results && data.results.length > 0) {
-          const quote = data.results[0];
-          
-          // Verificar se tem dados de dividendos
-          if (quote.dividendYield && quote.dividendYield > 0) {
-            const dyPercent = quote.dividendYield * 100;
-            console.log(`✅ DY encontrado via BRAPI para ${ticker}: ${dyPercent.toFixed(2)}%`);
-            return `${dyPercent.toFixed(2).replace('.', ',')}%`;
-          }
-          
-          // Verificar dados fundamentais
-          if (quote.summaryProfile?.dividendYield) {
-            const dyPercent = quote.summaryProfile.dividendYield * 100;
-            console.log(`✅ DY encontrado via BRAPI (fundamental) para ${ticker}: ${dyPercent.toFixed(2)}%`);
-            return `${dyPercent.toFixed(2).replace('.', ',')}%`;
-          }
-        }
-      }
-    } catch (brapiError) {
-      console.warn(`⚠️ Erro BRAPI para ${ticker}:`, brapiError);
-    }
-    
-    // 📊 MÉTODO 2: TENTAR VIA YAHOO FINANCE DIRETO (COM CORS PROXY)
-    try {
-      // Usar um proxy CORS público para acessar Yahoo Finance
-      const corsProxy = 'https://api.allorigins.win/raw?url=';
-      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&events=div`;
-      
-      const proxyUrl = corsProxy + encodeURIComponent(yahooUrl);
-      
-      const controller2 = new AbortController();
-      const timeoutId2 = setTimeout(() => controller2.abort(), 8000);
-      
-      const response2 = await fetch(proxyUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        },
-        signal: controller2.signal
-      });
-      
-      clearTimeout(timeoutId2);
-      
-      if (response2.ok) {
-        const data = await response2.json();
-        console.log(`📊 Resposta Yahoo Finance para ${ticker}:`, data);
-        
-        if (data.chart && data.chart.result && data.chart.result.length > 0) {
-          const result = data.chart.result[0];
-          
-          // Verificar se tem eventos de dividendos
-          if (result.events && result.events.dividends) {
-            const dividendos = Object.values(result.events.dividends) as any[];
-            
-            // Calcular data de 12 meses atrás
-            const hoje = new Date();
-            const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
-            const timestampUmAnoAtras = Math.floor(umAnoAtras.getTime() / 1000);
-            
-            // Filtrar dividendos dos últimos 12 meses
-            const dividendosUltimos12Meses = dividendos.filter((div: any) => 
-              div.date && div.date >= timestampUmAnoAtras
-            );
-            
-            if (dividendosUltimos12Meses.length > 0) {
-              // Somar todos os dividendos dos últimos 12 meses
-              const totalDividendos = dividendosUltimos12Meses.reduce((total: number, div: any) => 
-                total + (div.amount || 0), 0
-              );
-              
-              if (totalDividendos > 0) {
-                // Calcular DY: (Total Dividendos / Preço Atual) * 100
-                const dy = (totalDividendos / precoAtual) * 100;
-                console.log(`✅ DY calculado via Yahoo Finance para ${ticker}: ${dy.toFixed(2)}% (${totalDividendos} USD em dividendos)`);
-                return `${dy.toFixed(2).replace('.', ',')}%`;
-              }
-            }
-          }
-        }
-      }
-    } catch (yahooError) {
-      console.warn(`⚠️ Erro Yahoo Finance para ${ticker}:`, yahooError);
-    }
-    
-    // 📊 MÉTODO 3: TENTAR VIA FINANCIAL MODELING PREP (GRATUITO ATÉ 250 CALLS/DIA)
-    try {
-      // API Key demo da Financial Modeling Prep (substituir por uma própria se necessário)
-      const fmpUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${ticker}?apikey=demo`;
-      
-      const controller3 = new AbortController();
-      const timeoutId3 = setTimeout(() => controller3.abort(), 5000);
-      
-      const response3 = await fetch(fmpUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        },
-        signal: controller3.signal
-      });
-      
-      clearTimeout(timeoutId3);
-      
-      if (response3.ok) {
-        const data = await response3.json();
-        console.log(`📊 Resposta FMP para ${ticker}:`, data);
-        
-        if (data.historical && Array.isArray(data.historical)) {
-          // Calcular data de 12 meses atrás
-          const hoje = new Date();
-          const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
-          
-          // Filtrar dividendos dos últimos 12 meses
-          const dividendosUltimos12Meses = data.historical.filter((div: any) => {
-            const dataDividendo = new Date(div.date);
-            return dataDividendo >= umAnoAtras && dataDividendo <= hoje;
-          });
-          
-          if (dividendosUltimos12Meses.length > 0) {
-            // Somar todos os dividendos dos últimos 12 meses
-            const totalDividendos = dividendosUltimos12Meses.reduce((total: number, div: any) => 
-              total + (div.dividend || 0), 0
-            );
-            
-            if (totalDividendos > 0) {
-              // Calcular DY: (Total Dividendos / Preço Atual) * 100
-              const dy = (totalDividendos / precoAtual) * 100;
-              console.log(`✅ DY calculado via FMP para ${ticker}: ${dy.toFixed(2)}% (${totalDividendos} USD em dividendos)`);
-              return `${dy.toFixed(2).replace('.', ',')}%`;
-            }
-          }
-        }
-      }
-    } catch (fmpError) {
-      console.warn(`⚠️ Erro FMP para ${ticker}:`, fmpError);
-    }
-    
-    // 📊 MÉTODO 4: FALLBACK - TENTAR BUSCAR DIVIDEND YIELD ATUAL VIA QUOTE
-    try {
-      const corsProxy = 'https://api.allorigins.win/raw?url=';
-      const yahooQuoteUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics,summaryDetail`;
-      const proxyQuoteUrl = corsProxy + encodeURIComponent(yahooQuoteUrl);
-      
-      const controller4 = new AbortController();
-      const timeoutId4 = setTimeout(() => controller4.abort(), 5000);
-      
-      const response4 = await fetch(proxyQuoteUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        },
-        signal: controller4.signal
-      });
-      
-      clearTimeout(timeoutId4);
-      
-      if (response4.ok) {
-        const data = await response4.json();
-        console.log(`📊 Resposta Yahoo Quote para ${ticker}:`, data);
-        
-        if (data.quoteSummary && data.quoteSummary.result && data.quoteSummary.result.length > 0) {
-          const result = data.quoteSummary.result[0];
-          
-          // Tentar vários campos de dividend yield
-          const possiveisCampos = [
-            result.summaryDetail?.dividendYield?.raw,
-            result.summaryDetail?.trailingAnnualDividendYield?.raw,
-            result.defaultKeyStatistics?.dividendYield?.raw,
-            result.defaultKeyStatistics?.trailingAnnualDividendYield?.raw
-          ];
-          
-          for (const dy of possiveisCampos) {
-            if (dy && dy > 0) {
-              const dyPercent = dy * 100;
-              console.log(`✅ DY encontrado via Yahoo Quote para ${ticker}: ${dyPercent.toFixed(2)}%`);
-              return `${dyPercent.toFixed(2).replace('.', ',')}%`;
-            }
-          }
-        }
-      }
-    } catch (quoteError) {
-      console.warn(`⚠️ Erro Yahoo Quote para ${ticker}:`, quoteError);
-    }
-    
-    console.log(`❌ Nenhum método funcionou para ${ticker}, usando fallback localStorage`);
-    
-    // 📊 MÉTODO 5: FALLBACK PARA LOCALSTORAGE (MÉTODO ORIGINAL)
-    return calcularDY12MesesLocalStorage(ticker, precoAtual);
-    
-  } catch (error) {
-    console.error(`❌ Erro geral ao buscar DY para ${ticker}:`, error);
-    return calcularDY12MesesLocalStorage(ticker, precoAtual);
-  }
-}
-
-// 🎯 FUNÇÃO ORIGINAL RENOMEADA PARA FALLBACK
-function calcularDY12MesesLocalStorage(ticker: string, precoAtual: number): string {
-  try {
-    if (typeof window === 'undefined' || precoAtual <= 0) return '0,00%';
-    
-    // Buscar proventos do ticker específico no localStorage
-    const proventosData = localStorage.getItem(`proventos_${ticker}`);
-    if (!proventosData) return '0,00%';
-    
-    const proventos = JSON.parse(proventosData);
-    if (!Array.isArray(proventos) || proventos.length === 0) return '0,00%';
-    
-    // Data de 12 meses atrás
-    const hoje = new Date();
-    const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
-    
-    console.log(`🔍 Calculando DY via localStorage para ${ticker}:`);
-    
-    // Filtrar proventos dos últimos 12 meses
-    const proventosUltimos12Meses = proventos.filter((provento: any) => {
-      let dataProvento: Date;
-      
-      // Tentar várias formas de parsing da data
-      if (provento.dataObj) {
-        dataProvento = new Date(provento.dataObj);
-      } else if (provento.dataCom) {
-        if (provento.dataCom.includes('/')) {
-          const [d, m, a] = provento.dataCom.split('/');
-          dataProvento = new Date(+a, +m - 1, +d);
-        } else {
-          dataProvento = new Date(provento.dataCom);
-        }
-      } else if (provento.data) {
-        if (provento.data.includes('/')) {
-          const [d, m, a] = provento.data.split('/');
-          dataProvento = new Date(+a, +m - 1, +d);
-        } else {
-          dataProvento = new Date(provento.data);
-        }
-      } else {
-        return false;
-      }
-      
-      return dataProvento >= umAnoAtras && dataProvento <= hoje;
-    });
-    
-    if (proventosUltimos12Meses.length === 0) {
-      console.log(`❌ ${ticker}: Nenhum provento nos últimos 12 meses`);
-      return '0,00%';
-    }
-    
-    // Somar valores dos proventos
-    const totalProventos = proventosUltimos12Meses.reduce((total: number, provento: any) => {
-      const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor?.toString().replace(',', '.') || '0');
-      return total + (isNaN(valor) ? 0 : valor);
-    }, 0);
-    
-    if (totalProventos <= 0) {
-      return '0,00%';
-    }
-    
-    // Calcular DY: (Total Proventos 12 meses / Preço Atual) * 100
-    const dy = (totalProventos / precoAtual) * 100;
-    
-    return `${dy.toFixed(2).replace('.', ',')}%`;
-    
-  } catch (error) {
-    console.error(`❌ Erro ao calcular DY via localStorage para ${ticker}:`, error);
-    return '0,00%';
-  }
-}
-
-// 🚀 FUNÇÃO PARA BUSCAR COTAÇÕES EM PARALELO (ADAPTADA PARA USAR isApiMobile)
-async function buscarCotacoesExteriorParalelas(tickers: string[], isApiMobile: boolean): Promise<Map<string, any>> {
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES - ESTRATÉGIA MOBILE/DESKTOP
+async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  if (!isApiMobile) {
-    // 🖥️ DESKTOP: busca em lote (mais eficiente)
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 8000);
-      
-      const response = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}&range=1d&interval=1d&fundamental=true`, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'ExteriorStocks-Desktop-Optimized'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🖥️ Resposta Desktop:', data.results?.length || 0, 'ativos');
+  console.log('🚀 [OTIMIZADO] Buscando', tickers.length, 'cotações EM PARALELO...');
+  
+  // ✅ STRATEGY 1: Tentar batch request primeiro (1 requisição para todos)
+  try {
+    const batchUrl = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`;
+    const response = await Promise.race([
+      fetch(batchUrl),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Batch timeout')), 5000))
+    ]);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        console.log('✅ BATCH REQUEST SUCESSO:', data.results.length, 'cotações em 1 só request');
         
-        data.results?.forEach((quote: any) => {
+        data.results.forEach((quote: any) => {
           if (quote.regularMarketPrice > 0) {
             cotacoesMap.set(quote.symbol, {
               precoAtual: quote.regularMarketPrice,
@@ -572,264 +308,308 @@ async function buscarCotacoesExteriorParalelas(tickers: string[], isApiMobile: b
               nome: quote.shortName || quote.longName || quote.symbol,
               dadosCompletos: quote
             });
-            console.log(`✅ Desktop ${quote.symbol}: US$ ${quote.regularMarketPrice}`);
           }
         });
+        
+        return cotacoesMap;
+      }
+    }
+  } catch (error) {
+    console.log('❌ Batch request falhou, usando paralelo individual');
+  }
+  
+  // ✅ STRATEGY 2: Requests paralelos individuais (SEM DELAYS!)
+  console.log('🚀 [PARALELO] Executando', tickers.length, 'requests simultâneos...');
+  
+  const promises = tickers.map(async (ticker) => {
+    try {
+      const response = await Promise.race([
+        fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          headers: { 'Accept': 'application/json' }
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Individual timeout')), 4000))
+      ]);
+
+      if (response.ok) {
+        const data = await response.json();
+        const quote = data.results?.[0];
+        
+        if (quote?.regularMarketPrice > 0) {
+          cotacoesMap.set(ticker, {
+            precoAtual: quote.regularMarketPrice,
+            variacao: quote.regularMarketChange || 0,
+            variacaoPercent: quote.regularMarketChangePercent || 0,
+            volume: quote.regularMarketVolume || 0,
+            nome: quote.shortName || quote.longName || ticker,
+            dadosCompletos: quote
+          });
+        }
       }
     } catch (error) {
-      console.log('❌ Erro na busca em lote desktop:', error);
+      console.log(`❌ [${ticker}]:`, error instanceof Error ? error.message : 'Erro desconhecido');
     }
-    
-    return cotacoesMap;
-  }
-
-  // 📱 MOBILE/IPAD: busca individual com estratégias múltiplas (IGUAL AO ARQUIVO 2)
-  console.log('📱 MOBILE/IPAD: Iniciando busca individual para', tickers.length, 'tickers');
+  });
   
-  const buscarCotacaoAtivo = async (ticker: string) => {
-    const estrategias = [
-      // Estratégia 1: User-Agent Desktop
-      {
-        nome: 'Desktop UA',
-        fetch: () => fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Cache-Control': 'no-cache'
-          }
-        })
-      },
-      // Estratégia 2: Sem User-Agent
-      {
-        nome: 'Sem UA',
-        fetch: () => fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        })
-      },
-      // Estratégia 3: URL simplificada
-      {
-        nome: 'URL simples',
-        fetch: () => fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
-          method: 'GET',
-          mode: 'cors'
-        })
-      }
-    ];
-
-    for (const estrategia of estrategias) {
-      try {
-        console.log(`📱🔄 ${ticker}: Tentativa ${estrategia.nome}`);
-        
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 3000);
-        
-        const response = await Promise.race([
-          estrategia.fetch(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-        ]) as Response;
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results?.[0]?.regularMarketPrice > 0) {
-            const quote = data.results[0];
-            console.log(`📱✅ ${ticker}: US$ ${quote.regularMarketPrice} (${estrategia.nome})`);
-            return {
-              ticker,
-              cotacao: {
-                precoAtual: quote.regularMarketPrice,
-                variacao: quote.regularMarketChange || 0,
-                variacaoPercent: quote.regularMarketChangePercent || 0,
-                volume: quote.regularMarketVolume || 0,
-                nome: quote.shortName || quote.longName || ticker,
-                dadosCompletos: quote
-              }
-            };
-          }
-        }
-      } catch (error) {
-        console.log(`📱❌ ${ticker} (${estrategia.nome}): ${error.message}`);
-      }
-      
-      // Delay entre estratégias
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    console.log(`📱⚠️ ${ticker}: Todas as estratégias falharam`);
-    return { ticker, cotacao: null };
-  };
-
-  // Executar todas as buscas em paralelo (com limite)
-  const BATCH_SIZE = 3; // Máximo 3 tickers por vez no mobile
-  for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
-    const batch = tickers.slice(i, i + BATCH_SIZE);
-    console.log(`📱🔄 Lote mobile ${Math.floor(i/BATCH_SIZE) + 1}: ${batch.join(', ')}`);
-    
-    const resultados = await Promise.allSettled(
-      batch.map(ticker => buscarCotacaoAtivo(ticker))
-    );
-
-    resultados.forEach((resultado) => {
-      if (resultado.status === 'fulfilled' && resultado.value.cotacao) {
-        cotacoesMap.set(resultado.value.ticker, resultado.value.cotacao);
-      }
-    });
-    
-    // Delay entre lotes no mobile
-    if (i + BATCH_SIZE < tickers.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-  }
-
-  console.log(`📱📊 Mobile final: ${cotacoesMap.size} cotações obtidas de ${tickers.length} tickers`);
+  // 🚀 EXECUTAR TODAS EM PARALELO (ZERO DELAYS)
+  await Promise.allSettled(promises);
+  
+  console.log('✅ [PARALELO] Concluído:', cotacoesMap.size, 'de', tickers.length);
   return cotacoesMap;
 }
 
-// 🚀 HOOK ATUALIZADO PARA BUSCAR COTAÇÕES COM DY VIA API
-function useExteriorStocksIntegradas() {
-  const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+// 🔄 FUNÇÃO PARA BUSCAR DY VIA API - VERSÃO OTIMIZADA
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
+  const dyMap = new Map<string, string>();
+  const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  // 🔥 USAR O DATASTORE EM VEZ DE LOCALSTORAGE DIRETO
-  const { dados } = useDataStore();
-  const isMobile = useDeviceDetection(); // ✅ PARA UI (tabela vs cards)
-  const isApiMobile = useApiDetection(); // 🔥 ADICIONADO: PARA APIs
-
-  const buscarCotacoesIntegradas = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🔥 BUSCANDO COTAÇÕES INTEGRADAS PARA EXTERIOR STOCKS - ESTRATÉGIA MOBILE/DESKTOP');
-      console.log('📱 Device Info:', { isMobile, isApiMobile }); // 🔥 MUDANÇA: mostrar ambos
-      
-      // 🔄 USAR DADOS DO DATASTORE
-      const exteriorStocksData = dados.exteriorStocks || [];
-      console.log('📋 Ativos do DataStore:', exteriorStocksData);
-      console.log('📊 Total de ativos:', exteriorStocksData.length);
-
-      if (exteriorStocksData.length === 0) {
-        console.log('⚠️ Nenhum ativo encontrado no DataStore');
-        setAtivosAtualizados([]);
-        setLoading(false);
-        return;
-      }
-
-      // 📋 EXTRAIR TODOS OS TICKERS
-      const tickers = exteriorStocksData.map((ativo: any) => ativo.ticker);
-      console.log('🎯 Tickers para buscar:', tickers.join(', '));
-
-      // 🔄 USAR FUNÇÃO ADAPTADA COM ESTRATÉGIAS MOBILE/DESKTOP (isApiMobile)
-      const cotacoesMap = await buscarCotacoesExteriorParalelas(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
-
-      console.log(`✅ Total processado: ${cotacoesMap.size} sucessos de ${tickers.length} tentativas`);
-
-      console.log(`✅ Total processado: ${cotacoesMap.size} sucessos de ${tickers.length} tentativas`);
-
-      // 🔥 COMBINAR DADOS DO DATASTORE COM COTAÇÕES REAIS E DY VIA API
-      const ativosComCotacoes = await Promise.all(
-        exteriorStocksData.map(async (ativo: any, index: number) => {
-          const cotacao = cotacoesMap.get(ativo.ticker);
+  console.log('📈 [OTIMIZADO] Buscando DY para', tickers.length, 'tickers EM PARALELO...');
+  
+  // ✅ BATCH REQUEST PRIMEIRO
+  try {
+    const batchUrl = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+    const response = await Promise.race([
+      fetch(batchUrl),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('DY batch timeout')), 6000))
+    ]);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        console.log('✅ DY BATCH SUCCESS:', data.results.length, 'DYs em 1 só request');
+        
+        data.results.forEach((result: any) => {
+          const ticker = result.symbol;
+          const dy = result.defaultKeyStatistics?.dividendYield;
           
-          console.log(`\n🔄 Processando ${ativo.ticker}:`);
-          console.log(`💵 Preço entrada: US$ ${ativo.precoEntrada}`);
-          console.log(`🎯 Preço teto: ${ativo.precoTeto}`);
-          
-          if (cotacao && cotacao.precoAtual > 0) {
-            // 📊 PREÇO E PERFORMANCE REAIS
-            const precoAtualNum = cotacao.precoAtual;
-            const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-            
-            console.log(`💰 Preço atual: US$ ${precoAtualNum}`);
-            console.log(`📈 Performance: ${performance.toFixed(2)}%`);
-            
-            // VALIDAR SE O PREÇO FAZ SENTIDO (para ações americanas, usar limite maior)
-            const diferencaPercent = Math.abs(performance);
-            if (diferencaPercent > 1000) {
-              console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
-              return {
-                ...ativo,
-                id: String(ativo.id || index + 1),
-                precoAtual: ativo.precoEntrada,
-                performance: 0,
-                variacao: 0,
-                variacaoPercent: 0,
-                volume: 0,
-                vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-                dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
-                statusApi: 'suspicious_price',
-                nomeCompleto: cotacao.nome,
-rank: String(index + 1)
-              };
-            }
-            
-            return {
-              ...ativo,
-              id: String(ativo.id || index + 1),
-              precoAtual: precoAtualNum,
-              performance: performance,
-              variacao: cotacao.variacao,
-              variacaoPercent: cotacao.variacaoPercent,
-              volume: cotacao.volume,
-              vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
-              dy: await buscarDY12MesesAPI(ativo.ticker, precoAtualNum), // 🚀 USAR API
-              statusApi: 'success',
-              nomeCompleto: cotacao.nome,
-              rank: (index + 1) + '°'
-            };
+          if (dy && dy > 0) {
+            dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
+            console.log(`✅ [DY] ${ticker}: ${(dy * 100).toFixed(2)}%`);
           } else {
-            // ⚠️ FALLBACK PARA AÇÕES SEM COTAÇÃO
-            console.warn(`⚠️ ${ativo.ticker}: Sem cotação válida, usando preço de entrada`);
-            
-            return {
-              ...ativo,
-              id: String(ativo.id || index + 1),
-              precoAtual: ativo.precoEntrada,
-              performance: 0,
-              variacao: 0,
-              variacaoPercent: 0,
-              volume: 0,
-              vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-              dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API
-              statusApi: 'not_found',
-              nomeCompleto: 'N/A',
-              rank: (index + 1) + '°'
-            };
+            dyMap.set(ticker, '0,00%');
+            console.log(`❌ [DY] ${ticker}: DY não encontrado`);
           }
-        })
-      );
-
-      // 📊 ESTATÍSTICAS FINAIS
-      const sucessos = ativosComCotacoes.filter((a: any) => a.statusApi === 'success').length;
-      const suspeitos = ativosComCotacoes.filter((a: any) => a.statusApi === 'suspicious_price').length;
-      const naoEncontrados = ativosComCotacoes.filter((a: any) => a.statusApi === 'not_found').length;
-      
-      console.log('\n📊 ESTATÍSTICAS FINAIS:');
-      console.log(`✅ Sucessos: ${sucessos}/${ativosComCotacoes.length}`);
-      console.log(`🚨 Preços suspeitos: ${suspeitos}/${ativosComCotacoes.length}`);
-      console.log(`❌ Não encontrados: ${naoEncontrados}/${ativosComCotacoes.length}`);
-
-      setAtivosAtualizados(ativosComCotacoes);
-
-      // ⚠️ ALERTAR SOBRE QUALIDADE DOS DADOS
-      if (sucessos < ativosComCotacoes.length / 2) {
-        setError(`Apenas ${sucessos} de ${ativosComCotacoes.length} ações com cotação válida`);
-      } else if (suspeitos > 0) {
-        setError(`${suspeitos} ações com preços suspeitos foram ignorados`);
+        });
+        
+        return dyMap;
       }
+    }
+  } catch (error) {
+    console.log('❌ DY Batch falhou, usando paralelo individual');
+  }
+  
+  // ✅ PARALELO INDIVIDUAL
+  const promises = tickers.map(async (ticker) => {
+    try {
+      const response = await Promise.race([
+        fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+          headers: { 'Accept': 'application/json' }
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('DY timeout')), 4000))
+      ]);
+
+      if (response.ok) {
+        const data = await response.json();
+        const result = data.results?.[0];
+        
+        const dy = result?.defaultKeyStatistics?.dividendYield;
+        
+        if (dy && dy > 0) {
+          dyMap.set(ticker, `${(dy * 100).toFixed(2).replace('.', ',')}%`);
+          console.log(`✅ [DY] ${ticker}: ${(dy * 100).toFixed(2)}%`);
+        } else {
+          dyMap.set(ticker, '0,00%');
+          console.log(`❌ [DY] ${ticker}: DY não encontrado`);
+        }
+      }
+    } catch (error) {
+      console.log(`❌ [DY-${ticker}]:`, error instanceof Error ? error.message : 'Erro desconhecido');
+    }
+  });
+  
+  await Promise.allSettled(promises);
+  
+  // Garantir que todos os tickers tenham DY
+  tickers.forEach(ticker => {
+    if (!dyMap.has(ticker)) {
+      dyMap.set(ticker, '0,00%');
+    }
+  });
+  
+  console.log('✅ [DY-OTIMIZADO] Concluído:', dyMap.size, 'de', tickers.length);
+  console.log('📊 DY Final Map:', Object.fromEntries(dyMap));
+  return dyMap;
+}
+
+// 🚀 HOOK PRINCIPAL OTIMIZADO COM PARALELIZAÇÃO TOTAL
+function useExteriorStocksIntegradas() {
+  const { dados } = useDataStore();
+  const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
+  const [cotacoesAtualizadas, setCotacoesAtualizadas] = React.useState<any>({});
+  
+  // Estados para garantir que TODOS os dados estejam prontos
+  const [cotacoesCompletas, setCotacoesCompletas] = React.useState<Map<string, any>>(new Map());
+  const [dyCompletos, setDyCompletos] = React.useState<Map<string, string>>(new Map());
+  const [todosOsDadosProntos, setTodosOsDadosProntos] = React.useState(false);
+  
+  // Loading states granulares
+  const [loadingCotacoes, setLoadingCotacoes] = React.useState(true);
+  const [loadingDY, setLoadingDY] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const isMobile = useDeviceDetection();
+  const exteriorStocksData = dados.exteriorStocks || [];
+
+  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - PARALELIZAÇÃO TOTAL
+  const buscarDadosCompletos = React.useCallback(async () => {
+    if (exteriorStocksData.length === 0) {
+      setAtivosAtualizados([]);
+      setLoadingCotacoes(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      setTodosOsDadosProntos(false);
+      const tickers = exteriorStocksData.map(ativo => ativo.ticker);
+      
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA - ESTRATÉGIA MOBILE UNIVERSAL...');
+      
+      // 🔄 RESET DOS ESTADOS
+      setCotacoesCompletas(new Map());
+      setDyCompletos(new Map());
+
+      // ⚡ PARALELIZAÇÃO TOTAL
+      console.log('⚡ EXECUTANDO TODAS AS ETAPAS EM PARALELO...');
+
+      // Ativar todos os loadings
+      setLoadingCotacoes(true);
+      setLoadingDY(true);
+
+      // Medir tempo
+      const inicioTempo = performance.now();
+
+      // EXECUTAR TUDO EM PARALELO
+      const [cotacoesResult, dyResult] = await Promise.allSettled([
+        buscarCotacoesParalelas(tickers, isMobile),
+        buscarDYsComEstrategia(tickers, isMobile)
+      ]);
+
+      const tempoTotal = performance.now() - inicioTempo;
+      console.log(`🎉 TODAS AS ETAPAS CONCLUÍDAS EM ${tempoTotal.toFixed(0)}ms!`);
+
+      // Processar resultados
+      const cotacoesMap = cotacoesResult.status === 'fulfilled' ? cotacoesResult.value : new Map();
+      const dyMap = dyResult.status === 'fulfilled' ? dyResult.value : new Map();
+
+      // Logs de debug
+      console.log('📊 Cotações obtidas:', cotacoesMap.size, 'de', tickers.length);
+      console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
+
+      // Debug do DY
+      console.log('🔍 [PARALLEL-DEBUG] dyMap processado:');
+      console.log('🔍 [PARALLEL-DEBUG] dyMap.size:', dyMap.size);
+      console.log('🔍 [PARALLEL-DEBUG] dyMap conteúdo:', Object.fromEntries(dyMap));
+
+      // Atualizar estados
+      setCotacoesCompletas(cotacoesMap);
+      setDyCompletos(dyMap);
+
+      // Desativar loadings
+      setLoadingCotacoes(false);
+      setLoadingDY(false);
+      
+      // Marcar como pronto para processamento final
+      setTodosOsDadosProntos(true);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro geral ao buscar cotações:', err);
+      console.error('❌ Erro na busca otimizada:', err);
+      setTodosOsDadosProntos(true);
+    }
+  }, [exteriorStocksData, isMobile]);
+
+  // 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
+  React.useEffect(() => {
+    if (!todosOsDadosProntos || exteriorStocksData.length === 0) return;
+    
+    console.log('🏆 PROCESSANDO EXTERIOR STOCKS - TODOS OS DADOS PRONTOS!');
+    console.log('🔍 [DEPS-DEBUG] Verificando estados no momento da execução:');
+    console.log('🔍 [DEPS-DEBUG] todosOsDadosProntos:', todosOsDadosProntos);
+    console.log('🔍 [DEPS-DEBUG] exteriorStocksData.length:', exteriorStocksData.length);
+    console.log('🔍 [DEPS-DEBUG] cotacoesCompletas.size:', cotacoesCompletas.size);
+    console.log('🔍 [DEPS-DEBUG] dyCompletos.size:', dyCompletos.size);
+    console.log('🔍 [DEPS-DEBUG] dyCompletos conteúdo:', Object.fromEntries(dyCompletos));
+    
+    console.log('📊 Dados disponíveis:', {
+      cotacoes: cotacoesCompletas.size,
+      dy: dyCompletos.size, 
+      ativos: exteriorStocksData.length
+    });
+
+    const novasCotacoes: any = {};
+
+    // 🎯 PROCESSAR TODOS OS ATIVOS
+    const ativosFinais = exteriorStocksData.map((ativo, index) => {
+      const cotacao = cotacoesCompletas.get(ativo.ticker);
       
-      // 🔄 FALLBACK: USAR DADOS DO DATASTORE SEM COTAÇÕES
-      console.log('🔄 Usando fallback com dados do DataStore...');
-      const exteriorStocksData = dados.exteriorStocks || [];
-      const ativosFallback = await Promise.all(
-        exteriorStocksData.map(async (ativo: any, index: number) => ({
+      // 🔍 DEBUG DY ASSIGNMENT
+      const dyAPI = dyCompletos.get(ativo.ticker) || '0,00%';
+      console.log(`🔍 [ASSIGN-DEBUG] ${ativo.ticker}:`);
+      console.log(`  - dyCompletos.size: ${dyCompletos.size}`);
+      console.log(`  - dyCompletos.has('${ativo.ticker}'): ${dyCompletos.has(ativo.ticker)}`);
+      console.log(`  - dyCompletos.get('${ativo.ticker}'): ${dyCompletos.get(ativo.ticker)}`);
+      console.log(`  - dyAPI final: ${dyAPI}`);
+      console.log(`  - loadingDY: ${loadingDY}`);
+    
+      if (cotacao && cotacao.precoAtual > 0) {
+        // ✅ ATIVO COM COTAÇÃO REAL
+        const precoAtualNum = cotacao.precoAtual;
+        const performance = ((precoAtualNum - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+        
+        // VALIDAR SE O PREÇO FAZ SENTIDO (para ações americanas, usar limite maior)
+        const diferencaPercent = Math.abs(performance);
+        if (diferencaPercent > 1000) {
+          console.warn(`🚨 ${ativo.ticker}: Preço suspeito! Diferença de ${diferencaPercent.toFixed(1)}% - usando preço de entrada`);
+          return {
+            ...ativo,
+            id: String(ativo.id || index + 1),
+            precoAtual: ativo.precoEntrada,
+            performance: 0,
+            variacao: 0,
+            variacaoPercent: 0,
+            volume: 0,
+            vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
+            dy: dyAPI,
+            statusApi: 'suspicious_price',
+            nomeCompleto: cotacao.nome,
+            posicaoExibicao: index + 1
+          };
+        }
+        
+        novasCotacoes[ativo.ticker] = precoAtualNum;
+        
+        console.log(`🏆 ${ativo.ticker}: DY final que será usado = ${dyAPI}`);
+        
+        return {
+          ...ativo,
+          id: String(ativo.id || index + 1),
+          precoAtual: precoAtualNum,
+          performance: performance,
+          variacao: cotacao.variacao,
+          variacaoPercent: cotacao.variacaoPercent,
+          volume: cotacao.volume,
+          vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${precoAtualNum.toFixed(2)}`),
+          dy: dyAPI,
+          statusApi: 'success',
+          nomeCompleto: cotacao.nome,
+          posicaoExibicao: index + 1
+        };
+      } else {
+        // ⚠️ ATIVO SEM COTAÇÃO REAL
+        console.log(`🏆 ${ativo.ticker}: (sem cotação) DY final que será usado = ${dyAPI}`);
+        
+        return {
           ...ativo,
           id: String(ativo.id || index + 1),
           precoAtual: ativo.precoEntrada,
@@ -838,51 +618,70 @@ rank: String(index + 1)
           variacaoPercent: 0,
           volume: 0,
           vies: calcularViesAutomatico(ativo.precoTeto, `US$ ${ativo.precoEntrada.toFixed(2)}`),
-          dy: await buscarDY12MesesAPI(ativo.ticker, ativo.precoEntrada), // 🚀 USAR API MESMO NO FALLBACK
-          statusApi: 'error',
-          nomeCompleto: 'Erro',
-          rank: (index + 1) + '°'
-        }))
-      );
-      setAtivosAtualizados(ativosFallback);
-    } finally {
-      setLoading(false);
-    }
-  }, [dados.exteriorStocks, isApiMobile]); // 🔥 MUDANÇA: adicionado isApiMobile
+          dy: dyAPI,
+          statusApi: 'not_found',
+          nomeCompleto: 'N/A',
+          posicaoExibicao: index + 1
+        };
+      }
+    });
 
-  // 🔄 EXECUTAR QUANDO OS DADOS DO DATASTORE MUDAREM
-  React.useEffect(() => {
-    console.log('🔄 EFFECT DISPARADO - DADOS DO DATASTORE MUDARAM');
-    console.log('📊 ExteriorStocks data length:', dados.exteriorStocks?.length || 0);
+    // 🎯 ATUALIZAÇÃO FINAL DEFINITIVA
+    setCotacoesAtualizadas(novasCotacoes);
+    setAtivosAtualizados(ativosFinais);
     
-    buscarCotacoesIntegradas();
-  }, [buscarCotacoesIntegradas]);
+    console.log('🏆 EXTERIOR STOCKS PROCESSADO COM SUCESSO!');
+  }, [todosOsDadosProntos, cotacoesCompletas, dyCompletos, exteriorStocksData, loadingDY]);
 
-  // 🔄 FUNÇÃO PARA FORÇAR ATUALIZAÇÃO
+  // UseEffect original simplificado
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      console.log('🚀 Iniciando busca de dados...');
+      buscarDadosCompletos();
+    }, 100); // Pequeno debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [buscarDadosCompletos]);
+
   const refetch = React.useCallback(() => {
-    console.log('🔄 FORÇANDO ATUALIZAÇÃO MANUAL...');
-    buscarCotacoesIntegradas();
-  }, [buscarCotacoesIntegradas]);
+    console.log('🔄 REFETCH: Resetando e buscando dados novamente...');
+    setTodosOsDadosProntos(false); // Reset do flag
+    buscarDadosCompletos();
+  }, [buscarDadosCompletos]);
 
   return {
     ativosAtualizados,
-    loading,
+    cotacoesAtualizadas,
+    setCotacoesAtualizadas,
+    loading: loadingCotacoes || !todosOsDadosProntos, // ✅ Loading até TUDO estar pronto
+    loadingDY,
     error,
     refetch,
+    isMobile,
+    todosOsDadosProntos // ✅ Novo estado para debug
   };
 }
 
+// 🎯 COMPONENTE PRINCIPAL OTIMIZADO
 export default function ExteriorStocksPage() {
   const { dados } = useDataStore();
-  const { ativosAtualizados, loading, refetch } = useExteriorStocksIntegradas();
+  const { 
+    ativosAtualizados, 
+    cotacoesAtualizadas, 
+    setCotacoesAtualizadas, 
+    loading, 
+    loadingDY,
+    isMobile,
+    todosOsDadosProntos
+  } = useExteriorStocksIntegradas();
+  
   const { indicesData } = useIndicesInternacionaisRealTime();
-  const isMobile = useDeviceDetection(); // ✅ PARA UI (tabela vs cards)
 
   // Valor por ativo para simulação
   const valorPorAtivo = 1000;
 
-  // 🧮 CALCULAR MÉTRICAS DA CARTEIRA
-  const calcularMetricas = () => {
+  // Métricas memoizadas
+  const metricas = React.useMemo(() => {
     if (!ativosAtualizados || ativosAtualizados.length === 0) {
       return {
         valorInicial: 0,
@@ -920,7 +719,6 @@ export default function ExteriorStocksPage() {
     const rentabilidadeTotal = valorInicialTotal > 0 ? 
       ((valorFinalTotal - valorInicialTotal) / valorInicialTotal) * 100 : 0;
 
-    // Calcular DY médio
     const dyValues = ativosAtualizados
       .map(ativo => parseFloat(ativo.dy.replace('%', '').replace(',', '.')))
       .filter(dy => !isNaN(dy) && dy > 0);
@@ -937,68 +735,92 @@ export default function ExteriorStocksPage() {
       piorAtivo,
       dyMedio
     };
-  };
+  }, [ativosAtualizados]);
 
-  const metricas = calcularMetricas();
-
-  const formatCurrency = (value: number) => {
+  // Funções auxiliares memoizadas
+  const formatCurrency = React.useCallback((value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2
     }).format(value);
-  };
+  }, []);
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = React.useCallback((value: number) => {
     const signal = value >= 0 ? '+' : '';
     return signal + value.toFixed(2) + '%';
-  };
+  }, []);
 
   return (
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: isMobile ? '16px' : '24px' // ✅ PADDING RESPONSIVO
+      padding: isMobile ? '16px' : '24px'
     }}>
       {/* Header Responsivo */}
       <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
-          fontSize: isMobile ? '28px' : '48px', // ✅ TAMANHO RESPONSIVO
+          fontSize: isMobile ? '28px' : '48px',
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
         }}>
           Exterior Stocks
         </h1>
-        <p style={{ 
+        <div style={{ 
           color: '#64748b', 
-          fontSize: isMobile ? '16px' : '18px', // ✅ TAMANHO RESPONSIVO
+          fontSize: isMobile ? '16px' : '18px',
           margin: '0',
-          lineHeight: '1.5'
+          lineHeight: '1.5',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
         }}>
-          Ações internacionais de tecnologia, crescimento e valor • Dados atualizados a cada 15 minutos.
-        </p>
+          {loading && !todosOsDadosProntos ? (
+            <>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <span style={{ 
+                color: '#3b82f6', 
+                fontWeight: '600',
+                fontSize: isMobile ? '14px' : '16px'
+              }}>
+                Atualizando carteira em tempo real...
+              </span>
+            </>
+          ) : (
+            <span>
+              Ações internacionais de tecnologia, crescimento e valor • Dados atualizados a cada 15 minutos
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Cards de Métricas Responsivos */}
+      {/* Cards de Métricas */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile 
-          ? 'repeat(auto-fit, minmax(140px, 1fr))'  // ✅ GRID RESPONSIVO
+          ? 'repeat(auto-fit, minmax(140px, 1fr))'
           : 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: isMobile ? '8px' : '12px', // ✅ GAP RESPONSIVO
+        gap: isMobile ? '8px' : '12px',
         marginBottom: '32px'
       }}>
         {/* Performance Total */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
-          padding: isMobile ? '12px' : '16px', // ✅ PADDING RESPONSIVO
+          padding: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{ 
-            fontSize: isMobile ? '11px' : '12px', // ✅ FONTE RESPONSIVA
+            fontSize: isMobile ? '11px' : '12px',
             color: '#64748b', 
             fontWeight: '500',
             marginBottom: '8px'
@@ -1006,7 +828,7 @@ export default function ExteriorStocksPage() {
             Rentabilidade total
           </div>
           <div style={{ 
-            fontSize: isMobile ? '20px' : '24px', // ✅ FONTE RESPONSIVA
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
             lineHeight: '1'
@@ -1015,7 +837,7 @@ export default function ExteriorStocksPage() {
           </div>
         </div>
 
-        {/* Dividend Yield Médio */}
+        {/* DY Médio */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '8px',
@@ -1037,7 +859,7 @@ export default function ExteriorStocksPage() {
             color: '#1e293b',
             lineHeight: '1'
           }}>
-            {loading ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
+            {loadingDY ? '...' : `${metricas.dyMedio.toFixed(1)}%`}
           </div>
         </div>
 
@@ -1110,10 +932,9 @@ export default function ExteriorStocksPage() {
             {indicesData?.nasdaq ? formatPercentage(indicesData.nasdaq.variacaoPercent) : '+0.81%'}
           </div>
         </div>
-
       </div>
 
-      {/* Tabela de Ativos Responsiva */}
+      {/* Tabela de Ativos */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1131,38 +952,25 @@ export default function ExteriorStocksPage() {
             fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            margin: '0 0 8px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            margin: '0 0 8px 0'
           }}>
-            Exterior Stocks • Performance Individual
-            {loading && (
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #e2e8f0',
-                borderTop: '2px solid #3b82f6',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-            )}
+            Exterior Stocks • Performance Individual ({ativosAtualizados.length})
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {loading ? 'Carregando...' : `${ativosAtualizados.length} ativos`}
+            Ações internacionais com cotações em tempo real
           </p>
         </div>
 
         {/* Skeleton Loading */}
         {loading && ativosAtualizados.length === 0 ? (
-          <div style={{ padding: isMobile ? '16px' : '24px' }}>
+          <div style={{ padding: '24px' }}>
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} style={{
-                height: isMobile ? '80px' : '60px',
+                height: '60px',
                 backgroundColor: '#f1f5f9',
                 borderRadius: '8px',
                 marginBottom: '12px',
@@ -1171,6 +979,7 @@ export default function ExteriorStocksPage() {
             ))}
           </div>
         ) : (
+          // Conteúdo principal
           <>
             {isMobile ? (
               // 📱 MOBILE: Cards verticais
@@ -1206,7 +1015,7 @@ export default function ExteriorStocksPage() {
                           width: '28px',
                           height: '28px',
                           borderRadius: '50%',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#f1f5f9',
                           border: '1px solid #e2e8f0',
                           display: 'flex',
                           alignItems: 'center',
@@ -1215,14 +1024,14 @@ export default function ExteriorStocksPage() {
                           fontSize: '12px',
                           color: '#64748b'
                         }}>
-                          {index + 1}
+                          {ativo.posicaoExibicao}
                         </div>
 
                         {/* Logo do Ativo */}
                         <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '8px',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '6px',
                           overflow: 'hidden',
                           backgroundColor: '#ffffff',
                           display: 'flex',
@@ -1311,7 +1120,7 @@ export default function ExteriorStocksPage() {
                         <div style={{ color: '#64748b' }}>
                           <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
                           <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                            {ativo.dy}
+                            {loading && !todosOsDadosProntos ? '--' : ativo.dy}
                           </span>
                         </div>
                         <div style={{ color: '#64748b' }}>
@@ -1357,10 +1166,10 @@ export default function ExteriorStocksPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f1f5f9' }}>
-                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px', width: '60px' }}>
-                        RANK
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        #
                       </th>
-                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px', width: '200px' }}>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                         ATIVO
                       </th>
                       <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
@@ -1382,10 +1191,10 @@ export default function ExteriorStocksPage() {
                         PERFORMANCE
                       </th>
                       <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                        VIÉS
+                        DY 12M
                       </th>
                       <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                        DY 12M
+                        VIÉS
                       </th>
                     </tr>
                   </thead>
@@ -1411,50 +1220,52 @@ export default function ExteriorStocksPage() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-<td style={{ padding: '16px', textAlign: 'center' }}>
-  <div style={{
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    backgroundColor: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '700',
-    fontSize: '14px',
-    color: '#64748b',
-    margin: '0 auto'
-  }}>
-    {index + 1}
-  </div>
-</td>
+                          {/* Posição */}
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '700',
+                              fontSize: '14px',
+                              color: '#64748b',
+                              margin: '0 auto'
+                            }}>
+                              {ativo.posicaoExibicao}
+                            </div>
+                          </td>
+                          {/* Ativo */}
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-<div style={{
-  width: '48px',
-  height: '48px',
-  borderRadius: '8px',
-  overflow: 'hidden',
-  backgroundColor: '#ffffff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-  padding: '6px',
-  flexShrink: 0         // ✅ IMPEDIR QUE ENCOLHA
-}}>
-  <img 
-    src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
-    alt={`Logo ${ativo.ticker}`}
-    style={{
-      width: '36px',
-      height: '36px',
-      objectFit: 'cover',
-      borderRadius: '2px',
-      flexShrink: 0       // ✅ IMPEDIR QUE A IMAGEM ENCOLHA
-    }}
+                              <div style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                backgroundColor: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                padding: '6px',
+                                flexShrink: 0
+                              }}>
+                                <img 
+                                  src={`https://financialmodelingprep.com/image-stock/${ativo.ticker}.png`}
+                                  alt={`Logo ${ativo.ticker}`}
+                                  style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    objectFit: 'cover',
+                                    borderRadius: '2px',
+                                    flexShrink: 0
+                                  }}
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';
@@ -1520,6 +1331,14 @@ export default function ExteriorStocksPage() {
                           }}>
                             {formatPercentage(ativo.performance)}
                           </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center',
+                            fontWeight: '700',
+                            color: '#1e293b'
+                          }}>
+                            {loadingDY ? '...' : ativo.dy}
+                          </td>
                           <td style={{ padding: '16px', textAlign: 'center' }}>
                             <span style={{
                               padding: '4px 12px',
@@ -1532,14 +1351,6 @@ export default function ExteriorStocksPage() {
                               {ativo.vies}
                             </span>
                           </td>
-                          <td style={{ 
-                            padding: '16px', 
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#1e293b'
-                          }}>
-                            {ativo.dy}
-                          </td>
                         </tr>
                       );
                     })}
@@ -1551,7 +1362,7 @@ export default function ExteriorStocksPage() {
         )}
       </div>
 
-      {/* Gráfico de Composição por Setor Responsivo */}
+      {/* Gráfico de Composição por Setor */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -1582,16 +1393,16 @@ export default function ExteriorStocksPage() {
         </div>
 
         <div style={{ 
-          padding: isMobile ? '16px' : '32px', 
+          padding: isMobile ? '16px' : '32px',
           display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row', // ✅ DIREÇÃO RESPONSIVA
-          gap: isMobile ? '16px' : '32px', 
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '16px' : '32px',
           alignItems: 'center' 
         }}>
           {/* Gráfico SVG Responsivo */}
           <div style={{ 
-            flex: isMobile ? '1' : '0 0 400px', 
-            height: isMobile ? '300px' : '400px', // ✅ ALTURA RESPONSIVA
+            flex: isMobile ? '1' : '0 0 400px',
+            height: isMobile ? '300px' : '400px',
             position: 'relative' 
           }}>
             {(() => {
@@ -1615,13 +1426,28 @@ export default function ExteriorStocksPage() {
                 '#ec4899', '#f43f5e', '#64748b', '#6b7280', '#9ca3af'
               ];
               
-              const chartSize = isMobile ? 300 : 400; // ✅ TAMANHO RESPONSIVO
-              const radius = isMobile ? 120 : 150; // ✅ RAIO RESPONSIVO
-              const innerRadius = isMobile ? 60 : 75; // ✅ RAIO INTERNO RESPONSIVO
+              const chartSize = isMobile ? 300 : 400;
+              const radius = isMobile ? 120 : 150;
+              const innerRadius = isMobile ? 60 : 75;
               const centerX = chartSize / 2;
               const centerY = chartSize / 2;
               const totalAngle = 2 * Math.PI;
               let currentAngle = -Math.PI / 2;
+              
+              if (setores.length === 0) {
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#64748b',
+                    fontSize: '16px'
+                  }}>
+                    Nenhum ativo para exibir
+                  </div>
+                );
+              }
               
               const createPath = (startAngle: number, endAngle: number) => {
                 const x1 = centerX + radius * Math.cos(startAngle);
@@ -1676,7 +1502,6 @@ export default function ExteriorStocksPage() {
                     const cor = cores[index % cores.length];
                     const path = createPath(startAngle, endAngle);
                     
-                    // Calcular posição do texto no meio da fatia
                     const middleAngle = (startAngle + endAngle) / 2;
                     const textRadius = (radius + innerRadius) / 2;
                     const textX = centerX + textRadius * Math.cos(middleAngle);
@@ -1701,7 +1526,7 @@ export default function ExteriorStocksPage() {
                             x={textX}
                             y={textY - 6}
                             textAnchor="middle"
-                            fontSize={isMobile ? "10" : "11"} // ✅ FONTE RESPONSIVA
+                            fontSize={isMobile ? "10" : "11"}
                             fontWeight="700"
                             fill="#ffffff"
                             style={{ 
@@ -1715,7 +1540,7 @@ export default function ExteriorStocksPage() {
                             x={textX}
                             y={textY + 8}
                             textAnchor="middle"
-                            fontSize={isMobile ? "9" : "10"} // ✅ FONTE RESPONSIVA
+                            fontSize={isMobile ? "9" : "10"}
                             fontWeight="600"
                             fill="#ffffff"
                             style={{ 
@@ -1742,7 +1567,7 @@ export default function ExteriorStocksPage() {
                     x={centerX}
                     y={centerY - 10}
                     textAnchor="middle"
-                    fontSize={isMobile ? "14" : "16"} // ✅ FONTE RESPONSIVA
+                    fontSize={isMobile ? "14" : "16"}
                     fontWeight="700"
                     fill="#1e293b"
                   >
@@ -1752,7 +1577,7 @@ export default function ExteriorStocksPage() {
                     x={centerX}
                     y={centerY + 10}
                     textAnchor="middle"
-                    fontSize={isMobile ? "10" : "12"} // ✅ FONTE RESPONSIVA
+                    fontSize={isMobile ? "10" : "12"}
                     fill="#64748b"
                   >
                     SETORES
@@ -1767,9 +1592,9 @@ export default function ExteriorStocksPage() {
             flex: '1', 
             display: 'grid', 
             gridTemplateColumns: isMobile 
-              ? 'repeat(auto-fit, minmax(100px, 1fr))' // ✅ GRID RESPONSIVO
+              ? 'repeat(auto-fit, minmax(100px, 1fr))'
               : 'repeat(auto-fit, minmax(140px, 1fr))', 
-            gap: isMobile ? '8px' : '12px' // ✅ GAP RESPONSIVO
+            gap: isMobile ? '8px' : '12px'
           }}>
             {(() => {
               // Agrupar por setor para a legenda
@@ -1808,7 +1633,7 @@ export default function ExteriorStocksPage() {
                       <div style={{ 
                         fontWeight: '700', 
                         color: '#1e293b', 
-                        fontSize: isMobile ? '12px' : '14px', // ✅ FONTE RESPONSIVA
+                        fontSize: isMobile ? '12px' : '14px',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1817,7 +1642,7 @@ export default function ExteriorStocksPage() {
                       </div>
                       <div style={{ 
                         color: '#64748b', 
-                        fontSize: isMobile ? '10px' : '12px', // ✅ FONTE RESPONSIVA
+                        fontSize: isMobile ? '10px' : '12px',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -1833,12 +1658,15 @@ export default function ExteriorStocksPage() {
         </div>
       </div>
 
-      {/* Animações CSS */}
+      {/* Animações CSS Unificadas */}
       <style jsx>{`
+        /* Spinner de Loading Unificado */
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        
+        /* Animação de Pulse para Skeletons */
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
