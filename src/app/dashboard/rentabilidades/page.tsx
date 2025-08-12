@@ -1,12 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDataStore } from '../../../hooks/useDataStore';
 
 export default function RentabilidadesPage() {
   const { dados, CARTEIRAS_CONFIG, buscarCotacoes, loading } = useDataStore();
   const [carteiraAtiva, setCarteiraAtiva] = useState('smallCaps');
   const [cotacoesAtualizadas, setCotacoesAtualizadas] = useState({});
+  
+  // ✅ ESTADOS SEPARADOS PARA MELHOR CONTROLE
+  const [loadingProventos, setLoadingProventos] = useState(false);
+  const [proventosCache, setProventosCache] = useState(new Map());
+  const abortControllerRef = useRef(null);
 
   // 🔄 BUSCAR COTAÇÕES AO CARREGAR E QUANDO MUDAR CARTEIRA
   useEffect(() => {
@@ -49,11 +54,6 @@ export default function RentabilidadesPage() {
                 if (data.results && data.results.length > 0) {
                   const quote = data.results[0];
                   if (quote.regularMarketPrice) {
-                    // 🔥 ATUALIZAR ESTADO IMEDIATAMENTE PARA CADA TICKER
-                    setCotacoesAtualizadas(prev => ({
-                      ...prev,
-                      [ticker]: quote.regularMarketPrice
-                    }));
                     console.log('✅ ' + ticker + ': R$ ' + quote.regularMarketPrice.toFixed(2));
                     return { ticker, price: quote.regularMarketPrice };
                   }
@@ -72,9 +72,16 @@ export default function RentabilidadesPage() {
           
           // 🎯 AGUARDAR TODAS AS REQUISIÇÕES
           const results = await Promise.all(promises);
-          const successCount = results.filter(r => r !== null).length;
+          const successResults = results.filter(r => r !== null);
           
-          console.log('✅ Busca concluída: ' + successCount + '/' + tickers.length + ' cotações obtidas');
+          // ✅ ATUALIZAR COTAÇÕES DE UMA SÓ VEZ PARA EVITAR MÚLTIPLOS RE-RENDERS
+          const cotacoesMap = {};
+          successResults.forEach(result => {
+            cotacoesMap[result.ticker] = result.price;
+          });
+          
+          setCotacoesAtualizadas(cotacoesMap);
+          console.log('✅ Busca concluída: ' + successResults.length + '/' + tickers.length + ' cotações obtidas');
           
         } catch (error) {
           console.error('❌ Erro geral ao buscar cotações:', error);
@@ -84,10 +91,72 @@ export default function RentabilidadesPage() {
     };
 
     buscarCotacoesIniciais();
-  }, [dados, carteiraAtiva]); // Buscar quando mudar carteira também
+  }, [dados, carteiraAtiva]);
+
+// 💰 FUNÇÃO OTIMIZADA PARA CALCULAR PROVENTOS COM CACHE - CORRIGIDA
+const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
+  // ✅ VERIFICAR CACHE PRIMEIRO
+  const cacheKey = `${ticker}-${dataEntrada}`;
+  if (proventosCache.has(cacheKey)) {
+    console.log(`💰 ${ticker}: Usando cache`);
+    return proventosCache.get(cacheKey);
+  }
+
+  try {
+    // Converter data de entrada para formato ISO
+    const [dia, mes, ano] = dataEntrada.split('/');
+    const dataEntradaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+    
+    console.log(`💰 Buscando proventos para ${ticker} desde ${dataEntrada}`);
+    
+    // Buscar proventos via API (igual ao código 2)
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 3000); // Timeout maior
+    
+    const response = await fetch(`/api/proventos/${ticker}`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      const proventosRaw = await response.json();
+      
+      if (Array.isArray(proventosRaw)) {
+        const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+        
+        // Filtrar proventos pagos após a data de entrada
+        const proventosFiltrados = proventosRaw.filter((p) => {
+          if (!p.dataObj) return false;
+          const dataProvento = new Date(p.dataObj);
+          return dataProvento >= dataEntradaDate;
+        });
+        
+        // Somar valores dos proventos
+        const total = proventosFiltrados.reduce((sum, p) => sum + (p.valor || 0), 0);
+        
+        // ✅ SALVAR NO CACHE
+        setProventosCache(prev => new Map(prev).set(cacheKey, total));
+        
+        console.log(`💰 ${ticker}: R$ ${total.toFixed(2)} (${proventosFiltrados.length} proventos)`);
+        return total;
+      }
+    } else {
+      console.log(`💰 ${ticker}: Erro HTTP ${response.status}`);
+    }
+    
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.log(`💰 ${ticker}: Erro -`, error instanceof Error ? error.message : 'Erro desconhecido');
+    }
+  }
+  
+  // ✅ SALVAR 0 NO CACHE PARA EVITAR BUSCAR NOVAMENTE (REUTILIZAR A VARIÁVEL JÁ DECLARADA)
+  setProventosCache(prev => new Map(prev).set(cacheKey, 0));
+  return 0;
+}, [proventosCache]);
 
   // 🧮 CALCULAR MÉTRICAS DA CARTEIRA COM MÉTODO "TOTAL RETURN"
-  const calcularMetricas = (dadosCarteira) => {
+  const calcularMetricas = useCallback(async (dadosCarteira) => {
     if (!dadosCarteira || dadosCarteira.length === 0) {
       return {
         valorInicial: 0,
@@ -100,192 +169,244 @@ export default function RentabilidadesPage() {
         quantidadeAtivos: 0,
         tempoMedio: 0,
         rentabilidadeAnualizada: 0,
-        rentabilidadeAnualizadaComProventos: 0
+        rentabilidadeAnualizadaComProventos: 0,
+        ativosComCalculos: [],
+        valorFinalTotal: 0,
+        valorAtualSemReinvestimento: 0,
+        rentabilidadeSemProventos: 0
       };
     }
 
-    // 💰 MÉTODO "TOTAL RETURN" - COMO NO MAIS RETORNO
-    let valorInicialTotal = 0;
-    let valorFinalTotal = 0;
-    let totalProventos = 0;
-    
-    const ativosComCalculos = dadosCarteira.map(ativo => {
-      // Investimento de R$ 1.000 por ativo (como no PDF)
-      const valorInvestido = valorPorAtivo;
-      
-      // Quantas ações foram "compradas" com R$ 1.000
-      const quantidadeAcoes = valorInvestido / ativo.precoEntrada;
-      
-      // 🔥 PARA POSIÇÕES ENCERRADAS, USAR PREÇO DE SAÍDA
-      const precoAtual = ativo.posicaoEncerrada 
-        ? ativo.precoSaida 
-        : (cotacoesAtualizadas[ativo.ticker] || ativo.precoEntrada);
-      
-      // Proventos recebidos no período
-      const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-      
-      // 🎯 TOTAL RETURN = Valor atual das ações + Proventos (simulando reinvestimento)
-      // No método Total Return, os proventos são "reinvestidos" automaticamente
-      const valorAtualAcoes = quantidadeAcoes * precoAtual;
-      
-      // Simular reinvestimento dos proventos (método simplificado)
-      // Os proventos aumentam a quantidade de ações ao longo do tempo
-      const dividendYieldPeriodo = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) : 0;
-      const fatorReinvestimento = 1 + dividendYieldPeriodo;
-      
-      // Valor final considerando reinvestimento dos proventos
-      const valorFinalComReinvestimento = valorAtualAcoes * fatorReinvestimento;
-      
-      // Performance individual
-      const performanceTotal = ((valorFinalComReinvestimento - valorInvestido) / valorInvestido) * 100;
-      const performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-      
-      // Acumular totais
-      valorInicialTotal += valorInvestido;
-      valorFinalTotal += valorFinalComReinvestimento;
-      totalProventos += proventosAtivo;
-      
-      return {
-        ...ativo,
-        quantidadeAcoes,
-        precoAtual,
-        valorInvestido,
-        valorFinalComReinvestimento,
-        proventosAtivo,
-        performanceAcao,
-        performanceTotal,
-        dividendYieldPeriodo
-      };
-    });
+    // ✅ CANCELAR REQUISIÇÃO ANTERIOR SE EXISTIR
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
-    // 📊 RENTABILIDADES FINAIS (MÉTODO TOTAL RETURN)
-    const rentabilidadeTotal = valorInicialTotal > 0 ? 
-      ((valorFinalTotal - valorInicialTotal) / valorInicialTotal) * 100 : 0;
-      
-    // Para compatibilidade, calcular também sem reinvestimento
-    const valorAtualSemReinvestimento = ativosComCalculos.reduce((sum, ativo) => 
-      sum + (ativo.quantidadeAcoes * ativo.precoAtual), 0);
-    
-    const rentabilidadeSemProventos = valorInicialTotal > 0 ? 
-      ((valorAtualSemReinvestimento - valorInicialTotal) / valorInicialTotal) * 100 : 0;
-    
-    // Encontrar melhor e pior ativo (baseado na performance total com reinvestimento)
-    let melhorAtivo = null;
-    let piorAtivo = null;
-    let melhorPerformance = -Infinity;
-    let piorPerformance = Infinity;
+    setLoadingProventos(true);
+    console.log('🧮 Calculando métricas...');
 
-    ativosComCalculos.forEach((ativo) => {
-      if (ativo.performanceTotal > melhorPerformance) {
-        melhorPerformance = ativo.performanceTotal;
-        melhorAtivo = { ...ativo, performance: ativo.performanceTotal };
-      }
-      
-      if (ativo.performanceTotal < piorPerformance) {
-        piorPerformance = ativo.performanceTotal;
-        piorAtivo = { ...ativo, performance: ativo.performanceTotal };
-      }
-    });
-
-    // Calcular tempo médio de investimento
-    const hoje = new Date();
-    const tempoMedio = dadosCarteira.reduce((sum, ativo) => {
-      const [dia, mes, ano] = ativo.dataEntrada.split('/');
-      const dataEntrada = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-      const tempoAnos = (hoje.getTime() - dataEntrada.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-      return sum + tempoAnos;
-    }, 0) / dadosCarteira.length;
-
-    return {
-      valorInicial: valorInicialTotal,
-      valorAtual: valorFinalTotal,
-      rentabilidadeTotal: rentabilidadeTotal, // TOTAL RETURN (com reinvestimento)
-      rentabilidadeComProventos: rentabilidadeTotal, // Mesmo valor no Total Return
-      rentabilidadeSemProventos: rentabilidadeSemProventos, // Apenas valorização
-      totalProventos,
-      melhorAtivo,
-      piorAtivo,
-      quantidadeAtivos: dadosCarteira.length,
-      tempoMedio: tempoMedio,
-      rentabilidadeAnualizada: tempoMedio > 0 ? rentabilidadeTotal / tempoMedio : 0,
-      rentabilidadeAnualizadaComProventos: tempoMedio > 0 ? rentabilidadeTotal / tempoMedio : 0,
-      ativosComCalculos,
-      // Valores para exibição
-      valorFinalTotal,
-      valorAtualSemReinvestimento
-    };
-  };
-
-  // 💰 FUNÇÃO PARA CALCULAR PROVENTOS DE UM ATIVO NO PERÍODO
-  const calcularProventosAtivo = (ticker, dataEntrada) => {
     try {
-      // Buscar proventos do localStorage da Central de Proventos
-      const proventosKey = 'proventos_' + ticker;
-      const proventosData = localStorage.getItem(proventosKey);
-      if (!proventosData) return 0;
+      // 💰 MÉTODO "TOTAL RETURN" - COMO NO MAIS RETORNO
+      let valorInicialTotal = 0;
+      let valorFinalTotal = 0;
+      let totalProventos = 0;
       
-      const proventos = JSON.parse(proventosData);
-      const [dia, mes, ano] = dataEntrada.split('/');
-      const dataEntradaObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+      // 🚀 BUSCAR PROVENTOS EM PARALELO PARA TODOS OS ATIVOS
+      console.log('💰 Iniciando busca de proventos para', dadosCarteira.length, 'ativos...');
       
-      // Filtrar proventos pagos após a data de entrada
-      const proventosFiltrados = proventos.filter(provento => {
-        try {
-          let dataProventoObj;
-          
-          // Tentar diferentes formatos de data
-          if (provento.dataPagamento) {
-            if (provento.dataPagamento.includes('/')) {
-              const [d, m, a] = provento.dataPagamento.split('/');
-              dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-            } else if (provento.dataPagamento.includes('-')) {
-              dataProventoObj = new Date(provento.dataPagamento);
-            }
-          } else if (provento.data) {
-            if (provento.data.includes('/')) {
-              const [d, m, a] = provento.data.split('/');
-              dataProventoObj = new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
-            } else if (provento.data.includes('-')) {
-              dataProventoObj = new Date(provento.data);
-            }
-          } else if (provento.dataObj) {
-            dataProventoObj = new Date(provento.dataObj);
-          }
-          
-          return dataProventoObj && dataProventoObj >= dataEntradaObj;
-        } catch (error) {
-          console.error('Erro ao processar data do provento:', error);
-          return false;
+      const proventosPromises = dadosCarteira.map(async (ativo) => {
+        if (abortControllerRef.current?.signal.aborted) {
+          throw new Error('Aborted');
+        }
+        const proventosAtivo = await calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
+        return { ticker: ativo.ticker, proventos: proventosAtivo };
+      });
+      
+      const proventosResults = await Promise.allSettled(proventosPromises);
+      
+      // ✅ VERIFICAR SE FOI CANCELADO
+      if (abortControllerRef.current?.signal.aborted) {
+        console.log('🛑 Cálculo cancelado');
+        return null;
+      }
+      
+      const proventosMap = new Map();
+      
+      proventosResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          proventosMap.set(result.value.ticker, result.value.proventos);
         }
       });
       
-      // Somar valores dos proventos
-      return proventosFiltrados.reduce((total, provento) => {
-        const valor = typeof provento.valor === 'number' ? provento.valor : parseFloat(provento.valor) || 0;
-        return total + valor;
-      }, 0);
+      console.log('💰 Proventos obtidos:', Object.fromEntries(proventosMap));
       
+      const ativosComCalculos = dadosCarteira.map(ativo => {
+        // Investimento de R$ 1.000 por ativo (como no PDF)
+        const valorInvestido = valorPorAtivo;
+        
+        // Quantas ações foram "compradas" com R$ 1.000
+        const quantidadeAcoes = valorInvestido / ativo.precoEntrada;
+        
+        // 🔥 PARA POSIÇÕES ENCERRADAS, USAR PREÇO DE SAÍDA
+        const precoAtual = ativo.posicaoEncerrada 
+          ? ativo.precoSaida 
+          : (cotacoesAtualizadas[ativo.ticker] || ativo.precoEntrada);
+        
+        // Proventos recebidos no período (do Map)
+        const proventosAtivo = proventosMap.get(ativo.ticker) || 0;
+        
+        // 🎯 TOTAL RETURN = Valor atual das ações + Proventos (simulando reinvestimento)
+        // No método Total Return, os proventos são "reinvestidos" automaticamente
+        const valorAtualAcoes = quantidadeAcoes * precoAtual;
+        
+        // Simular reinvestimento dos proventos (método simplificado)
+        // Os proventos aumentam a quantidade de ações ao longo do tempo
+        const dividendYieldPeriodo = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) : 0;
+        const fatorReinvestimento = 1 + dividendYieldPeriodo;
+        
+        // Valor final considerando reinvestimento dos proventos
+        const valorFinalComReinvestimento = valorAtualAcoes * fatorReinvestimento;
+        
+        // Performance individual
+        const performanceTotal = ((valorFinalComReinvestimento - valorInvestido) / valorInvestido) * 100;
+        const performanceAcao = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+        
+        // Acumular totais
+        valorInicialTotal += valorInvestido;
+        valorFinalTotal += valorFinalComReinvestimento;
+        totalProventos += proventosAtivo;
+        
+        return {
+          ...ativo,
+          quantidadeAcoes,
+          precoAtual,
+          valorInvestido,
+          valorFinalComReinvestimento,
+          proventosAtivo,
+          performanceAcao,
+          performanceTotal,
+          dividendYieldPeriodo
+        };
+      });
+
+      // 📊 RENTABILIDADES FINAIS (MÉTODO TOTAL RETURN)
+      const rentabilidadeTotal = valorInicialTotal > 0 ? 
+        ((valorFinalTotal - valorInicialTotal) / valorInicialTotal) * 100 : 0;
+        
+      // Para compatibilidade, calcular também sem reinvestimento
+      const valorAtualSemReinvestimento = ativosComCalculos.reduce((sum, ativo) => 
+        sum + (ativo.quantidadeAcoes * ativo.precoAtual), 0);
+      
+      const rentabilidadeSemProventos = valorInicialTotal > 0 ? 
+        ((valorAtualSemReinvestimento - valorInicialTotal) / valorInicialTotal) * 100 : 0;
+      
+      // Encontrar melhor e pior ativo (baseado na performance total com reinvestimento)
+      let melhorAtivo = null;
+      let piorAtivo = null;
+      let melhorPerformance = -Infinity;
+      let piorPerformance = Infinity;
+
+      ativosComCalculos.forEach((ativo) => {
+        if (ativo.performanceTotal > melhorPerformance) {
+          melhorPerformance = ativo.performanceTotal;
+          melhorAtivo = { ...ativo, performance: ativo.performanceTotal };
+        }
+        
+        if (ativo.performanceTotal < piorPerformance) {
+          piorPerformance = ativo.performanceTotal;
+          piorAtivo = { ...ativo, performance: ativo.performanceTotal };
+        }
+      });
+
+      // Calcular tempo médio de investimento
+      const hoje = new Date();
+      const tempoMedio = dadosCarteira.reduce((sum, ativo) => {
+        const [dia, mes, ano] = ativo.dataEntrada.split('/');
+        const dataEntrada = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+        const tempoAnos = (hoje.getTime() - dataEntrada.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+        return sum + tempoAnos;
+      }, 0) / dadosCarteira.length;
+
+      const resultado = {
+        valorInicial: valorInicialTotal,
+        valorAtual: valorFinalTotal,
+        rentabilidadeTotal: rentabilidadeTotal,
+        rentabilidadeComProventos: rentabilidadeTotal,
+        rentabilidadeSemProventos: rentabilidadeSemProventos,
+        totalProventos,
+        melhorAtivo,
+        piorAtivo,
+        quantidadeAtivos: dadosCarteira.length,
+        tempoMedio: tempoMedio,
+        rentabilidadeAnualizada: tempoMedio > 0 ? rentabilidadeTotal / tempoMedio : 0,
+        rentabilidadeAnualizadaComProventos: tempoMedio > 0 ? rentabilidadeTotal / tempoMedio : 0,
+        ativosComCalculos,
+        valorFinalTotal,
+        valorAtualSemReinvestimento
+      };
+
+      console.log('✅ Métricas calculadas com sucesso:', resultado);
+      return resultado;
+
     } catch (error) {
-      console.error('Erro ao calcular proventos para ' + ticker + ':', error);
-      return 0;
+      if (error.message !== 'Aborted') {
+        console.error('❌ Erro ao calcular métricas:', error);
+      }
+      return null;
+    } finally {
+      setLoadingProventos(false);
     }
-  };
+  }, [calcularProventosAtivo, cotacoesAtualizadas]);
 
   // 🎯 OBTER DADOS DA CARTEIRA ATIVA (INCLUINDO POSIÇÕES ENCERRADAS)
   const dadosAtivos = dados[carteiraAtiva] || [];
   const carteiraConfig = CARTEIRAS_CONFIG[carteiraAtiva];
   const nomeCarteira = carteiraConfig?.nome || 'Carteira';
 
-  // 📊 Separar ativos ativos e encerrados
-  const ativosAtivos = dadosAtivos.filter(ativo => !ativo.posicaoEncerrada);
-  const ativosEncerrados = dadosAtivos.filter(ativo => ativo.posicaoEncerrada);
-
   // 📊 Simular valor investido (R$ 1.000 por ativo para demonstração) - DEFINIR ANTES DO CÁLCULO
   const valorPorAtivo = 1000;
 
   // 🧮 CALCULAR MÉTRICAS INCLUINDO POSIÇÕES ENCERRADAS
-  const metricas = calcularMetricas(dadosAtivos);
+  const [metricas, setMetricas] = useState({
+    valorInicial: 0,
+    valorAtual: 0,
+    rentabilidadeTotal: 0,
+    rentabilidadeSemProventos: 0,
+    quantidadeAtivos: 0,
+    melhorAtivo: null,
+    piorAtivo: null,
+    ativosComCalculos: [],
+    valorFinalTotal: 0,
+    rentabilidadeAnualizada: 0
+  });
 
+  // ✅ USEEFFECT OTIMIZADO COM DEBOUNCE E CONTROLE DE DEPENDÊNCIAS
+  useEffect(() => {
+    // ✅ SÓ CALCULAR SE TEMOS DADOS E NÃO ESTAMOS CARREGANDO PROVENTOS
+    if (!dadosAtivos || dadosAtivos.length === 0 || loadingProventos) {
+      return;
+    }
+
+    console.log('🧮 Iniciando cálculo de métricas...');
+
+    // ✅ DEBOUNCE PARA EVITAR CÁLCULOS EXCESSIVOS
+    const timeoutId = setTimeout(async () => {
+      const novasMetricas = await calcularMetricas(dadosAtivos);
+      if (novasMetricas) {
+        setMetricas(novasMetricas);
+        console.log('✅ Métricas atualizadas');
+      }
+    }, 500); // 500ms de debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      // ✅ CANCELAR CÁLCULO SE COMPONENTE DESMONTAR OU DEPENDÊNCIAS MUDAREM
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [dadosAtivos, calcularMetricas, loadingProventos]);
+
+  // ✅ CLEANUP NO UNMOUNT
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // 📊 Separar ativos ativos e encerrados COM DADOS CALCULADOS
+  const ativosAtivos = (metricas.ativosComCalculos || dadosAtivos).filter(ativo => !ativo.posicaoEncerrada);
+  const ativosEncerrados = (metricas.ativosComCalculos || dadosAtivos).filter(ativo => ativo.posicaoEncerrada);
+
+  // 📊 Simular valor investido - MOVER PARA DEPOIS DOS CÁLCULOS
+  const valorTotalInvestido = metricas.quantidadeAtivos * valorPorAtivo;
+  const valorTotalAtual = valorTotalInvestido * (1 + metricas.rentabilidadeTotal / 100);
+  const ganhoPerda = valorTotalAtual - valorTotalInvestido;
+
+  // ✅ FUNÇÕES DE FORMATAÇÃO
   const formatCurrency = (value, moeda = 'BRL') => {
     const currency = moeda === 'USD' ? 'USD' : 'BRL';
     const locale = moeda === 'USD' ? 'en-US' : 'pt-BR';
@@ -300,11 +421,6 @@ export default function RentabilidadesPage() {
     const signal = value >= 0 ? '+' : '';
     return signal + value.toFixed(1) + '%';
   };
-
-  // 📊 Simular valor investido - MOVER PARA DEPOIS DOS CÁLCULOS
-  const valorTotalInvestido = metricas.quantidadeAtivos * valorPorAtivo;
-  const valorTotalAtual = valorTotalInvestido * (1 + metricas.rentabilidadeTotal / 100);
-  const ganhoPerda = valorTotalAtual - valorTotalInvestido;
 
   return (
     <div style={{ 
@@ -350,9 +466,15 @@ export default function RentabilidadesPage() {
           Todas as rentabilidades são baseadas nos preços reais de entrada das nossas recomendações. 
           Os valores simulam um investimento de {formatCurrency(valorPorAtivo, carteiraConfig?.moeda)} por ativo para facilitar a compreensão.
           {loading && <span style={{ marginLeft: '12px', color: '#f59e0b' }}>🔄 Atualizando cotações...</span>}
-          {Object.keys(cotacoesAtualizadas).length > 0 && (
+          {loadingProventos && <span style={{ marginLeft: '12px', color: '#3b82f6' }}>💰 Carregando proventos...</span>}
+          {Object.keys(cotacoesAtualizadas).length > 0 && !loading && (
             <span style={{ marginLeft: '12px', color: '#10b981' }}>
               ✅ {Object.keys(cotacoesAtualizadas).length} cotações atualizadas
+            </span>
+          )}
+          {proventosCache.size > 0 && !loadingProventos && (
+            <span style={{ marginLeft: '12px', color: '#059669' }}>
+              💰 {proventosCache.size} proventos carregados
             </span>
           )}
         </p>
@@ -694,8 +816,10 @@ export default function RentabilidadesPage() {
               {ativosAtivos.map((ativo, index) => {
                 const precoAtual = cotacoesAtualizadas[ativo.ticker] || ativo.precoEntrada;
                 const performance = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-                const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-                const performanceComProventos = performance + ((proventosAtivo / ativo.precoEntrada) * 100);
+                
+                // ✅ USAR OS DADOS JÁ CALCULADOS AO INVÉS DE CHAMAR A FUNÇÃO ASYNC
+                const proventosAtivo = ativo.proventosAtivo || 0; // Dados já calculados nas métricas
+                const performanceComProventos = ativo.performanceTotal || (performance + ((proventosAtivo / ativo.precoEntrada) * 100));
                 const valorAtualSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
                 const temCotacaoReal = !!cotacoesAtualizadas[ativo.ticker];
                 
@@ -770,28 +894,53 @@ export default function RentabilidadesPage() {
                       </div>
                       {proventosAtivo > 0 && (
                         <div style={{ fontSize: '10px', color: '#059669', fontWeight: '500' }}>
-                          📈 Central
+                          📈 API
                         </div>
                       )}
                     </td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '800',
-                      fontSize: '16px'
-                    }}>
-                      <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
-                        {formatPercentage(performanceComProventos)}
-                      </div>
-                      <div style={{ 
-                        fontSize: '12px', 
-                        color: '#64748b', 
-                        fontWeight: '500',
-                        marginTop: '4px'
-                      }}>
-                        Ação: {formatPercentage(performance)}
-                      </div>
-                    </td>
+<td style={{ 
+  padding: '16px', 
+  textAlign: 'center', 
+  fontWeight: '800',
+  fontSize: '16px'
+}}>
+  {/* PERFORMANCE TOTAL */}
+  <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
+    {formatPercentage(performanceComProventos)}
+  </div>
+  
+  {/* BREAKDOWN DETALHADO */}
+  <div style={{ 
+    fontSize: '11px', 
+    color: '#64748b', 
+    fontWeight: '500',
+    marginTop: '4px',
+    lineHeight: '1.3'
+  }}>
+    {/* Linha da ação */}
+    <div style={{ marginBottom: '2px' }}>
+      Ação: <span style={{ 
+        color: performance >= 0 ? '#059669' : '#dc2626',
+        fontWeight: '600'
+      }}>
+        {formatPercentage(performance)}
+      </span>
+    </div>
+    
+    {/* ✅ NOVA LINHA DOS PROVENTOS */}
+    <div>
+      Proventos: <span style={{ 
+        color: proventosAtivo > 0 ? '#059669' : '#64748b',
+        fontWeight: '600'
+      }}>
+        {proventosAtivo > 0 ? 
+          '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
+          '0,0%'
+        }
+      </span>
+    </div>
+  </div>
+</td>
                     <td style={{ 
                       padding: '16px', 
                       textAlign: 'center', 
@@ -877,8 +1026,9 @@ export default function RentabilidadesPage() {
               <tbody>
                 {ativosEncerrados.map((ativo, index) => {
                   const performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-                  const proventosAtivo = calcularProventosAtivo(ativo.ticker, ativo.dataEntrada);
-                  const performanceComProventos = performanceAcao + ((proventosAtivo / ativo.precoEntrada) * 100);
+                  // ✅ USAR OS DADOS JÁ CALCULADOS
+                  const proventosAtivo = ativo.proventosAtivo || 0;
+                  const performanceComProventos = ativo.performanceTotal || (performanceAcao + ((proventosAtivo / ativo.precoEntrada) * 100));
                   const valorFinalSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
                   
                   return (
@@ -950,24 +1100,49 @@ export default function RentabilidadesPage() {
                           </div>
                         )}
                       </td>
-                      <td style={{ 
-                        padding: '16px', 
-                        textAlign: 'center', 
-                        fontWeight: '800',
-                        fontSize: '16px'
-                      }}>
-                        <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
-                          {formatPercentage(performanceComProventos)}
-                        </div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#64748b', 
-                          fontWeight: '500',
-                          marginTop: '4px'
-                        }}>
-                          Ação: {formatPercentage(performanceAcao)}
-                        </div>
-                      </td>
+<td style={{ 
+  padding: '16px', 
+  textAlign: 'center', 
+  fontWeight: '800',
+  fontSize: '16px'
+}}>
+  {/* PERFORMANCE TOTAL FINAL */}
+  <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
+    {formatPercentage(performanceComProventos)}
+  </div>
+  
+  {/* BREAKDOWN DETALHADO */}
+  <div style={{ 
+    fontSize: '11px', 
+    color: '#64748b', 
+    fontWeight: '500',
+    marginTop: '4px',
+    lineHeight: '1.3'
+  }}>
+    {/* Performance da ação */}
+    <div style={{ marginBottom: '2px' }}>
+      Ação: <span style={{ 
+        color: performanceAcao >= 0 ? '#059669' : '#dc2626',
+        fontWeight: '600'
+      }}>
+        {formatPercentage(performanceAcao)}
+      </span>
+    </div>
+    
+    {/* ✅ NOVA LINHA DOS PROVENTOS */}
+    <div>
+      Proventos: <span style={{ 
+        color: proventosAtivo > 0 ? '#059669' : '#64748b',
+        fontWeight: '600'
+      }}>
+        {proventosAtivo > 0 ? 
+          '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
+          '0,0%'
+        }
+      </span>
+    </div>
+  </div>
+</td>
                       <td style={{ 
                         padding: '16px', 
                         textAlign: 'center', 
