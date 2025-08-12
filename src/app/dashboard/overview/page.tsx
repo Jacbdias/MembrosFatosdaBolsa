@@ -2346,10 +2346,9 @@ export default function SmallCapsPage() {
           <div style={{ 
             flex: '1', 
             display: 'grid', 
-            gridTemplateColumns: isMobile 
-              ? 'repeat(auto-fit, minmax(100px, 1fr))'
-              : 'repeat(auto-fit, minmax(120px, 1fr))', 
-            gap: isMobile ? '8px' : '12px'
+gridTemplateColumns: isMobile 
+  ? ativosAtivos.length > 12 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'
+  : 'repeat(auto-fit, minmax(120px, 1fr))'
           }}>
             {ativosAtivos.map((ativo, index) => {
               const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
