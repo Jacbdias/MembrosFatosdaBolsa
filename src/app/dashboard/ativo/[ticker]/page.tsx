@@ -76,20 +76,49 @@ const cacheUtils = {
   }
 };
 
-// ✅ INTERSECTION OBSERVER HOOK
+// ✅ INTERSECTION OBSERVER OTIMIZADO PARA MOBILE
 const useInView = (options = {}) => {
   const [inView, setInView] = useState(false);
+  const [hasTriggered, setHasTriggered] = useState(false);
   const ref = useRef();
+  const timeoutRef = useRef();
 
   useEffect(() => {
+    // Detectar se é mobile para usar configurações diferentes
+    const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     const observer = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.1, rootMargin: '50px', ...options }
+      ([entry]) => {
+        // Debounce para mobile
+        if (isMobileDevice) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = setTimeout(() => {
+            if (entry.isIntersecting && !hasTriggered) {
+              setInView(true);
+              setHasTriggered(true);
+              // Uma vez que está in view, não precisa mais observar
+              observer.disconnect();
+            }
+          }, 100);
+        } else {
+          // Desktop - comportamento normal
+          setInView(entry.isIntersecting);
+        }
+      },
+      { 
+        threshold: isMobileDevice ? 0.05 : 0.1, // Threshold menor no mobile
+        rootMargin: isMobileDevice ? '100px' : '50px', // Margem maior no mobile
+        ...options 
+      }
     );
 
     if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
+    
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeoutRef.current);
+    };
+  }, [hasTriggered]);
 
   return [ref, inView];
 };
@@ -304,7 +333,15 @@ const formatUtils = {
   date: (dateInput, format = 'short') => {
     if (!dateInput) return 'N/A';
     
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    let date;
+    if (dateInput instanceof Date) {
+      date = dateInput;
+    } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+      date = new Date(dateInput);
+    } else {
+      return 'N/A';
+    }
+    
     if (isNaN(date.getTime())) return 'N/A';
     
     const options = {
@@ -314,7 +351,11 @@ const formatUtils = {
       monthYear: { month: 'short', year: 'numeric' }
     };
     
-    return date.toLocaleDateString('pt-BR', options[format] || options.medium);
+    try {
+      return date.toLocaleDateString('pt-BR', options[format] || options.medium);
+    } catch (error) {
+      return 'N/A';
+    }
   }
 };
 
@@ -779,7 +820,7 @@ const AgendaCorporativa = React.memo(({ ticker, isFII = false }) => {
           color: '#1e293b',
           margin: '0'
         }}>
-          Agenda Corporativa
+          📅 Agenda Corporativa
         </h3>
       </div>
 
@@ -939,7 +980,7 @@ const DadosPosicaoExpandidos = React.memo(({
           marginBottom: isMobile ? '16px' : '24px', 
           fontWeight: '600' 
         }}>
-          Dados da Posição
+          📊 Dados da Posição
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
           <div style={{ 
@@ -1004,7 +1045,7 @@ const DadosPosicaoExpandidos = React.memo(({
           marginBottom: isMobile ? '16px' : '24px', 
           fontWeight: '600' 
         }}>
-          Análise de Viés
+          🎯 Análise de Viés
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
           <div style={{ 
@@ -1143,12 +1184,18 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
             const dadosAPI = await response.json();
             
             if (Array.isArray(dadosAPI) && dadosAPI.length > 0) {
-              proventosEncontrados = dadosAPI.map(item => ({
-                ...item,
-                dataObj: new Date(item.dataObj),
-                valorFormatado: item.valorFormatado || `R$ ${item.valor.toFixed(2).replace('.', ',')}`,
-                tipo: item.tipo || (isFII ? 'Rendimento' : 'Dividendo')
-              }));
+              proventosEncontrados = dadosAPI.map(item => {
+                const dataObj = item.dataObj ? 
+                  (item.dataObj instanceof Date ? item.dataObj : new Date(item.dataObj)) :
+                  (item.data ? new Date(item.data) : new Date());
+                
+                return {
+                  ...item,
+                  dataObj: isNaN(dataObj.getTime()) ? new Date() : dataObj,
+                  valorFormatado: item.valorFormatado || `R$ ${(item.valor || 0).toFixed(2).replace('.', ',')}`,
+                  tipo: item.tipo || (isFII ? 'Rendimento' : 'Dividendo')
+                };
+              });
               
               fonteAtual = 'API';
             }
@@ -1163,11 +1210,18 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
           if (dadosSalvos) {
             try {
               const proventosSalvos = JSON.parse(dadosSalvos);
-              proventosEncontrados = proventosSalvos.map(item => ({
-                ...item,
-                dataObj: new Date(item.dataCom || item.data || item.dataObj),
-                valorFormatado: item.valorFormatado || `R$ ${(item.valor || 0).toFixed(2).replace('.', ',')}`
-              }));
+              proventosEncontrados = proventosSalvos.map(item => {
+                const dataObj = item.dataCom || item.data || item.dataObj;
+                const dataFinal = dataObj ? 
+                  (dataObj instanceof Date ? dataObj : new Date(dataObj)) :
+                  new Date();
+                
+                return {
+                  ...item,
+                  dataObj: isNaN(dataFinal.getTime()) ? new Date() : dataFinal,
+                  valorFormatado: item.valorFormatado || `R$ ${(item.valor || 0).toFixed(2).replace('.', ',')}`
+                };
+              });
               fonteAtual = 'localStorage';
             } catch (err) {
               console.error('Erro localStorage:', err);
@@ -1175,14 +1229,27 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
           }
         }
 
-        const proventosValidos = proventosEncontrados.filter(item => 
-          item.dataObj && 
-          !isNaN(item.dataObj.getTime()) && 
-          item.valor && 
-          item.valor > 0
-        );
+        const proventosValidos = proventosEncontrados.filter(item => {
+          // Verificar se tem dataObj válida
+          if (!item.dataObj) return false;
+          
+          const data = item.dataObj instanceof Date ? item.dataObj : new Date(item.dataObj);
+          if (isNaN(data.getTime())) return false;
+          
+          // Verificar se tem valor válido
+          if (!item.valor || item.valor <= 0) return false;
+          
+          // Atualizar o item com a data corrigida
+          item.dataObj = data;
+          
+          return true;
+        });
         
-        proventosValidos.sort((a, b) => b.dataObj.getTime() - a.dataObj.getTime());
+        proventosValidos.sort((a, b) => {
+          const dateA = a.dataObj instanceof Date ? a.dataObj : new Date(a.dataObj);
+          const dateB = b.dataObj instanceof Date ? b.dataObj : new Date(b.dataObj);
+          return dateB.getTime() - dateA.getTime();
+        });
 
         setProventos(proventosValidos);
         setFonte(fonteAtual || 'sem dados');
@@ -1208,7 +1275,20 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
   const { totalProventos, mediaProvento, ultimoProvento } = useMemo(() => {
     const total = proventos.reduce((sum, item) => sum + (item.valor || 0), 0);
     const media = proventos.length > 0 ? total / proventos.length : 0;
-    const ultimo = proventos.length > 0 ? proventos[0] : null;
+    let ultimo = null;
+    
+    if (proventos.length > 0) {
+      ultimo = proventos[0];
+      // Garantir que o último provento tem uma data válida
+      if (ultimo && ultimo.dataObj) {
+        if (!(ultimo.dataObj instanceof Date)) {
+          ultimo.dataObj = new Date(ultimo.dataObj);
+        }
+        if (isNaN(ultimo.dataObj.getTime())) {
+          ultimo.dataObj = new Date();
+        }
+      }
+    }
 
     return {
       totalProventos: total,
@@ -1248,6 +1328,18 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
           {isFII ? 'Histórico de Rendimentos (FII)' : 'Histórico de Proventos'}
         </h3>
         
+        {fonte && (
+          <span style={{
+            backgroundColor: fonte === 'API' ? '#22c55e' : fonte === 'localStorage' ? '#f59e0b' : '#6b7280',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '600'
+          }}>
+            📊 {fonte}
+          </span>
+        )}
       </div>
 
       {!inView ? (
@@ -1269,17 +1361,17 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
             <MetricCard
               title={isMobile ? 'Pagamentos' : 'Nº de Pagamentos'}
               value={proventos.length.toString()}
-              color="#64748b"
+              color="#0ea5e9"
             />
             <MetricCard
               title="Total"
               value={`R$ ${totalProventos.toFixed(2).replace('.', ',')}`}
-              color="#64748b"
+              color="#22c55e"
             />
             <MetricCard
               title="Média"
               value={`R$ ${mediaProvento.toFixed(2).replace('.', ',')}`}
-              color="#64748b"
+              color="#eab308"
             />
             <MetricCard
               title="Último"
@@ -1289,7 +1381,7 @@ const HistoricoDividendos = React.memo(({ ticker, dataEntrada, isFII = false }) 
                   new Date(ultimoProvento.dataObj).toLocaleDateString('pt-BR').replace(/\/\d{4}/, '')
                 ) : 'N/A'
               }
-              color="#64748b"
+              color="#a855f7"
             />
           </ResponsiveGrid>
 
@@ -1581,7 +1673,11 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
         arquivo: rel.arquivoPdf ? 'PDF_API' : undefined,
         tamanho: rel.tamanhoArquivo ? `${(rel.tamanhoArquivo / 1024 / 1024).toFixed(1)} MB` : undefined
       }))
-      .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime());
+      .sort((a, b) => {
+        const dateA = a.dataUpload ? new Date(a.dataUpload) : new Date(0);
+        const dateB = b.dataUpload ? new Date(b.dataUpload) : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [ticker, estatisticas.relatorios]);
 
   useEffect(() => {
@@ -1772,7 +1868,7 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
           color: '#1e293b',
           margin: '0 0 4px 0'
         }}>
-          Relatórios da Empresa
+          📊 Relatórios da Empresa
         </h3>
       </div>
 
@@ -1934,7 +2030,12 @@ const GerenciadorRelatorios = React.memo(({ ticker }) => {
                 textAlign: 'center',
                 marginTop: '8px'
               }}>
-                Adicionado em: {new Date(relatorio.dataUpload).toLocaleDateString('pt-BR')}
+                Adicionado em: {relatorio.dataUpload ? 
+                  (typeof relatorio.dataUpload === 'string' ? 
+                    new Date(relatorio.dataUpload).toLocaleDateString('pt-BR') :
+                    relatorio.dataUpload.toLocaleDateString('pt-BR')
+                  ) : 'N/A'
+                }
               </div>
             </div>
           ))}
