@@ -3,10 +3,32 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDataStore } from '../../../hooks/useDataStore';
 
+// 🔥 DETECÇÃO DE DISPOSITIVO IGUAL AO CÓDIGO 3
+const useDeviceDetection = () => {
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  return isMobile;
+};
+
 export default function RentabilidadesPage() {
   const { dados, CARTEIRAS_CONFIG, buscarCotacoes, loading } = useDataStore();
   const [carteiraAtiva, setCarteiraAtiva] = useState('smallCaps');
   const [cotacoesAtualizadas, setCotacoesAtualizadas] = useState({});
+  const isMobile = useDeviceDetection(); // ✅ ADICIONAR HOOK DE MOBILE
   
   // ✅ ESTADOS SEPARADOS PARA MELHOR CONTROLE
   const [loadingProventos, setLoadingProventos] = useState(false);
@@ -223,6 +245,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
       
       const ativosComCalculos = dadosCarteira.map(ativo => {
         // Investimento de R$ 1.000 por ativo (como no PDF)
+        const valorPorAtivo = 1000;
         const valorInvestido = valorPorAtivo;
         
         // Quantas ações foram "compradas" com R$ 1.000
@@ -426,12 +449,12 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '16px' : '24px' // ✅ RESPONSIVO
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      {/* Header Responsivo */}
+      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', // ✅ IGUAL AO CÓDIGO 3
           fontWeight: '800', 
           color: '#1e293b',
           margin: '0 0 8px 0'
@@ -440,7 +463,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '18px',
+          fontSize: isMobile ? '16px' : '18px', // ✅ RESPONSIVO
           margin: '0',
           lineHeight: '1.5'
         }}>
@@ -448,21 +471,31 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         </p>
       </div>
 
-      {/* Alerta de Transparência */}
+      {/* Alerta de Transparência - Responsivo */}
       <div style={{
         backgroundColor: '#eff6ff',
         border: '1px solid #3b82f6',
         borderRadius: '12px',
-        padding: '20px',
+        padding: isMobile ? '16px' : '20px', // ✅ RESPONSIVO
         marginBottom: '32px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '24px' }}>📊</span>
-          <h3 style={{ color: '#1e40af', fontSize: '18px', fontWeight: '700', margin: '0' }}>
+          <span style={{ fontSize: isMobile ? '20px' : '24px' }}>📊</span> {/* ✅ RESPONSIVO */}
+          <h3 style={{ 
+            color: '#1e40af', 
+            fontSize: isMobile ? '16px' : '18px', // ✅ RESPONSIVO 
+            fontWeight: '700', 
+            margin: '0' 
+          }}>
             Transparência Total • Dados Sincronizados
           </h3>
         </div>
-        <p style={{ color: '#1e40af', fontSize: '14px', margin: '0', lineHeight: '1.5' }}>
+        <p style={{ 
+          color: '#1e40af', 
+          fontSize: isMobile ? '13px' : '14px', // ✅ RESPONSIVO
+          margin: '0', 
+          lineHeight: '1.5' 
+        }}>
           Todas as rentabilidades são baseadas nos preços reais de entrada das nossas recomendações. 
           Os valores simulam um investimento de {formatCurrency(valorPorAtivo, carteiraConfig?.moeda)} por ativo para facilitar a compreensão.
           {loading && <span style={{ marginLeft: '12px', color: '#f59e0b' }}>🔄 Atualizando cotações...</span>}
@@ -480,10 +513,10 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         </p>
       </div>
 
-      {/* Seletores de Carteira */}
+      {/* Seletores de Carteira - Responsivos */}
       <div style={{
         display: 'flex',
-        gap: '12px',
+        gap: isMobile ? '8px' : '12px', // ✅ RESPONSIVO
         marginBottom: '32px',
         flexWrap: 'wrap'
       }}>
@@ -494,7 +527,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
               key={chave}
               onClick={() => setCarteiraAtiva(chave)}
               style={{
-                padding: '12px 20px',
+                padding: isMobile ? '10px 16px' : '12px 20px', // ✅ RESPONSIVO
                 borderRadius: '12px',
                 border: carteiraAtiva === chave ? '2px solid' : '1px solid #e2e8f0',
                 borderColor: carteiraAtiva === chave ? config.color : '#e2e8f0',
@@ -506,17 +539,17 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontSize: '14px'
+                fontSize: isMobile ? '13px' : '14px' // ✅ RESPONSIVO
               }}
             >
-              <span style={{ fontSize: '18px' }}>{config.icon}</span>
+              <span style={{ fontSize: isMobile ? '16px' : '18px' }}>{config.icon}</span> {/* ✅ RESPONSIVO */}
               {config.nome}
               <span style={{
                 backgroundColor: carteiraAtiva === chave ? 'rgba(255,255,255,0.2)' : config.color,
                 color: carteiraAtiva === chave ? 'white' : 'white',
                 padding: '2px 8px',
                 borderRadius: '12px',
-                fontSize: '12px',
+                fontSize: isMobile ? '11px' : '12px', // ✅ RESPONSIVO
                 fontWeight: '700'
               }}>
                 {qtdAtivos}
@@ -526,7 +559,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         })}
       </div>
 
-      {/* Botão para Atualizar Cotações Manualmente */}
+      {/* Botão para Atualizar Cotações - Responsivo */}
       <div style={{ marginBottom: '24px', textAlign: 'center' }}>
         <button
           onClick={async () => {
@@ -584,8 +617,8 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
             color: 'white',
             border: 'none',
             borderRadius: '8px',
-            padding: '12px 24px',
-            fontSize: '14px',
+            padding: isMobile ? '10px 20px' : '12px 24px', // ✅ RESPONSIVO
+            fontSize: isMobile ? '13px' : '14px', // ✅ RESPONSIVO
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
@@ -598,41 +631,58 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         </button>
       </div>
       
+      {/* Cards de Métricas - IGUAL AO CÓDIGO 3 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '24px',
+        gridTemplateColumns: isMobile 
+          ? 'repeat(auto-fit, minmax(140px, 1fr))' // ✅ IGUAL AO CÓDIGO 3
+          : 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: isMobile ? '8px' : '24px', // ✅ RESPONSIVO
         marginBottom: '32px'
       }}>
         {/* Rentabilidade Total Return */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '32px',
+          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
+          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid ' + (metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444'),
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+            <span style={{ 
+              color: '#64748b', 
+              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontWeight: '600', 
+              textTransform: 'uppercase' 
+            }}>
               TOTAL RETURN (MÉTODO MAIS RETORNO)
             </span>
-            <span style={{ fontSize: '32px' }}>
+            <span style={{ fontSize: isMobile ? '24px' : '32px' }}> {/* ✅ RESPONSIVO */}
               {metricas.rentabilidadeTotal >= 0 ? '💎' : '📉'}
             </span>
           </div>
           <div style={{ 
-            fontSize: '42px', 
+            fontSize: isMobile ? '24px' : '42px', // ✅ RESPONSIVO
             fontWeight: '900', 
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444',
-            marginBottom: '12px'
+            marginBottom: isMobile ? '8px' : '12px',
+            lineHeight: '1'
           }}>
             {formatPercentage(metricas.rentabilidadeTotal)}
           </div>
-          <div style={{ fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>
+          <div style={{ 
+            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            color: '#64748b', 
+            marginBottom: isMobile ? '4px' : '8px' 
+          }}>
             Anualizada: {formatPercentage(metricas.rentabilidadeAnualizada)}
           </div>
-          <div style={{ fontSize: '14px', color: '#059669', fontWeight: '600' }}>
+          <div style={{ 
+            fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+            color: '#059669', 
+            fontWeight: '600' 
+          }}>
             Inclui reinvestimento de proventos
           </div>
         </div>
@@ -640,32 +690,45 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {/* Rentabilidade Apenas Ações */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '32px',
+          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
+          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid ' + (metricas.rentabilidadeSemProventos >= 0 ? '#3b82f6' : '#ef4444'),
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+            <span style={{ 
+              color: '#64748b', 
+              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontWeight: '600', 
+              textTransform: 'uppercase' 
+            }}>
               APENAS VALORIZAÇÃO DAS AÇÕES
             </span>
-            <span style={{ fontSize: '32px' }}>
+            <span style={{ fontSize: isMobile ? '24px' : '32px' }}> {/* ✅ RESPONSIVO */}
               {metricas.rentabilidadeSemProventos >= 0 ? '📈' : '📉'}
             </span>
           </div>
           <div style={{ 
-            fontSize: '42px', 
+            fontSize: isMobile ? '24px' : '42px', // ✅ RESPONSIVO
             fontWeight: '900', 
             color: metricas.rentabilidadeSemProventos >= 0 ? '#3b82f6' : '#ef4444',
-            marginBottom: '12px'
+            marginBottom: isMobile ? '8px' : '12px',
+            lineHeight: '1'
           }}>
             {formatPercentage(metricas.rentabilidadeSemProventos || 0)}
           </div>
-          <div style={{ fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>
+          <div style={{ 
+            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            color: '#64748b', 
+            marginBottom: isMobile ? '4px' : '8px' 
+          }}>
             Sem considerar proventos
           </div>
-          <div style={{ fontSize: '14px', color: '#64748b' }}>
+          <div style={{ 
+            fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+            color: '#64748b' 
+          }}>
             Apenas price appreciation
           </div>
         </div>
@@ -673,26 +736,41 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {/* Valor Total Return */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '32px',
+          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
+          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid #3b82f6',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+            <span style={{ 
+              color: '#64748b', 
+              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontWeight: '600', 
+              textTransform: 'uppercase' 
+            }}>
               VALOR TOTAL RETURN
             </span>
-            <span style={{ fontSize: '32px' }}>💰</span>
+            <span style={{ fontSize: isMobile ? '24px' : '32px' }}>💰</span> {/* ✅ RESPONSIVO */}
           </div>
-          <div style={{ fontSize: '32px', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
+          <div style={{ 
+            fontSize: isMobile ? '18px' : '32px', // ✅ RESPONSIVO
+            fontWeight: '800', 
+            color: '#1e293b', 
+            marginBottom: isMobile ? '4px' : '8px',
+            lineHeight: '1'
+          }}>
             {formatCurrency(metricas.valorFinalTotal || valorTotalAtual, carteiraConfig?.moeda)}
           </div>
-          <div style={{ fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>
+          <div style={{ 
+            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            color: '#64748b', 
+            marginBottom: isMobile ? '4px' : '8px' 
+          }}>
             Investido: {formatCurrency(valorTotalInvestido, carteiraConfig?.moeda)}
           </div>
           <div style={{ 
-            fontSize: '16px', 
+            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
             fontWeight: '600',
             color: metricas.rentabilidadeTotal >= 0 ? '#10b981' : '#ef4444'
           }}>
@@ -704,24 +782,43 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {metricas.melhorAtivo && (
           <div style={{
             backgroundColor: '#f0fdf4',
-            borderRadius: '16px',
-            padding: '32px',
+            borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
+            padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
             border: '1px solid #10b981',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <span style={{ color: '#065f46', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+              <span style={{ 
+                color: '#065f46', 
+                fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+                fontWeight: '600', 
+                textTransform: 'uppercase' 
+              }}>
                 DESTAQUE POSITIVO
               </span>
-              <span style={{ fontSize: '32px' }}>🏆</span>
+              <span style={{ fontSize: isMobile ? '24px' : '32px' }}>🏆</span> {/* ✅ RESPONSIVO */}
             </div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#065f46', marginBottom: '8px' }}>
+            <div style={{ 
+              fontSize: isMobile ? '20px' : '28px', // ✅ RESPONSIVO
+              fontWeight: '800', 
+              color: '#065f46', 
+              marginBottom: isMobile ? '4px' : '8px',
+              lineHeight: '1'
+            }}>
               {metricas.melhorAtivo.ticker}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#10b981', marginBottom: '8px' }}>
+            <div style={{ 
+              fontSize: isMobile ? '14px' : '18px', // ✅ RESPONSIVO
+              fontWeight: '700', 
+              color: '#10b981', 
+              marginBottom: isMobile ? '4px' : '8px' 
+            }}>
               {formatPercentage(metricas.melhorAtivo.performance)}
             </div>
-            <div style={{ fontSize: '14px', color: '#065f46' }}>
+            <div style={{ 
+              fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+              color: '#065f46' 
+            }}>
               {metricas.melhorAtivo.setor}
             </div>
           </div>
@@ -730,31 +827,50 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         {/* Diversificação */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '32px',
+          borderRadius: isMobile ? '8px' : '16px', // ✅ RESPONSIVO
+          padding: isMobile ? '12px' : '32px', // ✅ RESPONSIVO
           border: '1px solid #e2e8f0',
           borderLeft: '6px solid ' + (carteiraConfig?.color || '#f59e0b'),
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
+            <span style={{ 
+              color: '#64748b', 
+              fontSize: isMobile ? '10px' : '14px', // ✅ RESPONSIVO
+              fontWeight: '600', 
+              textTransform: 'uppercase' 
+            }}>
               DIVERSIFICAÇÃO
             </span>
-            <span style={{ fontSize: '32px' }}>{carteiraConfig?.icon || '🎯'}</span>
+            <span style={{ fontSize: isMobile ? '24px' : '32px' }}>{carteiraConfig?.icon || '🎯'}</span> {/* ✅ RESPONSIVO */}
           </div>
-          <div style={{ fontSize: '42px', fontWeight: '900', color: carteiraConfig?.color || '#f59e0b', marginBottom: '8px' }}>
+          <div style={{ 
+            fontSize: isMobile ? '24px' : '42px', // ✅ RESPONSIVO
+            fontWeight: '900', 
+            color: carteiraConfig?.color || '#f59e0b', 
+            marginBottom: isMobile ? '4px' : '8px',
+            lineHeight: '1'
+          }}>
             {metricas.quantidadeAtivos}
           </div>
-          <div style={{ fontSize: '16px', color: '#64748b', marginBottom: '8px' }}>
+          <div style={{ 
+            fontSize: isMobile ? '12px' : '16px', // ✅ RESPONSIVO
+            color: '#64748b', 
+            marginBottom: isMobile ? '4px' : '8px' 
+          }}>
             Ativos na carteira {nomeCarteira}
           </div>
-          <div style={{ fontSize: '14px', color: '#92400e', fontWeight: '600' }}>
+          <div style={{ 
+            fontSize: isMobile ? '11px' : '14px', // ✅ RESPONSIVO
+            color: '#92400e', 
+            fontWeight: '600' 
+          }}>
             Moeda: {carteiraConfig?.moeda || 'BRL'}
           </div>
         </div>
       </div>
 
-      {/* Tabela de Ativos Ativos */}
+      {/* Tabela de Ativos Ativos - RESPONSIVA IGUAL AO CÓDIGO 3 */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
@@ -764,12 +880,12 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
         marginBottom: '32px'
       }}>
         <div style={{
-          padding: '24px',
+          padding: isMobile ? '16px' : '24px', // ✅ RESPONSIVO
           borderBottom: '1px solid #e2e8f0',
           backgroundColor: '#f8fafc'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px', // ✅ RESPONSIVO
             fontWeight: '700',
             color: '#1e293b',
             margin: '0 0 8px 0'
@@ -778,263 +894,236 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
           </h3>
           <p style={{
             color: '#64748b',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px', // ✅ RESPONSIVO
             margin: '0'
           }}>
             Baseado nos preços reais de entrada das nossas recomendações • Total: {ativosAtivos.length} ativos ativos
           </p>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f1f5f9' }}>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ATIVO
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  ENTRADA
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO INICIAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PREÇO ATUAL
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PROVENTOS
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  PERFORMANCE
-                </th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
-                  VALOR SIMULADO
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {ativosAtivos.map((ativo, index) => {
-                const precoAtual = cotacoesAtualizadas[ativo.ticker] || ativo.precoEntrada;
-                const performance = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-                
-                // ✅ USAR OS DADOS JÁ CALCULADOS AO INVÉS DE CHAMAR A FUNÇÃO ASYNC
-                const proventosAtivo = ativo.proventosAtivo || 0; // Dados já calculados nas métricas
-                const performanceComProventos = ativo.performanceTotal || (performance + ((proventosAtivo / ativo.precoEntrada) * 100));
-                const valorAtualSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
-                const temCotacaoReal = !!cotacoesAtualizadas[ativo.ticker];
-                
-                return (
-                  <tr key={ativo.id || index} style={{ 
-                    borderBottom: '1px solid #f1f5f9',
+        {isMobile ? (
+          // 📱 MOBILE: Cards verticais - IGUAL AO CÓDIGO 3
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {ativosAtivos.map((ativo, index) => {
+              const precoAtual = cotacoesAtualizadas[ativo.ticker] || ativo.precoEntrada;
+              const performance = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+              
+              // ✅ USAR OS DADOS JÁ CALCULADOS AO INVÉS DE CHAMAR A FUNÇÃO ASYNC
+              const proventosAtivo = ativo.proventosAtivo || 0; // Dados já calculados nas métricas
+              const performanceComProventos = ativo.performanceTotal || (performance + ((proventosAtivo / ativo.precoEntrada) * 100));
+              const valorAtualSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
+              const temCotacaoReal = !!cotacoesAtualizadas[ativo.ticker];
+              
+              return (
+                <div 
+                  key={ativo.id || index}
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer',
                     transition: 'background-color 0.2s'
-                  }}>
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '8px',
-                          backgroundColor: performanceComProventos >= 0 ? '#dcfce7' : '#fee2e2',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '700',
-                          color: performanceComProventos >= 0 ? '#065f46' : '#991b1b'
-                        }}>
-                          {ativo.ticker.slice(0, 2)}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '16px' }}>
-                            {ativo.ticker}
-                            {!temCotacaoReal && (
-                              <span style={{ 
-                                marginLeft: '8px', 
-                                fontSize: '12px', 
-                                color: '#f59e0b',
-                                backgroundColor: '#fef3c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                SIM
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ color: '#64748b', fontSize: '14px' }}>
-                            {ativo.setor}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
-                      {ativo.dataEntrada}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
-                      {formatCurrency(ativo.precoEntrada, carteiraConfig?.moeda)}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performance >= 0 ? '#10b981' : '#ef4444' }}>
-                      {formatCurrency(precoAtual, carteiraConfig?.moeda)}
-                      {temCotacaoReal && (
-                        <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '500' }}>
-                          ✅ API
-                        </div>
-                      )}
-                      {!temCotacaoReal && (
-                        <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: '500' }}>
-                          📊 Simulado
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <div style={{ 
-                        fontWeight: '700',
-                        color: proventosAtivo > 0 ? '#059669' : '#64748b',
-                        fontSize: '14px'
-                      }}>
-                        {proventosAtivo > 0 ? formatCurrency(proventosAtivo, carteiraConfig?.moeda) : '-'}
-                      </div>
-                      {proventosAtivo > 0 && (
-                        <div style={{ fontSize: '10px', color: '#059669', fontWeight: '500' }}>
-                          📈 API
-                        </div>
-                      )}
-                    </td>
-<td style={{ 
-  padding: '16px', 
-  textAlign: 'center', 
-  fontWeight: '800',
-  fontSize: '16px'
-}}>
-  {/* PERFORMANCE TOTAL */}
-  <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
-    {formatPercentage(performanceComProventos)}
-  </div>
-  
-  {/* BREAKDOWN DETALHADO */}
-  <div style={{ 
-    fontSize: '11px', 
-    color: '#64748b', 
-    fontWeight: '500',
-    marginTop: '4px',
-    lineHeight: '1.3'
-  }}>
-    {/* Linha da ação */}
-    <div style={{ marginBottom: '2px' }}>
-      Ação: <span style={{ 
-        color: performance >= 0 ? '#059669' : '#dc2626',
-        fontWeight: '600'
-      }}>
-        {formatPercentage(performance)}
-      </span>
-    </div>
-    
-    {/* ✅ NOVA LINHA DOS PROVENTOS */}
-    <div>
-      Proventos: <span style={{ 
-        color: proventosAtivo > 0 ? '#059669' : '#64748b',
-        fontWeight: '600'
-      }}>
-        {proventosAtivo > 0 ? 
-          '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
-          '0,0%'
-        }
-      </span>
-    </div>
-  </div>
-</td>
-                    <td style={{ 
-                      padding: '16px', 
-                      textAlign: 'center', 
-                      fontWeight: '700',
-                      color: '#1e293b',
-                      backgroundColor: performanceComProventos >= 0 ? '#f0fdf4' : '#fef2f2'
+                  }}
+                  onClick={() => {
+                    window.location.href = `/dashboard/ativo/${ativo.ticker}`;
+                  }}
+                  onTouchStart={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  }}
+                  onTouchEnd={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                >
+                  {/* Header do Card */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    {/* Logo do Ativo */}
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '6px',
+                      overflow: 'hidden',
+                      backgroundColor: '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid #e2e8f0'
                     }}>
-                      {formatCurrency(valorAtualSimulado, carteiraConfig?.moeda)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      <img 
+                        src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                        alt={`Logo ${ativo.ticker}`}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          objectFit: 'contain'
+                        }}
+                        onError={(e) => {
+                          const target = e.target;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.style.backgroundColor = performanceComProventos >= 0 ? '#dcfce7' : '#fee2e2';
+                            parent.style.color = performanceComProventos >= 0 ? '#065f46' : '#dc2626';
+                            parent.style.fontWeight = '700';
+                            parent.style.fontSize = '12px';
+                            parent.textContent = ativo.ticker.slice(0, 2);
+                          }
+                        }}
+                      />
+                    </div>
 
-      {/* 🔥 TABELA DE POSIÇÕES ENCERRADAS (VENDIDAS) */}
-      {ativosEncerrados.length > 0 && (
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-          overflow: 'hidden',
-          marginBottom: '32px'
-        }}>
-          <div style={{
-            padding: '24px',
-            borderBottom: '1px solid #fecaca',
-            backgroundColor: '#fef2f2'
-          }}>
-            <h3 style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: '#991b1b',
-              margin: '0 0 8px 0'
-            }}>
-              🔒 Performance Individual - Posições Vendidas
-            </h3>
-            <p style={{
-              color: '#b91c1c',
-              fontSize: '16px',
-              margin: '0'
-            }}>
-              Histórico completo de posições encerradas com performance final • Total: {ativosEncerrados.length} ativos vendidos
-            </p>
+                    {/* Nome e Setor */}
+                    <div style={{ flex: '1' }}>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: '#1e293b', 
+                        fontSize: '16px'
+                      }}>
+                        {ativo.ticker}
+                        {!temCotacaoReal && (
+                          <span style={{ 
+                            marginLeft: '8px', 
+                            fontSize: '10px', 
+                            color: '#f59e0b',
+                            backgroundColor: '#fef3c7',
+                            padding: '2px 4px',
+                            borderRadius: '3px'
+                          }}>
+                            SIM
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '12px' }}>
+                        {ativo.setor}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Dados em Grid */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 1fr', 
+                    gap: '8px', 
+                    fontSize: '14px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                      <span style={{ fontWeight: '600', color: '#1e293b' }}>{ativo.dataEntrada}</span>
+                    </div>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Preço Inicial:</span><br />
+                      <span style={{ fontWeight: '600', color: '#1e293b' }}>{formatCurrency(ativo.precoEntrada, carteiraConfig?.moeda)}</span>
+                    </div>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Preço Atual:</span><br />
+                      <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                        {formatCurrency(precoAtual, carteiraConfig?.moeda)}
+                      </span>
+                    </div>
+                    <div style={{ color: '#64748b' }}>
+                      <span style={{ fontWeight: '500' }}>Proventos:</span><br />
+                      <span style={{ fontWeight: '700', color: proventosAtivo > 0 ? '#059669' : '#64748b' }}>
+                        {proventosAtivo > 0 ? formatCurrency(proventosAtivo, carteiraConfig?.moeda) : '-'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Performance em destaque */}
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '8px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                      Performance Total Return
+                    </div>
+                    <div style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '800',
+                      color: performanceComProventos >= 0 ? '#10b981' : '#ef4444'
+                    }}>
+                      {formatPercentage(performanceComProventos)}
+                    </div>
+                    {/* Breakdown detalhado */}
+                    <div style={{ 
+                      fontSize: '11px', 
+                      color: '#64748b', 
+                      fontWeight: '500',
+                      marginTop: '4px',
+                      lineHeight: '1.3'
+                    }}>
+                      <div style={{ marginBottom: '2px' }}>
+                        Ação: <span style={{ 
+                          color: performance >= 0 ? '#059669' : '#dc2626',
+                          fontWeight: '600'
+                        }}>
+                          {formatPercentage(performance)}
+                        </span>
+                      </div>
+                      <div>
+                        Proventos: <span style={{ 
+                          color: proventosAtivo > 0 ? '#059669' : '#64748b',
+                          fontWeight: '600'
+                        }}>
+                          {proventosAtivo > 0 ? 
+                            '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
+                            '0,0%'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
+        ) : (
+          // 🖥️ DESKTOP: Tabela completa
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: '#fee2e2' }}>
-                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                <tr style={{ backgroundColor: '#f1f5f9' }}>
+                  <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                     ATIVO
                   </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                     ENTRADA
                   </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
-                    SAÍDA
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    PREÇO INICIAL
                   </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
-                    PREÇO ENTRADA
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    PREÇO ATUAL
                   </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
-                    PREÇO SAÍDA
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
                     PROVENTOS
                   </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
-                    PERFORMANCE FINAL
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    PERFORMANCE
                   </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
-                    VALOR FINAL
-                  </th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
-                    MOTIVO
+                  <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                    VALOR SIMULADO
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {ativosEncerrados.map((ativo, index) => {
-                  const performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-                  // ✅ USAR OS DADOS JÁ CALCULADOS
-                  const proventosAtivo = ativo.proventosAtivo || 0;
-                  const performanceComProventos = ativo.performanceTotal || (performanceAcao + ((proventosAtivo / ativo.precoEntrada) * 100));
-                  const valorFinalSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
+                {ativosAtivos.map((ativo, index) => {
+                  const precoAtual = cotacoesAtualizadas[ativo.ticker] || ativo.precoEntrada;
+                  const performance = ((precoAtual - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+                  
+                  // ✅ USAR OS DADOS JÁ CALCULADOS AO INVÉS DE CHAMAR A FUNÇÃO ASYNC
+                  const proventosAtivo = ativo.proventosAtivo || 0; // Dados já calculados nas métricas
+                  const performanceComProventos = ativo.performanceTotal || (performance + ((proventosAtivo / ativo.precoEntrada) * 100));
+                  const valorAtualSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
+                  const temCotacaoReal = !!cotacoesAtualizadas[ativo.ticker];
                   
                   return (
-                    <tr key={ativo.id || ('encerrado-' + index)} style={{ 
-                      borderBottom: '1px solid #fecaca',
-                      backgroundColor: '#fef2f2'
+                    <tr key={ativo.id || index} style={{ 
+                      borderBottom: '1px solid #f1f5f9',
+                      transition: 'background-color 0.2s'
                     }}>
                       <td style={{ padding: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1052,39 +1141,45 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                             {ativo.ticker.slice(0, 2)}
                           </div>
                           <div>
-                            <div style={{ fontWeight: '700', color: '#991b1b', fontSize: '16px' }}>
+                            <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '16px' }}>
                               {ativo.ticker}
-                              <span style={{ 
-                                marginLeft: '8px', 
-                                fontSize: '12px', 
-                                color: '#dc2626',
-                                backgroundColor: '#fecaca',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                VENDIDA
-                              </span>
+                              {!temCotacaoReal && (
+                                <span style={{ 
+                                  marginLeft: '8px', 
+                                  fontSize: '12px', 
+                                  color: '#f59e0b',
+                                  backgroundColor: '#fef3c7',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px'
+                                }}>
+                                  SIM
+                                </span>
+                              )}
                             </div>
-                            <div style={{ color: '#b91c1c', fontSize: '14px' }}>
+                            <div style={{ color: '#64748b', fontSize: '14px' }}>
                               {ativo.setor}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#991b1b' }}>
+                      <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                         {ativo.dataEntrada}
                       </td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#991b1b' }}>
-                        {ativo.dataSaida}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#991b1b' }}>
+                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
                         {formatCurrency(ativo.precoEntrada, carteiraConfig?.moeda)}
                       </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performanceAcao >= 0 ? '#10b981' : '#ef4444' }}>
-                        {formatCurrency(ativo.precoSaida, carteiraConfig?.moeda)}
-                        <div style={{ fontSize: '10px', color: '#dc2626', fontWeight: '500' }}>
-                          🔒 FINAL
-                        </div>
+                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performance >= 0 ? '#10b981' : '#ef4444' }}>
+                        {formatCurrency(precoAtual, carteiraConfig?.moeda)}
+                        {temCotacaoReal && (
+                          <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '500' }}>
+                            ✅ API
+                          </div>
+                        )}
+                        {!temCotacaoReal && (
+                          <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: '500' }}>
+                            📊 Simulado
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <div style={{ 
@@ -1096,53 +1191,53 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                         </div>
                         {proventosAtivo > 0 && (
                           <div style={{ fontSize: '10px', color: '#059669', fontWeight: '500' }}>
-                            📈 Período
+                            📈 API
                           </div>
                         )}
                       </td>
-<td style={{ 
-  padding: '16px', 
-  textAlign: 'center', 
-  fontWeight: '800',
-  fontSize: '16px'
-}}>
-  {/* PERFORMANCE TOTAL FINAL */}
-  <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
-    {formatPercentage(performanceComProventos)}
-  </div>
-  
-  {/* BREAKDOWN DETALHADO */}
-  <div style={{ 
-    fontSize: '11px', 
-    color: '#64748b', 
-    fontWeight: '500',
-    marginTop: '4px',
-    lineHeight: '1.3'
-  }}>
-    {/* Performance da ação */}
-    <div style={{ marginBottom: '2px' }}>
-      Ação: <span style={{ 
-        color: performanceAcao >= 0 ? '#059669' : '#dc2626',
-        fontWeight: '600'
-      }}>
-        {formatPercentage(performanceAcao)}
-      </span>
-    </div>
-    
-    {/* ✅ NOVA LINHA DOS PROVENTOS */}
-    <div>
-      Proventos: <span style={{ 
-        color: proventosAtivo > 0 ? '#059669' : '#64748b',
-        fontWeight: '600'
-      }}>
-        {proventosAtivo > 0 ? 
-          '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
-          '0,0%'
-        }
-      </span>
-    </div>
-  </div>
-</td>
+                      <td style={{ 
+                        padding: '16px', 
+                        textAlign: 'center', 
+                        fontWeight: '800',
+                        fontSize: '16px'
+                      }}>
+                        {/* PERFORMANCE TOTAL */}
+                        <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
+                          {formatPercentage(performanceComProventos)}
+                        </div>
+                        
+                        {/* BREAKDOWN DETALHADO */}
+                        <div style={{ 
+                          fontSize: '11px', 
+                          color: '#64748b', 
+                          fontWeight: '500',
+                          marginTop: '4px',
+                          lineHeight: '1.3'
+                        }}>
+                          {/* Linha da ação */}
+                          <div style={{ marginBottom: '2px' }}>
+                            Ação: <span style={{ 
+                              color: performance >= 0 ? '#059669' : '#dc2626',
+                              fontWeight: '600'
+                            }}>
+                              {formatPercentage(performance)}
+                            </span>
+                          </div>
+                          
+                          {/* ✅ NOVA LINHA DOS PROVENTOS */}
+                          <div>
+                            Proventos: <span style={{ 
+                              color: proventosAtivo > 0 ? '#059669' : '#64748b',
+                              fontWeight: '600'
+                            }}>
+                              {proventosAtivo > 0 ? 
+                                '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
+                                '0,0%'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </td>
                       <td style={{ 
                         padding: '16px', 
                         textAlign: 'center', 
@@ -1150,16 +1245,7 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
                         color: '#1e293b',
                         backgroundColor: performanceComProventos >= 0 ? '#f0fdf4' : '#fef2f2'
                       }}>
-                        {formatCurrency(valorFinalSimulado, carteiraConfig?.moeda)}
-                      </td>
-                      <td style={{ 
-                        padding: '16px', 
-                        textAlign: 'center', 
-                        fontSize: '12px', 
-                        color: '#991b1b',
-                        fontWeight: '600'
-                      }}>
-                        {ativo.motivoEncerramento}
+                        {formatCurrency(valorAtualSimulado, carteiraConfig?.moeda)}
                       </td>
                     </tr>
                   );
@@ -1167,28 +1253,437 @@ const calcularProventosAtivo = useCallback(async (ticker, dataEntrada) => {
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* 🔥 TABELA DE POSIÇÕES ENCERRADAS (VENDIDAS) - RESPONSIVA */}
+      {ativosEncerrados.length > 0 && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
+          marginBottom: '32px'
+        }}>
+          <div style={{
+            padding: isMobile ? '16px' : '24px', // ✅ RESPONSIVO
+            borderBottom: '1px solid #fecaca',
+            backgroundColor: '#fef2f2'
+          }}>
+            <h3 style={{
+              fontSize: isMobile ? '20px' : '24px', // ✅ RESPONSIVO
+              fontWeight: '700',
+              color: '#991b1b',
+              margin: '0 0 8px 0'
+            }}>
+              🔒 Performance Individual - Posições Vendidas
+            </h3>
+            <p style={{
+              color: '#b91c1c',
+              fontSize: isMobile ? '14px' : '16px', // ✅ RESPONSIVO
+              margin: '0'
+            }}>
+              Histórico completo de posições encerradas com performance final • Total: {ativosEncerrados.length} ativos vendidos
+            </p>
+          </div>
+
+          {isMobile ? (
+            // 📱 MOBILE: Cards para encerradas - IGUAL AO CÓDIGO 3
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {ativosEncerrados.map((ativo, index) => {
+                const performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+                // ✅ USAR OS DADOS JÁ CALCULADOS
+                const proventosAtivo = ativo.proventosAtivo || 0;
+                const performanceComProventos = ativo.performanceTotal || (performanceAcao + ((proventosAtivo / ativo.precoEntrada) * 100));
+                const valorFinalSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
+                
+                return (
+                  <div 
+                    key={ativo.id || ('encerrado-' + index)}
+                    style={{
+                      backgroundColor: '#fef2f2',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      border: '1px solid #fecaca'
+                    }}
+                  >
+                    {/* Header do Card Encerrado */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        backgroundColor: '#fef2f2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #fecaca'
+                      }}>
+                        <img 
+                          src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                          alt={`Logo ${ativo.ticker}`}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            objectFit: 'contain'
+                          }}
+                          onError={(e) => {
+                            const target = e.target;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.style.backgroundColor = '#dc2626';
+                              parent.style.color = 'white';
+                              parent.style.fontWeight = '700';
+                              parent.style.fontSize = '12px';
+                              parent.textContent = ativo.ticker.slice(0, 2);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: '1' }}>
+                        <div style={{ 
+                          fontWeight: '700', 
+                          color: '#991b1b', 
+                          fontSize: '16px'
+                        }}>
+                          {ativo.ticker}
+                          <span style={{ 
+                            marginLeft: '8px', 
+                            fontSize: '10px', 
+                            color: '#dc2626',
+                            backgroundColor: '#fecaca',
+                            padding: '2px 4px',
+                            borderRadius: '3px'
+                          }}>
+                            VENDIDA
+                          </span>
+                        </div>
+                        <div style={{ color: '#b91c1c', fontSize: '12px' }}>
+                          {ativo.setor}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Dados em Grid */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '8px', 
+                      fontSize: '14px',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ color: '#991b1b' }}>
+                        <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                        <span style={{ fontWeight: '600', color: '#991b1b' }}>{ativo.dataEntrada}</span>
+                      </div>
+                      <div style={{ color: '#991b1b' }}>
+                        <span style={{ fontWeight: '500' }}>Saída:</span><br />
+                        <span style={{ fontWeight: '600', color: '#991b1b' }}>{ativo.dataSaida}</span>
+                      </div>
+                      <div style={{ color: '#991b1b' }}>
+                        <span style={{ fontWeight: '500' }}>Preço Entrada:</span><br />
+                        <span style={{ fontWeight: '700', color: '#991b1b' }}>
+                          {formatCurrency(ativo.precoEntrada, carteiraConfig?.moeda)}
+                        </span>
+                      </div>
+                      <div style={{ color: '#991b1b' }}>
+                        <span style={{ fontWeight: '500' }}>Preço Saída:</span><br />
+                        <span style={{ fontWeight: '700', color: '#991b1b' }}>
+                          {formatCurrency(ativo.precoSaida, carteiraConfig?.moeda)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Performance final */}
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '8px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '6px',
+                      border: '1px solid #fecaca',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#991b1b', marginBottom: '4px' }}>
+                        Performance Final Total Return
+                      </div>
+                      <div style={{ 
+                        fontSize: '18px', 
+                        fontWeight: '800',
+                        color: performanceComProventos >= 0 ? '#059669' : '#dc2626'
+                      }}>
+                        {formatPercentage(performanceComProventos)}
+                      </div>
+                      {/* Breakdown detalhado */}
+                      <div style={{ 
+                        fontSize: '11px', 
+                        color: '#64748b', 
+                        fontWeight: '500',
+                        marginTop: '4px',
+                        lineHeight: '1.3'
+                      }}>
+                        <div style={{ marginBottom: '2px' }}>
+                          Ação: <span style={{ 
+                            color: performanceAcao >= 0 ? '#059669' : '#dc2626',
+                            fontWeight: '600'
+                          }}>
+                            {formatPercentage(performanceAcao)}
+                          </span>
+                        </div>
+                        <div>
+                          Proventos: <span style={{ 
+                            color: proventosAtivo > 0 ? '#059669' : '#64748b',
+                            fontWeight: '600'
+                          }}>
+                            {proventosAtivo > 0 ? 
+                              '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
+                              '0,0%'
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Motivo */}
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#991b1b', 
+                      textAlign: 'center',
+                      fontWeight: '500'
+                    }}>
+                      Motivo: {ativo.motivoEncerramento}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            // 🖥️ DESKTOP: Tabela para encerradas
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#fee2e2' }}>
+                    <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      ATIVO
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      ENTRADA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      SAÍDA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      PREÇO ENTRADA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      PREÇO SAÍDA
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      PROVENTOS
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      PERFORMANCE FINAL
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      VALOR FINAL
+                    </th>
+                    <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>
+                      MOTIVO
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ativosEncerrados.map((ativo, index) => {
+                    const performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+                    // ✅ USAR OS DADOS JÁ CALCULADOS
+                    const proventosAtivo = ativo.proventosAtivo || 0;
+                    const performanceComProventos = ativo.performanceTotal || (performanceAcao + ((proventosAtivo / ativo.precoEntrada) * 100));
+                    const valorFinalSimulado = valorPorAtivo * (1 + performanceComProventos / 100);
+                    
+                    return (
+                      <tr key={ativo.id || ('encerrado-' + index)} style={{ 
+                        borderBottom: '1px solid #fecaca',
+                        backgroundColor: '#fef2f2'
+                      }}>
+                        <td style={{ padding: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              backgroundColor: performanceComProventos >= 0 ? '#dcfce7' : '#fee2e2',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '700',
+                              color: performanceComProventos >= 0 ? '#065f46' : '#991b1b'
+                            }}>
+                              {ativo.ticker.slice(0, 2)}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: '700', color: '#991b1b', fontSize: '16px' }}>
+                                {ativo.ticker}
+                                <span style={{ 
+                                  marginLeft: '8px', 
+                                  fontSize: '12px', 
+                                  color: '#dc2626',
+                                  backgroundColor: '#fecaca',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px'
+                                }}>
+                                  VENDIDA
+                                </span>
+                              </div>
+                              <div style={{ color: '#b91c1c', fontSize: '14px' }}>
+                                {ativo.setor}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', color: '#991b1b' }}>
+                          {ativo.dataEntrada}
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', color: '#991b1b' }}>
+                          {ativo.dataSaida}
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#991b1b' }}>
+                          {formatCurrency(ativo.precoEntrada, carteiraConfig?.moeda)}
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: performanceAcao >= 0 ? '#10b981' : '#ef4444' }}>
+                          {formatCurrency(ativo.precoSaida, carteiraConfig?.moeda)}
+                          <div style={{ fontSize: '10px', color: '#dc2626', fontWeight: '500' }}>
+                            🔒 FINAL
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px', textAlign: 'center' }}>
+                          <div style={{ 
+                            fontWeight: '700',
+                            color: proventosAtivo > 0 ? '#059669' : '#64748b',
+                            fontSize: '14px'
+                          }}>
+                            {proventosAtivo > 0 ? formatCurrency(proventosAtivo, carteiraConfig?.moeda) : '-'}
+                          </div>
+                          {proventosAtivo > 0 && (
+                            <div style={{ fontSize: '10px', color: '#059669', fontWeight: '500' }}>
+                              📈 Período
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center', 
+                          fontWeight: '800',
+                          fontSize: '16px'
+                        }}>
+                          {/* PERFORMANCE TOTAL FINAL */}
+                          <div style={{ color: performanceComProventos >= 0 ? '#10b981' : '#ef4444' }}>
+                            {formatPercentage(performanceComProventos)}
+                          </div>
+                          
+                          {/* BREAKDOWN DETALHADO */}
+                          <div style={{ 
+                            fontSize: '11px', 
+                            color: '#64748b', 
+                            fontWeight: '500',
+                            marginTop: '4px',
+                            lineHeight: '1.3'
+                          }}>
+                            {/* Performance da ação */}
+                            <div style={{ marginBottom: '2px' }}>
+                              Ação: <span style={{ 
+                                color: performanceAcao >= 0 ? '#059669' : '#dc2626',
+                                fontWeight: '600'
+                              }}>
+                                {formatPercentage(performanceAcao)}
+                              </span>
+                            </div>
+                            
+                            {/* ✅ NOVA LINHA DOS PROVENTOS */}
+                            <div>
+                              Proventos: <span style={{ 
+                                color: proventosAtivo > 0 ? '#059669' : '#64748b',
+                                fontWeight: '600'
+                              }}>
+                                {proventosAtivo > 0 ? 
+                                  '+' + ((proventosAtivo / ativo.precoEntrada) * 100).toFixed(1) + '%' : 
+                                  '0,0%'
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center', 
+                          fontWeight: '700',
+                          color: '#1e293b',
+                          backgroundColor: performanceComProventos >= 0 ? '#f0fdf4' : '#fef2f2'
+                        }}>
+                          {formatCurrency(valorFinalSimulado, carteiraConfig?.moeda)}
+                        </td>
+                        <td style={{ 
+                          padding: '16px', 
+                          textAlign: 'center', 
+                          fontSize: '12px', 
+                          color: '#991b1b',
+                          fontWeight: '600'
+                        }}>
+                          {ativo.motivoEncerramento}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Footer com Informações sobre Posições Vendidas */}
+      {/* Footer com Informações sobre Posições Vendidas - Responsivo */}
       {ativosEncerrados.length > 0 && (
         <div style={{
           marginTop: '32px',
-          padding: '20px',
+          padding: isMobile ? '16px' : '20px', // ✅ RESPONSIVO
           backgroundColor: '#10b981',
           borderRadius: '12px',
           color: 'white',
           textAlign: 'center'
         }}>
-          <h3 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 8px 0' }}>
+          <h3 style={{ 
+            fontSize: isMobile ? '16px' : '18px', // ✅ RESPONSIVO
+            fontWeight: '700', 
+            margin: '0 0 8px 0' 
+          }}>
             🔒 Histórico Completo de Posições
           </h3>
-          <p style={{ fontSize: '14px', margin: '0', opacity: 0.9 }}>
+          <p style={{ 
+            fontSize: isMobile ? '13px' : '14px', // ✅ RESPONSIVO
+            margin: '0', 
+            opacity: 0.9 
+          }}>
             Nossa página de rentabilidades agora inclui o histórico completo de {ativosEncerrados.length} posições vendidas, 
             mostrando performance final com preços reais de entrada e saída. Transparência total em cada decisão de investimento.
           </p>
         </div>
       )}
+
+      {/* Animações CSS */}
+      <style jsx>{`
+        /* Spinner de Loading */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        /* Animação de Pulse para Skeletons */
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }
