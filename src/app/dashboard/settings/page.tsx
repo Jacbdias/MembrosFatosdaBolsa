@@ -1160,7 +1160,7 @@ export default function FiisPage() {
           color: '#1e293b',
           margin: '0 0 8px 0'
         }}>
-          Carteira de FIIs - Estratégia Mobile Universal
+          Carteira de Fundos Imobiliários
         </h1>
         <div style={{ 
           color: '#64748b', 
@@ -1191,7 +1191,7 @@ export default function FiisPage() {
             </>
           ) : (
             <span>
-              Dados atualizados a cada 5 minutos • Total Return aplicado
+              Dados atualizados a cada 5 minutos
             </span>
           )}
         </div>

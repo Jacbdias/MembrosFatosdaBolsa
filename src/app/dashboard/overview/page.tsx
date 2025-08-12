@@ -22,12 +22,10 @@ const setCachedData = (key: string, data: any) => {
   globalCache.set(key, { data, timestamp: Date.now() });
 };
 
-// 🔥 DETECÇÃO DE DISPOSITIVO - DUAS ESTRATÉGIAS SEPARADAS
+// 🔥 DETECÇÃO DE DISPOSITIVO SIMPLIFICADA E OTIMIZADA
 const useDeviceDetection = () => {
   const [isMobile, setIsMobile] = React.useState(() => {
     if (typeof window !== 'undefined') {
-      // 📱 SÓ CONSIDERA MOBILE PARA UI: largura <= 768px (telefones)
-      // iPad será tratado como desktop para mostrar tabela
       return window.innerWidth <= 768;
     }
     return false;
@@ -35,79 +33,14 @@ const useDeviceDetection = () => {
 
   React.useEffect(() => {
     const checkDevice = () => {
-      // 📱 INTERFACE MOBILE apenas para telefones (largura <= 768px)
-      // iPad, tablets e desktop mostram tabela
-      const shouldBeMobile = window.innerWidth <= 768;
-      
-      console.log('📱 Device Detection (UI):', {
-        width: window.innerWidth,
-        isMobile: shouldBeMobile,
-        userAgent: navigator.userAgent.substring(0, 50) + '...'
-      });
-      
-      setIsMobile(shouldBeMobile);
+      setIsMobile(window.innerWidth <= 768);
     };
 
-    // 🔄 VERIFICAR NO RESIZE E ORIENTAÇÃO
     window.addEventListener('resize', checkDevice);
-    window.addEventListener('orientationchange', checkDevice);
-    
-    // ✅ VERIFICAÇÃO INICIAL APÓS MOUNT
-    checkDevice();
-    
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-      window.removeEventListener('orientationchange', checkDevice);
-    };
+    return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
   return isMobile;
-};
-
-// 🌐 DETECÇÃO ESPECÍFICA PARA APIs - IPAD SEMPRE MOBILE
-const useApiDetection = () => {
-  const [isApiMobile, setIsApiMobile] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      // 🎯 DETECTAR IPAD/SAFARI ESPECIFICAMENTE PARA APIs
-      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
-      const isIpadOS = /iPad/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isMobileWidth = window.innerWidth <= 768;
-      
-      // ✅ USA ESTRATÉGIA MOBILE PARA APIs SE:
-      // - É telefone (<=768px) OU
-      // - É iPad/iPadOS (precisa da estratégia sequencial)
-      return isMobileWidth || isIpad || isIpadOS;
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const checkApiDevice = () => {
-      const isIpad = /iPad|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
-      const isIpadOS = /iPad/.test(navigator.userAgent) || 
-                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isMobileWidth = window.innerWidth <= 768;
-      
-      const shouldBeApiMobile = isMobileWidth || isIpad || isIpadOS;
-      
-      console.log('🌐 API Detection:', {
-        width: window.innerWidth,
-        isIpad,
-        isIpadOS,
-        isApiMobile: shouldBeApiMobile
-      });
-      
-      setIsApiMobile(shouldBeApiMobile);
-    };
-
-    window.addEventListener('resize', checkApiDevice);
-    checkApiDevice();
-    
-    return () => window.removeEventListener('resize', checkApiDevice);
-  }, []);
-
-  return isApiMobile;
 };
 
 // 🚀 HOOK SMLL SINCRONIZADO - ESTRATÉGIA UNIFICADA
@@ -115,7 +48,7 @@ function useSmllRealTime() {
   const [smllData, setSmllData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isApiMobile = useApiDetection(); // 🌐 USA DETECÇÃO ESPECÍFICA PARA APIs
+  const isMobile = useDeviceDetection();
 
   const buscarSmllReal = React.useCallback(async () => {
     try {
@@ -133,7 +66,7 @@ function useSmllRealTime() {
       }
 
       console.log('🔍 BUSCANDO SMLL - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isApiMobile });
+      console.log('📱 Device Info:', { isMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const smal11Url = `https://brapi.dev/api/quote/SMAL11?token=${BRAPI_TOKEN}`;
@@ -184,11 +117,11 @@ function useSmllRealTime() {
           }
         }
       } catch (error) {
-        console.log('🎯❌ SMLL (Estratégia Unificada):', (error as Error).message);
+        console.log('🎯❌ SMLL (Estratégia Unificada):', error instanceof Error ? error.message : 'Erro desconhecido');
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosSmllObtidos && isApiMobile) {
+      if (!dadosSmllObtidos && isMobile) {
         console.log('📱 SMLL: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -227,7 +160,7 @@ function useSmllRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ SMLL (Fallback 1):', (error as Error).message);
+            console.log('📱❌ SMLL (Fallback 1):', error instanceof Error ? error.message : 'Erro desconhecido');
           }
         }
 
@@ -266,7 +199,7 @@ function useSmllRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ SMLL (Fallback 2):', (error as Error).message);
+            console.log('📱❌ SMLL (Fallback 2):', error instanceof Error ? error.message : 'Erro desconhecido');
           }
         }
       }
@@ -324,7 +257,7 @@ function useSmllRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [isApiMobile]);
+  }, [isMobile]);
 
   React.useEffect(() => {
     buscarSmllReal();
@@ -335,12 +268,12 @@ function useSmllRealTime() {
   return { smllData, loading, error, refetch: buscarSmllReal };
 }
 
-// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA (CORRIGIDO)
+// 🚀 HOOK IBOVESPA SINCRONIZADO - ESTRATÉGIA UNIFICADA
 function useIbovespaRealTime() {
   const [ibovespaData, setIbovespaData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
+  const isMobile = useDeviceDetection();
 
   const buscarIbovespaReal = React.useCallback(async () => {
     try {
@@ -358,7 +291,7 @@ function useIbovespaRealTime() {
       }
 
       console.log('🔍 BUSCANDO IBOVESPA - ESTRATÉGIA UNIFICADA...');
-      console.log('📱 Device Info:', { isApiMobile });
+      console.log('📱 Device Info:', { isMobile });
 
       const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
       const ibovUrl = `https://brapi.dev/api/quote/^BVSP?token=${BRAPI_TOKEN}`;
@@ -406,11 +339,11 @@ function useIbovespaRealTime() {
           }
         }
       } catch (error) {
-        console.log('🎯❌ IBOV (Estratégia Unificada):', (error as Error).message);
+        console.log('🎯❌ IBOV (Estratégia Unificada):', error instanceof Error ? error.message : 'Erro desconhecido');
       }
 
       // 🔄 FALLBACK APENAS PARA MOBILE SE PRIMEIRA ESTRATÉGIA FALHOU
-      if (!dadosIbovObtidos && isApiMobile) { // 🔥 MUDANÇA: era isMobile
+      if (!dadosIbovObtidos && isMobile) {
         console.log('📱 IBOV: Usando fallback mobile (múltiplas tentativas)');
         
         // Delay antes do fallback
@@ -446,7 +379,7 @@ function useIbovespaRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ IBOV (Fallback 1):', (error as Error).message);
+            console.log('📱❌ IBOV (Fallback 1):', error instanceof Error ? error.message : 'Erro desconhecido');
           }
         }
 
@@ -482,7 +415,7 @@ function useIbovespaRealTime() {
               }
             }
           } catch (error) {
-            console.log('📱❌ IBOV (Fallback 2):', (error as Error).message);
+            console.log('📱❌ IBOV (Fallback 2):', error instanceof Error ? error.message : 'Erro desconhecido');
           }
         }
       }
@@ -529,7 +462,7 @@ function useIbovespaRealTime() {
     } finally {
       setLoading(false);
     }
-  }, [isApiMobile]); // 🔥 MUDANÇA: era isMobile
+  }, [isMobile]);
 
   React.useEffect(() => {
     buscarIbovespaReal();
@@ -540,11 +473,11 @@ function useIbovespaRealTime() {
   return { ibovespaData, loading, error, refetch: buscarIbovespaReal };
 }
 
-// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO (CORRIGIDO)
+// 🚀 HOOK CORRIGIDO PARA IBOVESPA NO PERÍODO
 function useIbovespaPeriodo(ativosAtualizados: any[]) {
   const [ibovespaPeriodo, setIbovespaPeriodo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
-  const isApiMobile = useApiDetection(); // 🔥 MUDANÇA: era isMobile = useDeviceDetection()
+  const isMobile = useDeviceDetection();
 
   React.useEffect(() => {
     const calcularIbovespaPeriodo = async () => {
@@ -553,29 +486,24 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
       try {
         setLoading(true);
 
-        // 📅 ENCONTRAR A DATA MAIS ANTIGA DA CARTEIRA (CORRIGIDO)
-        let dataMaisAntiga = new Date('2030-01-01'); // Começar com data futura
+        // 📅 ENCONTRAR A DATA MAIS ANTIGA DA CARTEIRA
+        let dataMaisAntiga = new Date('2030-01-01');
         ativosAtualizados.forEach(ativo => {
-          if (ativo.dataEntrada && !ativo.posicaoEncerrada) { // ✅ SÓ ATIVOS ATIVOS
+          if (ativo.dataEntrada && !ativo.posicaoEncerrada) {
             const [dia, mes, ano] = ativo.dataEntrada.split('/');
             const dataAtivo = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
             
-            console.log(`📅 ${ativo.ticker}: ${ativo.dataEntrada} = ${dataAtivo.toLocaleDateString('pt-BR')}`);
-            
             if (dataAtivo < dataMaisAntiga) {
               dataMaisAntiga = dataAtivo;
-              console.log(`📅 Nova data mais antiga: ${dataMaisAntiga.toLocaleDateString('pt-BR')} (${ativo.ticker})`);
             }
           }
         });
 
-        // ✅ VERIFICAÇÃO DE SEGURANÇA
         if (dataMaisAntiga.getFullYear() > 2025) {
-          console.log('❌ Nenhuma data válida encontrada, usando fallback');
-          dataMaisAntiga = new Date(2020, 2, 23); // 23/03/2020 (crash COVID)
+          dataMaisAntiga = new Date(2020, 2, 23);
         }
 
-        console.log('📅 Data mais antiga FINAL da carteira:', dataMaisAntiga.toLocaleDateString('pt-BR'));
+        console.log('📅 Data mais antiga da carteira:', dataMaisAntiga.toLocaleDateString('pt-BR'));
 
         const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
         let ibovAtual = 134500;
@@ -589,7 +517,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
             signal: controller.signal,
             headers: {
               'Accept': 'application/json',
-              'User-Agent': isApiMobile  // 🔥 MUDANÇA: era isMobile
+              'User-Agent': isMobile
                 ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 : 'SmallCaps-Ibov-Current'
             }
@@ -606,88 +534,37 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
 
         // 📊 VALORES HISTÓRICOS MAIS PRECISOS
         const anoInicial = dataMaisAntiga.getFullYear();
-        const mesInicial = dataMaisAntiga.getMonth(); // 0-11
+        const mesInicial = dataMaisAntiga.getMonth();
         
         const valoresHistoricos: { [key: string]: number } = {
           // 2020 - VALORES BASEADOS NO CRASH REAL DO COVID
-          '2020-0': 115000,  // Jan 2020
-          '2020-1': 110000,  // Fev 2020
-          '2020-2': 63500,   // Mar 2020: CRASH COVID - mínima histórica real
-          '2020-3': 73000,   // Abr 2020
-          '2020-4': 78000,   // Mai 2020
-          '2020-5': 93000,   // Jun 2020
-          '2020-6': 100000,  // Jul 2020
-          '2020-7': 105000,  // Ago 2020
-          '2020-8': 103000,  // Set 2020
-          '2020-9': 97000,   // Out 2020
-          '2020-10': 103000, // Nov 2020 ← AQUI ESTAVA O ERRO!
-          '2020-11': 118000, // Dez 2020
+          '2020-0': 115000, '2020-1': 110000, '2020-2': 63500, '2020-3': 73000,
+          '2020-4': 78000, '2020-5': 93000, '2020-6': 100000, '2020-7': 105000,
+          '2020-8': 103000, '2020-9': 97000, '2020-10': 103000, '2020-11': 118000,
           
           // 2021 - ANO DE ALTA VOLATILIDADE
-          '2021-0': 119000,  // Jan 2021 ← CORRIGIDO TAMBÉM
-          '2021-1': 116000,  // Fev 2021
-          '2021-2': 112000,  // Mar 2021
-          '2021-3': 118000,  // Abr 2021
-          '2021-4': 125000,  // Mai 2021
-          '2021-5': 127000,  // Jun 2021: pico histórico
-          '2021-6': 125000,  // Jul 2021
-          '2021-7': 120000,  // Ago 2021
-          '2021-8': 115000,  // Set 2021
-          '2021-9': 108000,  // Out 2021
-          '2021-10': 103000, // Nov 2021
-          '2021-11': 105000, // Dez 2021
+          '2021-0': 119000, '2021-1': 116000, '2021-2': 112000, '2021-3': 118000,
+          '2021-4': 125000, '2021-5': 127000, '2021-6': 125000, '2021-7': 120000,
+          '2021-8': 115000, '2021-9': 108000, '2021-10': 103000, '2021-11': 105000,
           
-          // 2022 - CORREÇÃO E VOLATILIDADE
-          '2022-0': 110000,  // Jan 2022
-          '2022-1': 114000,  // Fev 2022
-          '2022-2': 118000,  // Mar 2022
-          '2022-3': 116000,  // Abr 2022
-          '2022-4': 112000,  // Mai 2022
-          '2022-5': 103000,  // Jun 2022
-          '2022-6': 100000,  // Jul 2022: mínimo do ano
-          '2022-7': 112000,  // Ago 2022
-          '2022-8': 115000,  // Set 2022
-          '2022-9': 116000,  // Out 2022
-          '2022-10': 118000, // Nov 2022
-          '2022-11': 109000, // Dez 2022
+          // 2022 - CORREÇÃO
+          '2022-0': 110000, '2022-1': 114000, '2022-2': 118000, '2022-3': 116000,
+          '2022-4': 112000, '2022-5': 103000, '2022-6': 100000, '2022-7': 112000,
+          '2022-8': 115000, '2022-9': 116000, '2022-10': 118000, '2022-11': 109000,
           
           // 2023 - RECUPERAÇÃO PARCIAL
-          '2023-0': 109000,  // Jan 2023
-          '2023-1': 112000,  // Fev 2023
-          '2023-2': 108000,  // Mar 2023
-          '2023-3': 112000,  // Abr 2023
-          '2023-4': 116000,  // Mai 2023
-          '2023-5': 121000,  // Jun 2023
-          '2023-6': 125000,  // Jul 2023
-          '2023-7': 122000,  // Ago 2023
-          '2023-8': 118000,  // Set 2023
-          '2023-9': 115000,  // Out 2023
-          '2023-10': 125000, // Nov 2023
-          '2023-11': 133000, // Dez 2023
+          '2023-0': 109000, '2023-1': 112000, '2023-2': 108000, '2023-3': 112000,
+          '2023-4': 116000, '2023-5': 121000, '2023-6': 125000, '2023-7': 122000,
+          '2023-8': 118000, '2023-9': 115000, '2023-10': 125000, '2023-11': 133000,
           
           // 2024 - QUEDA SIGNIFICATIVA
-          '2024-0': 134000,  // Jan 2024
-          '2024-1': 132000,  // Fev 2024
-          '2024-2': 130000,  // Mar 2024
-          '2024-3': 128000,  // Abr 2024
-          '2024-4': 126000,  // Mai 2024
-          '2024-5': 123000,  // Jun 2024
-          '2024-6': 128000,  // Jul 2024
-          '2024-7': 133000,  // Ago 2024
-          '2024-8': 135000,  // Set 2024
-          '2024-9': 132000,  // Out 2024
-          '2024-10': 130000, // Nov 2024
-          '2024-11': 119000, // Dez 2024
+          '2024-0': 134000, '2024-1': 132000, '2024-2': 130000, '2024-3': 128000,
+          '2024-4': 126000, '2024-5': 123000, '2024-6': 128000, '2024-7': 133000,
+          '2024-8': 135000, '2024-9': 132000, '2024-10': 130000, '2024-11': 119000,
           
           // 2025
-          '2025-0': 119000,  // Jan 2025
-          '2025-1': 122000,  // Fev 2025
-          '2025-2': 128000,  // Mar 2025
-          '2025-3': 132000,  // Abr 2025
-          '2025-4': 134000,  // Mai 2025
-          '2025-5': 136000,  // Jun 2025
-          '2025-6': 134500,  // Jul 2025
-          '2025-7': 134500   // Ago 2025: atual
+          '2025-0': 119000, '2025-1': 122000, '2025-2': 128000, '2025-3': 132000,
+          '2025-4': 134000, '2025-5': 136000, '2025-6': 134500, '2025-7': 134500
         };
         
         // 🎯 BUSCAR VALOR HISTÓRICO MAIS ESPECÍFICO
@@ -749,7 +626,7 @@ function useIbovespaPeriodo(ativosAtualizados: any[]) {
     };
 
     calcularIbovespaPeriodo();
-  }, [ativosAtualizados, isApiMobile]); // 🔥 MUDANÇA: era isMobile
+  }, [ativosAtualizados, isMobile]);
 
   return { ibovespaPeriodo, loading };
 }
@@ -764,302 +641,167 @@ function calcularViesAutomatico(precoTeto: number | undefined, precoAtual: strin
   return precoAtualNum < precoTeto ? 'Compra' : 'Aguardar';
 }
 
-// 🚀 FUNÇÃO CORRIGIDA - ESTRATÉGIA MOBILE UNIVERSAL (igual ao código FIIs)
-async function buscarCotacoesParalelas(tickers: string[], isApiMobile: boolean): Promise<Map<string, any>> {
+// 🚀 FUNÇÃO OTIMIZADA PARA BUSCAR COTAÇÕES - SEMPRE ESTRATÉGIA MOBILE
+async function buscarCotacoesParalelas(tickers: string[], isMobile: boolean): Promise<Map<string, any>> {
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   const cotacoesMap = new Map();
   
-  console.log('🚀 [COTAÇÕES] Forçando estratégia mobile para todos os dispositivos');
+  console.log('🚀 [OTIMIZADO] Buscando', tickers.length, 'cotações EM PARALELO...');
   
-  // ✅ SEMPRE USAR ESTRATÉGIA MOBILE (que funciona perfeitamente)
-  // 📱 ESTRATÉGIA MOBILE PARA TODOS OS DISPOSITIVOS (SEQUENCIAL - mais confiável)
-  
-  console.log('📱 [UNIVERSAL] Usando estratégia mobile para', tickers.length, 'tickers');
-  
-  for (const ticker of tickers) {
-    let cotacaoObtida = false;
+  // ✅ STRATEGY 1: Tentar batch request primeiro (1 requisição para todos)
+  try {
+    const batchUrl = `https://brapi.dev/api/quote/${tickers.join(',')}?token=${BRAPI_TOKEN}`;
+    const response = await Promise.race([
+      fetch(batchUrl),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Batch timeout')), 5000))
+    ]);
     
-    // ESTRATÉGIA 1: User-Agent Desktop
-    if (!cotacaoObtida) {
-      try {
-        console.log(`📱🔄 [${ticker}] Tentativa 1 - User-Agent Desktop`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        console.log('✅ BATCH REQUEST SUCESSO:', data.results.length, 'cotações em 1 só request');
         
-        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Cache-Control': 'no-cache'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results?.[0]?.regularMarketPrice > 0) {
-            const quote = data.results[0];
-            cotacoesMap.set(ticker, {
+        data.results.forEach((quote: any) => {
+          if (quote.regularMarketPrice > 0) {
+            cotacoesMap.set(quote.symbol, {
               precoAtual: quote.regularMarketPrice,
               variacao: quote.regularMarketChange || 0,
               variacaoPercent: quote.regularMarketChangePercent || 0,
               volume: quote.regularMarketVolume || 0,
-              nome: quote.shortName || quote.longName || ticker,
+              nome: quote.shortName || quote.longName || quote.symbol,
               dadosCompletos: quote
             });
-            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Desktop UA)`);
-            cotacaoObtida = true;
           }
-        }
-      } catch (error) {
-        console.log(`📱❌ [${ticker}] (Desktop UA): ${(error as Error).message}`);
-      }
-    }
-    
-    // ESTRATÉGIA 2: Sem User-Agent
-    if (!cotacaoObtida) {
-      try {
-        console.log(`📱🔄 [${ticker}] Tentativa 2 - Sem User-Agent`);
-        
-        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results?.[0]?.regularMarketPrice > 0) {
-            const quote = data.results[0];
-            cotacoesMap.set(ticker, {
-              precoAtual: quote.regularMarketPrice,
-              variacao: quote.regularMarketChange || 0,
-              variacaoPercent: quote.regularMarketChangePercent || 0,
-              volume: quote.regularMarketVolume || 0,
-              nome: quote.shortName || quote.longName || ticker,
-              dadosCompletos: quote
-            });
-            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (Sem UA)`);
-            cotacaoObtida = true;
-          }
-        }
-      } catch (error) {
-        console.log(`📱❌ [${ticker}] (Sem UA): ${(error as Error).message}`);
-      }
-    }
-    
-    // ESTRATÉGIA 3: URL simplificada
-    if (!cotacaoObtida) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      try {
-        console.log(`📱🔄 [${ticker}] Tentativa 3 - URL simplificada`);
         
-        const response = await fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}&range=1d`, {
-          method: 'GET',
-          mode: 'cors'
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.results?.[0]?.regularMarketPrice > 0) {
-            const quote = data.results[0];
-            cotacoesMap.set(ticker, {
-              precoAtual: quote.regularMarketPrice,
-              variacao: quote.regularMarketChange || 0,
-              variacaoPercent: quote.regularMarketChangePercent || 0,
-              volume: quote.regularMarketVolume || 0,
-              nome: quote.shortName || quote.longName || ticker,
-              dadosCompletos: quote
-            });
-            console.log(`📱✅ [${ticker}]: R$ ${quote.regularMarketPrice.toFixed(2)} (URL simples)`);
-            cotacaoObtida = true;
-          }
-        }
-      } catch (error) {
-        console.log(`📱❌ [${ticker}] (URL simples): ${(error as Error).message}`);
+        return cotacoesMap;
       }
     }
-    
-    if (!cotacaoObtida) {
-      console.log(`📱⚠️ [${ticker}]: Todas as estratégias falharam`);
-    }
-    
-    // ⭐ DELAY CRUCIAL: previne rate limiting
-    await new Promise(resolve => setTimeout(resolve, 200));
+  } catch (error) {
+    console.log('❌ Batch request falhou, usando paralelo individual');
   }
+  
+  // ✅ STRATEGY 2: Requests paralelos individuais (SEM DELAYS!)
+  console.log('🚀 [PARALELO] Executando', tickers.length, 'requests simultâneos...');
+  
+  const promises = tickers.map(async (ticker) => {
+    try {
+      const response = await Promise.race([
+        fetch(`https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`, {
+          headers: { 'Accept': 'application/json' }
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Individual timeout')), 4000))
+      ]);
 
-  console.log('📱 [UNIVERSAL] Resultado final:', cotacoesMap.size, 'de', tickers.length);
+      if (response.ok) {
+        const data = await response.json();
+        const quote = data.results?.[0];
+        
+        if (quote?.regularMarketPrice > 0) {
+          cotacoesMap.set(ticker, {
+            precoAtual: quote.regularMarketPrice,
+            variacao: quote.regularMarketChange || 0,
+            variacaoPercent: quote.regularMarketChangePercent || 0,
+            volume: quote.regularMarketVolume || 0,
+            nome: quote.shortName || quote.longName || ticker,
+            dadosCompletos: quote
+          });
+        }
+      }
+    } catch (error) {
+      console.log(`❌ [${ticker}]:`, error instanceof Error ? error.message : 'Erro desconhecido');
+    }
+  });
+  
+  // 🚀 EXECUTAR TODAS EM PARALELO (ZERO DELAYS)
+  await Promise.allSettled(promises);
+  
+  console.log('✅ [PARALELO] Concluído:', cotacoesMap.size, 'de', tickers.length);
   return cotacoesMap;
 }
 
-// 🔄 FUNÇÃO PARA BUSCAR DY COM ESTRATÉGIA MOBILE/DESKTOP (RESTAURADA)
-async function buscarDYsComEstrategia(tickers: string[], isApiMobile: boolean): Promise<Map<string, string>> {
+// 🔄 FUNÇÃO PARA BUSCAR DY COM CÁLCULO MANUAL - ESTRATÉGIA MOBILE/DESKTOP
+async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Promise<Map<string, string>> {
   const dyMap = new Map<string, string>();
   const BRAPI_TOKEN = 'jJrMYVy9MATGEicx3GxBp8';
   
-  if (isApiMobile) {
-    // 📱 MOBILE: Estratégia individual (SEQUENCIAL - não paralela!)
-    console.log('📱 [DY-MOBILE] Buscando DY individualmente no mobile');
+  console.log('📈 [OTIMIZADO] Buscando DY para', tickers.length, 'tickers EM PARALELO...');
+  
+  // ✅ BATCH REQUEST para DY também
+  try {
+    const batchUrl = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
+    const response = await Promise.race([
+      fetch(batchUrl),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('DY batch timeout')), 6000))
+    ]);
     
-    for (const ticker of tickers) {
-      let dyObtido = false;
-      
-      // ESTRATÉGIA 1: User-Agent Desktop
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY] ${ticker}: Tentativa 1 - User-Agent Desktop`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Desktop UA)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Desktop UA)`);
-              dyObtido = true; // Considera obtido mesmo se zero
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Desktop UA): ${(error as Error).message}`);
-        }
-      }
-      
-      // ESTRATÉGIA 2: Sem User-Agent
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY] ${ticker}: Tentativa 2 - Sem User-Agent`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (Sem UA)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (Sem UA)`);
-              dyObtido = true;
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (Sem UA): ${(error as Error).message}`);
-        }
-      }
-      
-      // ESTRATÉGIA 3: URL simplificada
-      if (!dyObtido) {
-        try {
-          console.log(`📱🔄 [DY] ${ticker}: Tentativa 3 - URL simplificada`);
-          
-          const response = await fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}&range=1d`, {
-            method: 'GET',
-            mode: 'cors'
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const dy = data.results?.[0]?.defaultKeyStatistics?.dividendYield;
-            
-            if (dy && dy > 0) {
-              dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-              console.log(`📱✅ [DY] ${ticker}: ${dy.toFixed(2)}% (URL simples)`);
-              dyObtido = true;
-            } else {
-              dyMap.set(ticker, '0,00%');
-              console.log(`📱❌ [DY] ${ticker}: DY zero/inválido (URL simples)`);
-              dyObtido = true;
-            }
-          }
-        } catch (error) {
-          console.log(`📱❌ [DY] ${ticker} (URL simples): ${(error as Error).message}`);
-        }
-      }
-      
-      // Se ainda não obteve, definir como 0%
-      if (!dyObtido) {
-        dyMap.set(ticker, '0,00%');
-        console.log(`📱⚠️ [DY] ${ticker}: Todas as estratégias falharam`);
-      }
-      
-      // ⭐ DELAY CRUCIAL: previne rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-  } else {
-    // 🖥️ DESKTOP: Requisição em lote (igual ao original)
-    console.log('🖥️ [DY-DESKTOP] Buscando DY em lote no desktop');
-    
-    try {
-      const url = `https://brapi.dev/api/quote/${tickers.join(',')}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'SmallCaps-DY-Batch'
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 [DY-DESKTOP] Resposta recebida para ${data.results?.length || 0} ativos`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        console.log('✅ DY BATCH SUCCESS:', data.results.length, 'DYs em 1 só request');
         
-        data.results?.forEach((result: any) => {
-          const ticker = result.symbol;
-          const dy = result.defaultKeyStatistics?.dividendYield;
+        data.results.forEach((ativo: any) => {
+          const lastDividend = ativo.defaultKeyStatistics?.lastDividendValue;
+          const currentPrice = ativo.regularMarketPrice;
           
-          if (dy && dy > 0) {
-            dyMap.set(ticker, `${dy.toFixed(2).replace('.', ',')}%`);
-            console.log(`✅ [DY-DESKTOP] ${ticker}: ${dy.toFixed(2)}%`);
+          if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+            const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+            dyMap.set(ativo.symbol, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
           } else {
-            dyMap.set(ticker, '0,00%');
-            console.log(`❌ [DY-DESKTOP] ${ticker}: DY não encontrado`);
+            dyMap.set(ativo.symbol, '0,00%');
           }
         });
         
-      } else {
-        console.log(`❌ [DY-DESKTOP] Erro HTTP ${response.status}`);
-        tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
+        return dyMap;
       }
-      
-    } catch (error) {
-      console.error(`❌ [DY-DESKTOP] Erro geral:`, error);
-      tickers.forEach(ticker => dyMap.set(ticker, '0,00%'));
     }
+  } catch (error) {
+    console.log('❌ DY Batch falhou, usando paralelo individual');
   }
   
-  console.log(`📋 [DY] Resultado final: ${dyMap.size} tickers processados`);
+  // ✅ PARALELO INDIVIDUAL para DY (SEM DELAYS!)
+  const promises = tickers.map(async (ticker) => {
+    try {
+      const response = await Promise.race([
+        fetch(`https://brapi.dev/api/quote/${ticker}?modules=defaultKeyStatistics&token=${BRAPI_TOKEN}`, {
+          headers: { 'Accept': 'application/json' }
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('DY timeout')), 4000))
+      ]);
+
+      if (response.ok) {
+        const data = await response.json();
+        const ativo = data.results?.[0];
+        
+        const lastDividend = ativo?.defaultKeyStatistics?.lastDividendValue;
+        const currentPrice = ativo?.regularMarketPrice;
+        
+        if (lastDividend && lastDividend > 0 && currentPrice && currentPrice > 0) {
+          const dyCalculado = (lastDividend * 12 / currentPrice) * 100;
+          dyMap.set(ticker, `${dyCalculado.toFixed(2).replace('.', ',')}%`);
+        } else {
+          dyMap.set(ticker, '0,00%');
+        }
+      }
+    } catch (error) {
+      console.log(`❌ [DY-${ticker}]:`, error instanceof Error ? error.message : 'Erro desconhecido');
+    }
+  });
+  
+  await Promise.allSettled(promises);
+  
+  // Garantir que todos os tickers tenham DY
+  tickers.forEach(ticker => {
+    if (!dyMap.has(ticker)) {
+      dyMap.set(ticker, '0,00%');
+    }
+  });
+  
+  console.log('✅ [DY-PARALELO] Concluído:', dyMap.size, 'de', tickers.length);
   return dyMap;
 }
 
-// 🚀 HOOK PRINCIPAL OTIMIZADO COM LOADING STATES GRANULARES (CORRIGIDO)
+// 🚀 HOOK PRINCIPAL OTIMIZADO COM PARALELIZAÇÃO TOTAL
 function useSmallCapsIntegradas() {
   const { dados } = useDataStore();
   const [ativosAtualizados, setAtivosAtualizados] = React.useState<any[]>([]);
@@ -1077,8 +819,7 @@ function useSmallCapsIntegradas() {
   const [loadingProventos, setLoadingProventos] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const isMobile = useDeviceDetection(); // ✅ MANTER: para UI
-  const isApiMobile = useApiDetection(); // 🔥 ADICIONAR: para APIs
+  const isMobile = useDeviceDetection();
   const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
   const smallCapsData = dados.smallCaps || [];
 
@@ -1087,7 +828,7 @@ function useSmallCapsIntegradas() {
     setLoadingProventos(true);
     const novosProventos = new Map<string, number>();
     
-    console.log('💰 Iniciando busca de proventos para', ativosData.length, 'ativos');
+    console.log('💰 Iniciando busca de proventos para', ativosData.length, 'small caps');
     
     const buscarProventoAtivo = async (ativo: any) => {
       try {
@@ -1123,7 +864,7 @@ function useSmallCapsIntegradas() {
           console.log(`💰 ${ativo.ticker}: Erro HTTP ${response.status}`);
         }
       } catch (error) {
-        console.log(`💰 ${ativo.ticker}: Erro -`, (error as Error).message);
+        console.log(`💰 ${ativo.ticker}: Erro -`, error instanceof Error ? error.message : 'Erro desconhecido');
       }
       
       return { ticker: ativo.ticker, valor: 0 };
@@ -1146,7 +887,7 @@ function useSmallCapsIntegradas() {
     return novosProventos;
   }, []);
 
-  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - ABORDAGEM STEP-BY-STEP ROBUSTA (CORRIGIDA)
+  // 🎯 FUNÇÃO PRINCIPAL REESCRITA - PARALELIZAÇÃO TOTAL (IGUAL AO CÓDIGO DOS FIIS)
   const buscarDadosCompletos = React.useCallback(async () => {
     if (smallCapsData.length === 0) {
       setAtivosAtualizados([]);
@@ -1159,63 +900,83 @@ function useSmallCapsIntegradas() {
       setTodosOsDadosProntos(false);
       const tickers = smallCapsData.map(ativo => ativo.ticker);
       
-      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA...');
+      console.log('🚀 INICIANDO BUSCA STEP-BY-STEP ROBUSTA - ESTRATÉGIA MOBILE UNIVERSAL...');
       
       // 🔄 RESET DOS ESTADOS
       setCotacoesCompletas(new Map());
       setDyCompletos(new Map());
       setProventosCompletos(new Map());
 
-      // 📊 ETAPA 1: COTAÇÕES
-      console.log('📊 ETAPA 1: Buscando cotações...');
+      // ⚡ PARALELIZAÇÃO TOTAL - IGUAL AO CÓDIGO DOS FIIS
+      console.log('⚡ EXECUTANDO TODAS AS ETAPAS EM PARALELO...');
+
+      // Ativar todos os loadings
       setLoadingCotacoes(true);
-      
-      const cotacoesMap = await buscarCotacoesParalelas(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
-      console.log('📊 Cotações obtidas:', cotacoesMap.size, 'de', tickers.length);
-      
-      setCotacoesCompletas(cotacoesMap);
-      setLoadingCotacoes(false);
-
-      // 📈 ETAPA 2: DY
-      console.log('📈 ETAPA 2: Buscando DY...');
       setLoadingDY(true);
-      
-      const dyMap = await buscarDYsComEstrategia(tickers, isApiMobile); // 🔥 MUDANÇA: era isMobile
-      console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
-      
-      setDyCompletos(dyMap);
-      setLoadingDY(false);
-
-      // 💰 ETAPA 3: PROVENTOS
-      console.log('💰 ETAPA 3: Buscando proventos...');
       setLoadingProventos(true);
-      
-      const proventosData = await buscarProventosAtivos(smallCapsData);
-      console.log('💰 Proventos obtidos:', proventosData.size, 'de', smallCapsData.length);
-      
-      setProventosCompletos(proventosData);
-      setLoadingProventos(false);
 
-      // ✅ MARCAR COMO TODOS PRONTOS
-      console.log('✅ TODOS OS DADOS COLETADOS - MARCANDO COMO PRONTOS');
+      // Medir tempo
+      const inicioTempo = performance.now();
+
+      // EXECUTAR TUDO EM PARALELO
+      const [cotacoesResult, dyResult, proventosResult] = await Promise.allSettled([
+        buscarCotacoesParalelas(tickers, isMobile),
+        buscarDYsComEstrategia(tickers, isMobile),
+        buscarProventosAtivos(smallCapsData)
+      ]);
+
+      const tempoTotal = performance.now() - inicioTempo;
+      console.log(`🎉 TODAS AS ETAPAS CONCLUÍDAS EM ${tempoTotal.toFixed(0)}ms!`);
+
+      // Processar resultados
+      const cotacoesMap = cotacoesResult.status === 'fulfilled' ? cotacoesResult.value : new Map();
+      const dyMap = dyResult.status === 'fulfilled' ? dyResult.value : new Map();
+      const proventosData = proventosResult.status === 'fulfilled' ? proventosResult.value : new Map();
+
+      // Logs de debug
+      console.log('📊 Cotações obtidas:', cotacoesMap.size, 'de', tickers.length);
+      console.log('📈 DY obtidos:', dyMap.size, 'de', tickers.length);
+      console.log('💰 Proventos obtidos:', proventosData.size, 'de', smallCapsData.length);
+
+      // Debug do DY
+      console.log('🔍 [PARALLEL-DEBUG] dyMap processado:');
+      console.log('🔍 [PARALLEL-DEBUG] dyMap.size:', dyMap.size);
+      console.log('🔍 [PARALLEL-DEBUG] dyMap conteúdo:', Object.fromEntries(dyMap));
+
+      // Atualizar estados
+      setCotacoesCompletas(cotacoesMap);
+      setDyCompletos(dyMap);
+      setProventosCompletos(proventosData);
+
+      // Desativar loadings
+      setLoadingCotacoes(false);
+      setLoadingDY(false);
+      setLoadingProventos(false);
+      
+      // Marcar como pronto para processamento final
       setTodosOsDadosProntos(true);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('❌ Erro geral ao buscar dados:', err);
-      
-      setLoadingCotacoes(false);
-      setLoadingDY(false);
-      setLoadingProventos(false);
+      console.error('❌ Erro na busca otimizada:', err);
+      setTodosOsDadosProntos(true);
     }
-  }, [smallCapsData, isApiMobile, buscarProventosAtivos]); // 🔥 MUDANÇA: era isMobile
+  }, [smallCapsData, isMobile, buscarProventosAtivos]);
 
   // 🏆 USEEFFECT QUE SÓ EXECUTA QUANDO TODOS OS DADOS ESTÃO PRONTOS
   React.useEffect(() => {
     if (!todosOsDadosProntos || smallCapsData.length === 0) return;
     
     console.log('🏆 PROCESSANDO TOTAL RETURN - TODOS OS DADOS PRONTOS!');
+    console.log('🔍 [DEPS-DEBUG] Verificando estados no momento da execução:');
+    console.log('🔍 [DEPS-DEBUG] todosOsDadosProntos:', todosOsDadosProntos);
+    console.log('🔍 [DEPS-DEBUG] smallCapsData.length:', smallCapsData.length);
+    console.log('🔍 [DEPS-DEBUG] cotacoesCompletas.size:', cotacoesCompletas.size);
+    console.log('🔍 [DEPS-DEBUG] dyCompletos.size:', dyCompletos.size);
+    console.log('🔍 [DEPS-DEBUG] proventosCompletos.size:', proventosCompletos.size);
+    console.log('🔍 [DEPS-DEBUG] dyCompletos conteúdo:', Object.fromEntries(dyCompletos));
+    
     console.log('📊 Dados disponíveis:', {
       cotacoes: cotacoesCompletas.size,
       dy: dyCompletos.size, 
@@ -1228,9 +989,18 @@ function useSmallCapsIntegradas() {
     // 🎯 PROCESSAR TODOS OS ATIVOS COM TOTAL RETURN CORRETO
     const ativosFinais = smallCapsData.map((ativo, index) => {
       const cotacao = cotacoesCompletas.get(ativo.ticker);
-      const dyAPI = dyCompletos.get(ativo.ticker) || '0,00%';
-      const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
       
+      // 🔍 DEBUG DY ASSIGNMENT
+      const dyAPI = dyCompletos.get(ativo.ticker) || '0,00%';
+      console.log(`🔍 [ASSIGN-DEBUG] ${ativo.ticker}:`);
+      console.log(`  - dyCompletos.size: ${dyCompletos.size}`);
+      console.log(`  - dyCompletos.has('${ativo.ticker}'): ${dyCompletos.has(ativo.ticker)}`);
+      console.log(`  - dyCompletos.get('${ativo.ticker}'): ${dyCompletos.get(ativo.ticker)}`);
+      console.log(`  - dyAPI final: ${dyAPI}`);
+      console.log(`  - loadingDY: ${loadingDY}`);
+      
+      const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
+    
       if (cotacao && cotacao.precoAtual > 0) {
         // ✅ ATIVO COM COTAÇÃO REAL
         const precoAtualNum = cotacao.precoAtual;
@@ -1240,13 +1010,13 @@ function useSmallCapsIntegradas() {
         
         novasCotacoes[ativo.ticker] = precoAtualNum;
         
-        console.log(`🏆 ${ativo.ticker}: R$ ${ativo.precoEntrada.toFixed(2)} -> R$ ${precoAtualNum.toFixed(2)} | Ação ${performanceAcao.toFixed(2)}% + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceTotal.toFixed(2)}%`);
+        console.log(`🏆 ${ativo.ticker}: DY final que será usado = ${dyAPI}`);
         
         return {
           ...ativo,
           id: String(ativo.id || index + 1),
           precoAtual: precoAtualNum,
-          performance: performanceTotal,     // 🏆 TOTAL RETURN DEFINITIVO
+          performance: performanceTotal,
           performanceAcao: performanceAcao,
           performanceProventos: performanceProventos,
           proventosAtivo: proventosAtivo,
@@ -1260,16 +1030,16 @@ function useSmallCapsIntegradas() {
           posicaoExibicao: index + 1
         };
       } else {
-        // ⚠️ ATIVO SEM COTAÇÃO REAL - mas ainda pode ter proventos
+        // ⚠️ ATIVO SEM COTAÇÃO REAL
         const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
         
-        console.log(`🏆 ${ativo.ticker}: Sem cotação | R$ ${ativo.precoEntrada.toFixed(2)} + Proventos ${performanceProventos.toFixed(2)}% = TOTAL ${performanceProventos.toFixed(2)}%`);
+        console.log(`🏆 ${ativo.ticker}: (sem cotação) DY final que será usado = ${dyAPI}`);
         
         return {
           ...ativo,
           id: String(ativo.id || index + 1),
           precoAtual: ativo.precoEntrada,
-          performance: performanceProventos,  // 🏆 SÓ PROVENTOS
+          performance: performanceProventos,
           performanceAcao: 0,
           performanceProventos: performanceProventos,
           proventosAtivo: proventosAtivo,
@@ -1290,7 +1060,7 @@ function useSmallCapsIntegradas() {
     setAtivosAtualizados(ativosFinais);
     
     console.log('🏆 TOTAL RETURN PROCESSADO COM SUCESSO - PRIMEIRA VEZ!');
-  }, [todosOsDadosProntos, cotacoesCompletas, dyCompletos, proventosCompletos, smallCapsData]);
+  }, [todosOsDadosProntos, cotacoesCompletas, dyCompletos, proventosCompletos, smallCapsData, loadingDY]);
 
   // UseEffect original simplificado
   React.useEffect(() => {
@@ -1317,7 +1087,7 @@ function useSmallCapsIntegradas() {
     loadingProventos,
     error,
     refetch,
-    isMobile, // ✅ Para UI (tabela vs cards)
+    isMobile,
     todosOsDadosProntos // ✅ Novo estado para debug
   };
 }
@@ -1447,16 +1217,39 @@ export default function SmallCapsPage() {
         }}>
           Carteira de Small Caps
         </h1>
-        <p style={{ 
+        <div style={{ 
           color: '#64748b', 
           fontSize: isMobile ? '16px' : '18px',
           margin: '0',
-          lineHeight: '1.5'
+          lineHeight: '1.5',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
         }}>
-          {loading && !todosOsDadosProntos && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>• Coletando dados...</span>}
-          {loadingDY && <span style={{ color: '#3b82f6', marginLeft: '8px' }}>• Carregando DY...</span>}
-          {loadingProventos && <span style={{ color: '#10b981', marginLeft: '8px' }}>• Carregando proventos...</span>}
-        </p>
+          {loading && !todosOsDadosProntos ? (
+            <>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e2e8f0',
+                borderTop: '2px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <span style={{ 
+                color: '#3b82f6', 
+                fontWeight: '600',
+                fontSize: isMobile ? '14px' : '16px'
+              }}>
+                Atualizando carteira em tempo real...
+              </span>
+            </>
+          ) : (
+            <span>
+              Dados atualizados a cada 5 minutos
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Cards de Métricas */}
@@ -1643,32 +1436,16 @@ export default function SmallCapsPage() {
             fontSize: isMobile ? '20px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            margin: '0 0 8px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            margin: '0 0 8px 0'
           }}>
             Posições Ativas ({ativosAtivos.length})
-            {(loading || !todosOsDadosProntos) && (
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #e2e8f0',
-                borderTop: '2px solid #3b82f6',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-            )}
           </h3>
           <p style={{
             color: '#64748b',
             fontSize: isMobile ? '14px' : '16px',
             margin: '0'
           }}>
-            {loading || !todosOsDadosProntos
-              ? 'Carregando Total Return com proventos...' 
-              : 'Total Return aplicado - dados atualizados a cada 5 minutos'
-            }
+            Total Return aplicado com reinvestimento de proventos
           </p>
         </div>
 
@@ -1722,7 +1499,7 @@ export default function SmallCapsPage() {
                           width: '28px',
                           height: '28px',
                           borderRadius: '50%',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#f1f5f9',
                           border: '1px solid #e2e8f0',
                           display: 'flex',
                           alignItems: 'center',
@@ -1740,7 +1517,7 @@ export default function SmallCapsPage() {
                           height: '36px',
                           borderRadius: '6px',
                           overflow: 'hidden',
-                          backgroundColor: '#f8fafc',
+                          backgroundColor: '#f1f5f9',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1823,7 +1600,7 @@ export default function SmallCapsPage() {
                         <div style={{ color: '#64748b' }}>
                           <span style={{ fontWeight: '500' }}>DY 12M:</span><br />
                           <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                            {loadingDY ? '...' : ativo.dy}
+                            {loading && !todosOsDadosProntos ? '--' : ativo.dy}
                           </span>
                         </div>
                         <div style={{ color: '#64748b' }}>
@@ -1968,7 +1745,7 @@ export default function SmallCapsPage() {
                                 height: '40px',
                                 borderRadius: '8px',
                                 overflow: 'hidden',
-                                backgroundColor: '#f8fafc',
+                                backgroundColor: '#f1f5f9',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -2644,10 +2421,13 @@ export default function SmallCapsPage() {
 
       {/* Animações CSS */}
       <style jsx>{`
+        /* Spinner de Loading Unificado */
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        
+        /* Animação de Pulse para Skeletons */
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
