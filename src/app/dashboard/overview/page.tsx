@@ -1093,7 +1093,9 @@ function useSmallCapsIntegradas() {
     error,
     refetch,
     isMobile,
-    todosOsDadosProntos // ✅ Novo estado para debug
+    todosOsDadosProntos, // ✅ Novo estado para debug
+  proventosCompletos  // ✅ ADICIONAR ESTA LINHA
+
   };
 }
 
@@ -1108,7 +1110,8 @@ export default function SmallCapsPage() {
     loadingDY,
     loadingProventos,
     isMobile,
-    todosOsDadosProntos
+    todosOsDadosProntos,
+  proventosCompletos  // ✅ ADICIONAR ESTA LINHA
   } = useSmallCapsIntegradas();
   
   const { smllData } = useSmllRealTime();
@@ -1201,10 +1204,19 @@ export default function SmallCapsPage() {
     return signal + value.toFixed(2) + '%';
   }, []);
 
-  const calcularPerformanceEncerrada = React.useCallback((ativo: any) => {
-    if (!ativo.precoSaida) return 0;
-    return ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
-  }, []);
+const calcularPerformanceEncerrada = React.useCallback((ativo: any) => {
+  if (!ativo.precoSaida) return 0;
+  
+  // Performance da ação (variação do preço)
+  const performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+  
+  // Performance dos proventos recebidos durante o período
+  const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
+  const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+  
+  // Total Return = Performance da ação + Performance dos proventos
+  return performanceAcao + performanceProventos;
+}, [proventosCompletos]);
 
   return (
     <div style={{ 
