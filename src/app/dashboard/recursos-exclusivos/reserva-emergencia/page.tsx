@@ -1,12 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ReservaEmergenciaPage = () => {
   const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   const [rendaMensal, setRendaMensal] = useState('');
   const [mesesReserva, setMesesReserva] = useState(6);
   const [investimentoSelecionado, setInvestimentoSelecionado] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const investimentos = [
     {
@@ -115,12 +126,12 @@ const ReservaEmergenciaPage = () => {
     <div 
       style={{
         backgroundColor: '#ffffff',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '12px' : '16px',
         border: investimento.destaque ? `2px solid ${investimento.cor}` : '1px solid #e2e8f0',
-        padding: '24px',
-        marginBottom: '20px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '16px' : '20px',
         position: 'relative',
-        boxShadow: investimento.destaque ? `0 8px 32px ${investimento.cor}20` : '0 2px 8px rgba(0, 0, 0, 0.1)',
+        boxShadow: investimento.destaque ? `0 4px 16px ${investimento.cor}20` : '0 2px 8px rgba(0, 0, 0, 0.1)',
         cursor: 'pointer',
         transition: 'all 0.3s ease'
       }}
@@ -130,12 +141,12 @@ const ReservaEmergenciaPage = () => {
         <div style={{
           position: 'absolute',
           top: '-1px',
-          right: '20px',
+          right: isMobile ? '12px' : '20px',
           backgroundColor: investimento.cor,
           color: 'white',
-          padding: '6px 16px',
-          borderRadius: '0 0 12px 12px',
-          fontSize: '12px',
+          padding: isMobile ? '4px 12px' : '6px 16px',
+          borderRadius: '0 0 8px 8px',
+          fontSize: isMobile ? '10px' : '12px',
           fontWeight: '700',
           textTransform: 'uppercase'
         }}>
@@ -143,12 +154,14 @@ const ReservaEmergenciaPage = () => {
         </div>
       )}
 
-      <div style={{ marginBottom: '16px' }}>
+      <div style={{ marginBottom: isMobile ? '12px' : '16px' }}>
         <h3 style={{
-          fontSize: '20px',
+          fontSize: isMobile ? '16px' : '20px',
           fontWeight: '700',
           color: '#1e293b',
-          margin: '0 0 8px 0'
+          margin: '0 0 6px 0',
+          lineHeight: '1.3',
+          paddingRight: investimento.destaque ? (isMobile ? '70px' : '80px') : '0'
         }}>
           {investimento.nome}
         </h3>
@@ -156,9 +169,9 @@ const ReservaEmergenciaPage = () => {
           display: 'inline-block',
           backgroundColor: `${investimento.cor}15`,
           color: investimento.cor,
-          padding: '6px 12px',
-          borderRadius: '20px',
-          fontSize: '14px',
+          padding: isMobile ? '4px 8px' : '6px 12px',
+          borderRadius: '16px',
+          fontSize: isMobile ? '12px' : '14px',
           fontWeight: '700'
         }}>
           {investimento.rentabilidade}
@@ -167,31 +180,58 @@ const ReservaEmergenciaPage = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '16px',
-        marginBottom: '16px'
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: isMobile ? '12px' : '16px',
+        marginBottom: isMobile ? '12px' : '16px'
       }}>
         <div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', fontWeight: '600' }}>
+          <div style={{ 
+            fontSize: isMobile ? '10px' : '12px', 
+            color: '#64748b', 
+            marginBottom: '3px', 
+            fontWeight: '600' 
+          }}>
             APLICAÇÃO MÍNIMA
           </div>
-          <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
+          <div style={{ 
+            fontSize: isMobile ? '14px' : '16px', 
+            fontWeight: '700', 
+            color: '#1e293b' 
+          }}>
             {investimento.aplicacaoMinima}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', fontWeight: '600' }}>
+          <div style={{ 
+            fontSize: isMobile ? '10px' : '12px', 
+            color: '#64748b', 
+            marginBottom: '3px', 
+            fontWeight: '600' 
+          }}>
             RESGATE
           </div>
-          <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
+          <div style={{ 
+            fontSize: isMobile ? '14px' : '16px', 
+            fontWeight: '700', 
+            color: '#1e293b' 
+          }}>
             {investimento.resgate}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px', fontWeight: '600' }}>
+          <div style={{ 
+            fontSize: isMobile ? '10px' : '12px', 
+            color: '#64748b', 
+            marginBottom: '3px', 
+            fontWeight: '600' 
+          }}>
             ONDE ENCONTRAR
           </div>
-          <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
+          <div style={{ 
+            fontSize: isMobile ? '13px' : '14px', 
+            fontWeight: '600', 
+            color: '#1e293b' 
+          }}>
             {investimento.onde}
           </div>
         </div>
@@ -200,27 +240,52 @@ const ReservaEmergenciaPage = () => {
       {investimentoSelecionado === investimento.id && (
         <div style={{
           borderTop: '1px solid #e2e8f0',
-          paddingTop: '20px',
-          marginTop: '16px'
+          paddingTop: isMobile ? '16px' : '20px',
+          marginTop: isMobile ? '12px' : '16px'
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+            gap: isMobile ? '16px' : '20px', 
+            marginBottom: isMobile ? '12px' : '16px' 
+          }}>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#059669', margin: '0 0 8px 0' }}>
+              <h4 style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                fontWeight: '700', 
+                color: '#059669', 
+                margin: '0 0 6px 0' 
+              }}>
                 ✅ PRÓS
               </h4>
-              <ul style={{ margin: 0, paddingLeft: '16px', color: '#064e3b' }}>
+              <ul style={{ margin: 0, paddingLeft: isMobile ? '12px' : '16px', color: '#064e3b' }}>
                 {investimento.pros.map((pro, index) => (
-                  <li key={index} style={{ fontSize: '14px', marginBottom: '4px' }}>{pro}</li>
+                  <li key={index} style={{ 
+                    fontSize: isMobile ? '12px' : '14px', 
+                    marginBottom: '3px' 
+                  }}>
+                    {pro}
+                  </li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#dc2626', margin: '0 0 8px 0' }}>
+              <h4 style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                fontWeight: '700', 
+                color: '#dc2626', 
+                margin: '0 0 6px 0' 
+              }}>
                 ❌ CONTRAS
               </h4>
-              <ul style={{ margin: 0, paddingLeft: '16px', color: '#7f1d1d' }}>
+              <ul style={{ margin: 0, paddingLeft: isMobile ? '12px' : '16px', color: '#7f1d1d' }}>
                 {investimento.contras.map((contra, index) => (
-                  <li key={index} style={{ fontSize: '14px', marginBottom: '4px' }}>{contra}</li>
+                  <li key={index} style={{ 
+                    fontSize: isMobile ? '12px' : '14px', 
+                    marginBottom: '3px' 
+                  }}>
+                    {contra}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -229,14 +294,24 @@ const ReservaEmergenciaPage = () => {
             <div style={{
               backgroundColor: '#f0f9ff',
               border: '1px solid #3b82f6',
-              borderRadius: '8px',
-              padding: '12px',
-              marginTop: '12px'
+              borderRadius: '6px',
+              padding: isMobile ? '10px' : '12px',
+              marginTop: '8px'
             }}>
-              <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e40af', marginBottom: '4px' }}>
+              <div style={{ 
+                fontSize: isMobile ? '10px' : '12px', 
+                fontWeight: '700', 
+                color: '#1e40af', 
+                marginBottom: '3px' 
+              }}>
                 💡 OBSERVAÇÃO
               </div>
-              <p style={{ fontSize: '14px', color: '#1e40af', margin: 0 }}>
+              <p style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                color: '#1e40af', 
+                margin: 0,
+                lineHeight: '1.4'
+              }}>
                 {investimento.obs}
               </p>
             </div>
@@ -246,12 +321,12 @@ const ReservaEmergenciaPage = () => {
 
       <div style={{
         position: 'absolute',
-        bottom: '16px',
-        right: '16px',
-        fontSize: '12px',
+        bottom: isMobile ? '12px' : '16px',
+        right: isMobile ? '12px' : '16px',
+        fontSize: isMobile ? '10px' : '12px',
         color: '#64748b'
       }}>
-        {investimentoSelecionado === investimento.id ? '👆 Clique para recolher' : '👆 Clique para mais detalhes'}
+        {investimentoSelecionado === investimento.id ? '👆 Clique para recolher' : (isMobile ? '👆 Mais detalhes' : '👆 Clique para mais detalhes')}
       </div>
     </div>
   );
@@ -260,29 +335,31 @@ const ReservaEmergenciaPage = () => {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '12px' : '24px'
     }}>
       {/* Header */}
       <div style={{ 
         textAlign: 'center',
-        marginBottom: '48px' 
+        marginBottom: isMobile ? '32px' : '48px'
       }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', 
           fontWeight: '800', 
           color: '#1e293b',
-          margin: '0 0 16px 0'
+          margin: '0 0 12px 0',
+          lineHeight: '1.2'
         }}>
           🏦 Reserva de Emergência
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '20px',
-          margin: '0 0 24px 0',
-          maxWidth: '800px',
+          fontSize: isMobile ? '14px' : '20px',
+          margin: '0 0 20px 0',
+          maxWidth: isMobile ? '100%' : '800px',
           marginLeft: 'auto',
           marginRight: 'auto',
-          lineHeight: '1.6'
+          lineHeight: '1.6',
+          padding: isMobile ? '0 8px' : '0'
         }}>
           As melhores opções de investimento para sua reserva de emergência com liquidez diária e baixo risco
         </p>
@@ -293,20 +370,20 @@ const ReservaEmergenciaPage = () => {
           style={{
             backgroundColor: '#3b82f6',
             color: 'white',
-            padding: '16px 32px',
-            borderRadius: '12px',
+            padding: isMobile ? '12px 24px' : '16px 32px',
+            borderRadius: isMobile ? '8px' : '12px',
             border: 'none',
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',
             fontWeight: '700',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
             margin: '0 auto',
             transition: 'all 0.2s'
           }}
         >
-          🧮 {calculadoraAberta ? 'Fechar' : 'Abrir'} Calculadora de Reserva
+          🧮 {calculadoraAberta ? 'Fechar' : 'Abrir'} Calculadora{isMobile ? '' : ' de Reserva'}
         </button>
       </div>
 
@@ -314,32 +391,33 @@ const ReservaEmergenciaPage = () => {
       {calculadoraAberta && (
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-          padding: '32px',
-          marginBottom: '32px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          padding: isMobile ? '20px' : '32px',
+          marginBottom: isMobile ? '20px' : '32px',
           maxWidth: '600px',
-          margin: '0 auto 32px auto'
+          margin: isMobile ? '0 4px 20px 4px' : '0 auto 32px auto'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '18px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            marginBottom: '24px',
-            textAlign: 'center'
+            marginBottom: isMobile ? '16px' : '24px',
+            textAlign: 'center',
+            lineHeight: '1.3'
           }}>
             📊 Calcule sua Reserva Ideal
           </h3>
 
-          <div style={{ display: 'grid', gap: '20px' }}>
+          <div style={{ display: 'grid', gap: isMobile ? '16px' : '20px' }}>
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
                 fontWeight: '600',
                 color: '#374151',
-                marginBottom: '8px'
+                marginBottom: '6px'
               }}>
                 Renda Mensal (R$):
               </label>
@@ -350,10 +428,10 @@ const ReservaEmergenciaPage = () => {
                 placeholder="Ex: 5.000,00"
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
+                  padding: isMobile ? '10px' : '12px',
+                  fontSize: isMobile ? '14px' : '16px',
                   border: '1px solid #d1d5db',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   backgroundColor: '#ffffff'
                 }}
               />
@@ -362,10 +440,10 @@ const ReservaEmergenciaPage = () => {
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
                 fontWeight: '600',
                 color: '#374151',
-                marginBottom: '8px'
+                marginBottom: '6px'
               }}>
                 Meses de Reserva: {mesesReserva}
               </label>
@@ -377,7 +455,7 @@ const ReservaEmergenciaPage = () => {
                 onChange={(e) => setMesesReserva(parseInt(e.target.value))}
                 style={{
                   width: '100%',
-                  height: '8px',
+                  height: isMobile ? '6px' : '8px',
                   borderRadius: '4px',
                   background: '#e2e8f0',
                   outline: 'none'
@@ -386,9 +464,9 @@ const ReservaEmergenciaPage = () => {
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: '12px',
+                fontSize: isMobile ? '10px' : '12px',
                 color: '#64748b',
-                marginTop: '4px'
+                marginTop: '3px'
               }}>
                 <span>3 meses</span>
                 <span>6 meses</span>
@@ -399,17 +477,30 @@ const ReservaEmergenciaPage = () => {
             <div style={{
               backgroundColor: '#f0fdf4',
               border: '2px solid #10b981',
-              borderRadius: '12px',
-              padding: '20px',
+              borderRadius: isMobile ? '8px' : '12px',
+              padding: isMobile ? '16px' : '20px',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '14px', color: '#065f46', marginBottom: '8px', fontWeight: '600' }}>
+              <div style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                color: '#065f46', 
+                marginBottom: '6px', 
+                fontWeight: '600' 
+              }}>
                 SUA RESERVA IDEAL
               </div>
-              <div style={{ fontSize: '32px', fontWeight: '800', color: '#10b981' }}>
+              <div style={{ 
+                fontSize: isMobile ? '24px' : '32px', 
+                fontWeight: '800', 
+                color: '#10b981' 
+              }}>
                 {formatarMoeda(calcularReserva())}
               </div>
-              <div style={{ fontSize: '12px', color: '#065f46', marginTop: '4px' }}>
+              <div style={{ 
+                fontSize: isMobile ? '10px' : '12px', 
+                color: '#065f46', 
+                marginTop: '3px' 
+              }}>
                 {mesesReserva} meses de despesas
               </div>
             </div>
@@ -418,22 +509,27 @@ const ReservaEmergenciaPage = () => {
       )}
 
       {/* Investimentos Principais */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto',
+        padding: isMobile ? '0 4px' : '0'
+      }}>
         <h2 style={{
-          fontSize: '32px',
+          fontSize: isMobile ? '24px' : '32px',
           fontWeight: '700',
           color: '#1e293b',
-          marginBottom: '32px',
-          textAlign: 'center'
+          marginBottom: isMobile ? '24px' : '32px',
+          textAlign: 'center',
+          lineHeight: '1.3'
         }}>
           💰 Opções para Reserva de Emergência
         </h2>
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-          gap: '24px',
-          marginBottom: '48px'
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: isMobile ? '16px' : '24px',
+          marginBottom: isMobile ? '32px' : '48px'
         }}>
           {investimentos.map((investimento) => (
             <InvestmentCard key={investimento.id} investimento={investimento} />
@@ -443,43 +539,45 @@ const ReservaEmergenciaPage = () => {
         {/* Tesouro IPCA - Seção Especial */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: isMobile ? '12px' : '16px',
           border: '2px solid #f59e0b',
-          padding: '32px',
-          marginBottom: '32px',
-          boxShadow: '0 8px 32px rgba(245, 158, 11, 0.2)'
+          padding: isMobile ? '20px' : '32px',
+          marginBottom: isMobile ? '24px' : '32px',
+          boxShadow: '0 4px 16px rgba(245, 158, 11, 0.2)'
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            marginBottom: '24px'
+            gap: isMobile ? '8px' : '12px',
+            marginBottom: isMobile ? '16px' : '24px',
+            flexWrap: 'wrap'
           }}>
             <div style={{
               backgroundColor: '#f59e0b',
               color: 'white',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '12px',
+              padding: isMobile ? '6px 12px' : '8px 16px',
+              borderRadius: '16px',
+              fontSize: isMobile ? '10px' : '12px',
               fontWeight: '700',
               textTransform: 'uppercase'
             }}>
               📈 Longo Prazo
             </div>
             <h3 style={{
-              fontSize: '24px',
+              fontSize: isMobile ? '18px' : '24px',
               fontWeight: '700',
               color: '#1e293b',
-              margin: 0
+              margin: 0,
+              lineHeight: '1.3'
             }}>
               {tesouroDireto.nome}
             </h3>
           </div>
 
           <p style={{
-            fontSize: '16px',
+            fontSize: isMobile ? '14px' : '16px',
             color: '#64748b',
-            marginBottom: '24px',
+            marginBottom: isMobile ? '16px' : '24px',
             lineHeight: '1.6'
           }}>
             {tesouroDireto.descricao}
@@ -487,46 +585,73 @@ const ReservaEmergenciaPage = () => {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '20px',
-            marginBottom: '24px'
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: isMobile ? '12px' : '20px',
+            marginBottom: isMobile ? '16px' : '24px'
           }}>
             <div style={{
               backgroundColor: '#fff7ed',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: isMobile ? '12px' : '16px',
+              borderRadius: isMobile ? '8px' : '12px',
               border: '1px solid #f59e0b'
             }}>
-              <div style={{ fontSize: '12px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ 
+                fontSize: isMobile ? '10px' : '12px', 
+                color: '#92400e', 
+                fontWeight: '600', 
+                marginBottom: '3px' 
+              }}>
                 RENTABILIDADE
               </div>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#92400e' }}>
+              <div style={{ 
+                fontSize: isMobile ? '14px' : '16px', 
+                fontWeight: '700', 
+                color: '#92400e' 
+              }}>
                 {tesouroDireto.rentabilidade}
               </div>
             </div>
             <div style={{
               backgroundColor: '#fff7ed',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: isMobile ? '12px' : '16px',
+              borderRadius: isMobile ? '8px' : '12px',
               border: '1px solid #f59e0b'
             }}>
-              <div style={{ fontSize: '12px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ 
+                fontSize: isMobile ? '10px' : '12px', 
+                color: '#92400e', 
+                fontWeight: '600', 
+                marginBottom: '3px' 
+              }}>
                 TRIBUTAÇÃO
               </div>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#92400e' }}>
+              <div style={{ 
+                fontSize: isMobile ? '14px' : '16px', 
+                fontWeight: '700', 
+                color: '#92400e' 
+              }}>
                 {tesouroDireto.tributacao}
               </div>
             </div>
             <div style={{
               backgroundColor: '#fff7ed',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: isMobile ? '12px' : '16px',
+              borderRadius: isMobile ? '8px' : '12px',
               border: '1px solid #f59e0b'
             }}>
-              <div style={{ fontSize: '12px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ 
+                fontSize: isMobile ? '10px' : '12px', 
+                color: '#92400e', 
+                fontWeight: '600', 
+                marginBottom: '3px' 
+              }}>
                 TAXA ANUAL
               </div>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#92400e' }}>
+              <div style={{ 
+                fontSize: isMobile ? '14px' : '16px', 
+                fontWeight: '700', 
+                color: '#92400e' 
+              }}>
                 {tesouroDireto.taxa}
               </div>
             </div>
@@ -535,22 +660,26 @@ const ReservaEmergenciaPage = () => {
           <div style={{
             backgroundColor: '#fef3c7',
             border: '1px solid #f59e0b',
-            borderRadius: '12px',
-            padding: '20px'
+            borderRadius: isMobile ? '8px' : '12px',
+            padding: isMobile ? '16px' : '20px'
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '8px'
+              gap: '6px',
+              marginBottom: '6px'
             }}>
-              <span style={{ fontSize: '16px' }}>⚠️</span>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#92400e' }}>
+              <span style={{ fontSize: isMobile ? '14px' : '16px' }}>⚠️</span>
+              <div style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                fontWeight: '700', 
+                color: '#92400e' 
+              }}>
                 IMPORTANTE - LONGO PRAZO
               </div>
             </div>
             <p style={{
-              fontSize: '14px',
+              fontSize: isMobile ? '12px' : '14px',
               color: '#92400e',
               margin: 0,
               lineHeight: '1.5'
@@ -563,37 +692,48 @@ const ReservaEmergenciaPage = () => {
         {/* Dicas Importantes */}
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
-          padding: '32px',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+          padding: isMobile ? '20px' : '32px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
         }}>
           <h3 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '18px' : '24px',
             fontWeight: '700',
             color: '#1e293b',
-            marginBottom: '24px',
-            textAlign: 'center'
+            marginBottom: isMobile ? '16px' : '24px',
+            textAlign: 'center',
+            lineHeight: '1.3'
           }}>
             💡 Dicas Importantes
           </h3>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px'
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: isMobile ? '16px' : '24px'
           }}>
             <div style={{
               backgroundColor: '#f0fdf4',
               border: '1px solid #10b981',
-              borderRadius: '12px',
-              padding: '20px'
+              borderRadius: isMobile ? '8px' : '12px',
+              padding: isMobile ? '16px' : '20px'
             }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎯</div>
-              <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#065f46', marginBottom: '8px' }}>
+              <div style={{ fontSize: isMobile ? '24px' : '32px', marginBottom: '8px' }}>🎯</div>
+              <h4 style={{ 
+                fontSize: isMobile ? '14px' : '16px', 
+                fontWeight: '700', 
+                color: '#065f46', 
+                marginBottom: '6px' 
+              }}>
                 Objetivo da Reserva
               </h4>
-              <p style={{ fontSize: '14px', color: '#065f46', margin: 0, lineHeight: '1.5' }}>
+              <p style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                color: '#065f46', 
+                margin: 0, 
+                lineHeight: '1.5' 
+              }}>
                 A reserva de emergência deve cobrir de 6 a 12 meses de seus gastos essenciais. Priorize liquidez e segurança sobre rentabilidade.
               </p>
             </div>
@@ -601,14 +741,24 @@ const ReservaEmergenciaPage = () => {
             <div style={{
               backgroundColor: '#eff6ff',
               border: '1px solid #3b82f6',
-              borderRadius: '12px',
-              padding: '20px'
+              borderRadius: isMobile ? '8px' : '12px',
+              padding: isMobile ? '16px' : '20px'
             }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚡</div>
-              <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#1e40af', marginBottom: '8px' }}>
+              <div style={{ fontSize: isMobile ? '24px' : '32px', marginBottom: '8px' }}>⚡</div>
+              <h4 style={{ 
+                fontSize: isMobile ? '14px' : '16px', 
+                fontWeight: '700', 
+                color: '#1e40af', 
+                marginBottom: '6px' 
+              }}>
                 Liquidez Diária
               </h4>
-              <p style={{ fontSize: '14px', color: '#1e40af', margin: 0, lineHeight: '1.5' }}>
+              <p style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                color: '#1e40af', 
+                margin: 0, 
+                lineHeight: '1.5' 
+              }}>
                 Escolha investimentos com resgate em D+0 ou D+1. Em emergências, você precisa acessar o dinheiro rapidamente.
               </p>
             </div>
@@ -616,14 +766,24 @@ const ReservaEmergenciaPage = () => {
             <div style={{
               backgroundColor: '#fef3c7',
               border: '1px solid #f59e0b',
-              borderRadius: '12px',
-              padding: '20px'
+              borderRadius: isMobile ? '8px' : '12px',
+              padding: isMobile ? '16px' : '20px'
             }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🛡️</div>
-              <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#92400e', marginBottom: '8px' }}>
+              <div style={{ fontSize: isMobile ? '24px' : '32px', marginBottom: '8px' }}>🛡️</div>
+              <h4 style={{ 
+                fontSize: isMobile ? '14px' : '16px', 
+                fontWeight: '700', 
+                color: '#92400e', 
+                marginBottom: '6px' 
+              }}>
                 Segurança
               </h4>
-              <p style={{ fontSize: '14px', color: '#92400e', margin: 0, lineHeight: '1.5' }}>
+              <p style={{ 
+                fontSize: isMobile ? '12px' : '14px', 
+                color: '#92400e', 
+                margin: 0, 
+                lineHeight: '1.5' 
+              }}>
                 Invista apenas em produtos com garantia do FGC (até R$ 250 mil) ou risco soberano (Tesouro Direto).
               </p>
             </div>
