@@ -116,9 +116,6 @@ export function MainNav(): React.JSX.Element {
   const { user } = useUser();
   const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
   const [avatarKey, setAvatarKey] = React.useState<number>(Date.now());
-
-  console.log('🔥 MAINNAV RENDER:', { userAvatar, avatarKey, userFromContext: user?.avatar });
-  
   
   // 🔥 CARREGAR ATIVOS DO DATASTORE
   const ativos = useAtivos();
@@ -187,27 +184,36 @@ React.useEffect(() => {
   initAvatar();
 }, [user]);
 
-// // 🔄 Verificação de backup (reduzida frequência)
-// React.useEffect(() => {
-//   const checkAvatar = () => {
-//     try {
-//       const userData = localStorage.getItem('user-data');
-//       if (userData) {
-//         const parsed = JSON.parse(userData);
-//         if (parsed.avatar && parsed.avatar !== userAvatar) {
-//           console.log('🔄 BACKUP RESETOU O AVATAR!', { de: userAvatar, para: parsed.avatar });
-//           setUserAvatar(parsed.avatar);
-//           setAvatarKey(Date.now());
-//         }
-//       }
-//     } catch (error) {
-//       console.error('Erro ao verificar avatar:', error);
-//     }
-//   };
+  // 🔄 Verificação de backup (reduzida frequência)
+  React.useEffect(() => {
+    const checkAvatar = () => {
+      try {
+        const userData = localStorage.getItem('user-data');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          if (parsed.avatar && parsed.avatar !== userAvatar) {
+            console.log('🔄 MainNav: Avatar atualizado via backup check');
+            setUserAvatar(parsed.avatar);
+            setAvatarKey(Date.now());
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar avatar:', error);
+      }
+    };
 
-//   const interval = setInterval(checkAvatar, 2000);
-//   return () => clearInterval(interval);
-// }, [userAvatar]);
+    // Reduzido para 2 segundos (era 500ms)
+    const interval = setInterval(checkAvatar, 2000);
+    return () => clearInterval(interval);
+  }, [userAvatar]);
+
+  // Navegar para o ativo selecionado
+  const handleAtivoSelect = (ativo) => {
+    if (ativo) {
+      router.push(`/dashboard/ativo/${ativo.ticker}`);
+      setSearchMode(false);
+    }
+  };
 
   // 🔥 FUNÇÃO DE FILTRO APRIMORADA
   const filterOptions = (options, { inputValue }) => {
@@ -368,40 +374,25 @@ React.useEffect(() => {
               </Badge>
             </Tooltip>
 
-<Avatar
-  onClick={userPopover.handleOpen}
-  ref={userPopover.anchorRef}
-  src={userAvatar && userAvatar !== '/assets/avatar.png' ? `${userAvatar}?v=${avatarKey}` : undefined}
-  key={`avatar-${avatarKey}`}
-  sx={{ 
-    cursor: 'pointer',
-    border: '2px solid #E2E8F0',
-    width: 40,
-    height: 40,
-    '&:hover': {
-      border: '2px solid #3B82F6'
-    },
-    // 🔥 FORÇAR backgroundImage quando não tem src
-    ...(userAvatar && userAvatar !== '/assets/avatar.png' ? {} : {
-      backgroundImage: userAvatar ? `url("${userAvatar}?v=${avatarKey}")` : 'none',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center'
-    })
-  }}            
->
-  {/* 🔥 Fallback para iniciais se não tiver avatar */}
-  {(!userAvatar || userAvatar === '/assets/avatar.png') && user?.firstName?.[0]}
-</Avatar>
+            <Avatar
+              onClick={userPopover.handleOpen}
+              ref={userPopover.anchorRef}
+              src={`${userAvatar}?v=${avatarKey}`}
+              key={`avatar-${avatarKey}`}
+              sx={{ 
+                cursor: 'pointer',
+                border: '2px solid #E2E8F0',
+                width: 40,
+                height: 40,
+                '&:hover': {
+                  border: '2px solid #3B82F6'
+                }
+              }}            
+            />
           </Stack>
         </Stack>
       </Box>
-<UserPopover 
-  anchorEl={userPopover.anchorRef.current} 
-  onClose={userPopover.handleClose} 
-  open={userPopover.open}
-  userAvatar={userAvatar}
-  avatarKey={avatarKey}
-/>
+      <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
       <MobileNav
         onClose={() => {
           setOpenNav(false);

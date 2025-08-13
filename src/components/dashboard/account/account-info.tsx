@@ -93,12 +93,6 @@ export function AccountInfo({ user, onUpdate }: AccountInfoProps): React.JSX.Ele
         if (response.ok) {
           console.log('✅ Upload bem-sucedido!');
           onUpdate({ avatar: avatarData });
-onUpdate({ avatar: avatarData });
-
-// 🔥 NOVO: Disparar o evento correto também
-window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-  detail: { avatar: avatarData }
-}));
           
           // 🔥 CORRIGIDO: Criar user-data se não existir
           let userData = localStorage.getItem('user-data');
@@ -122,9 +116,9 @@ window.dispatchEvent(new CustomEvent('userProfileUpdated', {
           
           // Disparar evento customizado
           console.log('🎯 Disparando evento user-data-updated...');
-window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-  detail: { avatar: avatarData }
-}));
+          window.dispatchEvent(new CustomEvent('user-data-updated', { 
+            detail: { type: 'avatar-updated' } 
+          }));
           console.log('✅ Evento disparado!');
         } else {
           console.log('❌ Erro na resposta:', response.status);
