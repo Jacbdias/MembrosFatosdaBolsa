@@ -104,7 +104,8 @@ export function MainNav(): React.JSX.Element {
         const userData = localStorage.getItem('user-data');
         if (userData) {
           const parsed = JSON.parse(userData);
-          if (parsed.avatar) {
+          if (parsed.avatar && parsed.avatar !== userAvatar) {
+            console.log('🔄 MainNav: Avatar atualizado');
             setUserAvatar(parsed.avatar);
           }
         }
@@ -113,10 +114,61 @@ export function MainNav(): React.JSX.Element {
       }
     };
 
+    // Verificar imediatamente
     checkAvatar();
-    const interval = setInterval(checkAvatar, 2000);
+    
+    // Verificar a cada 1 segundo
+    const interval = setInterval(checkAvatar, 1000);
+    
+    // NOVO: Escutar evento storage
+    window.addEventListener('storage', checkAvatar);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', checkAvatar);
+    };
+  }, [user, userAvatar]);
+
+  // NOVO: Sync entre dispositivos via banco
+  React.useEffect(() => {
+    const syncWithDatabase = async () => {
+      try {
+        const token = localStorage.getItem('custom-auth-token');
+        const userEmail = localStorage.getItem('user-email');
+        
+        if (token && userEmail) {
+          const response = await fetch('/api/user/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'X-User-Email': userEmail,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            if (userData.user?.avatar && userData.user.avatar !== userAvatar) {
+              console.log('🔄 MainNav: Sincronizando do banco');
+              setUserAvatar(userData.user.avatar);
+              
+              // Atualizar localStorage também
+              const currentUserData = localStorage.getItem('user-data') || '{}';
+              const parsedUserData = JSON.parse(currentUserData);
+              parsedUserData.avatar = userData.user.avatar;
+              localStorage.setItem('user-data', JSON.stringify(parsedUserData));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao sincronizar:', error);
+      }
+    };
+
+    // Verificar a cada 10 segundos
+    const interval = setInterval(syncWithDatabase, 10000);
+    
     return () => clearInterval(interval);
-  }, [user]);
+  }, [userAvatar]);
 
   const handleAtivoSelect = (ativo) => {
     if (ativo) {
