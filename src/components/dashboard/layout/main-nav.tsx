@@ -115,45 +115,96 @@ export function MainNav(): React.JSX.Element {
   
   const { user } = useUser();
   const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
-  const [lastCheck, setLastCheck] = React.useState<string>('');
+  const [avatarKey, setAvatarKey] = React.useState<number>(Date.now());
   
   // 🔥 CARREGAR ATIVOS DO DATASTORE
   const ativos = useAtivos();
 
-  // Verificar localStorage diretamente a cada segundo (mantido igual)
-  React.useEffect(() => {
-    const checkAvatar = () => {
-      try {
-        const userData = localStorage.getItem('user-data');
-        if (userData) {
-          const parsed = JSON.parse(userData);
-          const currentCheck = userData;
-          
-          if (currentCheck !== lastCheck) {
-            if (parsed.avatar && parsed.avatar !== userAvatar) {
-              console.log('🔄 AVATAR ATUALIZADO!');
-              setUserAvatar(parsed.avatar);
-            }
-            setLastCheck(currentCheck);
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao verificar avatar:', error);
-      }
-    };
-
-    checkAvatar();
-    const interval = setInterval(checkAvatar, 500);
-    return () => clearInterval(interval);
-  }, [userAvatar, lastCheck]);
-
-  // Navegar para o ativo selecionado
-  const handleAtivoSelect = (ativo) => {
-    if (ativo) {
-      router.push(`/dashboard/ativo/${ativo.ticker}`);
-      setSearchMode(false);
+// 🔥 NOVO: Listener para eventos de atualização de perfil
+React.useEffect(() => {
+  const handleProfileUpdate = (event: CustomEvent) => {
+    console.log('🎯 6. MainNav recebeu evento:', event.detail);
+    console.log('🎯 Avatar antes:', userAvatar);
+    
+    if (event.detail?.avatar) {
+      console.log('🎯 Setando novo avatar:', event.detail.avatar);
+      setUserAvatar(event.detail.avatar);
+      setAvatarKey(Date.now());
+      console.log('✅ MainNav: Avatar atualizado via evento!');
+      
+      // 🔍 VERIFICAR DEPOIS DE 1 SEGUNDO
+      setTimeout(() => {
+        console.log('🕐 Avatar após 1s:', userAvatar);
+      }, 1000);
     }
   };
+
+  window.addEventListener('userProfileUpdated', handleProfileUpdate as EventListener);
+  return () => {
+    window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener);
+  };
+}, [userAvatar]);
+
+// 🔄 Inicialização melhorada do avatar
+React.useEffect(() => {
+  console.log('🐛 MainNav init - user:', user);
+  console.log('🐛 MainNav init - localStorage:', localStorage.getItem('user-data'));
+  
+  const initAvatar = () => {
+    // 1. Tentar do contexto user
+    if (user?.avatar) {
+      console.log('🎯 MainNav: Usando avatar do contexto user:', user.avatar);
+      setUserAvatar(user.avatar);
+      setAvatarKey(Date.now());
+      return;
+    }
+    
+    // 2. Tentar do localStorage
+    try {
+      const userData = localStorage.getItem('user-data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        if (parsed.avatar) {
+          console.log('🎯 MainNav: Usando avatar do localStorage:', parsed.avatar);
+          setUserAvatar(parsed.avatar);
+          setAvatarKey(Date.now());
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao parsear localStorage:', error);
+    }
+    
+    // 3. Fallback - garantir que tem uma imagem
+    console.log('🎯 MainNav: Usando avatar padrão');
+    setUserAvatar('/assets/avatar-8.png'); // ou a imagem padrão que você tem
+    setAvatarKey(Date.now());
+  };
+
+  initAvatar();
+}, [user]);
+
+// 🔄 Verificação de backup (reduzida frequência)
+React.useEffect(() => {
+  const checkAvatar = () => {
+    try {
+      const userData = localStorage.getItem('user-data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        if (parsed.avatar && parsed.avatar !== userAvatar) {
+          console.log('🔄 BACKUP RESETOU O AVATAR!', { de: userAvatar, para: parsed.avatar });
+          setUserAvatar(parsed.avatar);
+          setAvatarKey(Date.now());
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar avatar:', error);
+    }
+  };
+
+  const interval = setInterval(checkAvatar, 2000);
+  return () => clearInterval(interval);
+}, [userAvatar]);
 
   // 🔥 FUNÇÃO DE FILTRO APRIMORADA
   const filterOptions = (options, { inputValue }) => {
@@ -317,8 +368,8 @@ export function MainNav(): React.JSX.Element {
             <Avatar
               onClick={userPopover.handleOpen}
               ref={userPopover.anchorRef}
-              src={userAvatar}
-              key={userAvatar}
+              src={`${userAvatar}?v=${avatarKey}`}
+              key={`avatar-${avatarKey}`}
               sx={{ 
                 cursor: 'pointer',
                 border: '2px solid #E2E8F0',

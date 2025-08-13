@@ -172,18 +172,54 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
   }, []);
 
-  // ✅ ADICIONAR: Escutar mudanças no localStorage para atualizar o avatar
+  // 🔥 NOVO: Escutar evento de atualização de perfil
+  React.useEffect(() => {
+    const handleProfileUpdate = (event: CustomEvent) => {
+      console.log('🎯 4. UserContext recebeu evento:', event.detail);
+      
+      setState((prev) => {
+        if (!prev.user) return prev;
+        
+        const updatedUser = {
+          ...prev.user,
+          ...event.detail,
+          // Força re-render com timestamp
+          _lastUpdate: Date.now()
+        };
+        
+        console.log('🎯 5. UserContext atualizou estado:', updatedUser);
+        
+        return {
+          ...prev,
+          user: updatedUser
+        };
+      });
+    };
+
+    // Escutar o evento correto
+    window.addEventListener('userProfileUpdated', handleProfileUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener);
+    };
+  }, []);
+
+  // ✅ MANTER: Escutar mudanças no localStorage (para compatibilidade)
   React.useEffect(() => {
     const handleUserDataUpdate = () => {
       const userDataFromStorage = localStorage.getItem('user-data');
       if (userDataFromStorage && state.user) {
         try {
           const parsedUserData = JSON.parse(userDataFromStorage);
-          if (parsedUserData.avatar) {
-            console.log('🔄 UserProvider: Atualizando avatar do contexto');
+          if (parsedUserData.avatar && parsedUserData.avatar !== state.user.avatar) {
+            console.log('🔄 UserProvider: Atualizando avatar do contexto via localStorage');
             setState((prev) => ({
               ...prev,
-              user: prev.user ? { ...prev.user, avatar: parsedUserData.avatar } : null
+              user: prev.user ? { 
+                ...prev.user, 
+                avatar: parsedUserData.avatar,
+                _lastUpdate: Date.now()
+              } : null
             }));
           }
         } catch (error) {
@@ -192,7 +228,7 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
       }
     };
 
-    // Escutar evento customizado
+    // Escutar evento customizado (manter por compatibilidade)
     window.addEventListener('user-data-updated', handleUserDataUpdate);
 
     return () => {
@@ -200,7 +236,52 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
     };
   }, [state.user]);
 
+  // 🔄 NOVO: Sync automático quando página fica ativa
+  React.useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        console.log('🔄 Página ficou ativa - sincronizando avatar...');
+        
+        try {
+          const token = localStorage.getItem('custom-auth-token');
+          const userEmail = localStorage.getItem('user-email');
+          
+          if (token && userEmail) {
+            const response = await fetch('/api/user/profile', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'X-User-Email': userEmail,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (response.ok) {
+              const userData = await response.json();
+              if (userData.user?.avatar && userData.user.avatar !== state.user?.avatar) {
+                console.log('🔄 Avatar desatualizado - atualizando!');
+                
+                // Atualizar localStorage
+                const currentUserData = localStorage.getItem('user-data') || '{}';
+                const parsedUserData = JSON.parse(currentUserData);
+                parsedUserData.avatar = userData.user.avatar;
+                localStorage.setItem('user-data', JSON.stringify(parsedUserData));
+                
+                // Disparar evento
+                window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
+                  detail: { avatar: userData.user.avatar }
+                }));
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao sincronizar avatar:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [state.user]);
+
   return <UserContext.Provider value={{ ...state, checkSession }}>{children}</UserContext.Provider>;
 }
-
-export const UserConsumer = UserContext.Consumer;

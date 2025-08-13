@@ -177,11 +177,11 @@ export default function AdminUsersPage() {
     const planMap = {
       'VIP': { label: 'Close Friends VIP', color: '#7C3AED', emoji: '👑' },
       'LITE': { label: 'Close Friends LITE', color: '#2563EB', emoji: '⭐' },
-      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '🌟' }, // ✅ ADICIONADO
+      'LITE_V2': { label: 'Close Friends LITE 2.0', color: '#1d4ed8', emoji: '⭐' }, // ✅ ADICIONADO
       'RENDA_PASSIVA': { label: 'Projeto Renda Passiva', color: '#059669', emoji: '💰' },
       'FIIS': { label: 'Projeto FIIs', color: '#D97706', emoji: '🏢' },
-      'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🇺🇸' },
-      'ADMIN': { label: 'Administrador', color: '#4B5563', emoji: '🛡️' }
+      'AMERICA': { label: 'Projeto América', color: '#DC2626', emoji: '🗽' },
+      'ADMIN': { label: 'Administrador', color: '#4B5563', emoji: '👨‍💼' }
     };
     return planMap[plan as keyof typeof planMap] || { label: plan, color: '#6B7280', emoji: '📋' };
   };
