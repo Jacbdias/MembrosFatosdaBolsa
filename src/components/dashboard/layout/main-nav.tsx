@@ -116,6 +116,9 @@ export function MainNav(): React.JSX.Element {
   const { user } = useUser();
   const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
   const [avatarKey, setAvatarKey] = React.useState<number>(Date.now());
+
+  console.log('🔥 MAINNAV RENDER:', { userAvatar, avatarKey, userFromContext: user?.avatar });
+  
   
   // 🔥 CARREGAR ATIVOS DO DATASTORE
   const ativos = useAtivos();
