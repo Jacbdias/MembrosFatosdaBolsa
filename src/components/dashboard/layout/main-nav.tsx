@@ -383,7 +383,13 @@ React.useEffect(() => {
           </Stack>
         </Stack>
       </Box>
-      <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
+<UserPopover 
+  anchorEl={userPopover.anchorRef.current} 
+  onClose={userPopover.handleClose} 
+  open={userPopover.open}
+  userAvatar={userAvatar}
+  avatarKey={avatarKey}
+/>
       <MobileNav
         onClose={() => {
           setOpenNav(false);

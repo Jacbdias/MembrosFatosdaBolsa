@@ -82,31 +82,39 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
     };
   }, [open]);
 
-  // ✅ NOVO: Escutar evento customizado de atualização do avatar
-  React.useEffect(() => {
-    const handleUserDataUpdate = (event: CustomEvent) => {
-      console.log('🔄 Evento capturado no user-popover!', event.detail);
-      
-      // Recarregar dados do localStorage
+// 🔥 CORRIGIDO: Escutar evento correto de atualização do avatar
+React.useEffect(() => {
+  const handleUserDataUpdate = (event: CustomEvent) => {
+    console.log('🔄 UserPopover: Evento capturado!', event.detail);
+    
+    if (event.detail?.avatar) {
+      // Atualizar diretamente com dados do evento
+      setUserData(prev => ({
+        ...prev,
+        ...event.detail
+      }));
+      console.log('✅ UserPopover: Avatar atualizado!');
+    } else {
+      // Fallback: recarregar do localStorage
       const userDataFromStorage = localStorage.getItem('user-data');
       if (userDataFromStorage) {
         try {
           const parsedUser = JSON.parse(userDataFromStorage);
           setUserData(parsedUser);
-          console.log('✅ Avatar atualizado no popover!', parsedUser.avatar ? 'Com avatar' : 'Sem avatar');
         } catch (error) {
           console.error('Error parsing user data from storage:', error);
         }
       }
-    };
+    }
+  };
 
-    // Escutar o evento customizado
-    window.addEventListener('user-data-updated', handleUserDataUpdate as EventListener);
+  // Escutar o evento CORRETO
+  window.addEventListener('userProfileUpdated', handleUserDataUpdate as EventListener);
 
-    return () => {
-      window.removeEventListener('user-data-updated', handleUserDataUpdate as EventListener);
-    };
-  }, []); // Array vazio = executa apenas uma vez
+  return () => {
+    window.removeEventListener('userProfileUpdated', handleUserDataUpdate as EventListener);
+  };
+}, []);
 
   const handleSignOut = React.useCallback(async (): Promise<void> => {
     try {
@@ -131,7 +139,9 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
     : 'Carregando...';
   
   const displayEmail = userData?.email || 'carregando...';
-  const avatarSrc = userData?.avatar || '/assets/avatar.png';
+const avatarSrc = userData?.avatar 
+  ? `${userData.avatar}?v=${Date.now()}` 
+  : '/assets/avatar.png';
 
   return (
     <Popover
