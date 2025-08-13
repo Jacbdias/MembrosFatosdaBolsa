@@ -407,7 +407,7 @@ const DicasInvestimentosPage = () => {
           fontSize: '12px',
           color: '#64748b'
         }}>
-          {isExpandido ? '👆 Clique para recolher' : '👆 Clique para ver sugestão de carteira'}
+          {isExpandido ? 'Clique para recolher' : 'Clique para ver sugestão de carteira'}
         </div>
       </div>
     );
@@ -541,7 +541,7 @@ const DicasInvestimentosPage = () => {
           color: '#1e293b',
           margin: '0 0 16px 0'
         }}>
-          💡 Dicas de Investimentos
+         Dicas de Investimentos
         </h1>
         <p style={{ 
           color: '#64748b', 
@@ -753,33 +753,6 @@ const DicasInvestimentosPage = () => {
         )}
       </div>
 
-      {/* Footer */}
-      <div style={{
-        marginTop: '64px',
-        padding: '32px',
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        textAlign: 'center',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
-      }}>
-        <h3 style={{
-          fontWeight: '600',
-          fontSize: '24px',
-          margin: '0 0 16px 0',
-          color: '#1e293b'
-        }}>
-          📚 Continue Aprendendo
-        </h3>
-        <p style={{
-          color: '#64748b',
-          fontSize: '16px',
-          margin: '0',
-          lineHeight: '1.5'
-        }}>
-          O conhecimento é a melhor ferramenta para o sucesso nos investimentos. Continue estudando, praticando e evoluindo como investidor!
-        </p>
-      </div>
     </div>
   );
 };
