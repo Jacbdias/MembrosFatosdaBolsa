@@ -368,21 +368,30 @@ React.useEffect(() => {
               </Badge>
             </Tooltip>
 
-            <Avatar
-              onClick={userPopover.handleOpen}
-              ref={userPopover.anchorRef}
-              src={`${userAvatar}?v=${avatarKey}`}
-              key={`avatar-${avatarKey}`}
-              sx={{ 
-                cursor: 'pointer',
-                border: '2px solid #E2E8F0',
-                width: 40,
-                height: 40,
-                '&:hover': {
-                  border: '2px solid #3B82F6'
-                }
-              }}            
-            />
+<Avatar
+  onClick={userPopover.handleOpen}
+  ref={userPopover.anchorRef}
+  src={userAvatar && userAvatar !== '/assets/avatar.png' ? `${userAvatar}?v=${avatarKey}` : undefined}
+  key={`avatar-${avatarKey}`}
+  sx={{ 
+    cursor: 'pointer',
+    border: '2px solid #E2E8F0',
+    width: 40,
+    height: 40,
+    '&:hover': {
+      border: '2px solid #3B82F6'
+    },
+    // 🔥 FORÇAR backgroundImage quando não tem src
+    ...(userAvatar && userAvatar !== '/assets/avatar.png' ? {} : {
+      backgroundImage: userAvatar ? `url("${userAvatar}?v=${avatarKey}")` : 'none',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    })
+  }}            
+>
+  {/* 🔥 Fallback para iniciais se não tiver avatar */}
+  {(!userAvatar || userAvatar === '/assets/avatar.png') && user?.firstName?.[0]}
+</Avatar>
           </Stack>
         </Stack>
       </Box>
