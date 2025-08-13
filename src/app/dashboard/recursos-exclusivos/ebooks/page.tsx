@@ -1,9 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const EbooksPage = () => {
   const [ebookExpandido, setEbookExpandido] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleDownloadPlanilha = () => {
     // URL da planilha para download
@@ -139,11 +150,11 @@ const EbooksPage = () => {
     return (
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '12px' : '16px',
         border: '1px solid #e2e8f0',
-        padding: '24px',
-        marginBottom: '24px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '16px' : '24px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         position: 'relative',
@@ -151,15 +162,15 @@ const EbooksPage = () => {
       }}
       onClick={() => setEbookExpandido(isExpandido ? null : ebook.id)}
       onMouseEnter={(e) => {
-        if (!isExpandido) {
+        if (!isExpandido && !isMobile) {
           e.currentTarget.style.transform = 'translateY(-4px)';
           e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.15)';
         }
       }}
       onMouseLeave={(e) => {
-        if (!isExpandido) {
+        if (!isExpandido && !isMobile) {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.1)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
         }
       }}
       >
@@ -169,7 +180,7 @@ const EbooksPage = () => {
           left: 0,
           top: 0,
           bottom: 0,
-          width: '4px',
+          width: isMobile ? '3px' : '4px',
           backgroundColor: '#374151'
         }} />
 
@@ -178,30 +189,45 @@ const EbooksPage = () => {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'flex-start', 
-          marginBottom: '20px',
-          gap: '16px'
+          marginBottom: isMobile ? '16px' : '20px',
+          gap: isMobile ? '12px' : '16px',
+          flexDirection: isMobile ? 'column' : 'row'
         }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '48px' }}>{ebook.capa}</span>
-              <div>
-                <h3 style={{
-                  fontSize: '24px',
-                  fontWeight: '700',
-                  color: '#1e293b',
-                  margin: '0 0 4px 0',
-                  lineHeight: '1.2'
-                }}>
-                  {ebook.titulo}
-                </h3>
-                <p style={{
-                  fontSize: '16px',
-                  color: '#64748b',
-                  margin: 0,
-                  fontWeight: '500'
-                }}>
-                  {ebook.subtitulo}
-                </p>
+          <div style={{ flex: 1, width: '100%' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: isMobile ? 'flex-start' : 'center', 
+              gap: isMobile ? '8px' : '12px', 
+              marginBottom: '8px',
+              flexDirection: isMobile ? 'column' : 'row'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: isMobile ? '8px' : '12px',
+                width: '100%'
+              }}>
+                <span style={{ fontSize: isMobile ? '32px' : '48px' }}>{ebook.capa}</span>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{
+                    fontSize: isMobile ? '18px' : '24px',
+                    fontWeight: '700',
+                    color: '#1e293b',
+                    margin: '0 0 4px 0',
+                    lineHeight: '1.2'
+                  }}>
+                    {ebook.titulo}
+                  </h3>
+                  <p style={{
+                    fontSize: isMobile ? '14px' : '16px',
+                    color: '#64748b',
+                    margin: 0,
+                    fontWeight: '500',
+                    lineHeight: '1.3'
+                  }}>
+                    {ebook.subtitulo}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -209,11 +235,13 @@ const EbooksPage = () => {
           <div style={{
             backgroundColor: '#374151',
             color: 'white',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
+            padding: isMobile ? '4px 8px' : '6px 12px',
+            borderRadius: '16px',
+            fontSize: isMobile ? '10px' : '12px',
             fontWeight: '700',
-            textAlign: 'center'
+            textAlign: 'center',
+            alignSelf: isMobile ? 'flex-start' : 'auto',
+            whiteSpace: 'nowrap'
           }}>
             {ebook.categoria}
           </div>
@@ -222,8 +250,8 @@ const EbooksPage = () => {
         {/* Descrição */}
         <p style={{
           color: '#374151',
-          fontSize: '16px',
-          marginBottom: '16px',
+          fontSize: isMobile ? '14px' : '16px',
+          marginBottom: '12px',
           lineHeight: '1.6'
         }}>
           {ebook.descricao}
@@ -232,13 +260,13 @@ const EbooksPage = () => {
         {/* Preview */}
         <div style={{
           backgroundColor: '#f8fafc',
-          padding: '16px',
-          borderRadius: '12px',
-          marginBottom: '16px',
+          padding: isMobile ? '12px' : '16px',
+          borderRadius: isMobile ? '8px' : '12px',
+          marginBottom: '12px',
           border: '1px solid #e2e8f0'
         }}>
           <p style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             color: '#475569',
             margin: 0,
             lineHeight: '1.5',
@@ -248,83 +276,91 @@ const EbooksPage = () => {
           </p>
         </div>
 
-{/* Botões Download */}
-<div style={{
-  display: 'flex',
-  justifyContent: 'center',
-  gap: '12px',
-  flexWrap: 'wrap',
-  marginBottom: isExpandido ? '24px' : '0'
-}}>
-  <button 
-    onClick={(e) => {
-      e.stopPropagation();
-      handleDownload(ebook);
-    }}
-    style={{
-      backgroundColor: '#374151',
-      color: 'white',
-      padding: '12px 32px',
-      borderRadius: '12px',
-      border: 'none',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer'
-    }}
-  >
-    📥 Baixar Ebook
-  </button>
-  
-  {ebook.titulo === "Milhas Aéreas" && (
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        window.open('https://docs.google.com/spreadsheets/d/1ewnyAOmTj0qfB6GF1iLXGqTdciHHlaaNLQFpNxUZxsk/edit', '_blank');
-      }}
-      style={{
-        backgroundColor: '#374151',
-        color: 'white',
-        padding: '12px 32px',
-        borderRadius: '12px',
-        border: 'none',
-        fontSize: '16px',
-        fontWeight: '600',
-        cursor: 'pointer'
-      }}
-    >
-      📊 Abrir Planilha
-    </button>
-  )}
-</div>
+        {/* Botões Download */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: isMobile ? '8px' : '12px',
+          flexWrap: 'wrap',
+          marginBottom: isExpandido ? (isMobile ? '16px' : '24px') : '0'
+        }}>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload(ebook);
+            }}
+            style={{
+              backgroundColor: '#374151',
+              color: 'white',
+              padding: isMobile ? '10px 20px' : '12px 32px',
+              borderRadius: isMobile ? '8px' : '12px',
+              border: 'none',
+              fontSize: isMobile ? '14px' : '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📥 {isMobile ? 'Baixar' : 'Baixar Ebook'}
+          </button>
+          
+          {ebook.titulo === "Milhas Aéreas" && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open('https://docs.google.com/spreadsheets/d/1ewnyAOmTj0qfB6GF1iLXGqTdciHHlaaNLQFpNxUZxsk/edit', '_blank');
+              }}
+              style={{
+                backgroundColor: '#374151',
+                color: 'white',
+                padding: isMobile ? '10px 20px' : '12px 32px',
+                borderRadius: isMobile ? '8px' : '12px',
+                border: 'none',
+                fontSize: isMobile ? '14px' : '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              📊 {isMobile ? 'Planilha' : 'Abrir Planilha'}
+            </button>
+          )}
+        </div>
 
         {/* Conteúdo Expandido */}
         {isExpandido && (
           <div style={{
             borderTop: '1px solid #e2e8f0',
-            paddingTop: '24px',
-            marginTop: '24px'
+            paddingTop: isMobile ? '16px' : '24px',
+            marginTop: isMobile ? '16px' : '24px'
           }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '24px',
-              marginBottom: '24px'
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: isMobile ? '16px' : '24px',
+              marginBottom: isMobile ? '16px' : '24px'
             }}>
               {/* Tópicos Abordados */}
               <div style={{
                 backgroundColor: '#f8fafc',
-                padding: '20px',
-                borderRadius: '12px',
+                padding: isMobile ? '16px' : '20px',
+                borderRadius: isMobile ? '8px' : '12px',
                 border: '1px solid #e2e8f0'
               }}>
                 <h4 style={{
-                  fontSize: '16px',
+                  fontSize: isMobile ? '14px' : '16px',
                   fontWeight: '700',
                   color: '#1e293b',
-                  marginBottom: '16px',
+                  marginBottom: isMobile ? '12px' : '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}>
                   📚 Tópicos Abordados
                 </h4>
@@ -333,12 +369,12 @@ const EbooksPage = () => {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '8px',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '13px' : '14px',
                     color: '#374151',
-                    marginBottom: '8px',
+                    marginBottom: '6px',
                     lineHeight: '1.4'
                   }}>
-                    <span style={{ color: ebook.cor, marginTop: '2px' }}>•</span>
+                    <span style={{ color: ebook.cor, marginTop: '2px', fontSize: '12px' }}>•</span>
                     {topico}
                   </div>
                 ))}
@@ -347,18 +383,18 @@ const EbooksPage = () => {
               {/* Benefícios */}
               <div style={{
                 backgroundColor: '#f0fdf4',
-                padding: '20px',
-                borderRadius: '12px',
+                padding: isMobile ? '16px' : '20px',
+                borderRadius: isMobile ? '8px' : '12px',
                 border: `1px solid ${ebook.cor}33`
               }}>
                 <h4 style={{
-                  fontSize: '16px',
+                  fontSize: isMobile ? '14px' : '16px',
                   fontWeight: '700',
                   color: '#065f46',
-                  marginBottom: '16px',
+                  marginBottom: isMobile ? '12px' : '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}>
                   ✨ O que você vai conquistar
                 </h4>
@@ -367,12 +403,12 @@ const EbooksPage = () => {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '8px',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '13px' : '14px',
                     color: '#065f46',
-                    marginBottom: '8px',
+                    marginBottom: '6px',
                     lineHeight: '1.4'
                   }}>
-                    <span style={{ color: '#10b981', marginTop: '2px' }}>✓</span>
+                    <span style={{ color: '#10b981', marginTop: '2px', fontSize: '12px' }}>✓</span>
                     {beneficio}
                   </div>
                 ))}
@@ -382,45 +418,46 @@ const EbooksPage = () => {
             {/* Call to Action Expandido */}
             <div style={{
               backgroundColor: '#f8fafc',
-              padding: '20px',
-              borderRadius: '12px',
+              padding: isMobile ? '16px' : '20px',
+              borderRadius: isMobile ? '8px' : '12px',
               border: '1px solid #e2e8f0',
               textAlign: 'center'
             }}>
               <h4 style={{
-                fontSize: '18px',
+                fontSize: isMobile ? '16px' : '18px',
                 fontWeight: '700',
                 color: '#1e293b',
-                marginBottom: '8px'
+                marginBottom: '6px'
               }}>
                 🎯 Pronto para dar o próximo passo?
               </h4>
               <p style={{
                 color: '#64748b',
-                fontSize: '14px',
-                marginBottom: '16px',
+                fontSize: isMobile ? '13px' : '14px',
+                marginBottom: '12px',
                 lineHeight: '1.5'
               }}>
                 Baixe agora e comece a aplicar as estratégias que vão transformar seus resultados!
               </p>
-              <button               style={{
-                backgroundColor: '#374151',
-                color: 'white',
-                padding: '14px 40px',
-                borderRadius: '12px',
-                border: 'none',
-                fontSize: '16px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload(ebook);
-              }}
+              <button               
+                style={{
+                  backgroundColor: '#374151',
+                  color: 'white',
+                  padding: isMobile ? '12px 24px' : '14px 40px',
+                  borderRadius: isMobile ? '8px' : '12px',
+                  border: 'none',
+                  fontSize: isMobile ? '14px' : '16px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(ebook);
+                }}
               >
                 🚀 Baixar Agora
               </button>
@@ -431,8 +468,8 @@ const EbooksPage = () => {
         {/* Indicador de expansão */}
         <div style={{
           textAlign: 'center',
-          marginTop: '16px',
-          fontSize: '12px',
+          marginTop: isMobile ? '12px' : '16px',
+          fontSize: isMobile ? '11px' : '12px',
           color: '#64748b'
         }}>
           {isExpandido ? '👆 Clique para recolher' : '👆 Clique para ver mais detalhes'}
@@ -445,38 +482,42 @@ const EbooksPage = () => {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '12px' : '24px'
     }}>
       {/* Header */}
       <div style={{ 
         textAlign: 'center',
-        marginBottom: '48px' 
+        marginBottom: isMobile ? '32px' : '48px'
       }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', 
           fontWeight: '800', 
           color: '#1e293b',
-          margin: '0 0 16px 0'
+          margin: '0 0 12px 0',
+          lineHeight: '1.2'
         }}>
           📚 Ebooks Exclusivos
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '20px',
+          fontSize: isMobile ? '14px' : '20px',
           margin: '0',
-          maxWidth: '800px',
+          maxWidth: isMobile ? '100%' : '800px',
           marginLeft: 'auto',
           marginRight: 'auto',
-          lineHeight: '1.6'
+          lineHeight: '1.6',
+          padding: isMobile ? '0 8px' : '0'
         }}>
           Conteúdos exclusivos e estratégias comprovadas para acelerar seus resultados financeiros e de investimentos
         </p>
       </div>
 
-
-
       {/* Lista de Ebooks */}
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ 
+        maxWidth: '1000px', 
+        margin: '0 auto',
+        padding: isMobile ? '0 4px' : '0'
+      }}>
         {ebooks.map((ebook) => (
           <EbookCard key={ebook.id} ebook={ebook} />
         ))}
@@ -484,27 +525,28 @@ const EbooksPage = () => {
 
       {/* Footer */}
       <div style={{
-        marginTop: '64px',
-        padding: '32px',
+        marginTop: isMobile ? '48px' : '64px',
+        padding: isMobile ? '24px' : '32px',
         backgroundColor: '#ffffff',
-        borderRadius: '12px',
+        borderRadius: isMobile ? '8px' : '12px',
         textAlign: 'center',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         maxWidth: '800px',
-        margin: '64px auto 0 auto'
+        margin: isMobile ? '48px 4px 12px 4px' : '64px auto 0 auto'
       }}>
         <h3 style={{
           fontWeight: '600',
-          fontSize: '24px',
-          margin: '0 0 16px 0',
-          color: '#1e293b'
+          fontSize: isMobile ? '18px' : '24px',
+          margin: '0 0 12px 0',
+          color: '#1e293b',
+          lineHeight: '1.3'
         }}>
           🎓 Conhecimento que Transforma
         </h3>
         <p style={{
           color: '#64748b',
-          fontSize: '16px',
+          fontSize: isMobile ? '14px' : '16px',
           margin: '0',
           lineHeight: '1.5'
         }}>
