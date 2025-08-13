@@ -329,20 +329,20 @@ export function MainNav(): React.JSX.Element {
               </Badge>
             </Tooltip>
 
-            <Avatar
-              onClick={userPopover.handleOpen}
-              ref={userPopover.anchorRef}
-              src={userAvatar}
-              sx={{ 
-                cursor: 'pointer',
-                border: '2px solid #E2E8F0',
-                width: 40,
-                height: 40,
-                '&:hover': {
-                  border: '2px solid #3B82F6'
-                }
-              }}            
-            />
+<Avatar
+  onClick={userPopover.handleOpen}
+  ref={userPopover.anchorRef}
+  src={userAvatar && userAvatar !== '/assets/avatar.png' ? userAvatar : undefined}
+  sx={{ 
+    cursor: 'pointer',
+    border: '2px solid #E2E8F0',
+    width: 40,
+    height: 40,
+    '&:hover': {
+      border: '2px solid #3B82F6'
+    }
+  }}            
+/>
           </Stack>
         </Stack>
       </Box>

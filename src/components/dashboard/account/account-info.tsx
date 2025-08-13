@@ -132,14 +132,14 @@ export function AccountInfo({ user, onUpdate }: AccountInfoProps): React.JSX.Ele
       <CardContent sx={{ p: 3 }}>
         <Stack spacing={2} sx={{ alignItems: 'center' }}>
           <div>
-            <Avatar 
-              src={user?.avatar || '/assets/avatar-8.png'} 
-              sx={{ 
-                height: '80px', 
-                width: '80px',
-                border: '3px solid #E2E8F0'
-              }} 
-            />
+<Avatar 
+  src={user?.avatar ? user.avatar : undefined}
+  sx={{ 
+    height: '80px', 
+    width: '80px',
+    border: '3px solid #E2E8F0'
+  }} 
+/>
           </div>
           <Stack spacing={1} sx={{ textAlign: 'center' }}>
             <Typography variant="h5" sx={{ color: '#1E293B', fontWeight: '600' }}>

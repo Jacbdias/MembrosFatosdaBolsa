@@ -1,11 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ImpostoRendaPage = () => {
   const [secaoAtiva, setSecaoAtiva] = useState('renda-variavel-brasil');
   const [passoExpandido, setPassoExpandido] = useState(null);
   const [videoTocando, setVideoTocando] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const videos = [
     { id: 1, titulo: "Declaração pré-preenchida", vimeoId: "SEU_VIDEO_ID_1" },
@@ -43,11 +54,11 @@ const ImpostoRendaPage = () => {
   ];
 
   const navegacao = [
-    { id: 'renda-variavel-brasil', titulo: 'Renda Variável - Brasil', icon: '📈' },
-    { id: 'renda-variavel-exterior', titulo: 'Renda Variável - Exterior', icon: '🌍' },
+    { id: 'renda-variavel-brasil', titulo: isMobile ? 'RV Brasil' : 'Renda Variável - Brasil', icon: '📈' },
+    { id: 'renda-variavel-exterior', titulo: isMobile ? 'RV Exterior' : 'Renda Variável - Exterior', icon: '🌍' },
     { id: 'renda-fixa', titulo: 'Renda Fixa', icon: '🏦' },
     { id: 'videos', titulo: 'Vídeos', icon: '🎥' },
-    { id: 'dicas-gerais', titulo: 'Dicas Gerais', icon: '💡' }
+    { id: 'dicas-gerais', titulo: isMobile ? 'Dicas' : 'Dicas Gerais', icon: '💡' }
   ];
 
   const rendaVariavelBrasil = [
@@ -477,46 +488,51 @@ const ImpostoRendaPage = () => {
     return (
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: '12px',
+        borderRadius: isMobile ? '8px' : '12px',
         border: '1px solid #e2e8f0',
-        padding: '20px',
-        marginBottom: '16px',
+        padding: isMobile ? '16px' : '20px',
+        marginBottom: isMobile ? '12px' : '16px',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         transition: 'all 0.2s ease'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
+        if (!isMobile) {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+        if (!isMobile) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+        }
       }}
       >
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '16px'
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? '8px' : '16px',
+          flexDirection: isMobile ? 'column' : 'row'
         }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, width: '100%' }}>
             <h3 style={{
-              fontSize: '16px',
+              fontSize: isMobile ? '14px' : '16px',
               fontWeight: '600',
               color: '#1e293b',
-              margin: '0 0 8px 0',
+              margin: '0 0 6px 0',
               lineHeight: '1.3'
             }}>
               🎬 {video.titulo}
             </h3>
             {estaTocando && (
               <span style={{
-                fontSize: '11px',
+                fontSize: isMobile ? '10px' : '11px',
                 color: '#dc2626',
                 fontWeight: '600',
                 backgroundColor: '#fee2e2',
                 padding: '2px 6px',
-                borderRadius: '6px'
+                borderRadius: '4px'
               }}>
                 ▶️ Reproduzindo
               </span>
@@ -528,16 +544,17 @@ const ImpostoRendaPage = () => {
             style={{
               backgroundColor: estaTocando ? '#dc2626' : '#374151',
               color: 'white',
-              padding: '8px 16px',
-              borderRadius: '8px',
+              padding: isMobile ? '6px 12px' : '8px 16px',
+              borderRadius: '6px',
               border: 'none',
-              fontSize: '14px',
+              fontSize: isMobile ? '12px' : '14px',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
+              gap: '4px',
+              transition: 'all 0.2s ease',
+              alignSelf: isMobile ? 'flex-start' : 'auto'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = '0.9';
@@ -546,26 +563,26 @@ const ImpostoRendaPage = () => {
               e.currentTarget.style.opacity = '1';
             }}
           >
-            {estaTocando ? '⏸️ Pausar' : '▶️ Assistir'}
+            {estaTocando ? (isMobile ? '⏸️' : '⏸️ Pausar') : (isMobile ? '▶️' : '▶️ Assistir')}
           </button>
         </div>
 
         {estaTocando && (
           <div style={{
-            marginTop: '16px',
-            borderRadius: '8px',
+            marginTop: isMobile ? '12px' : '16px',
+            borderRadius: '6px',
             overflow: 'hidden',
             backgroundColor: '#000'
           }}>
             <iframe
               src={`https://player.vimeo.com/video/${video.vimeoId}?title=0&byline=0&portrait=0&color=000000&transparent=0&autoplay=1`}
               width="100%"
-              height="300"
+              height={isMobile ? "200" : "300"}
               frameBorder="0"
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
               title={video.titulo}
-              style={{ borderRadius: '8px' }}
+              style={{ borderRadius: '6px' }}
             />
           </div>
         )}
@@ -579,34 +596,47 @@ const ImpostoRendaPage = () => {
     return (
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '12px' : '16px',
         border: '1px solid #e2e8f0',
-        padding: '24px',
-        marginBottom: '20px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '16px' : '20px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         cursor: 'pointer',
         transition: 'all 0.3s ease'
       }}
       onClick={() => setPassoExpandido(isExpandido ? null : passo.id)}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '32px' }}>{passo.icone}</span>
-            <div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: isMobile ? 'flex-start' : 'center', 
+          marginBottom: '12px',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '8px' : '12px'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: isMobile ? 'flex-start' : 'center', 
+            gap: isMobile ? '8px' : '12px',
+            width: '100%'
+          }}>
+            <span style={{ fontSize: isMobile ? '24px' : '32px' }}>{passo.icone}</span>
+            <div style={{ flex: 1 }}>
               <h3 style={{
-                fontSize: '20px',
+                fontSize: isMobile ? '16px' : '20px',
                 fontWeight: '700',
                 color: '#1e293b',
-                margin: 0
+                margin: '0 0 4px 0',
+                lineHeight: '1.2'
               }}>
                 {passo.titulo}
               </h3>
               <span style={{
                 backgroundColor: '#374151',
                 color: 'white',
-                padding: '4px 8px',
-                borderRadius: '12px',
-                fontSize: '11px',
+                padding: isMobile ? '3px 6px' : '4px 8px',
+                borderRadius: '8px',
+                fontSize: isMobile ? '9px' : '11px',
                 fontWeight: '600'
               }}>
                 {passo.categoria}
@@ -616,19 +646,21 @@ const ImpostoRendaPage = () => {
           <div style={{
             backgroundColor: '#f8fafc',
             color: '#64748b',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: '700'
+            padding: isMobile ? '4px 8px' : '6px 12px',
+            borderRadius: '16px',
+            fontSize: isMobile ? '10px' : '12px',
+            fontWeight: '700',
+            alignSelf: isMobile ? 'flex-start' : 'auto',
+            whiteSpace: 'nowrap'
           }}>
-            {isExpandido ? 'Ver menos' : 'Ver passo a passo'}
+            {isExpandido ? 'Ver menos' : (isMobile ? 'Ver passos' : 'Ver passo a passo')}
           </div>
         </div>
 
         <p style={{
           color: '#64748b',
-          fontSize: '16px',
-          marginBottom: isExpandido ? '24px' : '0',
+          fontSize: isMobile ? '14px' : '16px',
+          marginBottom: isExpandido ? (isMobile ? '16px' : '24px') : '0',
           lineHeight: '1.5'
         }}>
           {passo.descricao}
@@ -637,43 +669,43 @@ const ImpostoRendaPage = () => {
         {isExpandido && (
           <div>
             <h4 style={{
-              fontSize: '16px',
+              fontSize: isMobile ? '14px' : '16px',
               fontWeight: '700',
               color: '#1e293b',
-              marginBottom: '16px'
+              marginBottom: isMobile ? '12px' : '16px'
             }}>
               📋 Passo a Passo:
             </h4>
 
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: isMobile ? '16px' : '24px' }}>
               {passo.passos.map((step, index) => (
                 <div key={index} style={{
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: '12px',
-                  marginBottom: '12px',
-                  padding: '12px',
+                  gap: isMobile ? '8px' : '12px',
+                  marginBottom: isMobile ? '8px' : '12px',
+                  padding: isMobile ? '8px' : '12px',
                   backgroundColor: '#f8fafc',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: '1px solid #e2e8f0'
                 }}>
                   <span style={{
                     backgroundColor: '#374151',
                     color: 'white',
                     borderRadius: '50%',
-                    width: '24px',
-                    height: '24px',
+                    width: isMobile ? '20px' : '24px',
+                    height: isMobile ? '20px' : '24px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '12px',
+                    fontSize: isMobile ? '10px' : '12px',
                     fontWeight: '700',
                     flexShrink: 0
                   }}>
                     {index + 1}
                   </span>
                   <span style={{
-                    fontSize: '14px',
+                    fontSize: isMobile ? '13px' : '14px',
                     color: '#374151',
                     lineHeight: '1.5'
                   }}>
@@ -686,16 +718,16 @@ const ImpostoRendaPage = () => {
             {passo.dicas && (
               <div style={{
                 backgroundColor: '#f0fdf4',
-                padding: '16px',
-                borderRadius: '12px',
-                marginBottom: '16px',
+                padding: isMobile ? '12px' : '16px',
+                borderRadius: isMobile ? '8px' : '12px',
+                marginBottom: isMobile ? '12px' : '16px',
                 border: '1px solid #10b981'
               }}>
                 <h5 style={{
-                  fontSize: '14px',
+                  fontSize: isMobile ? '12px' : '14px',
                   fontWeight: '700',
                   color: '#065f46',
-                  marginBottom: '12px'
+                  marginBottom: isMobile ? '8px' : '12px'
                 }}>
                   💡 Dicas Importantes:
                 </h5>
@@ -703,12 +735,12 @@ const ImpostoRendaPage = () => {
                   <div key={index} style={{
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '8px',
-                    fontSize: '13px',
+                    gap: '6px',
+                    fontSize: isMobile ? '12px' : '13px',
                     color: '#065f46',
-                    marginBottom: '6px'
+                    marginBottom: '4px'
                   }}>
-                    <span style={{ color: '#10b981', marginTop: '2px' }}>✓</span>
+                    <span style={{ color: '#10b981', marginTop: '2px', fontSize: '10px' }}>✓</span>
                     {dica}
                   </div>
                 ))}
@@ -718,15 +750,15 @@ const ImpostoRendaPage = () => {
             {passo.documentos && (
               <div style={{
                 backgroundColor: '#fef3c7',
-                padding: '16px',
-                borderRadius: '12px',
+                padding: isMobile ? '12px' : '16px',
+                borderRadius: isMobile ? '8px' : '12px',
                 border: '1px solid #f59e0b'
               }}>
                 <h5 style={{
-                  fontSize: '14px',
+                  fontSize: isMobile ? '12px' : '14px',
                   fontWeight: '700',
                   color: '#92400e',
-                  marginBottom: '12px'
+                  marginBottom: isMobile ? '8px' : '12px'
                 }}>
                   📄 Documentos Necessários:
                 </h5>
@@ -734,12 +766,12 @@ const ImpostoRendaPage = () => {
                   <div key={index} style={{
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '8px',
-                    fontSize: '13px',
+                    gap: '6px',
+                    fontSize: isMobile ? '12px' : '13px',
                     color: '#92400e',
-                    marginBottom: '6px'
+                    marginBottom: '4px'
                   }}>
-                    <span style={{ color: '#f59e0b', marginTop: '2px' }}>•</span>
+                    <span style={{ color: '#f59e0b', marginTop: '2px', fontSize: '10px' }}>•</span>
                     {doc}
                   </div>
                 ))}
@@ -754,27 +786,28 @@ const ImpostoRendaPage = () => {
   const DicaCard = ({ dica, index }) => (
     <div style={{
       backgroundColor: '#ffffff',
-      borderRadius: '16px',
-      padding: '24px',
+      borderRadius: isMobile ? '12px' : '16px',
+      padding: isMobile ? '16px' : '24px',
       border: '1px solid #e2e8f0',
-      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       transition: 'transform 0.2s ease'
     }}
-    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+    onMouseEnter={(e) => !isMobile && (e.currentTarget.style.transform = 'translateY(-4px)')}
+    onMouseLeave={(e) => !isMobile && (e.currentTarget.style.transform = 'translateY(0)')}
     >
       <h3 style={{
-        fontSize: '18px',
+        fontSize: isMobile ? '16px' : '18px',
         fontWeight: '700',
         color: '#1e293b',
-        marginBottom: '12px'
+        marginBottom: '8px',
+        lineHeight: '1.3'
       }}>
         {dica.titulo}
       </h3>
       <p style={{
         color: '#64748b',
-        fontSize: '14px',
-        marginBottom: '16px',
+        fontSize: isMobile ? '13px' : '14px',
+        marginBottom: '12px',
         lineHeight: '1.5'
       }}>
         {dica.descricao}
@@ -784,13 +817,13 @@ const ImpostoRendaPage = () => {
           <div key={itemIndex} style={{
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '8px',
-            fontSize: '13px',
+            gap: '6px',
+            fontSize: isMobile ? '12px' : '13px',
             color: '#374151',
-            marginBottom: '6px',
+            marginBottom: '4px',
             lineHeight: '1.4'
           }}>
-            <span style={{ color: '#10b981', marginTop: '2px' }}>✓</span>
+            <span style={{ color: '#10b981', marginTop: '2px', fontSize: '10px' }}>✓</span>
             {item}
           </div>
         ))}
@@ -811,29 +844,31 @@ const ImpostoRendaPage = () => {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '12px' : '24px'
     }}>
       {/* Header */}
       <div style={{ 
         textAlign: 'center',
-        marginBottom: '48px' 
+        marginBottom: isMobile ? '32px' : '48px'
       }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '28px' : '48px', 
           fontWeight: '800', 
           color: '#1e293b',
-          margin: '0 0 16px 0'
+          margin: '0 0 12px 0',
+          lineHeight: '1.2'
         }}>
           📊 Guia do Imposto de Renda
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '20px',
+          fontSize: isMobile ? '14px' : '20px',
           margin: '0',
-          maxWidth: '800px',
+          maxWidth: isMobile ? '100%' : '800px',
           marginLeft: 'auto',
           marginRight: 'auto',
-          lineHeight: '1.6'
+          lineHeight: '1.6',
+          padding: isMobile ? '0 8px' : '0'
         }}>
           Passo a passo completo para declarar seus investimentos no IRPF de forma correta e sem complicações
         </p>
@@ -843,9 +878,10 @@ const ImpostoRendaPage = () => {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        marginBottom: '32px',
-        gap: '12px',
-        flexWrap: 'wrap'
+        marginBottom: isMobile ? '20px' : '32px',
+        gap: isMobile ? '6px' : '12px',
+        flexWrap: 'wrap',
+        padding: isMobile ? '0 4px' : '0'
       }}>
         {navegacao.map((item) => (
           <button
@@ -854,50 +890,56 @@ const ImpostoRendaPage = () => {
             style={{
               backgroundColor: secaoAtiva === item.id ? '#374151' : '#ffffff',
               color: secaoAtiva === item.id ? 'white' : '#64748b',
-              padding: '12px 24px',
-              borderRadius: '12px',
+              padding: isMobile ? '8px 12px' : '12px 24px',
+              borderRadius: isMobile ? '8px' : '12px',
               border: secaoAtiva === item.id ? 'none' : '1px solid #e2e8f0',
-              fontSize: '16px',
+              fontSize: isMobile ? '12px' : '16px',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
+              gap: isMobile ? '4px' : '8px',
+              transition: 'all 0.2s',
+              minWidth: 'fit-content'
             }}
           >
-            <span style={{ fontSize: '18px' }}>{item.icon}</span>
+            <span style={{ fontSize: isMobile ? '14px' : '18px' }}>{item.icon}</span>
             {item.titulo}
           </button>
         ))}
       </div>
 
       {/* Conteúdo */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto',
+        padding: isMobile ? '0 4px' : '0'
+      }}>
         
         {/* Vídeos */}
         {secaoAtiva === 'videos' && (
           <div>
             <div style={{
               backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: '32px',
-              marginBottom: '32px',
+              borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '20px' : '32px',
+              marginBottom: isMobile ? '20px' : '32px',
               border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
             }}>
               <h2 style={{
-                fontSize: '28px',
+                fontSize: isMobile ? '20px' : '28px',
                 fontWeight: '700',
                 color: '#1e293b',
-                marginBottom: '16px',
-                textAlign: 'center'
+                marginBottom: '12px',
+                textAlign: 'center',
+                lineHeight: '1.3'
               }}>
                 🎥 Vídeos sobre Declaração
               </h2>
               <p style={{
                 color: '#64748b',
-                fontSize: '16px',
+                fontSize: isMobile ? '14px' : '16px',
                 textAlign: 'center',
                 lineHeight: '1.6',
                 margin: '0'
@@ -908,8 +950,8 @@ const ImpostoRendaPage = () => {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-              gap: '16px'
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))',
+              gap: isMobile ? '12px' : '16px'
             }}>
               {videos.map((video) => (
                 <VideoCard key={video.id} video={video} />
@@ -932,24 +974,25 @@ const ImpostoRendaPage = () => {
           <div>
             <div style={{
               backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: '32px',
-              marginBottom: '32px',
+              borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '20px' : '32px',
+              marginBottom: isMobile ? '20px' : '32px',
               border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
             }}>
               <h2 style={{
-                fontSize: '28px',
+                fontSize: isMobile ? '20px' : '28px',
                 fontWeight: '700',
                 color: '#1e293b',
-                marginBottom: '16px',
-                textAlign: 'center'
+                marginBottom: '12px',
+                textAlign: 'center',
+                lineHeight: '1.3'
               }}>
                 💡 Dicas Gerais para o IR
               </h2>
               <p style={{
                 color: '#64748b',
-                fontSize: '16px',
+                fontSize: isMobile ? '14px' : '16px',
                 textAlign: 'center',
                 lineHeight: '1.6',
                 margin: '0'
@@ -960,8 +1003,8 @@ const ImpostoRendaPage = () => {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-              gap: '24px'
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: isMobile ? '16px' : '24px'
             }}>
               {dicasGerais.map((dica, index) => (
                 <DicaCard key={index} dica={dica} index={index} />
@@ -973,25 +1016,27 @@ const ImpostoRendaPage = () => {
 
       {/* Footer */}
       <div style={{
-        marginTop: '64px',
-        padding: '32px',
+        marginTop: isMobile ? '48px' : '64px',
+        padding: isMobile ? '24px' : '32px',
         backgroundColor: '#ffffff',
-        borderRadius: '12px',
+        borderRadius: isMobile ? '8px' : '12px',
         textAlign: 'center',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        margin: isMobile ? '48px 4px 12px 4px' : '64px 0 0 0'
       }}>
         <h3 style={{
           fontWeight: '600',
-          fontSize: '24px',
-          margin: '0 0 16px 0',
-          color: '#1e293b'
+          fontSize: isMobile ? '18px' : '24px',
+          margin: '0 0 12px 0',
+          color: '#1e293b',
+          lineHeight: '1.3'
         }}>
           ⚖️ Importante
         </h3>
         <p style={{
           color: '#64748b',
-          fontSize: '16px',
+          fontSize: isMobile ? '14px' : '16px',
           margin: '0',
           lineHeight: '1.5'
         }}>

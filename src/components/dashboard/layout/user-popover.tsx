@@ -111,7 +111,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
     : 'Carregando...';
   
   const displayEmail = userData?.email || 'carregando...';
-  const avatarSrc = userData?.avatar || '/assets/avatar.png';
+const avatarSrc = userData?.avatar || undefined;
 
   return (
     <Popover
