@@ -27,7 +27,6 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
   const { checkSession } = useUser();
   const router = useRouter();
   
-  // ✅ Estado para dados completos do usuário (incluindo avatar)
   const [userData, setUserData] = React.useState<{
     firstName?: string;
     lastName?: string;
@@ -35,25 +34,38 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
     avatar?: string;
   } | null>(null);
 
-  // ✅ Carregar dados do usuário
+  // Carregar dados do usuário quando o popover abrir
   React.useEffect(() => {
     const loadUserData = async () => {
       try {
         const { data: user } = await authClient.getUser();
         if (user) {
           setUserData(user);
+          
+          // Verificar se há dados no localStorage
+          const userDataFromStorage = localStorage.getItem('user-data');
+          if (userDataFromStorage) {
+            try {
+              const parsedUser = JSON.parse(userDataFromStorage);
+              if (parsedUser.avatar) {
+                setUserData(prev => ({ ...prev, avatar: parsedUser.avatar }));
+              }
+            } catch (error) {
+              console.error('Error parsing user data from storage:', error);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading user data:', error);
       }
     };
 
-    if (open) { // Só carregar quando o popover abrir
+    if (open) {
       loadUserData();
     }
   }, [open]);
 
-  // ✅ Recarregar dados quando localStorage mudar (quando avatar for atualizado)
+  // Escutar mudanças no localStorage
   React.useEffect(() => {
     const handleStorageChange = () => {
       if (open) {
@@ -61,7 +73,7 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
         if (userDataFromStorage) {
           try {
             const parsedUser = JSON.parse(userDataFromStorage);
-            setUserData(parsedUser);
+            setUserData(prev => ({ ...prev, ...parsedUser }));
           } catch (error) {
             console.error('Error parsing user data from storage:', error);
           }
@@ -69,10 +81,8 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       }
     };
 
-    // Escutar mudanças no localStorage
     window.addEventListener('storage', handleStorageChange);
     
-    // Verificar mudanças quando o popover abrir
     if (open) {
       handleStorageChange();
     }
@@ -82,40 +92,6 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
     };
   }, [open]);
 
-// 🔥 CORRIGIDO: Escutar evento correto de atualização do avatar
-React.useEffect(() => {
-  const handleUserDataUpdate = (event: CustomEvent) => {
-    console.log('🔄 UserPopover: Evento capturado!', event.detail);
-    
-    if (event.detail?.avatar) {
-      // Atualizar diretamente com dados do evento
-      setUserData(prev => ({
-        ...prev,
-        ...event.detail
-      }));
-      console.log('✅ UserPopover: Avatar atualizado!');
-    } else {
-      // Fallback: recarregar do localStorage
-      const userDataFromStorage = localStorage.getItem('user-data');
-      if (userDataFromStorage) {
-        try {
-          const parsedUser = JSON.parse(userDataFromStorage);
-          setUserData(parsedUser);
-        } catch (error) {
-          console.error('Error parsing user data from storage:', error);
-        }
-      }
-    }
-  };
-
-  // Escutar o evento CORRETO
-  window.addEventListener('userProfileUpdated', handleUserDataUpdate as EventListener);
-
-  return () => {
-    window.removeEventListener('userProfileUpdated', handleUserDataUpdate as EventListener);
-  };
-}, []);
-
   const handleSignOut = React.useCallback(async (): Promise<void> => {
     try {
       const { error } = await authClient.signOut();
@@ -123,25 +99,19 @@ React.useEffect(() => {
         logger.error('Sign out error', error);
         return;
       }
-      // Refresh the auth state
       await checkSession?.();
-      // UserProvider, for this case, will not refresh the router and we need to do it manually
       router.refresh();
-      // After refresh, AuthGuard will handle the redirect
     } catch (err) {
       logger.error('Sign out error', err);
     }
   }, [checkSession, router]);
 
-  // ✅ Calcular dados dinâmicos
   const displayName = userData 
     ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim()
     : 'Carregando...';
   
   const displayEmail = userData?.email || 'carregando...';
-const avatarSrc = userData?.avatar 
-  ? `${userData.avatar}?v=${Date.now()}` 
-  : '/assets/avatar.png';
+  const avatarSrc = userData?.avatar || '/assets/avatar.png';
 
   return (
     <Popover
@@ -151,7 +121,6 @@ const avatarSrc = userData?.avatar
       open={open}
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
-      {/* ✅ NOVO: Header com avatar */}
       <Box sx={{ p: '16px 20px' }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Avatar 

@@ -15,12 +15,12 @@ import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
-import { useDataStore } from '@/hooks/useDataStore'; // 🔥 IMPORTAÇÃO DO DATASTORE
+import { useDataStore } from '@/hooks/useDataStore';
 import { authClient } from '@/lib/auth/client';
 import { MobileNav } from './mobile-nav';
 import { UserPopover } from './user-popover';
 
-// 🔥 NOVO HOOK: Buscar todas as empresas do DataStore
+// Hook para buscar ativos
 function useAtivos() {
   const { dados, CARTEIRAS_CONFIG, isInitialized } = useDataStore();
   const [ativos, setAtivos] = React.useState([]);
@@ -29,45 +29,37 @@ function useAtivos() {
     if (!isInitialized) return;
 
     try {
-      console.log('🔄 Atualizando lista de ativos do DataStore...');
-      
       const todosAtivos = [];
       
-      // 📊 PERCORRER TODAS AS CARTEIRAS
       Object.entries(dados).forEach(([nomeCarteira, ativosCarteira]) => {
         const configCarteira = CARTEIRAS_CONFIG[nomeCarteira];
         
         if (!configCarteira || !Array.isArray(ativosCarteira)) return;
         
-        // 🏷️ ADICIONAR ATIVOS COM INFORMAÇÕES DA CARTEIRA
         ativosCarteira.forEach(ativo => {
           todosAtivos.push({
             ticker: ativo.ticker,
-            nome: ativo.nome || ativo.ticker, // Fallback para o ticker se não houver nome
+            nome: ativo.nome || ativo.ticker,
             setor: ativo.setor || 'Outros',
             carteira: configCarteira.nome,
             carteiraIcon: configCarteira.icon,
             carteiraColor: configCarteira.color,
             moeda: configCarteira.moeda,
-            // 🔥 DADOS EXTRAS PARA BUSCA AVANÇADA
             dataEntrada: ativo.dataEntrada,
             precoEntrada: ativo.precoEntrada,
             precoTeto: ativo.precoTeto,
             precoTetoBDR: ativo.precoTetoBDR,
-            // 📝 METADADOS
             fonte: 'datastore',
             id: ativo.id
           });
         });
       });
 
-      // 🔄 REMOVER DUPLICATAS (mesmo ticker)
       const ativosUnicos = todosAtivos.reduce((acc, ativo) => {
         const existing = acc.find(a => a.ticker === ativo.ticker);
         if (!existing) {
           acc.push(ativo);
         } else {
-          // Se já existe, manter o que tem mais informações
           if (ativo.nome && ativo.nome !== ativo.ticker && (!existing.nome || existing.nome === existing.ticker)) {
             existing.nome = ativo.nome;
           }
@@ -75,32 +67,12 @@ function useAtivos() {
         return acc;
       }, []);
 
-      // 📊 ORDENAR POR TICKER
       ativosUnicos.sort((a, b) => a.ticker.localeCompare(b.ticker));
-
-      console.log(`✅ ${ativosUnicos.length} ativos únicos carregados do DataStore`);
-      console.log('📊 Breakdown por carteira:', 
-        Object.entries(dados).map(([nome, ativos]) => ({
-          carteira: nome,
-          count: Array.isArray(ativos) ? ativos.length : 0
-        }))
-      );
-
       setAtivos(ativosUnicos);
 
     } catch (error) {
       console.error('❌ Erro ao carregar ativos do DataStore:', error);
-      
-      // 🔄 FALLBACK: Dados estáticos se houver erro
-      const ativosFallback = [
-        { ticker: 'KEPL3', nome: 'Kepler Weber S.A.', setor: 'Agricultura', fonte: 'fallback' },
-        { ticker: 'AGRO3', nome: 'BrasilAgro S.A.', setor: 'Agricultura', fonte: 'fallback' },
-        { ticker: 'LEVE3', nome: 'Metal Leve S.A.', setor: 'Automotivo', fonte: 'fallback' },
-        { ticker: 'BBAS3', nome: 'Banco do Brasil S.A.', setor: 'Bancos', fonte: 'fallback' },
-        // ... (adicione mais ativos de fallback se necessário)
-      ];
-      
-      setAtivos(ativosFallback);
+      setAtivos([]);
     }
   }, [dados, CARTEIRAS_CONFIG, isInitialized]);
 
@@ -115,86 +87,25 @@ export function MainNav(): React.JSX.Element {
   
   const { user } = useUser();
   const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
-  const [avatarKey, setAvatarKey] = React.useState<number>(Date.now());
   
-  // 🔥 CARREGAR ATIVOS DO DATASTORE
   const ativos = useAtivos();
 
-// 🔥 NOVO: Listener para eventos de atualização de perfil
-React.useEffect(() => {
-  const handleProfileUpdate = (event: CustomEvent) => {
-    console.log('🎯 6. MainNav recebeu evento:', event.detail);
-    console.log('🎯 Avatar antes:', userAvatar);
-    
-    if (event.detail?.avatar) {
-      console.log('🎯 Setando novo avatar:', event.detail.avatar);
-      setUserAvatar(event.detail.avatar);
-      setAvatarKey(Date.now());
-      console.log('✅ MainNav: Avatar atualizado via evento!');
-      
-      // 🔍 VERIFICAR DEPOIS DE 1 SEGUNDO
-      setTimeout(() => {
-        console.log('🕐 Avatar após 1s:', userAvatar);
-      }, 1000);
-    }
-  };
-
-  window.addEventListener('userProfileUpdated', handleProfileUpdate as EventListener);
-  return () => {
-    window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener);
-  };
-}, [userAvatar]);
-
-// 🔄 Inicialização melhorada do avatar
-React.useEffect(() => {
-  console.log('🐛 MainNav init - user:', user);
-  console.log('🐛 MainNav init - localStorage:', localStorage.getItem('user-data'));
-  
-  const initAvatar = () => {
-    // 1. Tentar do contexto user
-    if (user?.avatar) {
-      console.log('🎯 MainNav: Usando avatar do contexto user:', user.avatar);
-      setUserAvatar(user.avatar);
-      setAvatarKey(Date.now());
-      return;
-    }
-    
-    // 2. Tentar do localStorage
-    try {
-      const userData = localStorage.getItem('user-data');
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        if (parsed.avatar) {
-          console.log('🎯 MainNav: Usando avatar do localStorage:', parsed.avatar);
-          setUserAvatar(parsed.avatar);
-          setAvatarKey(Date.now());
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao parsear localStorage:', error);
-    }
-    
-    // 3. Fallback - garantir que tem uma imagem
-    console.log('🎯 MainNav: Usando avatar padrão');
-    setUserAvatar('/assets/avatar-8.png'); // ou a imagem padrão que você tem
-    setAvatarKey(Date.now());
-  };
-
-  initAvatar();
-}, [user]);
-
-  // 🔄 Verificação de backup (reduzida frequência)
+  // Verificar localStorage para avatar
   React.useEffect(() => {
     const checkAvatar = () => {
       try {
+        // Primeiro tentar do contexto user
+        if (user?.avatar) {
+          setUserAvatar(user.avatar);
+          return;
+        }
+
+        // Depois tentar do localStorage
         const userData = localStorage.getItem('user-data');
         if (userData) {
           const parsed = JSON.parse(userData);
-          if (parsed.avatar && parsed.avatar !== userAvatar) {
-            console.log('🔄 MainNav: Avatar atualizado via backup check');
+          if (parsed.avatar) {
             setUserAvatar(parsed.avatar);
-            setAvatarKey(Date.now());
           }
         }
       } catch (error) {
@@ -202,12 +113,11 @@ React.useEffect(() => {
       }
     };
 
-    // Reduzido para 2 segundos (era 500ms)
+    checkAvatar();
     const interval = setInterval(checkAvatar, 2000);
     return () => clearInterval(interval);
-  }, [userAvatar]);
+  }, [user]);
 
-  // Navegar para o ativo selecionado
   const handleAtivoSelect = (ativo) => {
     if (ativo) {
       router.push(`/dashboard/ativo/${ativo.ticker}`);
@@ -215,7 +125,6 @@ React.useEffect(() => {
     }
   };
 
-  // 🔥 FUNÇÃO DE FILTRO APRIMORADA
   const filterOptions = (options, { inputValue }) => {
     if (!inputValue) return [];
     
@@ -226,7 +135,7 @@ React.useEffect(() => {
       ativo.nome.toLowerCase().includes(searchTerm) ||
       ativo.setor.toLowerCase().includes(searchTerm) ||
       (ativo.carteira && ativo.carteira.toLowerCase().includes(searchTerm))
-    ).slice(0, 12); // Aumentado para 12 resultados
+    ).slice(0, 12);
   };
 
   return (
@@ -256,7 +165,6 @@ React.useEffect(() => {
               <ListIcon />
             </IconButton>
             
-            {/* 🔥 CAMPO DE BUSCA APRIMORADO */}
             {searchMode ? (
               <Box sx={{ minWidth: 350, maxWidth: 500 }}>
                 <Autocomplete
@@ -283,13 +191,13 @@ React.useEffect(() => {
                           fontSize: '14px',
                           backgroundColor: 'white',
                           '& fieldset': {
-                            borderColor: '#010101', // 🔥 Borda preta quando normal
+                            borderColor: '#010101',
                           },
                           '&:hover fieldset': {
-                            borderColor: '#010101', // 🔥 Borda preta no hover
+                            borderColor: '#010101',
                           },
                           '&.Mui-focused fieldset': {
-                            borderColor: '#010101', // 🔥 Borda preta quando focado
+                            borderColor: '#010101',
                           },
                         }
                       }}
@@ -298,7 +206,6 @@ React.useEffect(() => {
                   renderOption={(props, option) => (
                     <Box component="li" {...props} sx={{ p: 1.5 }}>
                       <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%' }}>
-                        {/* 🏷️ ÍCONE DA CARTEIRA */}
                         {option.carteiraIcon && (
                           <Box sx={{ fontSize: '16px', minWidth: '20px' }}>
                             {option.carteiraIcon}
@@ -306,7 +213,6 @@ React.useEffect(() => {
                         )}
                         
                         <Box sx={{ flex: 1 }}>
-                          {/* 📊 TICKER E MOEDA */}
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Box sx={{ fontWeight: 600, fontSize: '14px', color: 'primary.main' }}>
                               {option.ticker}
@@ -325,12 +231,10 @@ React.useEffect(() => {
                             )}
                           </Stack>
                           
-                          {/* 📝 NOME DA EMPRESA */}
                           <Box sx={{ fontSize: '12px', color: 'text.secondary', lineHeight: 1.2 }}>
                             {option.nome}
                           </Box>
                           
-                          {/* 🏢 CARTEIRA DE ORIGEM */}
                           {option.carteira && (
                             <Box sx={{ fontSize: '10px', color: 'text.disabled', fontStyle: 'italic' }}>
                               📂 {option.carteira}
@@ -338,7 +242,6 @@ React.useEffect(() => {
                           )}
                         </Box>
                         
-                        {/* 🏷️ SETOR */}
                         <Chip 
                           label={option.setor} 
                           size="small" 
@@ -377,8 +280,7 @@ React.useEffect(() => {
             <Avatar
               onClick={userPopover.handleOpen}
               ref={userPopover.anchorRef}
-              src={`${userAvatar}?v=${avatarKey}`}
-              key={`avatar-${avatarKey}`}
+              src={userAvatar}
               sx={{ 
                 cursor: 'pointer',
                 border: '2px solid #E2E8F0',

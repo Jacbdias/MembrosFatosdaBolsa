@@ -47,14 +47,12 @@ export default function Page(): React.JSX.Element {
 
   const handleProfileUpdate = async (updatedData: any) => {
     try {
-      console.log('🎯 1. Iniciando atualização:', updatedData);
-      
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
       
       if (!userEmail) return;
 
-      // 1. Salva no banco via API
+      // Salvar no banco via API
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
@@ -67,12 +65,11 @@ export default function Page(): React.JSX.Element {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('🎯 2. API respondeu:', result.user);
         
-        // 2. Atualiza estado local da página
+        // Atualizar estado local da página
         setUserProfile(prev => ({ ...prev, ...result.user }));
         
-        // 3. Atualiza localStorage (se o useUser lê de lá)
+        // Atualizar localStorage
         const currentUserData = localStorage.getItem('user-data');
         if (currentUserData) {
           const userData = JSON.parse(currentUserData);
@@ -80,22 +77,15 @@ export default function Page(): React.JSX.Element {
           localStorage.setItem('user-data', JSON.stringify(updatedUserData));
         }
         
-        // 4. 🔥 CHAVE: Dispara evento para sincronizar outros componentes
-        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-          detail: result.user 
-        }));
-        console.log('🎯 3. Evento disparado!');
-        
-        console.log('✅ Perfil atualizado e sincronizado!');
+        // Disparar evento para outros componentes
+        window.dispatchEvent(new Event('storage'));
         
       } else {
         console.error('❌ Erro na API:', await response.text());
-        // Fallback: só atualiza local se API falhar
         setUserProfile(prev => ({ ...prev, ...updatedData }));
       }
     } catch (error) {
       console.error('❌ Erro ao atualizar perfil:', error);
-      // Fallback: só atualiza local se tiver erro
       setUserProfile(prev => ({ ...prev, ...updatedData }));
     }
   };
@@ -122,7 +112,6 @@ export default function Page(): React.JSX.Element {
       </div>
 
       <Grid container spacing={3}>
-        {/* Informações do perfil */}
         <Grid lg={4} md={6} xs={12}>
           <Stack spacing={3}>
             <AccountInfo 
@@ -135,7 +124,6 @@ export default function Page(): React.JSX.Element {
           </Stack>
         </Grid>
 
-        {/* Formulários */}
         <Grid lg={8} md={6} xs={12}>
           <Stack spacing={3}>
             <AccountDetailsForm 

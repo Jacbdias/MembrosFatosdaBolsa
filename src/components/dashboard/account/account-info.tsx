@@ -32,47 +32,31 @@ export function AccountInfo({ user, onUpdate }: AccountInfoProps): React.JSX.Ele
   const [uploading, setUploading] = React.useState(false);
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🚀 handleAvatarUpload chamado!');
-    
     const file = event.target.files?.[0];
-    console.log('📁 Arquivo selecionado:', file);
     
-    if (!file) {
-      console.log('❌ Nenhum arquivo selecionado');
-      return;
-    }
+    if (!file) return;
 
-    // Validar arquivo
     if (!file.type.startsWith('image/')) {
-      console.log('❌ Tipo de arquivo inválido:', file.type);
       alert('Por favor, selecione apenas arquivos de imagem');
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      console.log('❌ Arquivo muito grande:', file.size);
+    if (file.size > 5 * 1024 * 1024) {
       alert('Arquivo muito grande. Máximo 5MB');
       return;
     }
 
-    console.log('✅ Arquivo válido, iniciando upload...');
     setUploading(true);
 
     try {
-      // Converter para base64 para armazenamento simples
       const reader = new FileReader();
       reader.onload = async (e) => {
-        console.log('📸 Arquivo convertido para base64');
         const avatarData = e.target?.result as string;
         
         // Atualizar no servidor
         const userEmail = localStorage.getItem('user-email');
         const token = localStorage.getItem('custom-auth-token');
-        
-        console.log('📧 Email do usuário:', userEmail);
-        console.log('🔑 Token:', token ? 'Existe' : 'Não existe');
 
-        console.log('🌐 Fazendo requisição para /api/user/profile...');
         const response = await fetch('/api/user/profile', {
           method: 'PUT',
           headers: {
@@ -87,23 +71,17 @@ export function AccountInfo({ user, onUpdate }: AccountInfoProps): React.JSX.Ele
           })
         });
 
-        console.log('📡 Response status:', response.status);
-        console.log('📡 Response ok:', response.ok);
-
         if (response.ok) {
-          console.log('✅ Upload bem-sucedido!');
+          // Atualizar estado local
           onUpdate({ avatar: avatarData });
           
-          // 🔥 CORRIGIDO: Criar user-data se não existir
+          // Atualizar localStorage
           let userData = localStorage.getItem('user-data');
           if (userData) {
-            // Se existir, atualizar
             const parsedUser = JSON.parse(userData);
             parsedUser.avatar = avatarData;
             localStorage.setItem('user-data', JSON.stringify(parsedUser));
-            console.log('💾 localStorage user-data atualizado!');
           } else {
-            // Se NÃO existir, criar novo
             const newUserData = {
               firstName: user.firstName,
               lastName: user.lastName,
@@ -111,24 +89,19 @@ export function AccountInfo({ user, onUpdate }: AccountInfoProps): React.JSX.Ele
               avatar: avatarData
             };
             localStorage.setItem('user-data', JSON.stringify(newUserData));
-            console.log('💾 localStorage user-data CRIADO!');
           }
           
-          // Disparar evento customizado
-          console.log('🎯 Disparando evento user-data-updated...');
-          window.dispatchEvent(new CustomEvent('user-data-updated', { 
-            detail: { type: 'avatar-updated' } 
-          }));
-          console.log('✅ Evento disparado!');
+          // Disparar evento para outros componentes
+          window.dispatchEvent(new Event('storage'));
+          
         } else {
-          console.log('❌ Erro na resposta:', response.status);
           alert('Erro ao fazer upload da foto');
         }
-      }; // ← LINHA CRUCIAL QUE ESTAVA FALTANDO!
+      };
       
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('💥 Erro no upload:', error);
+      console.error('Erro no upload:', error);
       alert('Erro ao fazer upload da foto');
     } finally {
       setUploading(false);
