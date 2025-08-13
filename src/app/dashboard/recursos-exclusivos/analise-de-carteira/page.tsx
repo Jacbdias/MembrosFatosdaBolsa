@@ -73,12 +73,20 @@ function AnaliseCarteiraClientePage() {
   });
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // 🆕 NOVO ESTADO: Verificar se usuário já enviou carteira
   const [jaEnviouCarteira, setJaEnviouCarteira] = useState(false);
   const [carregandoVerificacao, setCarregandoVerificacao] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // 🆕 NOVO useEffect: Verificar se já enviou carteira
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   useEffect(() => {
     const verificarSeJaEnviou = async () => {
       try {
@@ -225,7 +233,6 @@ function AnaliseCarteiraClientePage() {
     }
   };
 
-  // MODIFIQUE o handleSubmit para atualizar o estado após envio:
   const handleSubmit = async () => {
     if (!uploadedFile || !todasPerguntasRespondidas()) return;
     
@@ -247,7 +254,6 @@ function AnaliseCarteiraClientePage() {
       const result = await response.json();
 
       if (response.ok) {
-        // 🆕 MARCAR QUE JÁ ENVIOU
         setJaEnviouCarteira(true);
         setEtapaAtual(3);
         
@@ -265,7 +271,6 @@ Nossa equipe entrará em contato em breve com a análise completa.`);
           alert('Carteira enviada com sucesso! Nossa equipe entrará em contato em breve.');
         }
         
-        // Limpar formulário
         setRespostas({
           tempoInvestimento: '',
           motivoMercado: '',
@@ -288,384 +293,383 @@ Nossa equipe entrará em contato em breve com a análise completa.`);
     } finally {
       setIsSubmitting(false);
     }
-  }; 
-
-// FUNÇÃO EXCEL CORRIGIDA - SEM LINKS EXTERNOS E SEM ERROS
-const gerarModeloProfissional = () => {
-  const wb = XLSX.utils.book_new();
-  
-  // ===========================================
-  // 1. ABA INSTRUÇÕES
-  // ===========================================
-  const instrucoes = [
-    ['FATOS DA BOLSA - ANÁLISE DE CARTEIRA PROFISSIONAL'],
-    [''],
-    ['INSTRUÇÕES DE PREENCHIMENTO'],
-    [''],
-    ['📋 IMPORTANTE:'],
-    ['• Preencha apenas as células com 🔵 AZUL'],
-    ['• NÃO altere as células com ⚪ CINZA (calculadas automaticamente)'],
-    ['• Use vírgula (,) para decimais. Ex: 15,75'],
-    ['• Para ações, use códigos da B3: PETR4, VALE3, ITUB4, etc.'],
-    ['• Para FIIs, use códigos: HGLG11, BCFF11, XPML11, etc.'],
-    [''],
-    ['🎨 LEGENDA:'],
-    ['🔵 AZUL = Células para você preencher'],
-    ['⚪ CINZA = Células calculadas automaticamente'],
-    ['⭐ VERDE = Totais e resumos'],
-    [''],
-    ['💡 DICA: Siga os exemplos já preenchidos!'],
-  ];
-  
-  const wsInstrucoes = XLSX.utils.aoa_to_sheet(instrucoes);
-  wsInstrucoes['!cols'] = [{ width: 60 }];
-  XLSX.utils.book_append_sheet(wb, wsInstrucoes, '📋 INSTRUÇÕES');
-  
-  // ===========================================
-  // 2. ABA AÇÕES - FÓRMULAS CORRIGIDAS
-  // ===========================================
-  const acoes = [
-    ['FATOS DA BOLSA - AÇÕES BRASILEIRAS'],
-    [''],
-    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
-    [''],
-    ['🔵 CÓDIGO', '🔵 NOME/EMPRESA', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ COTAÇÃO ATUAL', '⚪ VALOR INVESTIDO', '⚪ VALOR ATUAL', '⚪ % CARTEIRA'],
-    [''],
-    ['PETR4', 'Petrobras PN', 100, 25.50, '', '', '', ''],
-    ['VALE3', 'Vale ON', 50, 85.00, '', '', '', ''],
-    ['ITUB4', 'Itaú Unibanco PN', '', '', '', '', '', ''],
-    ['BBSE3', 'BB Seguridade ON', '', '', '', '', '', ''],
-  ];
-
-  // Adicionar mais 15 linhas vazias
-  for (let i = 0; i < 15; i++) {
-    acoes.push(['', '', '', '', '', '', '', '']);
-  }
-
-  acoes.push(['']); // Linha em branco
-  acoes.push(['⭐ TOTAL AÇÕES:', '', '', '', '', '', '', '']);
-
-  const wsAcoes = XLSX.utils.aoa_to_sheet(acoes);
-
-  // FÓRMULAS CORRIGIDAS PARA AÇÕES (linha total = 26)
-  for (let i = 7; i <= 25; i++) {
-    // Cotação Atual: Se vazio, usa o preço médio
-    wsAcoes[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
-    
-    // Valor Investido = Quantidade × Preço Médio
-    wsAcoes[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i},"")` };
-    
-    // Valor Atual = Quantidade × Cotação Atual
-    wsAcoes[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i},"")` };
-    
-    // % Carteira = Valor Atual ÷ Total da Aba × 100 (SEM $)
-    wsAcoes[`H${i}`] = { f: `IF(G${i}="","",IF(G26=0,0,G${i}/G26*100))` };
-  }
-
-  // Fórmulas de TOTAL (linha 26)
-  wsAcoes['F26'] = { f: 'SUM(F7:F25)' }; // Total Valor Investido
-  wsAcoes['G26'] = { f: 'SUM(G7:G25)' }; // Total Valor Atual
-  wsAcoes['H26'] = { f: 'SUM(H7:H25)' }; // Total % (deve dar 100%)
-
-  wsAcoes['!cols'] = [
-    { width: 12 }, { width: 30 }, { width: 12 }, { width: 18 }, 
-    { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
-  ];
-  wsAcoes['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
-
-  XLSX.utils.book_append_sheet(wb, wsAcoes, '🏢 AÇÕES');
-
-  // ===========================================
-  // 3. ABA FIIs - FÓRMULAS CORRIGIDAS
-  // ===========================================
-  const fiis = [
-    ['FATOS DA BOLSA - FUNDOS IMOBILIÁRIOS (FIIs)'],
-    [''],
-    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
-    [''],
-    ['🔵 CÓDIGO', '🔵 NOME/DESCRIÇÃO', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ COTAÇÃO ATUAL', '⚪ VALOR INVESTIDO', '⚪ VALOR ATUAL', '⚪ % CARTEIRA'],
-    [''],
-    ['HGLG11', 'Cshg Logística FII', 10, 150.00, '', '', '', ''],
-    ['BCFF11', 'Btg Pactual Fof FII', 20, 85.50, '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-  ];
-
-  for (let i = 0; i < 17; i++) {
-    fiis.push(['', '', '', '', '', '', '', '']);
-  }
-
-  fiis.push(['']);
-  fiis.push(['⭐ TOTAL FIIs:', '', '', '', '', '', '', '']);
-
-  const wsFiis = XLSX.utils.aoa_to_sheet(fiis);
-
-  // FÓRMULAS CORRIGIDAS PARA FIIs (linha total = 26)
-  for (let i = 7; i <= 25; i++) {
-    // Cotação Atual: Se vazio, usa o preço médio
-    wsFiis[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
-    
-    // Valor Investido = Quantidade × Preço Médio
-    wsFiis[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i},"")` };
-    
-    // Valor Atual = Quantidade × Cotação Atual
-    wsFiis[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i},"")` };
-    
-    // % Carteira = Valor Atual ÷ Total da Aba × 100 (SEM $)
-    wsFiis[`H${i}`] = { f: `IF(G${i}="","",IF(G26=0,0,G${i}/G26*100))` };
-  }
-
-  // Totais FIIs
-  wsFiis['F26'] = { f: 'SUM(F7:F25)' };
-  wsFiis['G26'] = { f: 'SUM(G7:G25)' };
-  wsFiis['H26'] = { f: 'SUM(H7:H25)' };
-
-  wsFiis['!cols'] = [
-    { width: 12 }, { width: 30 }, { width: 12 }, { width: 18 }, 
-    { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
-  ];
-  wsFiis['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
-
-  XLSX.utils.book_append_sheet(wb, wsFiis, '🏘️ FIIs');
-
-  // ===========================================
-  // 4. ABA RENDA FIXA - FÓRMULAS CORRIGIDAS
-  // ===========================================
-  const rendaFixa = [
-    ['FATOS DA BOLSA - RENDA FIXA'],
-    [''],
-    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
-    [''],
-    ['🔵 PRODUTO', '🔵 BANCO/CORRETORA', '🔵 VALOR INVESTIDO (R$)', '⚪ VALOR ATUAL (R$)', '🔵 VENCIMENTO', '⚪ % DA CARTEIRA'],
-    [''],
-    ['CDB 120% CDI', 'Banco Inter', 10000, '', '31/12/2025', ''],
-    ['LCI 95% CDI', 'Nubank', 5000, '', '15/06/2026', ''],
-    ['Tesouro IPCA+', 'Tesouro Direto', 15000, '', '15/05/2035', ''],
-    ['', '', '', '', '', ''],
-  ];
-
-  for (let i = 0; i < 12; i++) {
-    rendaFixa.push(['', '', '', '', '', '']);
-  }
-
-  rendaFixa.push(['']);
-  rendaFixa.push(['⭐ TOTAL RENDA FIXA:', '', '', '', '', '']);
-
-  const wsRendaFixa = XLSX.utils.aoa_to_sheet(rendaFixa);
-
-  // FÓRMULAS CORRIGIDAS PARA RENDA FIXA (linha total = 20)
-  for (let i = 7; i <= 19; i++) {
-    // Valor Atual: Se vazio, usa valor investido
-    wsRendaFixa[`D${i}`] = { f: `IF(C${i}="","",IF(D${i}="",C${i},D${i}))` };
-    
-    // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 20)
-    wsRendaFixa[`F${i}`] = { f: `IF(D${i}="","",IF(D20=0,0,D${i}/D20*100))` };
-  }
-
-  // Totais Renda Fixa (linha 20)
-  wsRendaFixa['C20'] = { f: 'SUM(C7:C19)' }; // Total Investido
-  wsRendaFixa['D20'] = { f: 'SUM(D7:D19)' }; // Total Atual
-  wsRendaFixa['F20'] = { f: 'SUM(F7:F19)' }; // Total %
-
-  wsRendaFixa['!cols'] = [
-    { width: 25 }, { width: 20 }, { width: 20 }, { width: 18 }, { width: 15 }, { width: 15 }
-  ];
-  wsRendaFixa['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
-
-  XLSX.utils.book_append_sheet(wb, wsRendaFixa, '💰 RENDA FIXA');
-
-  // ===========================================
-  // 5. ABA EXTERIOR - FÓRMULAS CORRIGIDAS
-  // ===========================================
-  const exterior = [
-    ['FATOS DA BOLSA - INVESTIMENTOS NO EXTERIOR'],
-    [''],
-    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
-    [''],
-    ['🔵 CÓDIGO', '🔵 NOME/DESCRIÇÃO', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (USD)', '⚪ COTAÇÃO (USD)', '⚪ VALOR INVEST. (R$)', '⚪ VALOR ATUAL (R$)', '⚪ % CARTEIRA'],
-    [''],
-    ['AAPL', 'Apple Inc', 5, 150.00, '', '', '', ''],
-    ['VTI', 'Vanguard Total Stock', 3, 220.00, '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-  ];
-
-  for (let i = 0; i < 12; i++) {
-    exterior.push(['', '', '', '', '', '', '', '']);
-  }
-
-  exterior.push(['']);
-  exterior.push(['⭐ TOTAL EXTERIOR:', '', '', '', '', '', '', '']);
-
-  const wsExterior = XLSX.utils.aoa_to_sheet(exterior);
-
-  // FÓRMULAS CORRIGIDAS PARA EXTERIOR (linha total = 19, USD para BRL = 5.5)
-  for (let i = 7; i <= 18; i++) {
-    // Cotação USD: Se vazio, usa preço médio
-    wsExterior[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
-    
-    // Valor Investido em R$ = Quantidade × Preço Médio USD × Taxa
-    wsExterior[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i}*5.5,"")` };
-    
-    // Valor Atual em R$ = Quantidade × Cotação USD × Taxa
-    wsExterior[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i}*5.5,"")` };
-    
-    // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 19)
-    wsExterior[`H${i}`] = { f: `IF(G${i}="","",IF(G19=0,0,G${i}/G19*100))` };
-  }
-
-  // Totais Exterior (linha 19)
-  wsExterior['F19'] = { f: 'SUM(F7:F18)' };
-  wsExterior['G19'] = { f: 'SUM(G7:G18)' };
-  wsExterior['H19'] = { f: 'SUM(H7:H18)' };
-
-  wsExterior['!cols'] = [
-    { width: 12 }, { width: 25 }, { width: 12 }, { width: 18 }, 
-    { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
-  ];
-  wsExterior['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
-
-  XLSX.utils.book_append_sheet(wb, wsExterior, '🌎 EXTERIOR');
-
-  // ===========================================
-  // 6. ABA CRIPTO - FÓRMULAS CORRIGIDAS
-  // ===========================================
-  const cripto = [
-    ['FATOS DA BOLSA - CRIPTOMOEDAS'],
-    [''],
-    ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
-    [''],
-    ['🔵 CRIPTOMOEDA', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ VALOR ATUAL (R$)', '🔵 EXCHANGE', '⚪ % DA CARTEIRA'],
-    [''],
-    ['Bitcoin (BTC)', 0.5, 150000, '', 'Binance', ''],
-    ['Ethereum (ETH)', 2, 8000, '', 'Binance', ''],
-    ['', '', '', '', '', ''],
-  ];
-
-  for (let i = 0; i < 8; i++) {
-    cripto.push(['', '', '', '', '', '']);
-  }
-
-  cripto.push(['']);
-  cripto.push(['⭐ TOTAL CRIPTO:', '', '', '', '', '']);
-
-  const wsCripto = XLSX.utils.aoa_to_sheet(cripto);
-
-  // FÓRMULAS CORRIGIDAS PARA CRIPTO (linha total = 16)
-  for (let i = 7; i <= 15; i++) {
-    // Valor Atual = Quantidade × Preço Médio (se não tiver cotação atual)
-    wsCripto[`D${i}`] = { f: `IF(AND(B${i}<>"",C${i}<>""),B${i}*C${i},"")` };
-    
-    // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 16)
-    wsCripto[`F${i}`] = { f: `IF(D${i}="","",IF(D16=0,0,D${i}/D16*100))` };
-  }
-
-  // Totais Cripto (linha 16)
-  wsCripto['C16'] = { f: 'SUM(C7:C15)' }; // Total Preço Médio
-  wsCripto['D16'] = { f: 'SUM(D7:D15)' }; // Total Valor Atual
-  wsCripto['F16'] = { f: 'SUM(F7:F15)' }; // Total %
-
-  wsCripto['!cols'] = [
-    { width: 20 }, { width: 15 }, { width: 20 }, { width: 20 }, { width: 15 }, { width: 15 }
-  ];
-  wsCripto['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
-
-  XLSX.utils.book_append_sheet(wb, wsCripto, '₿ CRIPTO');
-
-  // ===========================================
-  // 7. ABA RESERVA - COM FÓRMULAS
-  // ===========================================
-  const reserva = [
-    ['FATOS DA BOLSA - RESERVA DE EMERGÊNCIA'],
-    [''],
-    ['🔵 AZUL = Preencher'],
-    [''],
-    ['🔵 ONDE ESTÁ', '🔵 BANCO/INSTITUIÇÃO', '🔵 VALOR (R$)', '🔵 OBSERVAÇÕES'],
-    [''],
-    ['Conta Corrente', 'Banco do Brasil', 5000, 'Uso diário'],
-    ['Poupança', 'Caixa Econômica', 10000, 'Emergência'],
-    ['CDB Liquidez Diária', 'Inter', 15000, 'Reserva rápida'],
-    ['', '', '', ''],
-  ];
-
-  for (let i = 0; i < 6; i++) {
-    reserva.push(['', '', '', '']);
-  }
-
-  reserva.push(['']);
-  reserva.push(['⭐ TOTAL RESERVA:', '', '', '']);
-
-  const wsReserva = XLSX.utils.aoa_to_sheet(reserva);
-
-  // FÓRMULA para Total Reserva
-  wsReserva['C16'] = { f: 'SUM(C7:C15)' };
-
-  wsReserva['!cols'] = [
-    { width: 25 }, { width: 25 }, { width: 18 }, { width: 35 }
-  ];
-  wsReserva['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
-
-  XLSX.utils.book_append_sheet(wb, wsReserva, '🏦 RESERVA');
-
-  // ===========================================
-  // 8. ABA RESUMO MANUAL (SEM LINKS EXTERNOS)
-  // ===========================================
-  const resumoSimples = [
-    ['FATOS DA BOLSA - RESUMO DA CARTEIRA'],
-    [''],
-    ['📋 INSTRUÇÕES:'],
-    ['1. Complete todas as abas de investimentos'],
-    ['2. Anote os totais de cada aba aqui:'],
-    [''],
-    ['CLASSE DE ATIVO', 'VALOR TOTAL (R$)', '% DA CARTEIRA'],
-    [''],
-    ['🏢 Ações Brasileiras', 0, ''],
-    ['🏘️ Fundos Imobiliários', 0, ''],
-    ['💰 Renda Fixa', 0, ''],
-    ['🌎 Exterior', 0, ''],
-    ['₿ Criptomoedas', 0, ''],
-    ['🏦 Reserva Emergência', 0, ''],
-    [''],
-    ['💎 PATRIMÔNIO TOTAL', '', '100%'],
-    [''],
-    ['💡 DICA: Digite os valores na coluna B'],
-    ['Os percentuais serão calculados automaticamente!'],
-  ];
-
-  const wsResumoSimples = XLSX.utils.aoa_to_sheet(resumoSimples);
-
-  // Fórmulas simples sem referências externas
-  wsResumoSimples['B16'] = { f: 'SUM(B9:B14)' }; // Total
-  wsResumoSimples['C9'] = { f: 'IF($B$16=0,"0%",ROUND(B9/$B$16*100,1)&"%")' };
-  wsResumoSimples['C10'] = { f: 'IF($B$16=0,"0%",ROUND(B10/$B$16*100,1)&"%")' };
-  wsResumoSimples['C11'] = { f: 'IF($B$16=0,"0%",ROUND(B11/$B$16*100,1)&"%")' };
-  wsResumoSimples['C12'] = { f: 'IF($B$16=0,"0%",ROUND(B12/$B$16*100,1)&"%")' };
-  wsResumoSimples['C13'] = { f: 'IF($B$16=0,"0%",ROUND(B13/$B$16*100,1)&"%")' };
-  wsResumoSimples['C14'] = { f: 'IF($B$16=0,"0%",ROUND(B14/$B$16*100,1)&"%")' };
-
-  wsResumoSimples['!cols'] = [
-    { width: 30 }, { width: 20 }, { width: 18 }
-  ];
-  wsResumoSimples['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }
-  ];
-
-  XLSX.utils.book_append_sheet(wb, wsResumoSimples, '📊 RESUMO MANUAL');
-
-  // ===========================================
-  // CONFIGURAÇÕES FINAIS
-  // ===========================================
-  wb.Props = {
-    Title: "Análise Profissional de Carteira - Fatos da Bolsa",
-    Subject: "Modelo com emojis visuais e fórmulas automáticas funcionais",
-    Author: "Fatos da Bolsa - Equipe de Análise",
-    CreatedDate: new Date(),
-    ModifiedDate: new Date()
   };
 
-  // Download
-  XLSX.writeFile(wb, 'Fatos-da-Bolsa-Modelo-SEM-LINKS-EXTERNOS-v6.xlsx');
+  const gerarModeloProfissional = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // ===========================================
+    // 1. ABA INSTRUÇÕES
+    // ===========================================
+    const instrucoes = [
+      ['FATOS DA BOLSA - ANÁLISE DE CARTEIRA PROFISSIONAL'],
+      [''],
+      ['INSTRUÇÕES DE PREENCHIMENTO'],
+      [''],
+      ['📋 IMPORTANTE:'],
+      ['• Preencha apenas as células com 🔵 AZUL'],
+      ['• NÃO altere as células com ⚪ CINZA (calculadas automaticamente)'],
+      ['• Use vírgula (,) para decimais. Ex: 15,75'],
+      ['• Para ações, use códigos da B3: PETR4, VALE3, ITUB4, etc.'],
+      ['• Para FIIs, use códigos: HGLG11, BCFF11, XPML11, etc.'],
+      [''],
+      ['🎨 LEGENDA:'],
+      ['🔵 AZUL = Células para você preencher'],
+      ['⚪ CINZA = Células calculadas automaticamente'],
+      ['⭐ VERDE = Totais e resumos'],
+      [''],
+      ['💡 DICA: Siga os exemplos já preenchidos!'],
+    ];
+    
+    const wsInstrucoes = XLSX.utils.aoa_to_sheet(instrucoes);
+    wsInstrucoes['!cols'] = [{ width: 60 }];
+    XLSX.utils.book_append_sheet(wb, wsInstrucoes, '📋 INSTRUÇÕES');
+    
+    // ===========================================
+    // 2. ABA AÇÕES - FÓRMULAS CORRIGIDAS
+    // ===========================================
+    const acoes = [
+      ['FATOS DA BOLSA - AÇÕES BRASILEIRAS'],
+      [''],
+      ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+      [''],
+      ['🔵 CÓDIGO', '🔵 NOME/EMPRESA', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ COTAÇÃO ATUAL', '⚪ VALOR INVESTIDO', '⚪ VALOR ATUAL', '⚪ % CARTEIRA'],
+      [''],
+      ['PETR4', 'Petrobras PN', 100, 25.50, '', '', '', ''],
+      ['VALE3', 'Vale ON', 50, 85.00, '', '', '', ''],
+      ['ITUB4', 'Itaú Unibanco PN', '', '', '', '', '', ''],
+      ['BBSE3', 'BB Seguridade ON', '', '', '', '', '', ''],
+    ];
 
-  // Alerta explicativo
-  alert(`📊 MODELO EXCEL GERADO COM SUCESSO!
+    // Adicionar mais 15 linhas vazias
+    for (let i = 0; i < 15; i++) {
+      acoes.push(['', '', '', '', '', '', '', '']);
+    }
+
+    acoes.push(['']); // Linha em branco
+    acoes.push(['⭐ TOTAL AÇÕES:', '', '', '', '', '', '', '']);
+
+    const wsAcoes = XLSX.utils.aoa_to_sheet(acoes);
+
+    // FÓRMULAS CORRIGIDAS PARA AÇÕES (linha total = 26)
+    for (let i = 7; i <= 25; i++) {
+      // Cotação Atual: Se vazio, usa o preço médio
+      wsAcoes[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
+      
+      // Valor Investido = Quantidade × Preço Médio
+      wsAcoes[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i},"")` };
+      
+      // Valor Atual = Quantidade × Cotação Atual
+      wsAcoes[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i},"")` };
+      
+      // % Carteira = Valor Atual ÷ Total da Aba × 100 (SEM $)
+      wsAcoes[`H${i}`] = { f: `IF(G${i}="","",IF(G26=0,0,G${i}/G26*100))` };
+    }
+
+    // Fórmulas de TOTAL (linha 26)
+    wsAcoes['F26'] = { f: 'SUM(F7:F25)' }; // Total Valor Investido
+    wsAcoes['G26'] = { f: 'SUM(G7:G25)' }; // Total Valor Atual
+    wsAcoes['H26'] = { f: 'SUM(H7:H25)' }; // Total % (deve dar 100%)
+
+    wsAcoes['!cols'] = [
+      { width: 12 }, { width: 30 }, { width: 12 }, { width: 18 }, 
+      { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
+    ];
+    wsAcoes['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+    XLSX.utils.book_append_sheet(wb, wsAcoes, '🏢 AÇÕES');
+
+    // ===========================================
+    // 3. ABA FIIs - FÓRMULAS CORRIGIDAS
+    // ===========================================
+    const fiis = [
+      ['FATOS DA BOLSA - FUNDOS IMOBILIÁRIOS (FIIs)'],
+      [''],
+      ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+      [''],
+      ['🔵 CÓDIGO', '🔵 NOME/DESCRIÇÃO', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ COTAÇÃO ATUAL', '⚪ VALOR INVESTIDO', '⚪ VALOR ATUAL', '⚪ % CARTEIRA'],
+      [''],
+      ['HGLG11', 'Cshg Logística FII', 10, 150.00, '', '', '', ''],
+      ['BCFF11', 'Btg Pactual Fof FII', 20, 85.50, '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+    ];
+
+    for (let i = 0; i < 17; i++) {
+      fiis.push(['', '', '', '', '', '', '', '']);
+    }
+
+    fiis.push(['']);
+    fiis.push(['⭐ TOTAL FIIs:', '', '', '', '', '', '', '']);
+
+    const wsFiis = XLSX.utils.aoa_to_sheet(fiis);
+
+    // FÓRMULAS CORRIGIDAS PARA FIIs (linha total = 26)
+    for (let i = 7; i <= 25; i++) {
+      // Cotação Atual: Se vazio, usa o preço médio
+      wsFiis[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
+      
+      // Valor Investido = Quantidade × Preço Médio
+      wsFiis[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i},"")` };
+      
+      // Valor Atual = Quantidade × Cotação Atual
+      wsFiis[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i},"")` };
+      
+      // % Carteira = Valor Atual ÷ Total da Aba × 100 (SEM $)
+      wsFiis[`H${i}`] = { f: `IF(G${i}="","",IF(G26=0,0,G${i}/G26*100))` };
+    }
+
+    // Totais FIIs
+    wsFiis['F26'] = { f: 'SUM(F7:F25)' };
+    wsFiis['G26'] = { f: 'SUM(G7:G25)' };
+    wsFiis['H26'] = { f: 'SUM(H7:H25)' };
+
+    wsFiis['!cols'] = [
+      { width: 12 }, { width: 30 }, { width: 12 }, { width: 18 }, 
+      { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
+    ];
+    wsFiis['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+    XLSX.utils.book_append_sheet(wb, wsFiis, '🏘️ FIIs');
+
+    // ===========================================
+    // 4. ABA RENDA FIXA - FÓRMULAS CORRIGIDAS
+    // ===========================================
+    const rendaFixa = [
+      ['FATOS DA BOLSA - RENDA FIXA'],
+      [''],
+      ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+      [''],
+      ['🔵 PRODUTO', '🔵 BANCO/CORRETORA', '🔵 VALOR INVESTIDO (R$)', '⚪ VALOR ATUAL (R$)', '🔵 VENCIMENTO', '⚪ % DA CARTEIRA'],
+      [''],
+      ['CDB 120% CDI', 'Banco Inter', 10000, '', '31/12/2025', ''],
+      ['LCI 95% CDI', 'Nubank', 5000, '', '15/06/2026', ''],
+      ['Tesouro IPCA+', 'Tesouro Direto', 15000, '', '15/05/2035', ''],
+      ['', '', '', '', '', ''],
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      rendaFixa.push(['', '', '', '', '', '']);
+    }
+
+    rendaFixa.push(['']);
+    rendaFixa.push(['⭐ TOTAL RENDA FIXA:', '', '', '', '', '']);
+
+    const wsRendaFixa = XLSX.utils.aoa_to_sheet(rendaFixa);
+
+    // FÓRMULAS CORRIGIDAS PARA RENDA FIXA (linha total = 20)
+    for (let i = 7; i <= 19; i++) {
+      // Valor Atual: Se vazio, usa valor investido
+      wsRendaFixa[`D${i}`] = { f: `IF(C${i}="","",IF(D${i}="",C${i},D${i}))` };
+      
+      // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 20)
+      wsRendaFixa[`F${i}`] = { f: `IF(D${i}="","",IF(D20=0,0,D${i}/D20*100))` };
+    }
+
+    // Totais Renda Fixa (linha 20)
+    wsRendaFixa['C20'] = { f: 'SUM(C7:C19)' }; // Total Investido
+    wsRendaFixa['D20'] = { f: 'SUM(D7:D19)' }; // Total Atual
+    wsRendaFixa['F20'] = { f: 'SUM(F7:F19)' }; // Total %
+
+    wsRendaFixa['!cols'] = [
+      { width: 25 }, { width: 20 }, { width: 20 }, { width: 18 }, { width: 15 }, { width: 15 }
+    ];
+    wsRendaFixa['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
+    XLSX.utils.book_append_sheet(wb, wsRendaFixa, '💰 RENDA FIXA');
+
+    // ===========================================
+    // 5. ABA EXTERIOR - FÓRMULAS CORRIGIDAS
+    // ===========================================
+    const exterior = [
+      ['FATOS DA BOLSA - INVESTIMENTOS NO EXTERIOR'],
+      [''],
+      ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+      [''],
+      ['🔵 CÓDIGO', '🔵 NOME/DESCRIÇÃO', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (USD)', '⚪ COTAÇÃO (USD)', '⚪ VALOR INVEST. (R$)', '⚪ VALOR ATUAL (R$)', '⚪ % CARTEIRA'],
+      [''],
+      ['AAPL', 'Apple Inc', 5, 150.00, '', '', '', ''],
+      ['VTI', 'Vanguard Total Stock', 3, 220.00, '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      exterior.push(['', '', '', '', '', '', '', '']);
+    }
+
+    exterior.push(['']);
+    exterior.push(['⭐ TOTAL EXTERIOR:', '', '', '', '', '', '', '']);
+
+    const wsExterior = XLSX.utils.aoa_to_sheet(exterior);
+
+    // FÓRMULAS CORRIGIDAS PARA EXTERIOR (linha total = 19, USD para BRL = 5.5)
+    for (let i = 7; i <= 18; i++) {
+      // Cotação USD: Se vazio, usa preço médio
+      wsExterior[`E${i}`] = { f: `IF(D${i}="","",IF(E${i}="",D${i},E${i}))` };
+      
+      // Valor Investido em R$ = Quantidade × Preço Médio USD × Taxa
+      wsExterior[`F${i}`] = { f: `IF(AND(C${i}<>"",D${i}<>""),C${i}*D${i}*5.5,"")` };
+      
+      // Valor Atual em R$ = Quantidade × Cotação USD × Taxa
+      wsExterior[`G${i}`] = { f: `IF(AND(C${i}<>"",E${i}<>""),C${i}*E${i}*5.5,"")` };
+      
+      // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 19)
+      wsExterior[`H${i}`] = { f: `IF(G${i}="","",IF(G19=0,0,G${i}/G19*100))` };
+    }
+
+    // Totais Exterior (linha 19)
+    wsExterior['F19'] = { f: 'SUM(F7:F18)' };
+    wsExterior['G19'] = { f: 'SUM(G7:G18)' };
+    wsExterior['H19'] = { f: 'SUM(H7:H18)' };
+
+    wsExterior['!cols'] = [
+      { width: 12 }, { width: 25 }, { width: 12 }, { width: 18 }, 
+      { width: 18 }, { width: 20 }, { width: 18 }, { width: 15 }
+    ];
+    wsExterior['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+    XLSX.utils.book_append_sheet(wb, wsExterior, '🌎 EXTERIOR');
+
+    // ===========================================
+    // 6. ABA CRIPTO - FÓRMULAS CORRIGIDAS
+    // ===========================================
+    const cripto = [
+      ['FATOS DA BOLSA - CRIPTOMOEDAS'],
+      [''],
+      ['🔵 AZUL = Preencher  |  ⚪ CINZA = Automático'],
+      [''],
+      ['🔵 CRIPTOMOEDA', '🔵 QUANTIDADE', '🔵 PREÇO MÉDIO (R$)', '⚪ VALOR ATUAL (R$)', '🔵 EXCHANGE', '⚪ % DA CARTEIRA'],
+      [''],
+      ['Bitcoin (BTC)', 0.5, 150000, '', 'Binance', ''],
+      ['Ethereum (ETH)', 2, 8000, '', 'Binance', ''],
+      ['', '', '', '', '', ''],
+    ];
+
+    for (let i = 0; i < 8; i++) {
+      cripto.push(['', '', '', '', '', '']);
+    }
+
+    cripto.push(['']);
+    cripto.push(['⭐ TOTAL CRIPTO:', '', '', '', '', '']);
+
+    const wsCripto = XLSX.utils.aoa_to_sheet(cripto);
+
+    // FÓRMULAS CORRIGIDAS PARA CRIPTO (linha total = 16)
+    for (let i = 7; i <= 15; i++) {
+      // Valor Atual = Quantidade × Preço Médio (se não tiver cotação atual)
+      wsCripto[`D${i}`] = { f: `IF(AND(B${i}<>"",C${i}<>""),B${i}*C${i},"")` };
+      
+      // % Carteira = Valor Atual ÷ Total da Aba × 100 (linha total = 16)
+      wsCripto[`F${i}`] = { f: `IF(D${i}="","",IF(D16=0,0,D${i}/D16*100))` };
+    }
+
+    // Totais Cripto (linha 16)
+    wsCripto['C16'] = { f: 'SUM(C7:C15)' }; // Total Preço Médio
+    wsCripto['D16'] = { f: 'SUM(D7:D15)' }; // Total Valor Atual
+    wsCripto['F16'] = { f: 'SUM(F7:F15)' }; // Total %
+
+    wsCripto['!cols'] = [
+      { width: 20 }, { width: 15 }, { width: 20 }, { width: 20 }, { width: 15 }, { width: 15 }
+    ];
+    wsCripto['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
+    XLSX.utils.book_append_sheet(wb, wsCripto, '₿ CRIPTO');
+
+    // ===========================================
+    // 7. ABA RESERVA - COM FÓRMULAS
+    // ===========================================
+    const reserva = [
+      ['FATOS DA BOLSA - RESERVA DE EMERGÊNCIA'],
+      [''],
+      ['🔵 AZUL = Preencher'],
+      [''],
+      ['🔵 ONDE ESTÁ', '🔵 BANCO/INSTITUIÇÃO', '🔵 VALOR (R$)', '🔵 OBSERVAÇÕES'],
+      [''],
+      ['Conta Corrente', 'Banco do Brasil', 5000, 'Uso diário'],
+      ['Poupança', 'Caixa Econômica', 10000, 'Emergência'],
+      ['CDB Liquidez Diária', 'Inter', 15000, 'Reserva rápida'],
+      ['', '', '', ''],
+    ];
+
+    for (let i = 0; i < 6; i++) {
+      reserva.push(['', '', '', '']);
+    }
+
+    reserva.push(['']);
+    reserva.push(['⭐ TOTAL RESERVA:', '', '', '']);
+
+    const wsReserva = XLSX.utils.aoa_to_sheet(reserva);
+
+    // FÓRMULA para Total Reserva
+    wsReserva['C16'] = { f: 'SUM(C7:C15)' };
+
+    wsReserva['!cols'] = [
+      { width: 25 }, { width: 25 }, { width: 18 }, { width: 35 }
+    ];
+    wsReserva['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+
+    XLSX.utils.book_append_sheet(wb, wsReserva, '🏦 RESERVA');
+
+    // ===========================================
+    // 8. ABA RESUMO MANUAL (SEM LINKS EXTERNOS)
+    // ===========================================
+    const resumoSimples = [
+      ['FATOS DA BOLSA - RESUMO DA CARTEIRA'],
+      [''],
+      ['📋 INSTRUÇÕES:'],
+      ['1. Complete todas as abas de investimentos'],
+      ['2. Anote os totais de cada aba aqui:'],
+      [''],
+      ['CLASSE DE ATIVO', 'VALOR TOTAL (R$)', '% DA CARTEIRA'],
+      [''],
+      ['🏢 Ações Brasileiras', 0, ''],
+      ['🏘️ Fundos Imobiliários', 0, ''],
+      ['💰 Renda Fixa', 0, ''],
+      ['🌎 Exterior', 0, ''],
+      ['₿ Criptomoedas', 0, ''],
+      ['🏦 Reserva Emergência', 0, ''],
+      [''],
+      ['💎 PATRIMÔNIO TOTAL', '', '100%'],
+      [''],
+      ['💡 DICA: Digite os valores na coluna B'],
+      ['Os percentuais serão calculados automaticamente!'],
+    ];
+
+    const wsResumoSimples = XLSX.utils.aoa_to_sheet(resumoSimples);
+
+    // Fórmulas simples sem referências externas
+    wsResumoSimples['B16'] = { f: 'SUM(B9:B14)' }; // Total
+    wsResumoSimples['C9'] = { f: 'IF($B$16=0,"0%",ROUND(B9/$B$16*100,1)&"%")' };
+    wsResumoSimples['C10'] = { f: 'IF($B$16=0,"0%",ROUND(B10/$B$16*100,1)&"%")' };
+    wsResumoSimples['C11'] = { f: 'IF($B$16=0,"0%",ROUND(B11/$B$16*100,1)&"%")' };
+    wsResumoSimples['C12'] = { f: 'IF($B$16=0,"0%",ROUND(B12/$B$16*100,1)&"%")' };
+    wsResumoSimples['C13'] = { f: 'IF($B$16=0,"0%",ROUND(B13/$B$16*100,1)&"%")' };
+    wsResumoSimples['C14'] = { f: 'IF($B$16=0,"0%",ROUND(B14/$B$16*100,1)&"%")' };
+
+    wsResumoSimples['!cols'] = [
+      { width: 30 }, { width: 20 }, { width: 18 }
+    ];
+    wsResumoSimples['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsResumoSimples, '📊 RESUMO MANUAL');
+
+    // ===========================================
+    // CONFIGURAÇÕES FINAIS
+    // ===========================================
+    wb.Props = {
+      Title: "Análise Profissional de Carteira - Fatos da Bolsa",
+      Subject: "Modelo com emojis visuais e fórmulas automáticas funcionais",
+      Author: "Fatos da Bolsa - Equipe de Análise",
+      CreatedDate: new Date(),
+      ModifiedDate: new Date()
+    };
+
+    // Download
+    XLSX.writeFile(wb, 'Fatos-da-Bolsa-Modelo-SEM-LINKS-EXTERNOS-v6.xlsx');
+
+    // Alerta explicativo
+    alert(`📊 MODELO EXCEL GERADO COM SUCESSO!
 
 🎨 VERSÃO SEM LINKS EXTERNOS:
 • 🔵 Emojis visuais nos cabeçalhos
@@ -680,26 +684,37 @@ const gerarModeloProfissional = () => {
 4. Os percentuais se calcularão automaticamente
 
 ✅ SEM ALERTAS DE ATUALIZAÇÃO!`);
-};
+  };
 
   // Componente para exibir score com barra visual
   const ScoreDisplay = ({ label, score, color, maxScore = 100 }) => (
     <div style={{
       backgroundColor: '#ffffff',
-      padding: '20px',
-      borderRadius: '12px',
+      padding: isMobile ? '16px' : '20px',
+      borderRadius: isMobile ? '8px' : '12px',
       border: '1px solid #e2e8f0',
       textAlign: 'center'
     }}>
-      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '600' }}>
+      <div style={{ 
+        fontSize: isMobile ? '10px' : '12px', 
+        color: '#64748b', 
+        marginBottom: '6px', 
+        textTransform: 'uppercase', 
+        fontWeight: '600' 
+      }}>
         {label}
       </div>
-      <div style={{ fontSize: '32px', fontWeight: '800', color: color, marginBottom: '8px' }}>
+      <div style={{ 
+        fontSize: isMobile ? '24px' : '32px', 
+        fontWeight: '800', 
+        color: color, 
+        marginBottom: '6px' 
+      }}>
         {score}%
       </div>
       <div style={{
         width: '100%',
-        height: '8px',
+        height: isMobile ? '6px' : '8px',
         backgroundColor: '#f1f5f9',
         borderRadius: '4px',
         overflow: 'hidden'
@@ -720,19 +735,31 @@ const gerarModeloProfissional = () => {
     <div style={{
       backgroundColor: '#ffffff',
       border: '1px solid #e2e8f0',
-      borderRadius: '12px',
-      padding: '20px',
-      marginBottom: '16px'
+      borderRadius: isMobile ? '8px' : '12px',
+      padding: isMobile ? '16px' : '20px',
+      marginBottom: isMobile ? '12px' : '16px'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h4 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#1e293b' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'start', 
+        marginBottom: '12px',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '8px' : '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <h4 style={{ 
+            fontSize: isMobile ? '16px' : '18px', 
+            fontWeight: '700', 
+            margin: 0, 
+            color: '#1e293b' 
+          }}>
             {ativo.codigo}
           </h4>
           <span style={{
-            padding: '4px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
+            padding: isMobile ? '3px 8px' : '4px 12px',
+            borderRadius: '16px',
+            fontSize: isMobile ? '10px' : '12px',
             fontWeight: '600',
             backgroundColor: 
               ativo.status === 'excelente' ? '#dcfce7' :
@@ -748,23 +775,32 @@ const gerarModeloProfissional = () => {
             {ativo.status.charAt(0).toUpperCase() + ativo.status.slice(1)}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             {[...Array(5)].map((_, i) => (
               <span key={i} style={{
                 color: i < Math.floor(ativo.nota / 2) ? '#fbbf24' : '#e5e7eb',
-                fontSize: '16px'
+                fontSize: isMobile ? '12px' : '16px'
               }}>
                 ⭐
               </span>
             ))}
           </div>
-          <span style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
+          <span style={{ 
+            fontSize: isMobile ? '14px' : '16px', 
+            fontWeight: '700', 
+            color: '#3b82f6' 
+          }}>
             {ativo.nota}/10
           </span>
         </div>
       </div>
-      <p style={{ fontSize: '14px', color: '#64748b', margin: 0, lineHeight: '1.6' }}>
+      <p style={{ 
+        fontSize: isMobile ? '13px' : '14px', 
+        color: '#64748b', 
+        margin: 0, 
+        lineHeight: '1.6' 
+      }}>
         {ativo.comentario}
       </p>
     </div>
@@ -775,16 +811,23 @@ const gerarModeloProfissional = () => {
     <div style={{
       backgroundColor: '#ffffff',
       border: '1px solid #e2e8f0',
-      borderRadius: '12px',
-      padding: '20px',
-      marginBottom: '16px'
+      borderRadius: isMobile ? '8px' : '12px',
+      padding: isMobile ? '16px' : '20px',
+      marginBottom: isMobile ? '12px' : '16px'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'start', 
+        marginBottom: '12px',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '8px' : '0'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{
-            padding: '4px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
+            padding: isMobile ? '3px 8px' : '4px 12px',
+            borderRadius: '16px',
+            fontSize: isMobile ? '10px' : '12px',
             fontWeight: '600',
             backgroundColor: 
               recomendacao.prioridade === 'alta' ? '#fecaca' :
@@ -795,26 +838,45 @@ const gerarModeloProfissional = () => {
           }}>
             {recomendacao.prioridade?.charAt(0).toUpperCase() + recomendacao.prioridade?.slice(1)}
           </span>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+          <span style={{ 
+            fontSize: isMobile ? '10px' : '12px', 
+            color: '#64748b', 
+            fontWeight: '500' 
+          }}>
             {recomendacao.categoria}
           </span>
         </div>
       </div>
-      <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#1e293b' }}>
+      <h4 style={{ 
+        fontSize: isMobile ? '14px' : '16px', 
+        fontWeight: '700', 
+        marginBottom: '8px', 
+        color: '#1e293b' 
+      }}>
         {recomendacao.titulo}
       </h4>
-      <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '12px', lineHeight: '1.6' }}>
+      <p style={{ 
+        fontSize: isMobile ? '13px' : '14px', 
+        color: '#64748b', 
+        marginBottom: '12px', 
+        lineHeight: '1.6' 
+      }}>
         {recomendacao.descricao}
       </p>
       {recomendacao.impacto && (
         <div style={{
           backgroundColor: '#f0f9ff',
           border: '1px solid #3b82f6',
-          borderRadius: '8px',
-          padding: '12px',
+          borderRadius: '6px',
+          padding: isMobile ? '10px' : '12px',
           marginTop: '12px'
         }}>
-          <p style={{ fontSize: '14px', color: '#1e40af', margin: 0, fontWeight: '500' }}>
+          <p style={{ 
+            fontSize: isMobile ? '12px' : '14px', 
+            color: '#1e40af', 
+            margin: 0, 
+            fontWeight: '500' 
+          }}>
             <strong>💥 Impacto Esperado:</strong> {recomendacao.impacto}
           </p>
         </div>
@@ -836,22 +898,15 @@ const gerarModeloProfissional = () => {
           throw new Error('Erro ao gerar PDF');
         }
 
-        // Criar blob do PDF
         const blob = await response.blob();
-        
-        // Criar URL temporária
         const url = window.URL.createObjectURL(blob);
-        
-        // Criar link de download
         const link = document.createElement('a');
         link.href = url;
         link.download = `Analise-Carteira-${nomeArquivo}-${new Date().toISOString().split('T')[0]}.pdf`;
         
-        // Trigger download
         document.body.appendChild(link);
         link.click();
         
-        // Cleanup
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
@@ -870,26 +925,26 @@ const gerarModeloProfissional = () => {
         style={{
           backgroundColor: baixando ? '#9ca3af' : '#10b981',
           color: 'white',
-          padding: '8px 16px',
-          borderRadius: '8px',
+          padding: isMobile ? '6px 12px' : '8px 16px',
+          borderRadius: '6px',
           border: 'none',
-          fontSize: '14px',
+          fontSize: isMobile ? '12px' : '14px',
           fontWeight: '600',
           cursor: baixando ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '4px',
           transition: 'all 0.2s'
         }}
       >
         {baixando ? (
           <>
             <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
-            Gerando PDF...
+            {isMobile ? 'PDF...' : 'Gerando PDF...'}
           </>
         ) : (
           <>
-            📥 Baixar PDF
+            📥 {isMobile ? 'PDF' : 'Baixar PDF'}
           </>
         )}
       </button>
@@ -929,14 +984,14 @@ const gerarModeloProfissional = () => {
       return (
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: isMobile ? '12px' : '16px',
           border: '1px solid #e2e8f0',
-          padding: '32px',
+          padding: isMobile ? '24px' : '32px',
           textAlign: 'center',
-          marginTop: '32px'
+          marginTop: isMobile ? '20px' : '32px'
         }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
-          <p style={{ color: '#64748b' }}>Carregando histórico...</p>
+          <div style={{ fontSize: isMobile ? '24px' : '32px', marginBottom: '12px' }}>⏳</div>
+          <p style={{ color: '#64748b', fontSize: isMobile ? '14px' : '16px' }}>Carregando histórico...</p>
         </div>
       );
     }
@@ -944,20 +999,20 @@ const gerarModeloProfissional = () => {
     return (
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '12px' : '16px',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-        padding: '32px',
-        marginTop: '32px'
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        padding: isMobile ? '20px' : '32px',
+        marginTop: isMobile ? '20px' : '32px'
       }}>
         <h3 style={{ 
-          fontSize: '24px', 
+          fontSize: isMobile ? '18px' : '24px', 
           fontWeight: '700', 
           color: '#1e293b', 
-          marginBottom: '24px',
+          marginBottom: isMobile ? '16px' : '24px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px'
+          gap: isMobile ? '8px' : '12px'
         }}>
           📊 Minhas Análises de Carteira
         </h3>
@@ -965,58 +1020,68 @@ const gerarModeloProfissional = () => {
         {carteiras.length === 0 ? (
           <div style={{
             textAlign: 'center',
-            padding: '48px',
+            padding: isMobile ? '32px 16px' : '48px',
             backgroundColor: '#f8fafc',
-            borderRadius: '12px',
+            borderRadius: isMobile ? '8px' : '12px',
             border: '1px solid #e2e8f0'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📈</div>
-            <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#64748b', margin: '0 0 8px 0' }}>
+            <div style={{ fontSize: isMobile ? '32px' : '48px', marginBottom: '12px' }}>📈</div>
+            <h4 style={{ 
+              fontSize: isMobile ? '16px' : '18px', 
+              fontWeight: '600', 
+              color: '#64748b', 
+              margin: '0 0 8px 0' 
+            }}>
               Nenhuma carteira enviada ainda
             </h4>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+            <p style={{ 
+              color: '#64748b', 
+              fontSize: isMobile ? '13px' : '14px', 
+              margin: 0 
+            }}>
               Envie sua primeira carteira para receber uma análise personalizada!
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: '20px' }}>
+          <div style={{ display: 'grid', gap: isMobile ? '16px' : '20px' }}>
             {carteiras.map((carteira) => (
               <div key={carteira.id} style={{
                 border: '1px solid #e2e8f0',
-                borderRadius: '12px',
+                borderRadius: isMobile ? '8px' : '12px',
                 backgroundColor: '#f8fafc',
                 overflow: 'hidden'
               }}>
                 {/* Header da carteira */}
                 <div 
                   style={{
-                    padding: '24px',
+                    padding: isMobile ? '16px' : '24px',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
                   onClick={() => toggleExpansao(carteira.id)}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseEnter={(e) => !isMobile && (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                  onMouseLeave={(e) => !isMobile && (e.currentTarget.style.backgroundColor = '#f8fafc')}
                 >
                   <div style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'start', 
-                    marginBottom: '16px',
+                    marginBottom: '12px',
                     flexWrap: 'wrap',
-                    gap: '12px'
+                    gap: '8px'
                   }}>
-                    <div>
+                    <div style={{ flex: 1, minWidth: isMobile ? '200px' : 'auto' }}>
                       <h4 style={{ 
-                        fontSize: '18px', 
+                        fontSize: isMobile ? '14px' : '18px', 
                         fontWeight: '600', 
                         color: '#1e293b', 
-                        margin: '0 0 8px 0'
+                        margin: '0 0 6px 0',
+                        lineHeight: '1.3'
                       }}>
                         📎 {carteira.nomeArquivo}
                       </h4>
                       <p style={{ 
-                        fontSize: '14px', 
+                        fontSize: isMobile ? '12px' : '14px', 
                         color: '#64748b', 
                         margin: '0'
                       }}>
@@ -1024,25 +1089,29 @@ const gerarModeloProfissional = () => {
                       </p>
                     </div>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: isMobile ? '6px' : '12px',
+                      flexWrap: 'wrap'
+                    }}>
                       <div style={{
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
+                        padding: isMobile ? '4px 8px' : '8px 16px',
+                        borderRadius: '16px',
+                        fontSize: isMobile ? '10px' : '12px',
                         fontWeight: '600',
                         backgroundColor: getStatusColor(carteira.status),
                         color: 'white',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px'
+                        gap: '4px'
                       }}>
-                        <span style={{ fontSize: '14px' }}>
+                        <span style={{ fontSize: isMobile ? '12px' : '14px' }}>
                           {getStatusIcon(carteira.status)}
                         </span>
                         {getStatusText(carteira.status)}                      
                       </div>
                       
-                      {/* 🆕 BOTÃO PDF - só aparece se carteira foi analisada */}
                       {getStatusText(carteira.status) === 'Analisada' && (
                         <BotaoDownloadPDF 
                           carteiraId={carteira.id} 
@@ -1053,7 +1122,7 @@ const gerarModeloProfissional = () => {
                       <button style={{
                         backgroundColor: 'transparent',
                         border: 'none',
-                        fontSize: '18px',
+                        fontSize: isMobile ? '14px' : '18px',
                         cursor: 'pointer',
                         transform: carteiraExpandida === carteira.id ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.2s'
@@ -1066,19 +1135,27 @@ const gerarModeloProfissional = () => {
                   {/* Métricas básicas */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                    gap: '16px',
+                    gridTemplateColumns: isMobile ? 'repeat(auto-fit, minmax(120px, 1fr))' : 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: isMobile ? '12px' : '16px',
                   }}>
                     <div style={{
                       backgroundColor: '#ffffff',
-                      padding: '12px',
-                      borderRadius: '8px',
+                      padding: isMobile ? '8px' : '12px',
+                      borderRadius: '6px',
                       border: '1px solid #e2e8f0'
                     }}>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                      <div style={{ 
+                        fontSize: isMobile ? '10px' : '12px', 
+                        color: '#64748b', 
+                        marginBottom: '3px' 
+                      }}>
                         VALOR TOTAL
                       </div>
-                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#10b981' }}>
+                      <div style={{ 
+                        fontSize: isMobile ? '12px' : '16px', 
+                        fontWeight: '700', 
+                        color: '#10b981' 
+                      }}>
                         {carteira.valorTotal ? 
                           `R$ ${carteira.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
                           : 'Processando...'
@@ -1088,14 +1165,22 @@ const gerarModeloProfissional = () => {
 
                     <div style={{
                       backgroundColor: '#ffffff',
-                      padding: '12px',
-                      borderRadius: '8px',
+                      padding: isMobile ? '8px' : '12px',
+                      borderRadius: '6px',
                       border: '1px solid #e2e8f0'
                     }}>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                      <div style={{ 
+                        fontSize: isMobile ? '10px' : '12px', 
+                        color: '#64748b', 
+                        marginBottom: '3px' 
+                      }}>
                         ATIVOS
                       </div>
-                      <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
+                      <div style={{ 
+                        fontSize: isMobile ? '12px' : '16px', 
+                        fontWeight: '700', 
+                        color: '#3b82f6' 
+                      }}>
                         {carteira.quantidadeAtivos || 'Processando...'}
                       </div>
                     </div>
@@ -1103,14 +1188,22 @@ const gerarModeloProfissional = () => {
                     {carteira.pontuacao && (
                       <div style={{
                         backgroundColor: '#ffffff',
-                        padding: '12px',
-                        borderRadius: '8px',
+                        padding: isMobile ? '8px' : '12px',
+                        borderRadius: '6px',
                         border: '1px solid #e2e8f0'
                       }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                        <div style={{ 
+                          fontSize: isMobile ? '10px' : '12px', 
+                          color: '#64748b', 
+                          marginBottom: '3px' 
+                        }}>
                           PONTUAÇÃO GERAL
                         </div>
-                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#f59e0b' }}>
+                        <div style={{ 
+                          fontSize: isMobile ? '12px' : '16px', 
+                          fontWeight: '700', 
+                          color: '#f59e0b' 
+                        }}>
                           {carteira.pontuacao.toFixed(1)}/10
                         </div>
                       </div>
@@ -1123,28 +1216,28 @@ const gerarModeloProfissional = () => {
                   <div style={{
                     borderTop: '1px solid #e2e8f0',
                     backgroundColor: '#ffffff',
-                    padding: '32px'
+                    padding: isMobile ? '20px' : '32px'
                   }}>
                     {/* Scores detalhados */}
                     {carteira.dadosEstruturados?.avaliacoes && (
-                      <div style={{ marginBottom: '32px' }}>
+                      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
                         <h4 style={{
-                          fontSize: '18px',
+                          fontSize: isMobile ? '16px' : '18px',
                           fontWeight: '700',
                           color: '#1e293b',
-                          marginBottom: '20px',
+                          marginBottom: isMobile ? '16px' : '20px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}>
                           📊 Avaliação Detalhada
                         </h4>
                         
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                          gap: '20px',
-                          marginBottom: '24px'
+                          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: isMobile ? '16px' : '20px',
+                          marginBottom: isMobile ? '20px' : '24px'
                         }}>
                           <ScoreDisplay 
                             label="Qualidade dos Ativos" 
@@ -1170,23 +1263,23 @@ const gerarModeloProfissional = () => {
                       <div style={{
                         backgroundColor: '#f0f9ff',
                         border: '2px solid #3b82f6',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        marginBottom: '32px'
+                        borderRadius: isMobile ? '8px' : '12px',
+                        padding: isMobile ? '16px' : '24px',
+                        marginBottom: isMobile ? '24px' : '32px'
                       }}>
                         <h4 style={{
-                          fontSize: '16px',
+                          fontSize: isMobile ? '14px' : '16px',
                           fontWeight: '700',
                           color: '#1e40af',
-                          marginBottom: '16px',
+                          marginBottom: '12px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}>
                           💬 Análise Geral da Carteira
                         </h4>
                         <p style={{
-                          fontSize: '14px',
+                          fontSize: isMobile ? '13px' : '14px',
                           color: '#1e40af',
                           margin: 0,
                           lineHeight: '1.6',
@@ -1197,9 +1290,9 @@ const gerarModeloProfissional = () => {
                         
                         {carteira.analista && (
                           <p style={{
-                            fontSize: '12px',
+                            fontSize: isMobile ? '11px' : '12px',
                             color: '#1e40af',
-                            margin: '16px 0 0 0',
+                            margin: '12px 0 0 0',
                             textAlign: 'right',
                             fontStyle: 'italic'
                           }}>
@@ -1212,15 +1305,15 @@ const gerarModeloProfissional = () => {
 
                     {/* Recomendações estruturadas */}
                     {carteira.dadosEstruturados?.recomendacoesDetalhadas?.length > 0 && (
-                      <div style={{ marginBottom: '32px' }}>
+                      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
                         <h4 style={{
-                          fontSize: '18px',
+                          fontSize: isMobile ? '16px' : '18px',
                           fontWeight: '700',
                           color: '#1e293b',
-                          marginBottom: '20px',
+                          marginBottom: isMobile ? '16px' : '20px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}>
                           💡 Recomendações Personalizadas
                         </h4>
@@ -1233,15 +1326,15 @@ const gerarModeloProfissional = () => {
 
                     {/* Análise de ativos individuais */}
                     {carteira.dadosEstruturados?.ativosAnalise?.length > 0 && (
-                      <div style={{ marginBottom: '32px' }}>
+                      <div style={{ marginBottom: isMobile ? '24px' : '32px' }}>
                         <h4 style={{
-                          fontSize: '18px',
+                          fontSize: isMobile ? '16px' : '18px',
                           fontWeight: '700',
                           color: '#1e293b',
-                          marginBottom: '20px',
+                          marginBottom: isMobile ? '16px' : '20px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}>
                           🏢 Análise Individual de Ativos
                         </h4>
@@ -1257,38 +1350,47 @@ const gerarModeloProfissional = () => {
                       <div style={{
                         backgroundColor: '#f0fdf4',
                         border: '1px solid #10b981',
-                        borderRadius: '12px',
-                        padding: '24px'
+                        borderRadius: isMobile ? '8px' : '12px',
+                        padding: isMobile ? '16px' : '24px'
                       }}>
                         <h4 style={{
-                          fontSize: '16px',
+                          fontSize: isMobile ? '14px' : '16px',
                           fontWeight: '700',
                           color: '#065f46',
-                          marginBottom: '16px',
+                          marginBottom: '12px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}>
                           📈 Distribuição da Carteira
                         </h4>
                         
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                          gap: '12px'
+                          gridTemplateColumns: isMobile ? 'repeat(auto-fit, minmax(100px, 1fr))' : 'repeat(auto-fit, minmax(120px, 1fr))',
+                          gap: isMobile ? '8px' : '12px'
                         }}>
                           {carteira.estatisticas.distribuicaoTipo.map((dist, distIndex) => (
                             <div key={distIndex} style={{
                               backgroundColor: '#ffffff',
-                              padding: '12px',
-                              borderRadius: '8px',
+                              padding: isMobile ? '8px' : '12px',
+                              borderRadius: '6px',
                               textAlign: 'center',
                               border: '1px solid #10b981'
                             }}>
-                              <div style={{ fontSize: '11px', color: '#065f46', marginBottom: '4px', fontWeight: '600' }}>
+                              <div style={{ 
+                                fontSize: isMobile ? '9px' : '11px', 
+                                color: '#065f46', 
+                                marginBottom: '3px', 
+                                fontWeight: '600' 
+                              }}>
                                 {dist.tipo}
                               </div>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#059669' }}>
+                              <div style={{ 
+                                fontSize: isMobile ? '13px' : '16px', 
+                                fontWeight: '700', 
+                                color: '#059669' 
+                              }}>
                                 {dist.percentual.toFixed(1)}%
                               </div>
                             </div>
@@ -1306,7 +1408,6 @@ const gerarModeloProfissional = () => {
     );
   };
 
-  // 🆕 LOADING durante verificação
   if (carregandoVerificacao) {
     return (
       <div style={{
@@ -1316,10 +1417,17 @@ const gerarModeloProfissional = () => {
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'column',
-        gap: '16px'
+        gap: '16px',
+        padding: '20px'
       }}>
-        <div style={{ fontSize: '48px' }}>⏳</div>
-        <p style={{ color: '#64748b', fontSize: '16px' }}>Carregando suas análises...</p>
+        <div style={{ fontSize: isMobile ? '32px' : '48px' }}>⏳</div>
+        <p style={{ 
+          color: '#64748b', 
+          fontSize: isMobile ? '14px' : '16px', 
+          textAlign: 'center' 
+        }}>
+          Carregando suas análises...
+        </p>
       </div>
     );
   }
@@ -1328,21 +1436,22 @@ const gerarModeloProfissional = () => {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f5f5f5', 
-      padding: '24px' 
+      padding: isMobile ? '12px' : '24px'
     }}>
       {/* Header modificado */}
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
         <h1 style={{ 
-          fontSize: '48px', 
+          fontSize: isMobile ? '24px' : '48px', 
           fontWeight: '800', 
           color: '#1e293b',
-          margin: '0 0 8px 0'
+          margin: '0 0 8px 0',
+          lineHeight: '1.2'
         }}>
           {jaEnviouCarteira ? 'Minhas Análises de Carteira' : 'Análise de Carteira Personalizada'}
         </h1>
         <p style={{ 
           color: '#64748b', 
-          fontSize: '18px',
+          fontSize: isMobile ? '14px' : '18px',
           margin: '0',
           lineHeight: '1.5'
         }}>
@@ -1353,28 +1462,33 @@ const gerarModeloProfissional = () => {
         </p>
       </div>
 
-      {/* 🆕 CONDICIONAL: Só mostra formulário se NÃO enviou ainda */}
       {!jaEnviouCarteira && (
         <>
           {/* Progress Bar */}
           <div style={{
             backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '32px',
+            borderRadius: isMobile ? '8px' : '12px',
+            padding: isMobile ? '16px' : '20px',
+            marginBottom: isMobile ? '20px' : '32px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: isMobile ? '8px' : '16px',
+              flexWrap: 'wrap'
+            }}>
               {[
                 { numero: 1, titulo: 'Questionário', ativo: etapaAtual === 1 },
                 { numero: 2, titulo: 'Upload da Carteira', ativo: etapaAtual === 2 },
                 { numero: 3, titulo: 'Enviado', ativo: etapaAtual === 3 }
               ].map((etapa, index) => (
-                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px' }}>
                   <div style={{
-                    width: '32px',
-                    height: '32px',
+                    width: isMobile ? '24px' : '32px',
+                    height: isMobile ? '24px' : '32px',
                     borderRadius: '50%',
                     backgroundColor: etapa.ativo ? '#3b82f6' : (etapaAtual > etapa.numero ? '#10b981' : '#e2e8f0'),
                     color: etapa.ativo || etapaAtual > etapa.numero ? 'white' : '#64748b',
@@ -1382,19 +1496,20 @@ const gerarModeloProfissional = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: '700',
-                    fontSize: '14px'
+                    fontSize: isMobile ? '11px' : '14px'
                   }}>
                     {etapaAtual > etapa.numero ? '✓' : etapa.numero}
                   </div>
                   <span style={{
                     fontWeight: '600',
-                    color: etapa.ativo ? '#3b82f6' : (etapaAtual > etapa.numero ? '#10b981' : '#64748b')
+                    color: etapa.ativo ? '#3b82f6' : (etapaAtual > etapa.numero ? '#10b981' : '#64748b'),
+                    fontSize: isMobile ? '12px' : '16px'
                   }}>
-                    {etapa.titulo}
+                    {isMobile && etapa.titulo === 'Upload da Carteira' ? 'Upload' : etapa.titulo}
                   </span>
                   {index < 2 && (
                     <div style={{
-                      width: '40px',
+                      width: isMobile ? '20px' : '40px',
                       height: '2px',
                       backgroundColor: etapaAtual > etapa.numero ? '#10b981' : '#e2e8f0'
                     }} />
@@ -1408,24 +1523,24 @@ const gerarModeloProfissional = () => {
           {etapaAtual === 1 && (
             <div style={{
               backgroundColor: '#ffffff',
-              borderRadius: '16px',
+              borderRadius: isMobile ? '12px' : '16px',
               border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-              padding: '32px'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              padding: isMobile ? '20px' : '32px'
             }}>
-              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+              <div style={{ textAlign: 'center', marginBottom: isMobile ? '24px' : '32px' }}>
+                <div style={{ fontSize: isMobile ? '32px' : '48px', marginBottom: '12px' }}>📋</div>
                 <h2 style={{
-                  fontSize: '28px',
+                  fontSize: isMobile ? '20px' : '28px',
                   fontWeight: '700',
                   color: '#1e293b',
-                  margin: '0 0 12px 0'
+                  margin: '0 0 8px 0'
                 }}>
                   Questionário de Perfil
                 </h2>
                 <p style={{
                   color: '#64748b',
-                  fontSize: '16px',
+                  fontSize: isMobile ? '14px' : '16px',
                   margin: '0'
                 }}>
                   Essas informações nos ajudam a fazer uma análise mais precisa e personalizada
@@ -1435,18 +1550,19 @@ const gerarModeloProfissional = () => {
               <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                 {perguntas.map((pergunta, index) => (
                   <div key={pergunta.id} style={{
-                    marginBottom: '32px',
-                    padding: '24px',
+                    marginBottom: isMobile ? '24px' : '32px',
+                    padding: isMobile ? '16px' : '24px',
                     backgroundColor: '#f8fafc',
-                    borderRadius: '12px',
+                    borderRadius: isMobile ? '8px' : '12px',
                     border: '1px solid #e2e8f0'
                   }}>
                     <label style={{
                       display: 'block',
-                      fontSize: '16px',
+                      fontSize: isMobile ? '14px' : '16px',
                       fontWeight: '600',
                       color: '#1e293b',
-                      marginBottom: '12px'
+                      marginBottom: '8px',
+                      lineHeight: '1.4'
                     }}>
                       {index + 1}. {pergunta.pergunta}
                     </label>
@@ -1457,10 +1573,10 @@ const gerarModeloProfissional = () => {
                         onChange={(e) => handleRespostaChange(pergunta.id, e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '12px',
-                          fontSize: '14px',
+                          padding: isMobile ? '10px' : '12px',
+                          fontSize: isMobile ? '13px' : '14px',
                           border: '1px solid #d1d5db',
-                          borderRadius: '8px',
+                          borderRadius: '6px',
                           backgroundColor: '#ffffff'
                         }}
                       >
@@ -1476,11 +1592,11 @@ const gerarModeloProfissional = () => {
                         placeholder="Digite sua resposta..."
                         style={{
                           width: '100%',
-                          minHeight: '80px',
-                          padding: '12px',
-                          fontSize: '14px',
+                          minHeight: isMobile ? '60px' : '80px',
+                          padding: isMobile ? '10px' : '12px',
+                          fontSize: isMobile ? '13px' : '14px',
                           border: '1px solid #d1d5db',
-                          borderRadius: '8px',
+                          borderRadius: '6px',
                           backgroundColor: '#ffffff',
                           resize: 'vertical',
                           fontFamily: 'inherit'
@@ -1490,27 +1606,27 @@ const gerarModeloProfissional = () => {
                   </div>
                 ))}
 
-                <div style={{ textAlign: 'center', marginTop: '32px' }}>
+                <div style={{ textAlign: 'center', marginTop: isMobile ? '24px' : '32px' }}>
                   <button
                     onClick={() => setEtapaAtual(2)}
                     disabled={!todasPerguntasRespondidas()}
                     style={{
                       backgroundColor: todasPerguntasRespondidas() ? '#3b82f6' : '#9ca3af',
                       color: 'white',
-                      padding: '16px 32px',
-                      borderRadius: '12px',
+                      padding: isMobile ? '12px 24px' : '16px 32px',
+                      borderRadius: isMobile ? '8px' : '12px',
                       border: 'none',
-                      fontSize: '16px',
+                      fontSize: isMobile ? '14px' : '16px',
                       fontWeight: '700',
                       cursor: todasPerguntasRespondidas() ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       margin: '0 auto',
                       transition: 'all 0.2s'
                     }}
                   >
-                    Próximo: Upload da Carteira
+                    {isMobile ? 'Próximo: Upload' : 'Próximo: Upload da Carteira'}
                     <span>→</span>
                   </button>
                 </div>
@@ -1522,24 +1638,24 @@ const gerarModeloProfissional = () => {
           {etapaAtual === 2 && (
             <div style={{
               backgroundColor: '#ffffff',
-              borderRadius: '16px',
+              borderRadius: isMobile ? '12px' : '16px',
               border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-              padding: '32px'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              padding: isMobile ? '20px' : '32px'
             }}>
-              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+              <div style={{ textAlign: 'center', marginBottom: isMobile ? '24px' : '32px' }}>
+                <div style={{ fontSize: isMobile ? '32px' : '48px', marginBottom: '12px' }}>📊</div>
                 <h2 style={{
-                  fontSize: '28px',
+                  fontSize: isMobile ? '20px' : '28px',
                   fontWeight: '700',
                   color: '#1e293b',
-                  margin: '0 0 12px 0'
+                  margin: '0 0 8px 0'
                 }}>
                   Envie sua Carteira de Investimentos
                 </h2>
                 <p style={{
                   color: '#64748b',
-                  fontSize: '16px',
+                  fontSize: isMobile ? '14px' : '16px',
                   margin: '0'
                 }}>
                   Use nosso modelo Excel para organizar seus investimentos
@@ -1550,23 +1666,24 @@ const gerarModeloProfissional = () => {
               <div style={{
                 backgroundColor: '#f0f9ff',
                 border: '1px solid #3b82f6',
-                borderRadius: '12px',
-                padding: '24px',
-                marginBottom: '32px',
+                borderRadius: isMobile ? '8px' : '12px',
+                padding: isMobile ? '16px' : '24px',
+                marginBottom: isMobile ? '20px' : '32px',
                 textAlign: 'center'
               }}>
                 <h3 style={{
-                  fontSize: '18px',
+                  fontSize: isMobile ? '16px' : '18px',
                   fontWeight: '700',
                   color: '#1e40af',
-                  margin: '0 0 12px 0'
+                  margin: '0 0 8px 0'
                 }}>
                   📥 Baixe o Modelo Oficial
                 </h3>
                 <p style={{
                   color: '#1e40af',
-                  fontSize: '14px',
-                  marginBottom: '16px'
+                  fontSize: isMobile ? '13px' : '14px',
+                  marginBottom: '12px',
+                  lineHeight: '1.4'
                 }}>
                   Modelo com as abas: Ações, FIIs, Exterior, Renda Fixa, Criptomoeda e Reserva de Emergência
                 </p>
@@ -1575,15 +1692,15 @@ const gerarModeloProfissional = () => {
                   style={{
                     backgroundColor: '#3b82f6',
                     color: 'white',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
+                    padding: isMobile ? '10px 20px' : '12px 24px',
+                    borderRadius: '6px',
                     border: 'none',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '13px' : '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '6px',
                     margin: '0 auto'
                   }}
                 >
@@ -1594,20 +1711,30 @@ const gerarModeloProfissional = () => {
               {/* Upload Area */}
               <div style={{
                 border: '2px dashed #d1d5db',
-                borderRadius: '12px',
-                padding: '48px',
+                borderRadius: isMobile ? '8px' : '12px',
+                padding: isMobile ? '24px 16px' : '48px',
                 textAlign: 'center',
                 backgroundColor: uploadedFile ? '#f0fdf4' : '#fafafa',
                 borderColor: uploadedFile ? '#10b981' : '#d1d5db',
-                marginBottom: '24px'
+                marginBottom: isMobile ? '20px' : '24px'
               }}>
                 {uploadedFile ? (
                   <div>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '18px', marginBottom: '8px' }}>
+                    <div style={{ fontSize: isMobile ? '32px' : '48px', marginBottom: '12px' }}>✅</div>
+                    <div style={{ 
+                      fontWeight: '700', 
+                      color: '#1e293b', 
+                      fontSize: isMobile ? '14px' : '18px', 
+                      marginBottom: '6px',
+                      lineHeight: '1.3'
+                    }}>
                       {uploadedFile.name}
                     </div>
-                    <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px' }}>
+                    <div style={{ 
+                      color: '#64748b', 
+                      fontSize: isMobile ? '12px' : '14px', 
+                      marginBottom: '12px' 
+                    }}>
                       {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                     </div>
                     <button
@@ -1617,7 +1744,7 @@ const gerarModeloProfissional = () => {
                         backgroundColor: 'transparent',
                         border: 'none',
                         cursor: 'pointer',
-                        fontSize: '14px',
+                        fontSize: isMobile ? '12px' : '14px',
                         textDecoration: 'underline'
                       }}
                     >
@@ -1626,18 +1753,25 @@ const gerarModeloProfissional = () => {
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📎</div>
-                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '18px', marginBottom: '12px' }}>
-                      Arraste seu arquivo Excel aqui
+                    <div style={{ fontSize: isMobile ? '32px' : '48px', marginBottom: '12px' }}>📎</div>
+                    <div style={{ 
+                      fontWeight: '700', 
+                      color: '#1e293b', 
+                      fontSize: isMobile ? '14px' : '18px', 
+                      marginBottom: '8px' 
+                    }}>
+                      {isMobile ? 'Toque para escolher arquivo' : 'Arraste seu arquivo Excel aqui'}
                     </div>
-                    <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>ou</div>
+                    {!isMobile && (
+                      <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px' }}>ou</div>
+                    )}
                     <label style={{
                       backgroundColor: '#3b82f6',
                       color: 'white',
-                      padding: '12px 24px',
-                      borderRadius: '8px',
+                      padding: isMobile ? '10px 20px' : '12px 24px',
+                      borderRadius: '6px',
                       cursor: 'pointer',
-                      fontSize: '16px',
+                      fontSize: isMobile ? '14px' : '16px',
                       fontWeight: '600',
                       border: 'none',
                       display: 'inline-block'
@@ -1650,7 +1784,11 @@ const gerarModeloProfissional = () => {
                         onChange={(e) => e.target.files[0] && handleFileUpload(e.target.files[0])}
                       />
                     </label>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '12px' }}>
+                    <div style={{ 
+                      fontSize: isMobile ? '11px' : '12px', 
+                      color: '#64748b', 
+                      marginTop: '8px' 
+                    }}>
                       Formatos aceitos: .xlsx, .xls (máximo 10MB)
                     </div>
                   </div>
@@ -1662,22 +1800,25 @@ const gerarModeloProfissional = () => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginTop: '32px'
+                marginTop: isMobile ? '20px' : '32px',
+                gap: '12px',
+                flexWrap: isMobile ? 'wrap' : 'nowrap'
               }}>
                 <button
                   onClick={() => setEtapaAtual(1)}
                   style={{
                     backgroundColor: '#6b7280',
                     color: 'white',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
+                    padding: isMobile ? '10px 16px' : '12px 24px',
+                    borderRadius: '6px',
                     border: 'none',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '13px' : '14px',
                     fontWeight: '600',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    order: isMobile ? 2 : 1
                   }}
                 >
-                  ← Voltar ao Questionário
+                  ← {isMobile ? 'Voltar' : 'Voltar ao Questionário'}
                 </button>
 
                 <button
@@ -1686,25 +1827,27 @@ const gerarModeloProfissional = () => {
                   style={{
                     backgroundColor: uploadedFile && !isSubmitting ? '#10b981' : '#9ca3af',
                     color: 'white',
-                    padding: '16px 32px',
-                    borderRadius: '12px',
+                    padding: isMobile ? '12px 20px' : '16px 32px',
+                    borderRadius: isMobile ? '8px' : '12px',
                     border: 'none',
-                    fontSize: '16px',
+                    fontSize: isMobile ? '14px' : '16px',
                     fontWeight: '700',
                     cursor: uploadedFile && !isSubmitting ? 'pointer' : 'not-allowed',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '6px',
+                    order: isMobile ? 1 : 2,
+                    flex: isMobile ? '1' : 'auto'
                   }}
                 >
                   {isSubmitting ? (
                     <>
                       <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
-                      Enviando Análise...
+                      {isMobile ? 'Enviando...' : 'Enviando Análise...'}
                     </>
                   ) : (
                     <>
-                      🚀 Enviar para Análise
+                      🚀 {isMobile ? 'Enviar' : 'Enviar para Análise'}
                     </>
                   )}
                 </button>
@@ -1716,28 +1859,26 @@ const gerarModeloProfissional = () => {
           {etapaAtual === 3 && (
             <div style={{
               backgroundColor: '#ffffff',
-              borderRadius: '16px',
+              borderRadius: isMobile ? '12px' : '16px',
               border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-              padding: '48px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              padding: isMobile ? '32px 20px' : '48px',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎉</div>
+              <div style={{ fontSize: isMobile ? '48px' : '64px', marginBottom: '16px' }}>🎉</div>
               <h2 style={{
-                fontSize: '32px',
+                fontSize: isMobile ? '24px' : '32px',
                 fontWeight: '800',
                 color: '#10b981',
-                margin: '0 0 16px 0'
+                margin: '0 0 12px 0'
               }}>
                 Análise Enviada com Sucesso!
               </h2>
               <p style={{
                 color: '#64748b',
-                fontSize: '18px',
-                margin: '0 0 32px 0',
-                maxWidth: '600px',
-                marginLeft: 'auto',
-                marginRight: 'auto'
+                fontSize: isMobile ? '14px' : '18px',
+                margin: '0 0 24px 0',
+                lineHeight: '1.6'
               }}>
                 Recebemos seu questionário e carteira. Nossa equipe de especialistas irá analisar tudo com cuidado e enviar um feedback detalhado em até 48 horas.
               </p>
@@ -1745,25 +1886,25 @@ const gerarModeloProfissional = () => {
               <div style={{
                 backgroundColor: '#f0fdf4',
                 border: '1px solid #10b981',
-                borderRadius: '12px',
-                padding: '24px',
-                marginBottom: '32px',
+                borderRadius: isMobile ? '8px' : '12px',
+                padding: isMobile ? '16px' : '24px',
+                marginBottom: isMobile ? '24px' : '32px',
                 maxWidth: '500px',
-                margin: '0 auto 32px auto'
+                margin: '0 auto 24px auto'
               }}>
                 <h3 style={{
-                  fontSize: '16px',
+                  fontSize: isMobile ? '14px' : '16px',
                   fontWeight: '700',
                   color: '#065f46',
-                  margin: '0 0 12px 0'
+                  margin: '0 0 8px 0'
                 }}>
                   📧 Próximos Passos:
                 </h3>
                 <ul style={{
                   color: '#059669',
-                  fontSize: '14px',
+                  fontSize: isMobile ? '12px' : '14px',
                   margin: '0',
-                  padding: '0 0 0 20px',
+                  padding: '0 0 0 16px',
                   textAlign: 'left'
                 }}>
                   <li>Análise detalhada da sua carteira</li>
@@ -1786,10 +1927,10 @@ const gerarModeloProfissional = () => {
                 style={{
                   backgroundColor: '#6b7280',
                   color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
+                  padding: isMobile ? '10px 20px' : '12px 24px',
+                  borderRadius: '6px',
                   border: 'none',
-                  fontSize: '14px',
+                  fontSize: isMobile ? '13px' : '14px',
                   fontWeight: '600',
                   cursor: 'pointer'
                 }}
