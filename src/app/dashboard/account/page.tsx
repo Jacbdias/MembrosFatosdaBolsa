@@ -80,6 +80,10 @@ export default function Page(): React.JSX.Element {
         // Disparar evento para outros componentes
         window.dispatchEvent(new Event('storage'));
         
+        // NOVO: Forçar verificação imediata (especial para mobile)
+        window.dispatchEvent(new Event('focus'));
+        window.dispatchEvent(new Event('visibilitychange'));
+        
       } else {
         console.error('❌ Erro na API:', await response.text());
         setUserProfile(prev => ({ ...prev, ...updatedData }));
