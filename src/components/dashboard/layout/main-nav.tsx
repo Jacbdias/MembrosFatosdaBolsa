@@ -187,27 +187,27 @@ React.useEffect(() => {
   initAvatar();
 }, [user]);
 
-// 🔄 Verificação de backup (reduzida frequência)
-React.useEffect(() => {
-  const checkAvatar = () => {
-    try {
-      const userData = localStorage.getItem('user-data');
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        if (parsed.avatar && parsed.avatar !== userAvatar) {
-          console.log('🔄 BACKUP RESETOU O AVATAR!', { de: userAvatar, para: parsed.avatar });
-          setUserAvatar(parsed.avatar);
-          setAvatarKey(Date.now());
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar avatar:', error);
-    }
-  };
+// // 🔄 Verificação de backup (reduzida frequência)
+// React.useEffect(() => {
+//   const checkAvatar = () => {
+//     try {
+//       const userData = localStorage.getItem('user-data');
+//       if (userData) {
+//         const parsed = JSON.parse(userData);
+//         if (parsed.avatar && parsed.avatar !== userAvatar) {
+//           console.log('🔄 BACKUP RESETOU O AVATAR!', { de: userAvatar, para: parsed.avatar });
+//           setUserAvatar(parsed.avatar);
+//           setAvatarKey(Date.now());
+//         }
+//       }
+//     } catch (error) {
+//       console.error('Erro ao verificar avatar:', error);
+//     }
+//   };
 
-  const interval = setInterval(checkAvatar, 2000);
-  return () => clearInterval(interval);
-}, [userAvatar]);
+//   const interval = setInterval(checkAvatar, 2000);
+//   return () => clearInterval(interval);
+// }, [userAvatar]);
 
   // 🔥 FUNÇÃO DE FILTRO APRIMORADA
   const filterOptions = (options, { inputValue }) => {
