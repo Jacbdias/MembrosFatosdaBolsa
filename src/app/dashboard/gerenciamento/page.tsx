@@ -133,7 +133,7 @@ const {
       }
       
       // 2. Corrigir formato brasileiro de preços (R$ X,XX → X.XX)
-      const temFormatoBrasileiro = text.includes('R
+const temFormatoBrasileiro = text.includes('R$');
 
   const confirmarImportacao = () => {
     if (dadosCSV.length === 0) {
