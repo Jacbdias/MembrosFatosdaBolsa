@@ -1,11 +1,11 @@
-// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA
+// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA E BUILD
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/use-user';
 
-// 🎯 DADOS INICIAIS DAS CARTEIRAS (mantidos iguais)
+// 🎯 DADOS INICIAIS DAS CARTEIRAS
 const DADOS_INICIAIS = {
   smallCaps: [
     { id: 'sc1', ticker: "ALOS3", dataEntrada: "15/01/2021", precoEntrada: 26.68, precoTeto: 23.76, setor: "Shoppings" },
@@ -171,7 +171,7 @@ const DADOS_INICIAIS = {
   ]
 };
 
-// 🎯 CONFIGURAÇÕES DAS CARTEIRAS (mantidas iguais)
+// 🎯 CONFIGURAÇÕES DAS CARTEIRAS
 const CARTEIRAS_CONFIG = {
   smallCaps: { 
     nome: 'Small Caps', 
@@ -245,6 +245,8 @@ const STORAGE_KEY = 'carteiras-dados';
 const api = {
   getCarteira: async (carteira: string) => {
     try {
+      if (typeof window === 'undefined') return [];
+      
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
       
@@ -274,6 +276,8 @@ const api = {
 
   adicionarAtivo: async (carteira: string, dados: any) => {
     try {
+      if (typeof window === 'undefined') throw new Error('Server-side não suportado');
+      
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
       
@@ -300,6 +304,8 @@ const api = {
 
   editarAtivo: async (carteira: string, id: string, dados: any) => {
     try {
+      if (typeof window === 'undefined') throw new Error('Server-side não suportado');
+      
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
       
@@ -326,6 +332,8 @@ const api = {
 
   removerAtivo: async (carteira: string, id: string) => {
     try {
+      if (typeof window === 'undefined') throw new Error('Server-side não suportado');
+      
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
       
@@ -352,6 +360,8 @@ const api = {
 
   reordenarAtivos: async (carteira: string, novosAtivos: any[]) => {
     try {
+      if (typeof window === 'undefined') throw new Error('Server-side não suportado');
+      
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
       
@@ -391,7 +401,7 @@ export const useDataStore = () => {
   return context;
 };
 
-// 🎯 PROVIDER HÍBRIDO CORRIGIDO
+// 🎯 PROVIDER HÍBRIDO CORRIGIDO PARA BUILD
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
   const queryClient = useQueryClient();
@@ -408,23 +418,36 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingRef = useRef(false);
 
-  // 🔥 NOVA FUNÇÃO PARA VERIFICAR AUTENTICAÇÃO INDEPENDENTE
+  // 🔥 FUNÇÃO PARA VERIFICAR AUTENTICAÇÃO SEGURA PARA SSR
   const verificarAutenticacao = useCallback(() => {
-    const userEmail = localStorage.getItem('user-email');
-    const token = localStorage.getItem('custom-auth-token');
+    // ✅ CRÍTICO: Verificar se estamos no browser
+    if (typeof window === 'undefined') {
+      return false; // No servidor, sempre retorna false
+    }
     
-    // ✅ Se tem credenciais válidas, considera autenticado
-    return !!(userEmail && token && userEmail.includes('@') && token.length > 10);
+    try {
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
+      
+      // ✅ Se tem credenciais válidas, considera autenticado
+      return !!(userEmail && token && userEmail.includes('@') && token.length > 10);
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error);
+      return false;
+    }
   }, []);
 
-  // ✅ Estado de autenticação usando localStorage
-  const isAuthenticated = verificarAutenticacao();
+  // 🔥 COMPUTED VALUE SEGURO PARA SSR
+  const isAuthenticated = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return verificarAutenticacao();
+  }, [verificarAutenticacao]);
 
-  // 🔥 REACT QUERY CORRIGIDO - Usar isAuthenticated em vez de user?.id
+  // 🔥 TODAS AS 8 REACT QUERY CORRIGIDAS COM VERIFICAÇÃO SSR
   const smallCapsQuery = useQuery({
     queryKey: ['carteira', 'smallCaps', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('smallCaps'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -434,7 +457,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const microCapsQuery = useQuery({
     queryKey: ['carteira', 'microCaps', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('microCaps'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -444,7 +467,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const dividendosQuery = useQuery({
     queryKey: ['carteira', 'dividendos', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('dividendos'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -454,7 +477,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const fiisQuery = useQuery({
     queryKey: ['carteira', 'fiis', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('fiis'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -464,7 +487,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const dividendosInternacionalQuery = useQuery({
     queryKey: ['carteira', 'dividendosInternacional', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('dividendosInternacional'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -474,7 +497,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const etfsQuery = useQuery({
     queryKey: ['carteira', 'etfs', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('etfs'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -484,7 +507,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const projetoAmericaQuery = useQuery({
     queryKey: ['carteira', 'projetoAmerica', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('projetoAmerica'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -494,7 +517,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const exteriorStocksQuery = useQuery({
     queryKey: ['carteira', 'exteriorStocks', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('exteriorStocks'),
-    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
+    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -558,7 +581,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
   });
 
-  // 🔥 FUNÇÕES BÁSICAS ESTÁVEIS
+  // 🔥 FUNÇÕES BÁSICAS COM VERIFICAÇÃO SSR
   const lerDados = useCallback(() => {
     try {
       if (typeof window === 'undefined') return DADOS_INICIAIS;
@@ -586,9 +609,16 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
   }, []);
 
-  // 🔥 INICIALIZAÇÃO CORRIGIDA - SEM DEPENDÊNCIA DO user?.id
+  // 🔥 INICIALIZAÇÃO CORRIGIDA COM VERIFICAÇÃO SSR
   useEffect(() => {
     if (isLoadingRef.current) return;
+    
+    // ✅ CRÍTICO: Só executar no browser
+    if (typeof window === 'undefined') {
+      setIsInitialized(true);
+      return;
+    }
+    
     isLoadingRef.current = true;
     
     console.log('🚀 DataStore: Inicializando...');
@@ -614,10 +644,14 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     setIsInitialized(true);
     isLoadingRef.current = false;
-  }, [verificarAutenticacao, lerDados]); // ✅ Removido user?.id da dependência
+  }, [verificarAutenticacao, lerDados, user?.id]);
 
-  // 🔥 COMBINAR DADOS HÍBRIDOS CORRIGIDO
+  // 🔥 DADOS FINAIS COM VERIFICAÇÃO SSR
   const dadosFinais = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return DADOS_INICIAIS; // No servidor, sempre retorna dados iniciais
+    }
+    
     console.log('🔄 Recalculando dadosFinais:', { 
       modoSincronizacao, 
       isAuthenticated,
@@ -737,7 +771,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
+    } else if (isAuthenticated) {
       // Sync com Prisma
       adicionarMutation.mutate({ carteira, dados: ativoComId });
     }
@@ -763,7 +797,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
+    } else if (isAuthenticated) {
       editarMutation.mutate({ carteira, id, dados: dadosAtualizados });
     }
     
@@ -780,7 +814,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
+    } else if (isAuthenticated) {
       removerMutation.mutate({ carteira, id: ativoId });
     }
     
@@ -800,7 +834,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
+    } else if (isAuthenticated) {
       reordenarMutation.mutate({ carteira, novosAtivos });
     }
   }, [dados, salvarDados, reordenarMutation, modoSincronizacao, isAuthenticated]);
@@ -900,7 +934,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || typeof window === 'undefined') return;
     
     buscarCotacaoUSD();
     
@@ -938,7 +972,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     );
   }
 
-  // 🔥 VALUE OBJECT ESTÁVEL
+  // 🔥 CONTEXT VALUE COM VERIFICAÇÃO SEGURA
   const contextValue = {
     // Dados
     dados: dadosFinais,
@@ -947,7 +981,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     loading,
     isInitialized,
     modoSincronizacao,
-    isAuthenticated, // ✅ Novo campo
+    isAuthenticated,
     
     // Configurações
     CARTEIRAS_CONFIG,
