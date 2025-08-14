@@ -805,9 +805,6 @@ async function buscarDYsComEstrategia(tickers: string[], isMobile: boolean): Pro
   return dyMap;
 }
 
-// 💰 FUNÇÃO PARA BUSCAR PROVENTOS VIA API PRISMA (IGUAL AO CÓDIGO 1)
-// Removida a função localStorage - agora usa API
-
 // 🚀 HOOK PRINCIPAL OTIMIZADO COM PARALELIZAÇÃO TOTAL (BASEADO NO CÓDIGO 1)
 function useDividendosIntegradas() {
   const { dados } = useDataStore();
@@ -830,7 +827,7 @@ function useDividendosIntegradas() {
   const [proventosMap, setProventosMap] = React.useState<Map<string, number>>(new Map());
   const dividendosData = dados.dividendos || [];
 
-  // Função otimizada para buscar proventos VIA API PRISMA (IGUAL AO CÓDIGO 1)
+  // ✅ FUNÇÃO CORRIGIDA PARA BUSCAR PROVENTOS COM FILTRO POR DATA DE SAÍDA
   const buscarProventosAtivos = React.useCallback(async (ativosData: any[]) => {
     setLoadingProventos(true);
     const novosProventos = new Map<string, number>();
@@ -857,10 +854,26 @@ function useDividendosIntegradas() {
           
           if (Array.isArray(proventosRaw)) {
             const dataEntradaDate = new Date(dataEntradaISO + 'T00:00:00');
+
+            // ✅ CORREÇÃO: FILTRAR ATÉ DATA DE SAÍDA PARA POSIÇÕES ENCERRADAS
+            let dataLimite = null;
+            if (ativo.posicaoEncerrada && ativo.dataSaida) {
+              const [dia, mes, ano] = ativo.dataSaida.split('/');
+              const dataSaidaISO = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+              dataLimite = new Date(dataSaidaISO + 'T23:59:59'); // Incluir o dia da saída
+            }
+
             const proventosFiltrados = proventosRaw.filter((p: any) => {
               if (!p.dataObj) return false;
               const dataProvento = new Date(p.dataObj);
-              return dataProvento >= dataEntradaDate;
+              
+              // Deve estar após a data de entrada
+              if (dataProvento < dataEntradaDate) return false;
+              
+              // Se for posição encerrada, deve estar antes ou na data de saída
+              if (dataLimite && dataProvento > dataLimite) return false;
+              
+              return true;
             });
             
             const total = proventosFiltrados.reduce((sum: number, p: any) => sum + (p.valor || 0), 0);
@@ -1097,7 +1110,8 @@ function useDividendosIntegradas() {
     error,
     refetch,
     isMobile,
-    todosOsDadosProntos // ✅ Novo estado para debug
+    todosOsDadosProntos, // ✅ Novo estado para debug
+    proventosCompletos // ✅ ADICIONADO PARA USAR NA FUNÇÃO DE PERFORMANCE ENCERRADA
   };
 }
 
@@ -1112,20 +1126,30 @@ export default function DividendosPage() {
     loadingDY,
     loadingProventos,
     isMobile,
-    todosOsDadosProntos
+    todosOsDadosProntos,
+    proventosCompletos // ✅ ADICIONADO
   } = useDividendosIntegradas();
   
   const { smllData } = useSmllRealTime();
   const { ibovespaData } = useIbovespaRealTime();
   const { ibovespaPeriodo } = useIbovespaPeriodo(ativosAtualizados);
 
-  // Separar ativos com memoização
-  const ativosAtivos = React.useMemo(() => {
-    return ativosAtualizados.map((ativo, index) => ({
-      ...ativo,
-      posicaoExibicao: index + 1
-    }));
+  // ✅ SEPARAR ATIVOS COM ENCERRADOS - AGORA IMPLEMENTADO
+  const { ativosAtivos, ativosEncerrados } = React.useMemo(() => {
+    const ativos = ativosAtualizados.filter((ativo) => !ativo.posicaoEncerrada) || [];
+    const encerrados = ativosAtualizados.filter((ativo) => ativo.posicaoEncerrada) || [];
+    
+    return {
+      ativosAtivos: ativos.map((ativo, index) => ({
+        ...ativo,
+        posicaoExibicao: index + 1
+      })),
+      ativosEncerrados: encerrados
+    };
   }, [ativosAtualizados]);
+
+  // ✅ ESTADO PARA EXPAND/COLLAPSE DAS POSIÇÕES ENCERRADAS
+  const [posicoesEncerradasExpanded, setPosicoesEncerradasExpanded] = React.useState(false);
 
   // Métricas memoizadas
   const metricas = React.useMemo(() => {
@@ -1198,6 +1222,21 @@ export default function DividendosPage() {
     const signal = value >= 0 ? '+' : '';
     return signal + value.toFixed(2) + '%';
   }, []);
+
+  // ✅ FUNÇÃO PARA CALCULAR PERFORMANCE ENCERRADA COM TOTAL RETURN
+  const calcularPerformanceEncerrada = React.useCallback((ativo: any) => {
+    if (!ativo.precoSaida) return 0;
+    
+    // Performance da ação (variação do preço)
+    const performanceAcao = ((ativo.precoSaida - ativo.precoEntrada) / ativo.precoEntrada) * 100;
+    
+    // Performance dos proventos recebidos durante o período
+    const proventosAtivo = proventosCompletos.get(ativo.ticker) || 0;
+    const performanceProventos = ativo.precoEntrada > 0 ? (proventosAtivo / ativo.precoEntrada) * 100 : 0;
+    
+    // Total Return = Performance da ação + Performance dos proventos
+    return performanceAcao + performanceProventos;
+  }, [proventosCompletos]);
 
   return (
     <div style={{ 
@@ -1825,6 +1864,365 @@ export default function DividendosPage() {
         )}
       </div>
 
+      {/* ✅ POSIÇÕES ENCERRADAS COM EXPAND/COLLAPSE */}
+      {ativosEncerrados.length > 0 && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
+          marginBottom: '32px'
+        }}>
+          {/* Header Clicável */}
+          <div 
+            style={{
+              padding: isMobile ? '16px' : '24px',
+              borderBottom: posicoesEncerradasExpanded ? '1px solid #e2e8f0' : 'none',
+              backgroundColor: '#f8fafc',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              transition: 'background-color 0.2s'
+            }}
+            onClick={() => setPosicoesEncerradasExpanded(!posicoesEncerradasExpanded)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f1f5f9';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+            }}
+          >
+            <div>
+              <h3 style={{
+                fontSize: isMobile ? '20px' : '24px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 8px 0'
+              }}>
+                Posições Encerradas ({ativosEncerrados.length})
+              </h3>
+              <p style={{
+                color: '#64748b',
+                fontSize: isMobile ? '14px' : '16px',
+                margin: '0'
+              }}>
+                Histórico de operações finalizadas
+              </p>
+            </div>
+            
+            {/* Seta Animada */}
+            <div style={{
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'transform 0.3s ease',
+              transform: posicoesEncerradasExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 6L8 10L12 6" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Conteúdo Expansível */}
+          <div style={{
+            maxHeight: posicoesEncerradasExpanded ? '2000px' : '0',
+            overflow: 'hidden',
+            transition: 'max-height 0.3s ease-in-out'
+          }}>
+            {isMobile ? (
+              // 📱 MOBILE: Cards para encerradas
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {ativosEncerrados.map((ativo, index) => {
+                  const performance = calcularPerformanceEncerrada(ativo);
+                  
+                  return (
+                    <div 
+                      key={ativo.id || index}
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        border: '1px solid #e2e8f0'
+                      }}
+                    >
+                      {/* Header do Card Encerrado */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          backgroundColor: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          <img 
+                            src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                            alt={`Logo ${ativo.ticker}`}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              objectFit: 'contain'
+                            }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = '#dc2626';
+                                parent.style.color = 'white';
+                                parent.style.fontWeight = '700';
+                                parent.style.fontSize = '12px';
+                                parent.textContent = ativo.ticker.slice(0, 2);
+                              }
+                            }}
+                          />
+                        </div>
+                        <div style={{ flex: '1' }}>
+                          <div style={{ 
+                            fontWeight: '700', 
+                            color: '#64748b', 
+                            fontSize: '16px'
+                          }}>
+                            {ativo.ticker}
+                          </div>
+                          <div style={{ color: '#64748b', fontSize: '12px' }}>
+                            {ativo.setor}
+                          </div>
+                        </div>
+                        <div style={{
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          backgroundColor: performance >= 0 ? '#dcfce7' : '#fee2e2',
+                          color: performance >= 0 ? '#065f46' : '#dc2626'
+                        }}>
+                          ENCERRADO
+                        </div>
+                      </div>
+                      
+                      {/* Dados em Grid */}
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '8px', 
+                        fontSize: '14px',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Entrada:</span><br />
+                          <span style={{ fontWeight: '600', color: '#64748b' }}>{ativo.dataEntrada}</span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Saída:</span><br />
+                          <span style={{ fontWeight: '600', color: '#64748b' }}>{ativo.dataSaida}</span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Entrada:</span><br />
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>
+                            {formatCurrency(ativo.precoEntrada)}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>Preço Saída:</span><br />
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>
+                            {formatCurrency(ativo.precoSaida)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Performance final */}
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '8px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0',
+                        marginBottom: '8px'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                          Performance Total (c/ proventos)
+                        </div>
+                        <div style={{ 
+                          fontSize: '18px', 
+                          fontWeight: '800',
+                          color: performance >= 0 ? '#059669' : '#dc2626'
+                        }}>
+                          {formatPercentage(performance)}
+                        </div>
+                      </div>
+
+                      {/* Motivo */}
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#64748b', 
+                        textAlign: 'center',
+                        fontWeight: '500'
+                      }}>
+                        Motivo: {ativo.motivoEncerramento}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // 🖥️ DESKTOP: Tabela para encerradas
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ATIVO
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        ENTRADA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        SAÍDA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO ENTRADA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        PREÇO SAÍDA
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          PERFORMANCE TOTAL
+                          <div 
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '50%',
+                              backgroundColor: '#64748b',
+                              color: 'white',
+                              fontSize: '10px',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'help'
+                            }}
+                            title="Performance com Total Return, incluindo proventos recebidos durante o período de detenção."
+                          >
+                            i
+                          </div>
+                        </div>
+                      </th>
+                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#374151', fontSize: '14px' }}>
+                        MOTIVO
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ativosEncerrados.map((ativo, index) => {
+                      const performance = calcularPerformanceEncerrada(ativo);
+                      
+                      return (
+                        <tr 
+                          key={ativo.id || index} 
+                          style={{ 
+                            borderBottom: '1px solid #e2e8f0',
+                            backgroundColor: '#f8fafc'
+                          }}
+                        >
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                backgroundColor: '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #e2e8f0'
+                              }}>
+                                <img 
+                                  src={`https://www.ivalor.com.br/media/emp/logos/${ativo.ticker.replace(/\d+$/, '')}.png`}
+                                  alt={`Logo ${ativo.ticker}`}
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    objectFit: 'contain'
+                                  }}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.style.backgroundColor = '#dc2626';
+                                      parent.style.color = 'white';
+                                      parent.style.fontWeight = '700';
+                                      parent.style.fontSize = '14px';
+                                      parent.textContent = ativo.ticker.slice(0, 2);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <div style={{ 
+                                  fontWeight: '700', 
+                                  color: '#64748b', 
+                                  fontSize: '16px'
+                                }}>
+                                  {ativo.ticker}
+                                </div>
+                                <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                  {ativo.setor}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {ativo.dataEntrada}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                            {ativo.dataSaida}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
+                            {formatCurrency(ativo.precoEntrada)}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
+                            {formatCurrency(ativo.precoSaida)}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            fontWeight: '800',
+                            fontSize: '16px',
+                            color: performance >= 0 ? '#059669' : '#dc2626'
+                          }}>
+                            {formatPercentage(performance)}
+                          </td>
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            fontSize: '12px', 
+                            color: '#64748b' 
+                          }}>
+                            {ativo.motivoEncerramento}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Gráfico de Composição */}
       <div style={{
         backgroundColor: '#ffffff',
@@ -2036,63 +2434,61 @@ export default function DividendosPage() {
             })()}
           </div>
           
-{/* Legenda Responsiva */}
-<div style={{ 
-  flex: '1', 
-  display: 'grid', 
-  // 🔥 MUDANÇA AQUI: Forçar 2 colunas no mobile
-  gridTemplateColumns: isMobile 
-    ? 'repeat(2, 1fr)'  // ✅ 2 colunas fixas no mobile
-    : 'repeat(auto-fit, minmax(120px, 1fr))', 
-  gap: isMobile ? '8px' : '12px'
-}}>
-  {ativosAtivos.map((ativo, index) => {
-    const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
-    const cores = [
-      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
-      '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
-      '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
-      '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
-    ];
-    const cor = cores[index % cores.length];
-    
-    return (
-      <div key={ativo.ticker} style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '8px',
-        // 🔥 MUDANÇA AQUI: Melhor quebra de linha no mobile
-        minWidth: isMobile ? '0' : 'auto'
-      }}>
-        <div style={{
-          width: '12px',
-          height: '12px',
-          borderRadius: '2px',
-          backgroundColor: cor,
-          flexShrink: 0
-        }} />
-        <div style={{ minWidth: 0 }}>
+          {/* Legenda Responsiva */}
           <div style={{ 
-            fontWeight: '700', 
-            color: '#1e293b', 
-            fontSize: isMobile ? '12px' : '14px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            flex: '1', 
+            display: 'grid', 
+            gridTemplateColumns: isMobile 
+              ? 'repeat(2, 1fr)'  
+              : 'repeat(auto-fit, minmax(120px, 1fr))', 
+            gap: isMobile ? '8px' : '12px'
           }}>
-            {ativo.ticker}
-          </div>
-          <div style={{ 
-            color: '#64748b', 
-            fontSize: isMobile ? '10px' : '12px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
-            {porcentagem}%
-          </div>
-        </div>
-      </div>
+            {ativosAtivos.map((ativo, index) => {
+              const porcentagem = ativosAtivos.length > 0 ? ((1 / ativosAtivos.length) * 100).toFixed(1) : '0.0';
+              const cores = [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+                '#14b8a6', '#eab308', '#dc2626', '#7c3aed', '#0891b2',
+                '#65a30d', '#ea580c', '#db2777', '#4f46e5', '#0d9488'
+              ];
+              const cor = cores[index % cores.length];
+              
+              return (
+                <div key={ativo.ticker} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  minWidth: isMobile ? '0' : 'auto'
+                }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '2px',
+                    backgroundColor: cor,
+                    flexShrink: 0
+                  }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ 
+                      fontWeight: '700', 
+                      color: '#1e293b', 
+                      fontSize: isMobile ? '12px' : '14px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {ativo.ticker}
+                    </div>
+                    <div style={{ 
+                      color: '#64748b', 
+                      fontSize: isMobile ? '10px' : '12px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {porcentagem}%
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
