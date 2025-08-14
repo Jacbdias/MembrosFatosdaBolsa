@@ -404,7 +404,14 @@ export const useDataStore = () => {
 // 🎯 PROVIDER HÍBRIDO CORRIGIDO PARA BUILD
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
-  const queryClient = useQueryClient();
+  
+  // 🔥 ACESSAR O QUERY CLIENT CORRETAMENTE (DENTRO DO PROVIDER)
+  let queryClientInstance = null;
+  try {
+    queryClientInstance = useQueryClient(); // 🔥 AGORA FUNCIONA!
+  } catch (error) {
+    console.log('⚠️ QueryClient não disponível:', error);
+  }
 
   // 🔥 STATES ESTÁVEIS - COM NOVO STATE PARA CONTROLAR QUERIES
   const [dados, setDados] = useState(DADOS_INICIAIS);
@@ -630,10 +637,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, dados }: { carteira: string, dados: any }) => 
       api.adicionarAtivo(carteira, dados),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-        exact: true
-      });
+      if (queryClientInstance) {
+        queryClientInstance.invalidateQueries({ 
+          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
+          exact: true
+        });
+      }
     }
   });
 
@@ -641,10 +650,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
       api.editarAtivo(carteira, id, dados),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-        exact: true
-      });
+      if (queryClientInstance) {
+        queryClientInstance.invalidateQueries({ 
+          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
+          exact: true
+        });
+      }
     }
   });
 
@@ -652,10 +663,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, id }: { carteira: string, id: string }) => 
       api.removerAtivo(carteira, id),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-        exact: true
-      });
+      if (queryClientInstance) {
+        queryClientInstance.invalidateQueries({ 
+          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
+          exact: true
+        });
+      }
     }
   });
 
@@ -663,10 +676,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
       api.reordenarAtivos(carteira, novosAtivos),
     onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-        exact: true
-      });
+      if (queryClientInstance) {
+        queryClientInstance.invalidateQueries({ 
+          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
+          exact: true
+        });
+      }
     }
   });
 
@@ -698,7 +713,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
   }, []);
 
-  // 🔥 INICIALIZAÇÃO CORRIGIDA - COM HABILITAÇÃO CONTROLADA DAS QUERIES
+  // 🔥 INICIALIZAÇÃO CORRIGIDA - COM VERIFICAÇÃO REACT QUERY
   useEffect(() => {
     if (isLoadingRef.current) return;
     
@@ -714,32 +729,49 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     const isAuth = verificarAutenticacao();
     
-    console.log('🔍 Status de autenticação:', { 
+    // 🔥 VERIFICAÇÃO CORRETA DO QUERY CLIENT
+    const reactQueryDisponivel = !!queryClientInstance;
+    
+    console.log('🔍 Status de inicialização:', { 
       isAuth,
+      reactQueryDisponivel,
+      queryClientInstance: !!queryClientInstance,
       userFromHook: !!user?.id,
       userEmail: localStorage.getItem('user-email'),
       hasToken: !!localStorage.getItem('custom-auth-token')
     });
     
-    if (isAuth) {
-      console.log('✅ Usuário autenticado - USANDO PRISMA');
+    if (isAuth && reactQueryDisponivel) {
+      console.log('✅ Usuário autenticado + React Query disponível - USANDO PRISMA');
       setModoSincronizacao('hibrido');
       
-      // 🔥 CRÍTICO: Habilitar queries APÓS definir modo com delay
       setTimeout(() => {
         setQueriesHabilitadas(true);
         console.log('✅ Queries habilitadas para Prisma');
       }, 200);
     } else {
-      console.log('❌ Usuário não autenticado - usando localStorage');
+      if (isAuth && !reactQueryDisponivel) {
+        console.log('⚠️ Usuário autenticado MAS React Query indisponível - usando localStorage');
+      } else {
+        console.log('❌ Usuário não autenticado - usando localStorage');
+      }
+      
       setModoSincronizacao('localStorage');
       const dadosIniciais = lerDados();
       setDados(dadosIniciais);
+      
+      console.log('📁 Dados carregados do localStorage:', {
+        totalCarteiras: Object.keys(dadosIniciais).length,
+        detalhes: Object.entries(dadosIniciais).map(([nome, carteira]) => ({
+          nome,
+          count: Array.isArray(carteira) ? carteira.length : 0
+        }))
+      });
     }
     
     setIsInitialized(true);
     isLoadingRef.current = false;
-  }, [verificarAutenticacao, lerDados, user?.id]);
+  }, [verificarAutenticacao, lerDados, user?.id, queryClientInstance]);
 
   // 🔥 DADOS FINAIS CORRIGIDOS - COM VERIFICAÇÃO DE queriesHabilitadas
   const dadosFinais = useMemo(() => {
@@ -752,18 +784,27 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       isAuthenticated,
       queriesHabilitadas,
       isInitialized,
+      dadosLength: Object.keys(dados).length,
       userId: user?.id 
     });
     
+    // 🔥 PRIORIZAR LOCALSTORAGE QUANDO MODO É LOCALSTORAGE
     if (modoSincronizacao === 'localStorage') {
-      console.log('📁 Usando dados localStorage');
+      console.log('📁 Usando dados localStorage (modo localStorage ativo)');
+      console.log('📊 Dados localStorage detalhados:', Object.entries(dados).map(([nome, carteira]) => ({
+        nome,
+        count: Array.isArray(carteira) ? carteira.length : 0,
+        hasData: Array.isArray(carteira) && carteira.length > 0
+      })));
+      
+      // 🔥 GARANTIR QUE RETORNA OS DADOS CORRETOS
       return dados;
     }
     
-    // 🔥 AGUARDAR QUERIES SEREM HABILITADAS
+    // 🔥 AGUARDAR QUERIES SEREM HABILITADAS APENAS NO MODO HÍBRIDO
     if (!queriesHabilitadas) {
-      console.log('⏳ Aguardando queries serem habilitadas...');
-      return dados; // Usar dados locais temporariamente
+      console.log('⏳ Aguardando queries serem habilitadas... usando dados locais temporariamente');
+      return dados;
     }
     
     // Modo híbrido: banco + localStorage com FALLBACK
@@ -780,19 +821,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
         dadosLocal: dadosLocal.length 
       });
       
-      // ✅ PRIORIZAR dados do banco se disponíveis
       if (query?.isSuccess && dadosBanco.length >= 0) {
         acc[carteira] = dadosBanco;
         console.log(`✅ ${carteira}: Usando dados do banco (${dadosBanco.length} itens)`);
-      } else if (query?.isError) {
-        acc[carteira] = dadosLocal;
-        console.log(`⚠️ ${carteira}: Query falhou, usando dados locais (${dadosLocal.length} itens)`);
-      } else if (query?.isLoading) {
-        acc[carteira] = dadosLocal;
-        console.log(`⏳ ${carteira}: Query carregando, usando dados locais temporariamente (${dadosLocal.length} itens)`);
       } else {
         acc[carteira] = dadosLocal;
-        console.log(`🔄 ${carteira}: Usando dados locais (fallback) (${dadosLocal.length} itens)`);
+        console.log(`⚠️ ${carteira}: Usando dados locais (${dadosLocal.length} itens)`);
       }
       
       return acc;
@@ -1044,6 +1078,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       modoSincronizacao,
       isAuthenticated,
       queriesHabilitadas, // 🔥 INCLUIR queriesHabilitadas
+      queryClientInstance: !!queryClientInstance, // 🔥 INCLUIR queryClient
       user: user?.id,
       cotacaoUSD,
       queryStates,
@@ -1056,7 +1091,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     console.log('🔍 DataStore Debug Completo:', debugInfo);
     return debugInfo;
-  }, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, queriesHabilitadas, user?.id, cotacaoUSD, carteirasQueries]);
+  }, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, queriesHabilitadas, queryClientInstance, user?.id, cotacaoUSD, carteirasQueries]);
 
   // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
@@ -1109,6 +1144,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     modoSincronizacao,
     isAuthenticated,
     queriesHabilitadas, // 🔥 INCLUIR no context
+    queryClient: queryClientInstance, // 🔥 EXPOR O QUERY CLIENT
     
     // Configurações
     CARTEIRAS_CONFIG,
