@@ -10,14 +10,21 @@ const {
   CARTEIRAS_CONFIG, 
   adicionarAtivo, 
   editarAtivo, 
-  removerAtivo,        // 👈 ADICIONAR ESTA
-  reordenarAtivos,     // 👈 ADICIONAR ESTA
+  removerAtivo,        
+  reordenarAtivos,     
   obterEstatisticas, 
   setDados 
 } = useDataStore();
   
   const [carteiraAtiva, setCarteiraAtiva] = useState('smallCaps');
   const [modoEdicao, setModoEdicao] = useState(null);
+  
+  // 🔥 ESTADOS PARA IMPORTAÇÃO CSV
+  const [modoImportacao, setModoImportacao] = useState(false);
+  const [arquivoCSV, setArquivoCSV] = useState(null);
+  const [dadosCSV, setDadosCSV] = useState([]);
+  const [previewCSV, setPreviewCSV] = useState([]);
+  const [relatorioImportacao, setRelatorioImportacao] = useState(null);
   
   // 🔥 NOVO ESTADO PARA CONTROLAR MOEDA DO PREÇO TETO
   const [moedaPrecoTeto, setMoedaPrecoTeto] = useState('BRL');
@@ -28,7 +35,7 @@ const {
     dataEntrada: '',
     precoEntrada: '',
     precoTeto: '',
-    precoTetoBDR: '', // 🔥 NOVO CAMPO PARA PREÇO TETO EM BRL
+    precoTetoBDR: '',
     dataSaida: '',
     precoSaida: '',
     motivoEncerramento: ''
@@ -52,7 +59,159 @@ const {
   const mostraPrecoTeto = carteiraAtiva === 'projetoAmerica' 
     ? formData.setor !== 'ETF' && formData.setor !== ''
     : temPrecoTeto;
+
+  // 📄 FUNÇÕES PARA IMPORTAÇÃO CSV
+  const gerarTemplateCSV = () => {
+    const headers = ['ticker', 'setor', 'dataEntrada', 'precoEntrada'];
+    
+    // Adicionar colunas específicas baseadas na carteira
+    if (temPrecoTeto) {
+      headers.push('precoTeto');
+      if (isCarteiraInternacional) {
+        headers.push('precoTetoBDR');
+      }
+    }
+    
+    // Exemplo de linha
+    const exemplo = {
+      ticker: 'PETR4',
+      setor: 'Petróleo',
+      dataEntrada: '15/01/2024',
+      precoEntrada: '35.50'
+    };
+    
+    if (temPrecoTeto) {
+      exemplo.precoTeto = carteiraConfig.moeda === 'USD' ? '45.00' : '42.00';
+      if (isCarteiraInternacional) {
+        exemplo.precoTetoBDR = '245.00';
+      }
+    }
+    
+    const csvContent = [
+      headers.join(','),
+      headers.map(h => exemplo[h] || '').join(',')
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `template_${carteiraAtiva}.csv`;
+    link.click();
+  };
+
+  const processarArquivoCSV = async (arquivo) => {
+    if (!arquivo) return;
+
+    const fileReader = new FileReader();
+    fileReader.onload = async (e) => {
+      const text = e.target.result;
       
+      // Parse CSV usando uma função simples (em produção, use papaparse)
+      const linhas = text.split('\n').filter(linha => linha.trim());
+      const headers = linhas[0].split(',').map(h => h.trim());
+      
+      console.log('📄 Headers encontrados:', headers);
+      console.log('📄 Linhas totais:', linhas.length);
+      
+      const dados = [];
+      const erros = [];
+      
+      for (let i = 1; i < linhas.length; i++) {
+        const valores = linhas[i].split(',').map(v => v.trim());
+        const linha = {};
+        
+        headers.forEach((header, index) => {
+          linha[header] = valores[index] || '';
+        });
+        
+        // Validação básica
+        const errosLinha = [];
+        if (!linha.ticker) errosLinha.push('Ticker obrigatório');
+        if (!linha.setor) errosLinha.push('Setor obrigatório');
+        if (!linha.dataEntrada) errosLinha.push('Data entrada obrigatória');
+        if (!linha.precoEntrada || isNaN(parseFloat(linha.precoEntrada))) {
+          errosLinha.push('Preço entrada inválido');
+        }
+        
+        if (errosLinha.length > 0) {
+          erros.push({
+            linha: i + 1,
+            dados: linha,
+            erros: errosLinha
+          });
+        } else {
+          dados.push({
+            ...linha,
+            precoEntrada: parseFloat(linha.precoEntrada),
+            precoTeto: linha.precoTeto ? parseFloat(linha.precoTeto) : undefined,
+            precoTetoBDR: linha.precoTetoBDR ? parseFloat(linha.precoTetoBDR) : undefined
+          });
+        }
+      }
+      
+      console.log('✅ Dados válidos:', dados);
+      console.log('❌ Erros encontrados:', erros);
+      
+      setDadosCSV(dados);
+      setPreviewCSV({ validos: dados, erros });
+    };
+    
+    fileReader.readAsText(arquivo);
+  };
+
+  const confirmarImportacao = () => {
+    if (dadosCSV.length === 0) {
+      alert('Nenhum dado válido para importar!');
+      return;
+    }
+
+    const sucessos = [];
+    const falhas = [];
+
+    dadosCSV.forEach((dadosAtivo, index) => {
+      try {
+        const novoAtivo = adicionarAtivo(carteiraAtiva, {
+          ticker: dadosAtivo.ticker.toUpperCase(),
+          setor: dadosAtivo.setor,
+          dataEntrada: dadosAtivo.dataEntrada,
+          precoEntrada: dadosAtivo.precoEntrada,
+          precoTeto: dadosAtivo.precoTeto,
+          precoTetoBDR: dadosAtivo.precoTetoBDR
+        });
+        
+        sucessos.push({
+          ticker: dadosAtivo.ticker.toUpperCase(),
+          linha: index + 2
+        });
+      } catch (error) {
+        falhas.push({
+          ticker: dadosAtivo.ticker,
+          linha: index + 2,
+          erro: error.message
+        });
+      }
+    });
+
+    setRelatorioImportacao({
+      total: dadosCSV.length,
+      sucessos: sucessos.length,
+      falhas: falhas.length,
+      detalhes: { sucessos, falhas }
+    });
+
+    console.log('📊 IMPORTAÇÃO CONCLUÍDA:', {
+      sucessos: sucessos.length,
+      falhas: falhas.length
+    });
+  };
+
+  const fecharImportacao = () => {
+    setModoImportacao(false);
+    setArquivoCSV(null);
+    setDadosCSV([]);
+    setPreviewCSV([]);
+    setRelatorioImportacao(null);
+  };
 
   // 🔥 FUNÇÃO PARA ATUALIZAR PREÇO TETO BDR EM LOTE
   const atualizarPrecoTetoBDRLote = async () => {
@@ -393,6 +552,16 @@ const {
           }}>
             ✅ PREÇO TETO BDR DISPONÍVEL
           </span>
+          <span style={{ 
+            backgroundColor: '#3b82f6', 
+            color: 'white', 
+            padding: '4px 8px', 
+            borderRadius: '6px', 
+            fontSize: '14px', 
+            marginLeft: '8px' 
+          }}>
+            📄 IMPORTAÇÃO CSV
+          </span>
         </p>
       </div>
 
@@ -527,11 +696,31 @@ const {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  transition: 'all 0.2s',
-                  marginRight: '12px'
+                  transition: 'all 0.2s'
                 }}
               >
                 ➕ Adicionar Ativo
+              </button>
+
+              {/* 🔥 NOVO BOTÃO PARA IMPORTAÇÃO CSV */}
+              <button
+                onClick={() => setModoImportacao(true)}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📄 Importar CSV
               </button>
               
               {/* 🔥 BOTÃO PARA CONVERSÃO EM LOTE USD → BRL */}
@@ -560,6 +749,330 @@ const {
             </div>
           </div>
         </div>
+
+        {/* 📄 MODAL DE IMPORTAÇÃO CSV */}
+        {modoImportacao && (
+          <div style={{
+            padding: '24px',
+            backgroundColor: '#eff6ff',
+            borderBottom: '1px solid #bfdbfe'
+          }}>
+            <h3 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1e40af',
+              margin: '0 0 20px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              📄 Importação em Lote via CSV
+            </h3>
+
+            {!relatorioImportacao ? (
+              <div>
+                {/* 📥 ÁREA DE UPLOAD */}
+                <div style={{
+                  border: '2px dashed #3b82f6',
+                  borderRadius: '8px',
+                  padding: '32px',
+                  textAlign: 'center',
+                  marginBottom: '20px',
+                  backgroundColor: '#ffffff'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+                  <h4 style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#1e40af',
+                    margin: '0 0 8px 0'
+                  }}>
+                    Selecione o arquivo CSV
+                  </h4>
+                  <p style={{
+                    color: '#64748b',
+                    margin: '0 0 20px 0'
+                  }}>
+                    Colunas obrigatórias: ticker, setor, dataEntrada, precoEntrada
+                    {temPrecoTeto && ' • precoTeto (opcional)'}
+                    {isCarteiraInternacional && ' • precoTetoBDR (opcional)'}
+                  </p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                      const arquivo = e.target.files[0];
+                      setArquivoCSV(arquivo);
+                      if (arquivo) {
+                        processarArquivoCSV(arquivo);
+                      }
+                    }}
+                    style={{
+                      marginBottom: '16px'
+                    }}
+                  />
+                  <div>
+                    <button
+                      onClick={gerarTemplateCSV}
+                      style={{
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📥 Baixar Template CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* 👀 PREVIEW DOS DADOS */}
+                {previewCSV.validos && previewCSV.validos.length > 0 && (
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '20px',
+                    marginBottom: '20px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <h4 style={{
+                      fontSize: '16px',
+                      fontWeight: '700',
+                      color: '#10b981',
+                      margin: '0 0 16px 0'
+                    }}>
+                      ✅ Dados Válidos para Importação ({previewCSV.validos.length})
+                    </h4>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f3f4f6' }}>
+                            <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb' }}>Ticker</th>
+                            <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb' }}>Setor</th>
+                            <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb' }}>Data Entrada</th>
+                            <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb' }}>Preço Entrada</th>
+                            {temPrecoTeto && (
+                              <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb' }}>Preço Teto</th>
+                            )}
+                            {isCarteiraInternacional && (
+                              <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #e5e7eb' }}>Preço Teto BDR</th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewCSV.validos.slice(0, 5).map((item, index) => (
+                            <tr key={index}>
+                              <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{item.ticker}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{item.setor}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{item.dataEntrada}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{formatCurrency(item.precoEntrada, carteiraConfig.moeda)}</td>
+                              {temPrecoTeto && (
+                                <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>
+                                  {item.precoTeto ? formatCurrency(item.precoTeto, carteiraConfig.moeda) : '-'}
+                                </td>
+                              )}
+                              {isCarteiraInternacional && (
+                                <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>
+                                  {item.precoTetoBDR ? formatCurrency(item.precoTetoBDR, 'BRL') : '-'}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {previewCSV.validos.length > 5 && (
+                        <p style={{ 
+                          fontSize: '12px', 
+                          color: '#6b7280', 
+                          textAlign: 'center', 
+                          margin: '8px 0 0 0' 
+                        }}>
+                          ... e mais {previewCSV.validos.length - 5} itens
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ❌ ERROS ENCONTRADOS */}
+                {previewCSV.erros && previewCSV.erros.length > 0 && (
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    borderRadius: '8px',
+                    padding: '20px',
+                    marginBottom: '20px',
+                    border: '1px solid #fecaca'
+                  }}>
+                    <h4 style={{
+                      fontSize: '16px',
+                      fontWeight: '700',
+                      color: '#dc2626',
+                      margin: '0 0 16px 0'
+                    }}>
+                      ❌ Erros Encontrados ({previewCSV.erros.length})
+                    </h4>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                      {previewCSV.erros.slice(0, 3).map((erro, index) => (
+                        <div key={index} style={{
+                          padding: '8px',
+                          backgroundColor: '#fee2e2',
+                          borderRadius: '4px',
+                          marginBottom: '8px',
+                          fontSize: '12px'
+                        }}>
+                          <strong>Linha {erro.linha}:</strong> {erro.dados.ticker || 'N/A'} - {erro.erros.join(', ')}
+                        </div>
+                      ))}
+                      {previewCSV.erros.length > 3 && (
+                        <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>
+                          ... e mais {previewCSV.erros.length - 3} erros
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 🎯 BOTÕES DE AÇÃO */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={confirmarImportacao}
+                    disabled={dadosCSV.length === 0}
+                    style={{
+                      backgroundColor: dadosCSV.length > 0 ? '#10b981' : '#9ca3af',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: dadosCSV.length > 0 ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    🚀 Importar {dadosCSV.length} Ativos
+                  </button>
+                  <button
+                    onClick={fecharImportacao}
+                    style={{
+                      backgroundColor: '#6b7280',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ❌ Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* 📊 RELATÓRIO DE IMPORTAÇÃO */
+              <div style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                padding: '20px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <h4 style={{
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: '#10b981',
+                  margin: '0 0 16px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  📊 Relatório de Importação
+                </h4>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '16px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '16px',
+                    backgroundColor: '#f0f9ff',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: '#3b82f6' }}>
+                      {relatorioImportacao.total}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>Total</div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '16px',
+                    backgroundColor: '#f0fdf4',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: '#10b981' }}>
+                      {relatorioImportacao.sucessos}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>Sucessos</div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '16px',
+                    backgroundColor: '#fef2f2',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: '#dc2626' }}>
+                      {relatorioImportacao.falhas}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>Falhas</div>
+                  </div>
+                </div>
+
+                {relatorioImportacao.detalhes.sucessos.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ color: '#10b981', fontSize: '14px', fontWeight: '600', margin: '0 0 8px 0' }}>
+                      ✅ Ativos Importados com Sucesso:
+                    </h5>
+                    <div style={{ fontSize: '12px', color: '#374151' }}>
+                      {relatorioImportacao.detalhes.sucessos.map(s => s.ticker).join(', ')}
+                    </div>
+                  </div>
+                )}
+
+                {relatorioImportacao.detalhes.falhas.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ color: '#dc2626', fontSize: '14px', fontWeight: '600', margin: '0 0 8px 0' }}>
+                      ❌ Falhas na Importação:
+                    </h5>
+                    <div style={{ fontSize: '12px', color: '#374151' }}>
+                      {relatorioImportacao.detalhes.falhas.map(f => `${f.ticker} (${f.erro})`).join(', ')}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={fecharImportacao}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✅ Concluir
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Formulário de Adição/Edição/Encerramento */}
         {modoEdicao && (
@@ -934,7 +1447,7 @@ const {
                 Nenhum ativo ativo encontrado
               </h3>
               <p style={{ fontSize: '14px' }}>
-                Adicione o primeiro ativo desta carteira clicando no botão acima.
+                Adicione o primeiro ativo desta carteira clicando no botão acima ou importe via CSV.
               </p>
             </div>
           ) : (
@@ -1419,11 +1932,11 @@ const {
         textAlign: 'center'
       }}>
         <h3 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 8px 0' }}>
-          💱 Sistema de Preço Teto BDR Integrado
+          💱 Sistema de Preço Teto BDR + 📄 Importação CSV Integrados
         </h3>
         <p style={{ fontSize: '14px', margin: '0', opacity: 0.9 }}>
-          Para carteiras internacionais, agora você pode definir preços teto tanto em USD quanto em BRL (para BDRs). 
-          Use o toggle USD/BDR para alternar entre as moedas durante a edição.
+          Para carteiras internacionais, você pode definir preços teto tanto em USD quanto em BRL (para BDRs). 
+          Agora também é possível importar múltiplos ativos de uma vez através de arquivos CSV!
         </p>
       </div>
     </div>
