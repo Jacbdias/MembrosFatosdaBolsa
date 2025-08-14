@@ -1,11 +1,11 @@
-// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA E SSR
+// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/use-user';
 
-// 🎯 DADOS INICIAIS DAS CARTEIRAS
+// 🎯 DADOS INICIAIS DAS CARTEIRAS (mantidos iguais)
 const DADOS_INICIAIS = {
   smallCaps: [
     { id: 'sc1', ticker: "ALOS3", dataEntrada: "15/01/2021", precoEntrada: 26.68, precoTeto: 23.76, setor: "Shoppings" },
@@ -171,7 +171,7 @@ const DADOS_INICIAIS = {
   ]
 };
 
-// 🎯 CONFIGURAÇÕES DAS CARTEIRAS
+// 🎯 CONFIGURAÇÕES DAS CARTEIRAS (mantidas iguais)
 const CARTEIRAS_CONFIG = {
   smallCaps: { 
     nome: 'Small Caps', 
@@ -241,38 +241,12 @@ const CARTEIRAS_CONFIG = {
 
 const STORAGE_KEY = 'carteiras-dados';
 
-// 🔥 HELPER PARA VERIFICAR SE ESTAMOS NO BROWSER
-const isBrowser = () => typeof window !== 'undefined';
-
-// 🔥 HELPER PARA ACESSAR LOCALSTORAGE SAFELY
-const safeLocalStorage = {
-  getItem: (key: string): string | null => {
-    if (!isBrowser()) return null;
-    try {
-      return localStorage.getItem(key);
-    } catch (error) {
-      console.error('Erro ao acessar localStorage:', error);
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): boolean => {
-    if (!isBrowser()) return false;
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar no localStorage:', error);
-      return false;
-    }
-  }
-};
-
 // 🔥 FUNÇÕES DA API PARA PRISMA (com error handling robusto)
 const api = {
   getCarteira: async (carteira: string) => {
     try {
-      const userEmail = safeLocalStorage.getItem('user-email');
-      const token = safeLocalStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
       
       if (!userEmail || !token) {
         return [];
@@ -300,8 +274,8 @@ const api = {
 
   adicionarAtivo: async (carteira: string, dados: any) => {
     try {
-      const userEmail = safeLocalStorage.getItem('user-email');
-      const token = safeLocalStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         method: 'POST',
@@ -326,8 +300,8 @@ const api = {
 
   editarAtivo: async (carteira: string, id: string, dados: any) => {
     try {
-      const userEmail = safeLocalStorage.getItem('user-email');
-      const token = safeLocalStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         method: 'PUT',
@@ -352,8 +326,8 @@ const api = {
 
   removerAtivo: async (carteira: string, id: string) => {
     try {
-      const userEmail = safeLocalStorage.getItem('user-email');
-      const token = safeLocalStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         method: 'DELETE',
@@ -378,8 +352,8 @@ const api = {
 
   reordenarAtivos: async (carteira: string, novosAtivos: any[]) => {
     try {
-      const userEmail = safeLocalStorage.getItem('user-email');
-      const token = safeLocalStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      const token = localStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}/reorder`, {
         method: 'POST',
@@ -434,11 +408,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingRef = useRef(false);
 
-  // 🔥 REACT QUERY ESTÁTICO (SEM LOOPS) - SEMPRE DECLARAR TODOS OS HOOKS
+  // 🔥 NOVA FUNÇÃO PARA VERIFICAR AUTENTICAÇÃO INDEPENDENTE
+  const verificarAutenticacao = useCallback(() => {
+    const userEmail = localStorage.getItem('user-email');
+    const token = localStorage.getItem('custom-auth-token');
+    
+    // ✅ Se tem credenciais válidas, considera autenticado
+    return !!(userEmail && token && userEmail.includes('@') && token.length > 10);
+  }, []);
+
+  // ✅ Estado de autenticação usando localStorage
+  const isAuthenticated = verificarAutenticacao();
+
+  // 🔥 REACT QUERY CORRIGIDO - Usar isAuthenticated em vez de user?.id
   const smallCapsQuery = useQuery({
-    queryKey: ['carteira', 'smallCaps', user?.id],
+    queryKey: ['carteira', 'smallCaps', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('smallCaps'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -446,9 +432,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const microCapsQuery = useQuery({
-    queryKey: ['carteira', 'microCaps', user?.id],
+    queryKey: ['carteira', 'microCaps', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('microCaps'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -456,9 +442,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const dividendosQuery = useQuery({
-    queryKey: ['carteira', 'dividendos', user?.id],
+    queryKey: ['carteira', 'dividendos', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('dividendos'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -466,9 +452,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const fiisQuery = useQuery({
-    queryKey: ['carteira', 'fiis', user?.id],
+    queryKey: ['carteira', 'fiis', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('fiis'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -476,9 +462,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const dividendosInternacionalQuery = useQuery({
-    queryKey: ['carteira', 'dividendosInternacional', user?.id],
+    queryKey: ['carteira', 'dividendosInternacional', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('dividendosInternacional'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -486,9 +472,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const etfsQuery = useQuery({
-    queryKey: ['carteira', 'etfs', user?.id],
+    queryKey: ['carteira', 'etfs', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('etfs'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -496,9 +482,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const projetoAmericaQuery = useQuery({
-    queryKey: ['carteira', 'projetoAmerica', user?.id],
+    queryKey: ['carteira', 'projetoAmerica', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('projetoAmerica'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -506,9 +492,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   });
 
   const exteriorStocksQuery = useQuery({
-    queryKey: ['carteira', 'exteriorStocks', user?.id],
+    queryKey: ['carteira', 'exteriorStocks', isAuthenticated ? 'auth' : 'anon'],
     queryFn: () => api.getCarteira('exteriorStocks'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    enabled: isAuthenticated && modoSincronizacao !== 'localStorage',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -533,7 +519,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       api.adicionarAtivo(carteira, dados),
     onSuccess: (_, { carteira }) => {
       queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, user?.id],
+        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
         exact: true
       });
     }
@@ -544,7 +530,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       api.editarAtivo(carteira, id, dados),
     onSuccess: (_, { carteira }) => {
       queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, user?.id],
+        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
         exact: true
       });
     }
@@ -555,7 +541,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       api.removerAtivo(carteira, id),
     onSuccess: (_, { carteira }) => {
       queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, user?.id],
+        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
         exact: true
       });
     }
@@ -566,18 +552,18 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       api.reordenarAtivos(carteira, novosAtivos),
     onSuccess: (_, { carteira }) => {
       queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, user?.id],
+        queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
         exact: true
       });
     }
   });
 
-  // 🔥 FUNÇÕES BÁSICAS ESTÁVEIS COM PROTEÇÃO SSR
+  // 🔥 FUNÇÕES BÁSICAS ESTÁVEIS
   const lerDados = useCallback(() => {
     try {
-      if (!isBrowser()) return DADOS_INICIAIS;
+      if (typeof window === 'undefined') return DADOS_INICIAIS;
       
-      const dadosStorage = safeLocalStorage.getItem(STORAGE_KEY);
+      const dadosStorage = localStorage.getItem(STORAGE_KEY);
       if (dadosStorage) {
         return JSON.parse(dadosStorage);
       }
@@ -590,42 +576,37 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const salvarDados = useCallback((novosDados: any) => {
     try {
-      if (!isBrowser()) return false;
+      if (typeof window === 'undefined') return false;
       
-      return safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
+      return true;
     } catch (error) {
       console.error('Erro ao salvar localStorage:', error);
       return false;
     }
   }, []);
 
-  // 🔥 INICIALIZAÇÃO CONTROLADA COM PROTEÇÃO SSR
+  // 🔥 INICIALIZAÇÃO CORRIGIDA - SEM DEPENDÊNCIA DO user?.id
   useEffect(() => {
-    if (isLoadingRef.current || !isBrowser()) return;
+    if (isLoadingRef.current) return;
     isLoadingRef.current = true;
     
-    console.log('🚀 DataStore: Inicializando modo híbrido...');
+    console.log('🚀 DataStore: Inicializando...');
     
-    // ✅ CORREÇÃO: Verificar credenciais apenas no browser
-    const userEmail = safeLocalStorage.getItem('user-email');
-    const token = safeLocalStorage.getItem('custom-auth-token');
+    const isAuth = verificarAutenticacao();
     
-    console.log('🔍 [CORREÇÃO] Verificando credenciais:', { 
-      userEmail, 
-      token: !!token, 
-      userFromHook: !!user?.id 
+    console.log('🔍 Status de autenticação:', { 
+      isAuth,
+      userFromHook: !!user?.id,
+      userEmail: localStorage.getItem('user-email'),
+      hasToken: !!localStorage.getItem('custom-auth-token')
     });
     
-    // ✅ USAR MODO HÍBRIDO SE TEM CREDENCIAIS OU SE useUser FUNCIONA
-    if (user?.id || (userEmail && token)) {
-      if (user?.id) {
-        console.log('👤 Usuário do hook - modo híbrido');
-      } else {
-        console.log('🔧 Credenciais presentes (contornando useUser) - modo híbrido');
-      }
+    if (isAuth) {
+      console.log('✅ Usuário autenticado - USANDO PRISMA');
       setModoSincronizacao('hibrido');
     } else {
-      console.log('❓ Sem credenciais - localStorage');
+      console.log('❌ Usuário não autenticado - usando localStorage');
       setModoSincronizacao('localStorage');
       const dadosIniciais = lerDados();
       setDados(dadosIniciais);
@@ -633,56 +614,47 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     setIsInitialized(true);
     isLoadingRef.current = false;
-  }, [user?.id, lerDados]);
+  }, [verificarAutenticacao, lerDados]); // ✅ Removido user?.id da dependência
 
-  // 🔥 COMBINAR DADOS HÍBRIDOS COM PROTEÇÃO SSR
+  // 🔥 COMBINAR DADOS HÍBRIDOS CORRIGIDO
   const dadosFinais = useMemo(() => {
-    if (!isBrowser()) return DADOS_INICIAIS;
-    
-    // ✅ CORREÇÃO: Verificar credenciais apenas no browser
-    const userEmail = safeLocalStorage.getItem('user-email');
-    const token = safeLocalStorage.getItem('custom-auth-token');
-    const temCredenciais = userEmail && token;
-    
-    console.log('🔍 [DADOS FINAIS] Estado:', {
-      modo: modoSincronizacao,
-      userFromHook: !!user?.id,
-      temCredenciais,
-      deveUsarBanco: modoSincronizacao !== 'localStorage' && (user?.id || temCredenciais)
+    console.log('🔄 Recalculando dadosFinais:', { 
+      modoSincronizacao, 
+      isAuthenticated,
+      userId: user?.id 
     });
     
-    if (modoSincronizacao === 'localStorage' || (!user?.id && !temCredenciais)) {
+    if (modoSincronizacao === 'localStorage') {
       console.log('📁 Usando dados localStorage');
       return dados;
     }
     
     // Modo híbrido: banco + localStorage
-    console.log('🗄️ Usando modo híbrido (banco + localStorage)');
     const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
       const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
       const dadosBanco = query?.data || [];
       const dadosLocal = dados[carteira] || [];
       
-      // Debug por carteira
-      console.log(`📊 ${carteira}:`, {
-        banco: dadosBanco.length,
-        local: dadosLocal.length,
-        querySuccess: query?.isSuccess,
-        usandoBanco: query?.isSuccess && dadosBanco.length > 0
+      console.log(`📊 ${carteira}:`, { 
+        isSuccess: query?.isSuccess, 
+        dadosBanco: dadosBanco.length,
+        dadosLocal: dadosLocal.length 
       });
       
       // Priorizar dados do banco quando disponível
-      if (query?.isSuccess && dadosBanco.length > 0) {
+      if (query?.isSuccess && dadosBanco.length >= 0) { // >= 0 para aceitar arrays vazios
         acc[carteira] = dadosBanco;
+        console.log(`✅ ${carteira}: Usando dados do banco`);
       } else {
         acc[carteira] = dadosLocal;
+        console.log(`🔄 ${carteira}: Usando dados locais (fallback)`);
       }
       
       return acc;
     }, {} as any);
     
     return dadosCombinados;
-  }, [dados, carteirasQueries, modoSincronizacao, user?.id]);
+  }, [dados, carteirasQueries, modoSincronizacao, isAuthenticated]);
 
   // 🔥 FUNÇÕES DE COTAÇÃO
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
@@ -745,7 +717,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }));
   }, [dadosFinais, cotacoes]);
 
-  // 🔥 FUNÇÕES CRUD HÍBRIDAS
+  // 🔥 FUNÇÕES CRUD HÍBRIDAS CORRIGIDAS
   const adicionarAtivo = useCallback((carteira: string, novoAtivo: any) => {
     const id = `${carteira.slice(0,3)}${Date.now()}`;
     const ativoComId = {
@@ -765,7 +737,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (user?.id) {
+    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
       // Sync com Prisma
       adicionarMutation.mutate({ carteira, dados: ativoComId });
     }
@@ -775,7 +747,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
     
     return ativoComId;
-  }, [dados, salvarDados, adicionarMutation, buscarCotacoes, modoSincronizacao, user?.id]);
+  }, [dados, salvarDados, adicionarMutation, buscarCotacoes, modoSincronizacao, isAuthenticated]);
 
   const editarAtivo = useCallback((carteira: string, id: string, dadosAtualizados: any) => {
     const novosDados = {
@@ -791,12 +763,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (user?.id) {
+    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
       editarMutation.mutate({ carteira, id, dados: dadosAtualizados });
     }
     
     return novosDados[carteira].find((a: any) => a.id === id);
-  }, [dados, salvarDados, editarMutation, modoSincronizacao, user?.id]);
+  }, [dados, salvarDados, editarMutation, modoSincronizacao, isAuthenticated]);
 
   const removerAtivo = useCallback((carteira: string, ativoId: string) => {
     const novosDados = {
@@ -808,12 +780,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (user?.id) {
+    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
       removerMutation.mutate({ carteira, id: ativoId });
     }
     
     return true;
-  }, [dados, salvarDados, removerMutation, modoSincronizacao, user?.id]);
+  }, [dados, salvarDados, removerMutation, modoSincronizacao, isAuthenticated]);
 
   const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
     const novosDados = {
@@ -828,10 +800,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (user?.id) {
+    } else if (isAuthenticated) { // ✅ Usar isAuthenticated em vez de user?.id
       reordenarMutation.mutate({ carteira, novosAtivos });
     }
-  }, [dados, salvarDados, reordenarMutation, modoSincronizacao, user?.id]);
+  }, [dados, salvarDados, reordenarMutation, modoSincronizacao, isAuthenticated]);
 
   // 🔥 OUTRAS FUNÇÕES MANTIDAS
   const atualizarTodasCotacoes = useCallback(async () => {
@@ -901,9 +873,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       totalCarteiras: Object.keys(dadosFinais).length,
       carteirasPorTamanho,
       modoSincronizacao,
+      isAuthenticated,
       ultimaAtualizacao: new Date().toISOString()
     };
-  }, [dadosFinais, modoSincronizacao]);
+  }, [dadosFinais, modoSincronizacao, isAuthenticated]);
 
   const debug = useCallback(() => {
     const stats = obterEstatisticas();
@@ -911,15 +884,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       dados: dadosFinais,
       stats,
       modoSincronizacao,
+      isAuthenticated,
       user: user?.id,
       cotacaoUSD
     });
-    return { dados: dadosFinais, stats, modoSincronizacao, user: user?.id, cotacaoUSD };
-  }, [dadosFinais, obterEstatisticas, modoSincronizacao, user?.id, cotacaoUSD]);
+    return { 
+      dados: dadosFinais, 
+      stats, 
+      modoSincronizacao, 
+      isAuthenticated,
+      user: user?.id, 
+      cotacaoUSD 
+    };
+  }, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, user?.id, cotacaoUSD]);
 
-  // 🔥 SETUP INICIAL CONTROLADO COM PROTEÇÃO SSR
+  // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
-    if (!isInitialized || !isBrowser()) return;
+    if (!isInitialized) return;
     
     buscarCotacaoUSD();
     
@@ -939,9 +920,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     };
   }, [isInitialized, buscarCotacaoUSD]);
 
-  // 🔥 DEBUG GLOBAL COM PROTEÇÃO SSR
+  // 🔥 DEBUG GLOBAL
   useEffect(() => {
-    if (isBrowser() && isInitialized) {
+    if (typeof window !== 'undefined' && isInitialized) {
       (window as any).debugDataStore = debug;
       return () => {
         delete (window as any).debugDataStore;
@@ -966,6 +947,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     loading,
     isInitialized,
     modoSincronizacao,
+    isAuthenticated, // ✅ Novo campo
     
     // Configurações
     CARTEIRAS_CONFIG,
@@ -996,7 +978,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   );
 };
 
-// 🎯 HOOKS ESPECÍFICOS
+// 🎯 HOOKS ESPECÍFICOS (mantidos iguais)
 export const useSmallCaps = () => {
   const { obterCarteira } = useDataStore();
   return obterCarteira('smallCaps');
