@@ -231,20 +231,7 @@ const ETFMetricCards: React.FC<ETFMetricCardsProps> = ({ ticker, etfData, loadin
         }}>
           📊 Métricas do ETF
         </h3>
-        
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{
-            backgroundColor: loading ? '#f59e0b' : etfData ? '#22c55e' : '#6b7280',
-            color: 'white',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: '600'
-          }}>
-            📈 {loading ? 'Carregando...' : etfData ? 'BRAPI' : 'N/A'}
-          </span>
-        </div>
-      </div>
+              </div>
 
       <div style={{
         display: 'grid',
@@ -332,73 +319,7 @@ const ETFMetricCards: React.FC<ETFMetricCardsProps> = ({ ticker, etfData, loadin
           loading={loading}
           icon="🏁"
         />
-      </div>
-
-      {/* INFORMAÇÕES ADICIONAIS */}
-      {etfData && (
-        <div style={{
-          marginTop: '24px',
-          backgroundColor: '#f0f9ff',
-          borderRadius: '12px',
-          padding: isMobile ? '16px' : '20px',
-          border: '1px solid #7dd3fc'
-        }}>
-          <h4 style={{
-            fontSize: isMobile ? '16px' : '18px',
-            fontWeight: '600',
-            color: '#0c4a6e',
-            margin: '0 0 8px 0'
-          }}>
-            {etfData.longName || etfData.shortName}
-          </h4>
-          <p style={{
-            fontSize: isMobile ? '13px' : '14px',
-            color: '#0369a1',
-            margin: '0 0 12px 0',
-            lineHeight: '1.5'
-          }}>
-            ETF negociado em {etfData.currency} • Símbolo: {etfData.symbol}
-          </p>
-          <div style={{
-            display: 'flex',
-            gap: '16px',
-            flexWrap: 'wrap'
-          }}>
-            <span style={{
-              backgroundColor: '#dbeafe',
-              color: '#1e40af',
-              padding: '4px 12px',
-              borderRadius: '6px',
-              fontSize: isMobile ? '11px' : '12px',
-              fontWeight: '600'
-            }}>
-              📊 Fonte: BRAPI
-            </span>
-            <span style={{
-              backgroundColor: '#dcfce7',
-              color: '#166534',
-              padding: '4px 12px',
-              borderRadius: '6px',
-              fontSize: isMobile ? '11px' : '12px',
-              fontWeight: '600'
-            }}>
-              💱 {etfData.currency}
-            </span>
-            {etfData.requestedAt && (
-              <span style={{
-                backgroundColor: '#fef3c7',
-                color: '#92400e',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                fontSize: isMobile ? '11px' : '12px',
-                fontWeight: '600'
-              }}>
-                🕐 {new Date(etfData.requestedAt).toLocaleString('pt-BR')}
-              </span>
-            )}
-          </div>
         </div>
-      )}
     </div>
   );
 };

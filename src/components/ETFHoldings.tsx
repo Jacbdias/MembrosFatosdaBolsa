@@ -535,18 +535,7 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
           📊 Principais Holdings
         </h3>
         
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: '600'
-          }}>
-            📈 {dadosYahoo?.holdings ? 'Yahoo Finance' : etfData ? 'API Data' : 'Mock Data'}
-          </span>
-          
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>          
           {holdings.length > 10 && (
             <button
               onClick={() => setMostrarTodos(!mostrarTodos)}
@@ -564,23 +553,7 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
               {mostrarTodos ? 'Menos' : `+${holdings.length - 10}`}
             </button>
           )}
-          
-          <button
-            onClick={refetch}
-            disabled={loading}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              padding: '4px',
-              opacity: loading ? 0.5 : 1
-            }}
-            title="Atualizar dados da API"
-          >
-            {loading ? '⏳' : '🔄'}
-          </button>
-        </div>
+                  </div>
       </div>
 
       {/* Resumo para mobile */}
@@ -755,62 +728,10 @@ const ETFHoldings: React.FC<ETFHoldingsProps> = ({ ticker, dadosYahoo, loading: 
           </p>
         </div>
       )}
-
-      {/* Exibir informações adicionais do ETF se disponível */}
-      {etfData && etfData.description && (
-        <div style={{
-          marginTop: '24px',
-          backgroundColor: '#f0f9ff',
-          borderRadius: '12px',
-          padding: isMobile ? '16px' : '20px',
-          border: '1px solid #7dd3fc'
-        }}>
-          <h4 style={{
-            fontSize: isMobile ? '16px' : '18px',
-            fontWeight: '600',
-            color: '#0c4a6e',
-            margin: '0 0 8px 0'
-          }}>
-            {etfData.name}
-          </h4>
-          <p style={{
-            fontSize: isMobile ? '13px' : '14px',
-            color: '#0369a1',
-            margin: '0 0 12px 0',
-            lineHeight: '1.5'
-          }}>
-            {etfData.description}
-          </p>
-          <div style={{
-            display: 'flex',
-            gap: '16px',
-            flexWrap: 'wrap'
-          }}>
-            <span style={{
-              backgroundColor: '#dbeafe',
-              color: '#1e40af',
-              padding: '4px 12px',
-              borderRadius: '6px',
-              fontSize: isMobile ? '11px' : '12px',
-              fontWeight: '600'
-            }}>
-              📈 {etfData.totalHoldings || 0} Holdings
-            </span>
-            <span style={{
-              backgroundColor: '#dcfce7',
-              color: '#166534',
-              padding: '4px 12px',
-              borderRadius: '6px',
-              fontSize: isMobile ? '11px' : '12px',
-              fontWeight: '600'
-            }}>
-              🏢 Top {Math.min(10, holdings.length)} Mostrados
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export { isETF };
 
 export default ETFHoldings;

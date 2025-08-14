@@ -2577,21 +2577,7 @@ export default function AtivoPage() {
                   }}>
                     {carteiraConfig?.nome || carteira}
                   </div>
-                  
-                  {ativo?.multiplePortfolios && (
-                    <div style={{
-                      background: '#fefce8',
-                      color: '#d97706',
-                      padding: isMobile ? '3px 8px' : '4px 12px',
-                      borderRadius: '6px',
-                      fontSize: isMobile ? '10px' : '12px',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase'
-                    }}>
-                      📂 {ativo.portfoliosList.length} CARTEIRAS
-                    </div>
-                  )}
-                  
+                                    
                   {ativo.posicaoEncerrada && (
                     <div style={{
                       background: '#ef4444',
