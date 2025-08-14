@@ -1,4 +1,4 @@
-// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA
+// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA E SSR
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -241,12 +241,38 @@ const CARTEIRAS_CONFIG = {
 
 const STORAGE_KEY = 'carteiras-dados';
 
+// 🔥 HELPER PARA VERIFICAR SE ESTAMOS NO BROWSER
+const isBrowser = () => typeof window !== 'undefined';
+
+// 🔥 HELPER PARA ACESSAR LOCALSTORAGE SAFELY
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (!isBrowser()) return null;
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.error('Erro ao acessar localStorage:', error);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): boolean => {
+    if (!isBrowser()) return false;
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar no localStorage:', error);
+      return false;
+    }
+  }
+};
+
 // 🔥 FUNÇÕES DA API PARA PRISMA (com error handling robusto)
 const api = {
   getCarteira: async (carteira: string) => {
     try {
-      const userEmail = localStorage.getItem('user-email');
-      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = safeLocalStorage.getItem('user-email');
+      const token = safeLocalStorage.getItem('custom-auth-token');
       
       if (!userEmail || !token) {
         return [];
@@ -274,8 +300,8 @@ const api = {
 
   adicionarAtivo: async (carteira: string, dados: any) => {
     try {
-      const userEmail = localStorage.getItem('user-email');
-      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = safeLocalStorage.getItem('user-email');
+      const token = safeLocalStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         method: 'POST',
@@ -300,8 +326,8 @@ const api = {
 
   editarAtivo: async (carteira: string, id: string, dados: any) => {
     try {
-      const userEmail = localStorage.getItem('user-email');
-      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = safeLocalStorage.getItem('user-email');
+      const token = safeLocalStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         method: 'PUT',
@@ -326,8 +352,8 @@ const api = {
 
   removerAtivo: async (carteira: string, id: string) => {
     try {
-      const userEmail = localStorage.getItem('user-email');
-      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = safeLocalStorage.getItem('user-email');
+      const token = safeLocalStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         method: 'DELETE',
@@ -352,8 +378,8 @@ const api = {
 
   reordenarAtivos: async (carteira: string, novosAtivos: any[]) => {
     try {
-      const userEmail = localStorage.getItem('user-email');
-      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = safeLocalStorage.getItem('user-email');
+      const token = safeLocalStorage.getItem('custom-auth-token');
       
       const response = await fetch(`/api/meus-ativos/${carteira}/reorder`, {
         method: 'POST',
@@ -409,20 +435,20 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const isLoadingRef = useRef(false);
 
   // 🔥 REACT QUERY ESTÁTICO (SEM LOOPS) - SEMPRE DECLARAR TODOS OS HOOKS
-const smallCapsQuery = useQuery({
-  queryKey: ['carteira', 'smallCaps', user?.id],
-  queryFn: () => api.getCarteira('smallCaps'),
-  enabled: !!((user?.id) || (localStorage.getItem('user-email') && localStorage.getItem('custom-auth-token'))) && modoSincronizacao !== 'localStorage',
-  staleTime: 5 * 60 * 1000,
-  refetchOnWindowFocus: false,
-  refetchInterval: false,
-  retry: 1
-});
+  const smallCapsQuery = useQuery({
+    queryKey: ['carteira', 'smallCaps', user?.id],
+    queryFn: () => api.getCarteira('smallCaps'),
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1
+  });
 
   const microCapsQuery = useQuery({
     queryKey: ['carteira', 'microCaps', user?.id],
     queryFn: () => api.getCarteira('microCaps'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -432,7 +458,7 @@ const smallCapsQuery = useQuery({
   const dividendosQuery = useQuery({
     queryKey: ['carteira', 'dividendos', user?.id],
     queryFn: () => api.getCarteira('dividendos'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -442,7 +468,7 @@ const smallCapsQuery = useQuery({
   const fiisQuery = useQuery({
     queryKey: ['carteira', 'fiis', user?.id],
     queryFn: () => api.getCarteira('fiis'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -452,7 +478,7 @@ const smallCapsQuery = useQuery({
   const dividendosInternacionalQuery = useQuery({
     queryKey: ['carteira', 'dividendosInternacional', user?.id],
     queryFn: () => api.getCarteira('dividendosInternacional'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -462,7 +488,7 @@ const smallCapsQuery = useQuery({
   const etfsQuery = useQuery({
     queryKey: ['carteira', 'etfs', user?.id],
     queryFn: () => api.getCarteira('etfs'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -472,7 +498,7 @@ const smallCapsQuery = useQuery({
   const projetoAmericaQuery = useQuery({
     queryKey: ['carteira', 'projetoAmerica', user?.id],
     queryFn: () => api.getCarteira('projetoAmerica'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -482,7 +508,7 @@ const smallCapsQuery = useQuery({
   const exteriorStocksQuery = useQuery({
     queryKey: ['carteira', 'exteriorStocks', user?.id],
     queryFn: () => api.getCarteira('exteriorStocks'),
-    enabled: !!user?.id && modoSincronizacao !== 'localStorage',
+    enabled: !!user?.id && modoSincronizacao !== 'localStorage' && isBrowser(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
@@ -546,12 +572,12 @@ const smallCapsQuery = useQuery({
     }
   });
 
-  // 🔥 FUNÇÕES BÁSICAS ESTÁVEIS
+  // 🔥 FUNÇÕES BÁSICAS ESTÁVEIS COM PROTEÇÃO SSR
   const lerDados = useCallback(() => {
     try {
-      if (typeof window === 'undefined') return DADOS_INICIAIS;
+      if (!isBrowser()) return DADOS_INICIAIS;
       
-      const dadosStorage = localStorage.getItem(STORAGE_KEY);
+      const dadosStorage = safeLocalStorage.getItem(STORAGE_KEY);
       if (dadosStorage) {
         return JSON.parse(dadosStorage);
       }
@@ -564,98 +590,99 @@ const smallCapsQuery = useQuery({
 
   const salvarDados = useCallback((novosDados: any) => {
     try {
-      if (typeof window === 'undefined') return false;
+      if (!isBrowser()) return false;
       
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
-      return true;
+      return safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
     } catch (error) {
       console.error('Erro ao salvar localStorage:', error);
       return false;
     }
   }, []);
 
-  // 🔥 INICIALIZAÇÃO CONTROLADA
-useEffect(() => {
-  if (isLoadingRef.current) return;
-  isLoadingRef.current = true;
-  
-  console.log('🚀 DataStore: Inicializando modo híbrido...');
-  
-  // ✅ CORREÇÃO: Verificar credenciais diretamente no localStorage
-  const userEmail = localStorage.getItem('user-email');
-  const token = localStorage.getItem('custom-auth-token');
-  
-  console.log('🔍 [CORREÇÃO] Verificando credenciais:', { 
-    userEmail, 
-    token: !!token, 
-    userFromHook: !!user?.id 
-  });
-  
-  // ✅ USAR MODO HÍBRIDO SE TEM CREDENCIAIS OU SE useUser FUNCIONA
-  if (user?.id || (userEmail && token)) {
-    if (user?.id) {
-      console.log('👤 Usuário do hook - modo híbrido');
-    } else {
-      console.log('🔧 Credenciais presentes (contornando useUser) - modo híbrido');
-    }
-    setModoSincronizacao('hibrido');
-  } else {
-    console.log('❓ Sem credenciais - localStorage');
-    setModoSincronizacao('localStorage');
-    const dadosIniciais = lerDados();
-    setDados(dadosIniciais);
-  }
-  
-  setIsInitialized(true);
-  isLoadingRef.current = false;
-}, [user?.id, lerDados]);
-
-  // 🔥 COMBINAR DADOS HÍBRIDOS
-const dadosFinais = useMemo(() => {
-  // ✅ CORREÇÃO: Verificar credenciais além do user?.id
-  const userEmail = localStorage.getItem('user-email');
-  const token = localStorage.getItem('custom-auth-token');
-  const temCredenciais = userEmail && token;
-  
-  console.log('🔍 [DADOS FINAIS] Estado:', {
-    modo: modoSincronizacao,
-    userFromHook: !!user?.id,
-    temCredenciais,
-    deveUsarBanco: modoSincronizacao !== 'localStorage' && (user?.id || temCredenciais)
-  });
-  
-  if (modoSincronizacao === 'localStorage' || (!user?.id && !temCredenciais)) {
-    console.log('📁 Usando dados localStorage');
-    return dados;
-  }
-  
-  // Modo híbrido: banco + localStorage
-  console.log('🗄️ Usando modo híbrido (banco + localStorage)');
-  const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
-    const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
-    const dadosBanco = query?.data || [];
-    const dadosLocal = dados[carteira] || [];
+  // 🔥 INICIALIZAÇÃO CONTROLADA COM PROTEÇÃO SSR
+  useEffect(() => {
+    if (isLoadingRef.current || !isBrowser()) return;
+    isLoadingRef.current = true;
     
-    // Debug por carteira
-    console.log(`📊 ${carteira}:`, {
-      banco: dadosBanco.length,
-      local: dadosLocal.length,
-      querySuccess: query?.isSuccess,
-      usandoBanco: query?.isSuccess && dadosBanco.length > 0
+    console.log('🚀 DataStore: Inicializando modo híbrido...');
+    
+    // ✅ CORREÇÃO: Verificar credenciais apenas no browser
+    const userEmail = safeLocalStorage.getItem('user-email');
+    const token = safeLocalStorage.getItem('custom-auth-token');
+    
+    console.log('🔍 [CORREÇÃO] Verificando credenciais:', { 
+      userEmail, 
+      token: !!token, 
+      userFromHook: !!user?.id 
     });
     
-    // Priorizar dados do banco quando disponível
-    if (query?.isSuccess && dadosBanco.length > 0) {
-      acc[carteira] = dadosBanco;
+    // ✅ USAR MODO HÍBRIDO SE TEM CREDENCIAIS OU SE useUser FUNCIONA
+    if (user?.id || (userEmail && token)) {
+      if (user?.id) {
+        console.log('👤 Usuário do hook - modo híbrido');
+      } else {
+        console.log('🔧 Credenciais presentes (contornando useUser) - modo híbrido');
+      }
+      setModoSincronizacao('hibrido');
     } else {
-      acc[carteira] = dadosLocal;
+      console.log('❓ Sem credenciais - localStorage');
+      setModoSincronizacao('localStorage');
+      const dadosIniciais = lerDados();
+      setDados(dadosIniciais);
     }
     
-    return acc;
-  }, {} as any);
-  
-  return dadosCombinados;
-}, [dados, carteirasQueries, modoSincronizacao, user?.id]);
+    setIsInitialized(true);
+    isLoadingRef.current = false;
+  }, [user?.id, lerDados]);
+
+  // 🔥 COMBINAR DADOS HÍBRIDOS COM PROTEÇÃO SSR
+  const dadosFinais = useMemo(() => {
+    if (!isBrowser()) return DADOS_INICIAIS;
+    
+    // ✅ CORREÇÃO: Verificar credenciais apenas no browser
+    const userEmail = safeLocalStorage.getItem('user-email');
+    const token = safeLocalStorage.getItem('custom-auth-token');
+    const temCredenciais = userEmail && token;
+    
+    console.log('🔍 [DADOS FINAIS] Estado:', {
+      modo: modoSincronizacao,
+      userFromHook: !!user?.id,
+      temCredenciais,
+      deveUsarBanco: modoSincronizacao !== 'localStorage' && (user?.id || temCredenciais)
+    });
+    
+    if (modoSincronizacao === 'localStorage' || (!user?.id && !temCredenciais)) {
+      console.log('📁 Usando dados localStorage');
+      return dados;
+    }
+    
+    // Modo híbrido: banco + localStorage
+    console.log('🗄️ Usando modo híbrido (banco + localStorage)');
+    const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
+      const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+      const dadosBanco = query?.data || [];
+      const dadosLocal = dados[carteira] || [];
+      
+      // Debug por carteira
+      console.log(`📊 ${carteira}:`, {
+        banco: dadosBanco.length,
+        local: dadosLocal.length,
+        querySuccess: query?.isSuccess,
+        usandoBanco: query?.isSuccess && dadosBanco.length > 0
+      });
+      
+      // Priorizar dados do banco quando disponível
+      if (query?.isSuccess && dadosBanco.length > 0) {
+        acc[carteira] = dadosBanco;
+      } else {
+        acc[carteira] = dadosLocal;
+      }
+      
+      return acc;
+    }, {} as any);
+    
+    return dadosCombinados;
+  }, [dados, carteirasQueries, modoSincronizacao, user?.id]);
 
   // 🔥 FUNÇÕES DE COTAÇÃO
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
@@ -890,9 +917,9 @@ const dadosFinais = useMemo(() => {
     return { dados: dadosFinais, stats, modoSincronizacao, user: user?.id, cotacaoUSD };
   }, [dadosFinais, obterEstatisticas, modoSincronizacao, user?.id, cotacaoUSD]);
 
-  // 🔥 SETUP INICIAL CONTROLADO
+  // 🔥 SETUP INICIAL CONTROLADO COM PROTEÇÃO SSR
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || !isBrowser()) return;
     
     buscarCotacaoUSD();
     
@@ -912,9 +939,9 @@ const dadosFinais = useMemo(() => {
     };
   }, [isInitialized, buscarCotacaoUSD]);
 
-  // 🔥 DEBUG GLOBAL
+  // 🔥 DEBUG GLOBAL COM PROTEÇÃO SSR
   useEffect(() => {
-    if (typeof window !== 'undefined' && isInitialized) {
+    if (isBrowser() && isInitialized) {
       (window as any).debugDataStore = debug;
       return () => {
         delete (window as any).debugDataStore;
