@@ -444,85 +444,176 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   }, [verificarAutenticacao]);
 
   // 🔥 TODAS AS 8 REACT QUERY CORRIGIDAS COM VERIFICAÇÃO SSR
-  const smallCapsQuery = useQuery({
-    queryKey: ['carteira', 'smallCaps', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('smallCaps'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+// 🔥 TODAS AS 8 REACT QUERY CORRIGIDAS - ANTI-LOADING INFINITO
 
-  const microCapsQuery = useQuery({
-    queryKey: ['carteira', 'microCaps', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('microCaps'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const smallCapsQuery = useQuery({
+  queryKey: ['carteira', 'smallCaps', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('smallCaps'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ smallCaps Query falhou ${failureCount}x:`, error);
+    return failureCount < 2; // Máximo 2 tentativas
+  },
+  retryDelay: 1000,
+  // ✅ CRÍTICO: Definir timeout e fallback
+  queryTimeout: 10000, // 10 segundos timeout
+  onError: (error) => {
+    console.error('❌ smallCaps Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ smallCaps Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
-  const dividendosQuery = useQuery({
-    queryKey: ['carteira', 'dividendos', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('dividendos'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const microCapsQuery = useQuery({
+  queryKey: ['carteira', 'microCaps', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('microCaps'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ microCaps Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ microCaps Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ microCaps Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
-  const fiisQuery = useQuery({
-    queryKey: ['carteira', 'fiis', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('fiis'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const dividendosQuery = useQuery({
+  queryKey: ['carteira', 'dividendos', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('dividendos'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ dividendos Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ dividendos Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ dividendos Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
-  const dividendosInternacionalQuery = useQuery({
-    queryKey: ['carteira', 'dividendosInternacional', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('dividendosInternacional'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const fiisQuery = useQuery({
+  queryKey: ['carteira', 'fiis', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('fiis'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ fiis Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ fiis Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ fiis Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
-  const etfsQuery = useQuery({
-    queryKey: ['carteira', 'etfs', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('etfs'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const dividendosInternacionalQuery = useQuery({
+  queryKey: ['carteira', 'dividendosInternacional', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('dividendosInternacional'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ dividendosInternacional Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ dividendosInternacional Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ dividendosInternacional Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
-  const projetoAmericaQuery = useQuery({
-    queryKey: ['carteira', 'projetoAmerica', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('projetoAmerica'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const etfsQuery = useQuery({
+  queryKey: ['carteira', 'etfs', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('etfs'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ etfs Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ etfs Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ etfs Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
-  const exteriorStocksQuery = useQuery({
-    queryKey: ['carteira', 'exteriorStocks', isAuthenticated ? 'auth' : 'anon'],
-    queryFn: () => api.getCarteira('exteriorStocks'),
-    enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 1
-  });
+const projetoAmericaQuery = useQuery({
+  queryKey: ['carteira', 'projetoAmerica', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('projetoAmerica'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ projetoAmerica Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ projetoAmerica Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ projetoAmerica Query sucesso:', data?.length || 0, 'itens');
+  }
+});
+
+const exteriorStocksQuery = useQuery({
+  queryKey: ['carteira', 'exteriorStocks', isAuthenticated ? 'auth' : 'anon'],
+  queryFn: () => api.getCarteira('exteriorStocks'),
+  enabled: typeof window !== 'undefined' && isAuthenticated && modoSincronizacao !== 'localStorage',
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchInterval: false,
+  retry: (failureCount, error) => {
+    console.log(`❌ exteriorStocks Query falhou ${failureCount}x:`, error);
+    return failureCount < 2;
+  },
+  retryDelay: 1000,
+  queryTimeout: 10000,
+  onError: (error) => {
+    console.error('❌ exteriorStocks Query erro final:', error);
+  },
+  onSuccess: (data) => {
+    console.log('✅ exteriorStocks Query sucesso:', data?.length || 0, 'itens');
+  }
+});
 
   // 🔥 OBJECT COM TODAS AS QUERIES
   const carteirasQueries = {
@@ -646,49 +737,57 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     isLoadingRef.current = false;
   }, [verificarAutenticacao, lerDados, user?.id]);
 
-  // 🔥 DADOS FINAIS COM VERIFICAÇÃO SSR
-  const dadosFinais = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return DADOS_INICIAIS; // No servidor, sempre retorna dados iniciais
-    }
+// 🔥 DADOS FINAIS COM FALLBACK PARA QUERIES FALHANDO
+const dadosFinais = useMemo(() => {
+  if (typeof window === 'undefined') {
+    return DADOS_INICIAIS;
+  }
+  
+  console.log('🔄 Recalculando dadosFinais:', { 
+    modoSincronizacao, 
+    isAuthenticated,
+    userId: user?.id 
+  });
+  
+  if (modoSincronizacao === 'localStorage') {
+    console.log('📁 Usando dados localStorage');
+    return dados;
+  }
+  
+  // Modo híbrido: banco + localStorage com FALLBACK
+  const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
+    const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+    const dadosBanco = query?.data || [];
+    const dadosLocal = dados[carteira] || [];
     
-    console.log('🔄 Recalculando dadosFinais:', { 
-      modoSincronizacao, 
-      isAuthenticated,
-      userId: user?.id 
+    console.log(`📊 ${carteira}:`, { 
+      isLoading: query?.isLoading,
+      isError: query?.isError,
+      isSuccess: query?.isSuccess, 
+      dadosBanco: dadosBanco.length,
+      dadosLocal: dadosLocal.length 
     });
     
-    if (modoSincronizacao === 'localStorage') {
-      console.log('📁 Usando dados localStorage');
-      return dados;
+    // ✅ CORREÇÃO: Usar dados locais se query falhar OU estiver carregando há muito tempo
+    if (query?.isSuccess && dadosBanco.length >= 0) {
+      acc[carteira] = dadosBanco;
+      console.log(`✅ ${carteira}: Usando dados do banco`);
+    } else if (query?.isError) {
+      acc[carteira] = dadosLocal;
+      console.log(`⚠️ ${carteira}: Query falhou, usando dados locais`);
+    } else if (query?.isLoading) {
+      acc[carteira] = dadosLocal;
+      console.log(`⏳ ${carteira}: Query carregando, usando dados locais temporariamente`);
+    } else {
+      acc[carteira] = dadosLocal;
+      console.log(`🔄 ${carteira}: Usando dados locais (fallback)`);
     }
     
-    // Modo híbrido: banco + localStorage
-    const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
-      const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
-      const dadosBanco = query?.data || [];
-      const dadosLocal = dados[carteira] || [];
-      
-      console.log(`📊 ${carteira}:`, { 
-        isSuccess: query?.isSuccess, 
-        dadosBanco: dadosBanco.length,
-        dadosLocal: dadosLocal.length 
-      });
-      
-      // Priorizar dados do banco quando disponível
-      if (query?.isSuccess && dadosBanco.length >= 0) { // >= 0 para aceitar arrays vazios
-        acc[carteira] = dadosBanco;
-        console.log(`✅ ${carteira}: Usando dados do banco`);
-      } else {
-        acc[carteira] = dadosLocal;
-        console.log(`🔄 ${carteira}: Usando dados locais (fallback)`);
-      }
-      
-      return acc;
-    }, {} as any);
-    
-    return dadosCombinados;
-  }, [dados, carteirasQueries, modoSincronizacao, isAuthenticated]);
+    return acc;
+  }, {} as any);
+  
+  return dadosCombinados;
+}, [dados, carteirasQueries, modoSincronizacao, isAuthenticated]);
 
   // 🔥 FUNÇÕES DE COTAÇÃO
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
@@ -912,25 +1011,38 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     };
   }, [dadosFinais, modoSincronizacao, isAuthenticated]);
 
-  const debug = useCallback(() => {
-    const stats = obterEstatisticas();
-    console.log('🔍 DataStore Debug:', {
-      dados: dadosFinais,
-      stats,
-      modoSincronizacao,
-      isAuthenticated,
-      user: user?.id,
-      cotacaoUSD
-    });
-    return { 
-      dados: dadosFinais, 
-      stats, 
-      modoSincronizacao, 
-      isAuthenticated,
-      user: user?.id, 
-      cotacaoUSD 
+const debug = useCallback(() => {
+  const queryStates = Object.entries(carteirasQueries).reduce((acc, [nome, query]) => {
+    acc[nome] = {
+      isLoading: query.isLoading,
+      isError: query.isError,
+      isSuccess: query.isSuccess,
+      error: query.error?.message,
+      dataLength: query.data?.length || 0
     };
-  }, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, user?.id, cotacaoUSD]);
+    return acc;
+  }, {} as any);
+
+  const stats = obterEstatisticas();
+  
+  const debugInfo = {
+    dados: dadosFinais,
+    stats,
+    modoSincronizacao,
+    isAuthenticated,
+    user: user?.id,
+    cotacaoUSD,
+    queryStates,
+    credenciais: {
+      hasEmail: !!localStorage.getItem('user-email'),
+      hasToken: !!localStorage.getItem('custom-auth-token'),
+      email: localStorage.getItem('user-email')
+    }
+  };
+  
+  console.log('🔍 DataStore Debug Completo:', debugInfo);
+  return debugInfo;
+}, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, user?.id, cotacaoUSD, carteirasQueries]);
 
   // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
