@@ -757,110 +757,109 @@ export async function PUT(request: NextRequest, { params }: { params: { carteira
 }
 
 // 🔍 DELETE - REMOVER ATIVO
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { carteira: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { carteira: string } }) {
   try {
-    debugLog('🗑️ INICIO DELETE - Carteira:', params.carteira);
+    console.log('🗑️ INICIO REMOÇÃO - Carteira:', params.carteira);
     
     // Autenticação
     const user = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
-    
-    // Parse do body
+
+    const { carteira } = params;
     const body = await request.json();
-    debugLog('🗑️ Body recebido:', body);
-    
     const { id } = body;
+    
+    console.log('🗑️ Removendo ativo ID:', id);
     
     if (!id) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
     
-    debugLog('🗑️ Removendo ativo ID:', id);
+    // Usar a mesma estrutura do arquivo de reordenação
+    const CARTEIRA_MODELS = {
+      microCaps: 'userMicroCaps',
+      smallCaps: 'userSmallCaps', 
+      dividendos: 'userDividendos',
+      fiis: 'userFiis',
+      dividendosInternacional: 'userDividendosInternacional',
+      etfs: 'userEtfs',
+      projetoAmerica: 'userProjetoAmerica',
+      exteriorStocks: 'userExteriorStocks'
+    } as const;
     
-    let ativoRemovido;
+    const modelName = CARTEIRA_MODELS[carteira as keyof typeof CARTEIRA_MODELS];
+    if (!modelName) {
+      return NextResponse.json({ error: 'Carteira inválida' }, { status: 400 });
+    }
+
+    const model = (prisma as any)[modelName];
     
-    switch (params.carteira) {
-      case 'smallCaps':
-        ativoRemovido = await prisma.userSmallCaps.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'microCaps':
-        ativoRemovido = await prisma.userMicroCaps.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'dividendos':
-        ativoRemovido = await prisma.userDividendos.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'fiis':
-        ativoRemovido = await prisma.userFiis.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'dividendosInternacional':
-        ativoRemovido = await prisma.userDividendosInternacional.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'etfs':
-        ativoRemovido = await prisma.userEtfs.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'projetoAmerica':
-        ativoRemovido = await prisma.userProjetoAmerica.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      case 'exteriorStocks':
-        ativoRemovido = await prisma.userExteriorStocks.delete({
-          where: { 
-            id: id,
-            userId: user.id 
-          }
-        });
-        break;
-      default:
-        return NextResponse.json({ error: 'Carteira não implementada' }, { status: 400 });
+    // 🔍 PRIMEIRO: Verificar se o ativo existe e pertence ao usuário
+    console.log('🔍 Verificando se ativo existe e pertence ao usuário...');
+    const ativoExistente = await model.findFirst({
+      where: { 
+        id: id,
+        userId: user.id 
+      },
+      select: { 
+        id: true, 
+        ticker: true,
+        setor: true 
+      }
+    });
+    
+    if (!ativoExistente) {
+      console.log('❌ Ativo não encontrado ou não pertence ao usuário');
+      return NextResponse.json({ 
+        error: 'Ativo não encontrado ou sem permissão para remover' 
+      }, { status: 404 });
     }
     
-    debugLog('✅ Ativo removido:', ativoRemovido.id);
-    console.log(`✅ Ativo ${ativoRemovido.ticker} removido da carteira ${params.carteira}`);
+    console.log('✅ Ativo encontrado:', ativoExistente.ticker);
     
-    return NextResponse.json({ success: true, ativo: ativoRemovido });
+    // 🗑️ REMOVER DO BANCO
+    console.log('🗑️ Removendo ativo do banco...');
+    const ativoRemovido = await model.delete({
+      where: { 
+        id: id,
+        userId: user.id  // Dupla verificação de segurança
+      }
+    });
+    
+    console.log('✅ Ativo removido com sucesso:', ativoRemovido.id);
+    console.log(`✅ Ativo ${ativoRemovido.ticker} removido da carteira ${carteira} pelo usuário ${user.email}`);
+    
+    return NextResponse.json({
+      success: true,
+      ativo: ativoRemovido,
+      message: `Ativo ${ativoRemovido.ticker} removido com sucesso`
+    });
     
   } catch (error) {
-    debugLog('❌ Erro DELETE:', error);
-    console.error(`❌ Erro DELETE carteira ${params.carteira}:`, error);
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+    console.error('❌ Erro na remoção:', error);
+    
+    // Log detalhado do erro
+    if (error instanceof Error) {
+      console.error('❌ Detalhes do erro:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Verificar se é erro de registro não encontrado
+      if (error.message.includes('Record to delete does not exist')) {
+        return NextResponse.json({ 
+          error: 'Ativo não encontrado para remoção',
+          details: 'O ativo pode já ter sido removido ou não existe'
+        }, { status: 404 });
+      }
+    }
+    
+    return NextResponse.json({ 
+      error: 'Erro ao remover ativo',
+      details: (error as Error).message 
+    }, { status: 500 });
   }
 }
