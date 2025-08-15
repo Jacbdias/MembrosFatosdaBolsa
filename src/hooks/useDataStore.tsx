@@ -533,16 +533,76 @@ staleTime: 2 * 60 * 1000,
     }
   });
 
-  const editarMutation = useMutation({
-    mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
-      api.editarAtivo(carteira, id, dados),
-    onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ 
+const editarMutation = useMutation({
+  mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
+    api.editarAtivo(carteira, id, dados),
+  
+  // 🔥 SUCESSO - FORÇAR SINCRONIZAÇÃO COMPLETA
+  onSuccess: (result, { carteira, id }) => {
+    console.log(`✅ SUCESSO: Ativo ${id} editado na carteira ${carteira}`);
+    console.log('📡 Resultado da API:', result);
+    
+    // 🔥 ESTRATÉGIA 1: Invalidar com força total
+    queryClient.invalidateQueries({ 
+      queryKey: ['carteira', carteira, user?.id],
+      exact: true,
+      refetchType: 'all'  
+    });
+    
+    // 🔥 ESTRATÉGIA 2: Forçar refetch imediato
+    setTimeout(() => {
+      queryClient.refetchQueries({
         queryKey: ['carteira', carteira, user?.id],
         exact: true
       });
+    }, 100);
+    
+    // 🔥 ESTRATÉGIA 3: Atualizar estado local com dados da API
+    if (result?.ativo) {
+      console.log('🔄 Atualizando estado local com dados da API');
+      setDados(prevDados => {
+        const novosDados = {
+          ...prevDados,
+          [carteira]: prevDados[carteira].map((item: any) => 
+            item.id.toString() === id.toString() 
+              ? { 
+                  ...item,
+                  ...result.ativo,
+                  editadoEm: new Date().toISOString()
+                }
+              : item
+          )
+        };
+        
+        // Salvar no localStorage se necessário
+        if (modoSincronizacao === 'localStorage') {
+          salvarDados(novosDados);
+        }
+        
+        return novosDados;
+      });
     }
-  });
+    
+    // 🔥 ESTRATÉGIA 4: Limpar e recarregar cache
+    setTimeout(() => {
+      console.log('🧹 Limpando cache para forçar reload');
+      queryClient.removeQueries({
+        queryKey: ['carteira', carteira, user?.id]
+      });
+      
+      // Força novo fetch
+      queryClient.prefetchQuery({
+        queryKey: ['carteira', carteira, user?.id],
+        queryFn: () => api.getCarteira(carteira)
+      });
+    }, 200);
+  },
+
+  // 🔥 ERRO
+  onError: (error, { carteira, id }) => {
+    console.error(`❌ ERRO na edição ${carteira} ID ${id}:`, error);
+  }
+});
 
   const removerMutation = useMutation({
     mutationFn: ({ carteira, id }: { carteira: string, id: string }) => 
