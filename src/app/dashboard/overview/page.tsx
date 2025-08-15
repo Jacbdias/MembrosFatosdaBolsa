@@ -1817,7 +1817,7 @@ const calcularPerformanceEncerrada = React.useCallback((ativo: any) => {
                           <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>
                             {formatCurrency(ativo.precoEntrada)}
                           </td>
-                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: ativo.performance >= 0 ? '#10b981' : '#ef4444' }}>
+                          <td style={{ padding: '16px', textAlign: 'center', fontWeight: '700', color: '#1e293b' }}>
                             {formatCurrency(ativo.precoAtual)}
                           </td>
                           <td style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>
