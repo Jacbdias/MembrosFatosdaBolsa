@@ -437,20 +437,20 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   }, [user?.id]);
 
   // 🔥 REACT QUERIES SIMPLIFICADAS COM ENABLED CORRETO
-  const smallCapsQuery = useQuery({
-    queryKey: ['carteira', 'smallCaps', user?.id],
-    queryFn: () => api.getCarteira('smallCaps'),
-    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 1
-  });
+const smallCapsQuery = useQuery({
+  queryKey: ['carteira', 'smallCaps', user?.id],
+  queryFn: () => api.getCarteira('smallCaps'),
+  enabled: !!user?.id && isAuthenticated, // 🔥 REMOVIDO modoSincronizacao === 'hibrido'
+  staleTime: 2 * 60 * 1000, // 🔥 REDUZIDO PARA 2min
+  refetchOnWindowFocus: false,
+  retry: 1
+});
 
   const microCapsQuery = useQuery({
     queryKey: ['carteira', 'microCaps', user?.id],
     queryFn: () => api.getCarteira('microCaps'),
-    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
-    staleTime: 5 * 60 * 1000,
+    enabled: !!user?.id && isAuthenticated,
+staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 1
   });
@@ -555,16 +555,56 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
   });
 
-  const reordenarMutation = useMutation({
-    mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
-      api.reordenarAtivos(carteira, novosAtivos),
-    onSuccess: (_, { carteira }) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['carteira', carteira, user?.id],
-        exact: true
-      });
+const reordenarMutation = useMutation({
+  mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
+    api.reordenarAtivos(carteira, novosAtivos),
+  
+  // 🔥 OTIMISTIC UPDATE - Atualiza o cache imediatamente
+  onMutate: async ({ carteira, novosAtivos }) => {
+    // Cancela queries em andamento para evitar conflitos
+    await queryClient.cancelQueries({ 
+      queryKey: ['carteira', carteira, user?.id] 
+    });
+
+    // Snapshot dos dados anteriores para rollback
+    const previousData = queryClient.getQueryData(['carteira', carteira, user?.id]);
+
+    // Atualiza otimisticamente o cache
+    queryClient.setQueryData(['carteira', carteira, user?.id], novosAtivos);
+
+    return { previousData, carteira };
+  },
+
+  // 🔥 SUCESSO - Força invalidação completa
+  onSuccess: (_, { carteira }) => {
+    console.log(`✅ Reordenação ${carteira} - Invalidando cache...`);
+    
+    // Invalida e força refetch
+    queryClient.invalidateQueries({ 
+      queryKey: ['carteira', carteira, user?.id],
+      exact: true,
+      refetchType: 'active' // 🔥 FORÇA REFETCH ATIVO
+    });
+    
+    // 🔥 TAMBÉM INVALIDA O CACHE GERAL
+    queryClient.invalidateQueries({ 
+      queryKey: ['carteira'],
+      refetchType: 'active'
+    });
+  },
+
+  // 🔥 ERRO - Rollback otimistic update
+  onError: (err, { carteira }, context) => {
+    console.error(`❌ Erro reordenação ${carteira}:`, err);
+    
+    if (context?.previousData) {
+      queryClient.setQueryData(
+        ['carteira', carteira, user?.id], 
+        context.previousData
+      );
     }
-  });
+  }
+});
 
   // 🔥 FUNÇÕES BÁSICAS
   const lerDados = useCallback(() => {
@@ -617,32 +657,53 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   }, [user?.id, isAuthenticated, lerDados]);
 
   // 🔥 DADOS FINAIS SIMPLIFICADOS
-  const dadosFinais = useMemo(() => {
-    if (modoSincronizacao === 'localStorage' || !user?.id) {
-      console.log('📁 Usando dados localStorage');
-      return dados;
+const dadosFinais = useMemo(() => {
+  if (modoSincronizacao === 'localStorage' || !user?.id) {
+    console.log('📁 Usando dados localStorage');
+    return dados;
+  }
+  
+  // 🔥 MODO HÍBRIDO MELHORADO
+  const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
+    const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+    const dadosBanco = query?.data || [];
+    const dadosLocal = dados[carteira] || [];
+    
+    // 🔥 LÓGICA MELHORADA: 
+    // - Se tem mutação em andamento, usa local
+    // - Se query é mais recente que local, usa query
+    // - Senão, usa local
+    
+    const temMutacaoPendente = reordenarMutation.isPending || 
+                              adicionarMutation.isPending || 
+                              editarMutation.isPending || 
+                              removerMutation.isPending;
+    
+    if (temMutacaoPendente) {
+      acc[carteira] = dadosLocal;
+      console.log(`⏳ ${carteira}: Local (mutação pendente)`);
+    } else if (query?.isSuccess && dadosBanco.length >= 0) {
+      acc[carteira] = dadosBanco;
+      console.log(`✅ ${carteira}: Banco (${dadosBanco.length} itens)`);
+    } else {
+      acc[carteira] = dadosLocal;
+      console.log(`📁 ${carteira}: Local (${dadosLocal.length} itens)`);
     }
     
-    // Modo híbrido: banco + localStorage
-    const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
-      const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
-      const dadosBanco = query?.data || [];
-      const dadosLocal = dados[carteira] || [];
-      
-      // Priorizar dados do banco quando disponível
-      if (query?.isSuccess && dadosBanco.length >= 0) {
-        acc[carteira] = dadosBanco;
-        console.log(`✅ ${carteira}: Banco (${dadosBanco.length} itens)`);
-      } else {
-        acc[carteira] = dadosLocal;
-        console.log(`📁 ${carteira}: Local (${dadosLocal.length} itens)`);
-      }
-      
-      return acc;
-    }, {} as any);
-    
-    return dadosCombinados;
-  }, [dados, carteirasQueries, modoSincronizacao, user?.id]);
+    return acc;
+  }, {} as any);
+  
+  return dadosCombinados;
+}, [
+  dados, 
+  carteirasQueries, 
+  modoSincronizacao, 
+  user?.id,
+  reordenarMutation.isPending,
+  adicionarMutation.isPending,
+  editarMutation.isPending,
+  removerMutation.isPending
+]);
 
   // 🔥 FUNÇÕES DE COTAÇÃO (mantidas iguais)
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
@@ -775,23 +836,34 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     return true;
   }, [dados, salvarDados, removerMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
-  const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
-    const novosDados = {
-      ...dados,
-      [carteira]: novosAtivos.map((ativo) => ({
-        ...ativo,
-        editadoEm: new Date().toISOString()
-      }))
-    };
+const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
+  console.log(`🔄 Reordenando ${carteira}:`, novosAtivos.length, 'ativos');
+  
+  const ativosComTimestamp = novosAtivos.map((ativo, index) => ({
+    ...ativo,
+    ordem: index, // 🔥 ADICIONA CAMPO ORDEM EXPLÍCITO
+    editadoEm: new Date().toISOString()
+  }));
 
-    setDados(novosDados);
-    
-    if (modoSincronizacao === 'localStorage') {
-      salvarDados(novosDados);
-    } else if (user?.id && isAuthenticated) {
-      reordenarMutation.mutate({ carteira, novosAtivos });
-    }
-  }, [dados, salvarDados, reordenarMutation, modoSincronizacao, user?.id, isAuthenticated]);
+  // 🔥 ATUALIZAÇÃO LOCAL IMEDIATA
+  const novosDados = {
+    ...dados,
+    [carteira]: ativosComTimestamp
+  };
+
+  setDados(novosDados);
+  
+  if (modoSincronizacao === 'localStorage') {
+    salvarDados(novosDados);
+    console.log(`✅ ${carteira} reordenado no localStorage`);
+  } else if (user?.id && isAuthenticated) {
+    console.log(`🔄 Sincronizando ${carteira} com banco...`);
+    reordenarMutation.mutate({ 
+      carteira, 
+      novosAtivos: ativosComTimestamp 
+    });
+  }
+}, [dados, salvarDados, reordenarMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
   // 🔥 OUTRAS FUNÇÕES MANTIDAS
   const atualizarTodasCotacoes = useCallback(async () => {
@@ -906,15 +978,39 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     };
   }, [isInitialized, buscarCotacaoUSD]);
 
+// 🔥 ADICIONAR debugReordenacao ANTES DO useEffect
+const debugReordenacao = useCallback((carteira: string) => {
+  const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+  
+  console.log(`🔍 DEBUG REORDENAÇÃO ${carteira}:`, {
+    estadoLocal: dados[carteira]?.length || 0,
+    queryData: query?.data?.length || 0,
+    queryStatus: query?.status,
+    queryUpdatedAt: query?.dataUpdatedAt,
+    mutationStatus: reordenarMutation.status,
+    isPending: reordenarMutation.isPending,
+    dadosFinaisCount: dadosFinais[carteira]?.length || 0
+  });
+  
+  return {
+    local: dados[carteira],
+    query: query?.data,
+    final: dadosFinais[carteira]
+  };
+}, [dados, carteirasQueries, dadosFinais, reordenarMutation]);
+
   // 🔥 DEBUG GLOBAL
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isInitialized) {
-      (window as any).debugDataStore = debug;
-      return () => {
-        delete (window as any).debugDataStore;
-      };
-    }
-  }, [debug, isInitialized]);
+useEffect(() => {
+  if (typeof window !== 'undefined' && isInitialized) {
+    (window as any).debugDataStore = debug;
+    (window as any).debugReordenacao = debugReordenacao; // 🔥 NOVO
+    
+    return () => {
+      delete (window as any).debugDataStore;
+      delete (window as any).debugReordenacao;
+    };
+  }
+}, [debug, debugReordenacao, isInitialized]);
 
   if (!isInitialized) {
     return (
@@ -951,11 +1047,13 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     converterUSDparaBRL,
     obterEstatisticas,
     debug,
+ debugReordenacao,
 
     // Estados React Query
     isLoading: Object.values(carteirasQueries).some((q: any) => q.isLoading),
-    isError: Object.values(carteirasQueries).some((q: any) => q.isError)
-  };
+    isError: Object.values(carteirasQueries).some((q: any) => q.isError),
+  isMutating: reordenarMutation.isPending || adicionarMutation.isPending || editarMutation.isPending || removerMutation.isPending // 🔥 NOVO
+};
 
   return (
     <DataStoreContext.Provider value={contextValue}>
