@@ -1,4 +1,4 @@
-// src/hooks/useDataStore.tsx - VERSÃO CORRIGIDA - HEADERS + SIMPLIFICAÇÃO
+// src/hooks/useDataStore.tsx - VERSÃO CORRIGIDA - HEADERS + SIMPLIFICAÇÃO + FUNÇÕES FALTANTES
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -423,6 +423,39 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingRef = useRef(false);
 
+  // 🔥 FUNÇÕES LOCALSTORAGE QUE ESTAVAM FALTANDO
+  const lerDados = useCallback(() => {
+    try {
+      if (typeof window === 'undefined') return DADOS_INICIAIS;
+      
+      const dadosString = localStorage.getItem(STORAGE_KEY);
+      if (!dadosString) {
+        console.log('📁 Dados não encontrados, usando iniciais');
+        return DADOS_INICIAIS;
+      }
+      
+      const dadosParsed = JSON.parse(dadosString);
+      console.log('✅ Dados carregados do localStorage');
+      return dadosParsed;
+    } catch (error) {
+      console.error('❌ Erro ao ler localStorage:', error);
+      return DADOS_INICIAIS;
+    }
+  }, []);
+
+  const salvarDados = useCallback((novosDados: any) => {
+    try {
+      if (typeof window === 'undefined') return false;
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
+      console.log('✅ Dados salvos no localStorage');
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao salvar localStorage:', error);
+      return false;
+    }
+  }, []);
+
   // 🔥 VERIFICAÇÃO DE AUTENTICAÇÃO SIMPLES
   const isAuthenticated = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -437,20 +470,20 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   }, [user?.id]);
 
   // 🔥 REACT QUERIES SIMPLIFICADAS COM ENABLED CORRETO
-const smallCapsQuery = useQuery({
-  queryKey: ['carteira', 'smallCaps', user?.id],
-  queryFn: () => api.getCarteira('smallCaps'),
-  enabled: !!user?.id && isAuthenticated, // 🔥 REMOVIDO modoSincronizacao === 'hibrido'
-  staleTime: 2 * 60 * 1000, // 🔥 REDUZIDO PARA 2min
-  refetchOnWindowFocus: false,
-  retry: 1
-});
+  const smallCapsQuery = useQuery({
+    queryKey: ['carteira', 'smallCaps', user?.id],
+    queryFn: () => api.getCarteira('smallCaps'),
+    enabled: !!user?.id && isAuthenticated, // 🔥 REMOVIDO modoSincronizacao === 'hibrido'
+    staleTime: 2 * 60 * 1000, // 🔥 REDUZIDO PARA 2min
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
 
   const microCapsQuery = useQuery({
     queryKey: ['carteira', 'microCaps', user?.id],
     queryFn: () => api.getCarteira('microCaps'),
     enabled: !!user?.id && isAuthenticated,
-staleTime: 2 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 1
   });
@@ -533,76 +566,90 @@ staleTime: 2 * 60 * 1000,
     }
   });
 
-const editarMutation = useMutation({
-  mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
-    api.editarAtivo(carteira, id, dados),
-  
-  // 🔥 SUCESSO - FORÇAR SINCRONIZAÇÃO COMPLETA
-  onSuccess: (result, { carteira, id }) => {
-    console.log(`✅ SUCESSO: Ativo ${id} editado na carteira ${carteira}`);
-    console.log('📡 Resultado da API:', result);
+  const editarMutation = useMutation({
+    mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
+      api.editarAtivo(carteira, id, dados),
     
-    // 🔥 ESTRATÉGIA 1: Invalidar com força total
-    queryClient.invalidateQueries({ 
-      queryKey: ['carteira', carteira, user?.id],
-      exact: true,
-      refetchType: 'all'  
-    });
-    
-    // 🔥 ESTRATÉGIA 2: Forçar refetch imediato
-    setTimeout(() => {
-      queryClient.refetchQueries({
-        queryKey: ['carteira', carteira, user?.id],
-        exact: true
-      });
-    }, 100);
-    
-    // 🔥 ESTRATÉGIA 3: Atualizar estado local com dados da API
-    if (result?.ativo) {
-      console.log('🔄 Atualizando estado local com dados da API');
+    // 🔥 OPTIMISTIC UPDATE - Atualiza UI IMEDIATAMENTE
+    onMutate: async ({ carteira, id, dados }) => {
+      console.log(`🔄 OPTIMISTIC UPDATE: ${carteira} ID ${id}`);
+      
+      // 🔥 ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
       setDados(prevDados => {
         const novosDados = {
           ...prevDados,
           [carteira]: prevDados[carteira].map((item: any) => 
             item.id.toString() === id.toString() 
-              ? { 
-                  ...item,
-                  ...result.ativo,
-                  editadoEm: new Date().toISOString()
-                }
+              ? { ...item, ...dados, editadoEm: new Date().toISOString() }
               : item
           )
         };
         
-        // Salvar no localStorage se necessário
+        // Salvar localStorage se necessário
         if (modoSincronizacao === 'localStorage') {
           salvarDados(novosDados);
         }
         
         return novosDados;
       });
-    }
-    
-    // 🔥 ESTRATÉGIA 4: Limpar e recarregar cache
-    setTimeout(() => {
-      console.log('🧹 Limpando cache para forçar reload');
-      queryClient.removeQueries({
-        queryKey: ['carteira', carteira, user?.id]
-      });
-      
-      // Força novo fetch
-      queryClient.prefetchQuery({
-        queryKey: ['carteira', carteira, user?.id],
-        queryFn: () => api.getCarteira(carteira)
-      });
-    }, 200);
-  },
 
-  // 🔥 ERRO
-  onError: (error, { carteira, id }) => {
-    console.error(`❌ ERRO na edição ${carteira} ID ${id}:`, error);
-  }
-});
+      // Cancelar queries para evitar conflito
+      await queryClient.cancelQueries({ 
+        queryKey: ['carteira', carteira, user?.id] 
+      });
+
+      // Backup para rollback
+      const previousData = queryClient.getQueryData(['carteira', carteira, user?.id]);
+      
+      return { previousData, carteira, id };
+    },
+    
+    // 🔥 SUCESSO - Garantir sincronização
+    onSuccess: (result, { carteira, id }) => {
+      console.log(`✅ EDIÇÃO SUCESSO: ${carteira} ID ${id}`);
+      console.log('📡 Resultado API:', result);
+      
+      // 🔥 FORÇAR ATUALIZAÇÃO DO CACHE
+      if (result?.ativo) {
+        // Atualizar cache React Query
+        const currentData = queryClient.getQueryData(['carteira', carteira, user?.id]);
+        if (Array.isArray(currentData)) {
+          const updatedData = currentData.map((item: any) => 
+            item.id.toString() === id.toString() ? result.ativo : item
+          );
+          queryClient.setQueryData(['carteira', carteira, user?.id], updatedData);
+        }
+        
+        // 🔥 FORÇAR ATUALIZAÇÃO DO ESTADO LOCAL TAMBÉM
+        setDados(prevDados => ({
+          ...prevDados,
+          [carteira]: prevDados[carteira].map((item: any) => 
+            item.id.toString() === id.toString() 
+              ? { ...result.ativo, editadoEm: new Date().toISOString() }
+              : item
+          )
+        }));
+      }
+      
+      // 🔥 INVALIDAR APÓS UM DELAY PARA GARANTIR
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ['carteira', carteira, user?.id],
+          refetchType: 'none'  // Não refetch, só marcar como stale
+        });
+      }, 500);
+    },
+    
+    // 🔥 ERRO - Rollback
+    onError: (error, { carteira, id }, context) => {
+      console.error(`❌ ERRO EDIÇÃO ${carteira} ID ${id}:`, error);
+      
+      // Rollback do estado local
+      if (context?.previousData) {
+        queryClient.setQueryData(['carteira', carteira, user?.id], context.previousData);
+      }
+    }
+  });
 
   const removerMutation = useMutation({
     mutationFn: ({ carteira, id }: { carteira: string, id: string }) => 
@@ -615,84 +662,87 @@ const editarMutation = useMutation({
     }
   });
 
-const reordenarMutation = useMutation({
-  mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
-    api.reordenarAtivos(carteira, novosAtivos),
-  
-  // 🔥 OTIMISTIC UPDATE - Atualiza o cache imediatamente
-  onMutate: async ({ carteira, novosAtivos }) => {
-    // Cancela queries em andamento para evitar conflitos
-    await queryClient.cancelQueries({ 
-      queryKey: ['carteira', carteira, user?.id] 
-    });
-
-    // Snapshot dos dados anteriores para rollback
-    const previousData = queryClient.getQueryData(['carteira', carteira, user?.id]);
-
-    // Atualiza otimisticamente o cache
-    queryClient.setQueryData(['carteira', carteira, user?.id], novosAtivos);
-
-    return { previousData, carteira };
-  },
-
-  // 🔥 SUCESSO - Força invalidação completa
-  onSuccess: (_, { carteira }) => {
-    console.log(`✅ Reordenação ${carteira} - Invalidando cache...`);
+  const reordenarMutation = useMutation({
+    mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
+      api.reordenarAtivos(carteira, novosAtivos),
     
-    // Invalida e força refetch
-    queryClient.invalidateQueries({ 
-      queryKey: ['carteira', carteira, user?.id],
-      exact: true,
-      refetchType: 'active' // 🔥 FORÇA REFETCH ATIVO
-    });
-    
-    // 🔥 TAMBÉM INVALIDA O CACHE GERAL
-    queryClient.invalidateQueries({ 
-      queryKey: ['carteira'],
-      refetchType: 'active'
-    });
-  },
-
-  // 🔥 ERRO - Rollback otimistic update
-  onError: (err, { carteira }, context) => {
-    console.error(`❌ Erro reordenação ${carteira}:`, err);
-    
-    if (context?.previousData) {
-      queryClient.setQueryData(
-        ['carteira', carteira, user?.id], 
-        context.previousData
-      );
-    }
-  }
-});
-
-  // 🔥 FUNÇÕES BÁSICAS
-  const lerDados = useCallback(() => {
-    try {
-      if (typeof window === 'undefined') return DADOS_INICIAIS;
+    // 🔥 OPTIMISTIC UPDATE - Atualiza ordem IMEDIATAMENTE
+    onMutate: async ({ carteira, novosAtivos }) => {
+      console.log(`🔄 REORDENAÇÃO OPTIMISTIC: ${carteira}`, novosAtivos.length, 'ativos');
       
-      const dadosStorage = localStorage.getItem(STORAGE_KEY);
-      if (dadosStorage) {
-        return JSON.parse(dadosStorage);
+      // 🔥 ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
+      const ativosComOrdem = novosAtivos.map((ativo, index) => ({
+        ...ativo,
+        ordem: index,
+        editadoEm: new Date().toISOString()
+      }));
+      
+      setDados(prevDados => {
+        const novosDados = {
+          ...prevDados,
+          [carteira]: ativosComOrdem
+        };
+        
+        // Salvar localStorage se necessário
+        if (modoSincronizacao === 'localStorage') {
+          salvarDados(novosDados);
+        }
+        
+        return novosDados;
+      });
+
+      // Cancelar queries
+      await queryClient.cancelQueries({ 
+        queryKey: ['carteira', carteira, user?.id] 
+      });
+
+      // Backup
+      const previousData = queryClient.getQueryData(['carteira', carteira, user?.id]);
+      
+      // 🔥 ATUALIZAR CACHE IMEDIATAMENTE
+      queryClient.setQueryData(['carteira', carteira, user?.id], ativosComOrdem);
+
+      return { previousData, carteira };
+    },
+    
+    // 🔥 SUCESSO
+    onSuccess: (result, { carteira, novosAtivos }) => {
+      console.log(`✅ REORDENAÇÃO SUCESSO: ${carteira}`);
+      
+      // 🔥 GARANTIR QUE ORDEM FOI SALVA
+      const ativosComOrdem = novosAtivos.map((ativo, index) => ({
+        ...ativo,
+        ordem: index,
+        editadoEm: new Date().toISOString()
+      }));
+      
+      // Atualizar cache final
+      queryClient.setQueryData(['carteira', carteira, user?.id], ativosComOrdem);
+      
+      // Atualizar estado local final
+      setDados(prevDados => ({
+        ...prevDados,
+        [carteira]: ativosComOrdem
+      }));
+      
+      console.log(`✅ Ordem final salva em ${carteira}:`, ativosComOrdem.map(a => a.ticker));
+    },
+    
+    // 🔥 ERRO - Rollback
+    onError: (err, { carteira }, context) => {
+      console.error(`❌ ERRO REORDENAÇÃO ${carteira}:`, err);
+      
+      // Rollback completo
+      if (context?.previousData) {
+        queryClient.setQueryData(['carteira', carteira, user?.id], context.previousData);
+        
+        setDados(prevDados => ({
+          ...prevDados,
+          [carteira]: context.previousData || prevDados[carteira]
+        }));
       }
-      return DADOS_INICIAIS;
-    } catch (error) {
-      console.error('Erro ao ler localStorage:', error);
-      return DADOS_INICIAIS;
     }
-  }, []);
-
-  const salvarDados = useCallback((novosDados: any) => {
-    try {
-      if (typeof window === 'undefined') return false;
-      
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(novosDados));
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar localStorage:', error);
-      return false;
-    }
-  }, []);
+  });
 
   // 🔥 INICIALIZAÇÃO SIMPLIFICADA
   useEffect(() => {
@@ -717,53 +767,53 @@ const reordenarMutation = useMutation({
   }, [user?.id, isAuthenticated, lerDados]);
 
   // 🔥 DADOS FINAIS SIMPLIFICADOS
-const dadosFinais = useMemo(() => {
-  if (modoSincronizacao === 'localStorage' || !user?.id) {
-    console.log('📁 Usando dados localStorage');
-    return dados;
-  }
-  
-  // 🔥 MODO HÍBRIDO MELHORADO
-  const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
-    const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
-    const dadosBanco = query?.data || [];
-    const dadosLocal = dados[carteira] || [];
-    
-    // 🔥 LÓGICA MELHORADA: 
-    // - Se tem mutação em andamento, usa local
-    // - Se query é mais recente que local, usa query
-    // - Senão, usa local
-    
-    const temMutacaoPendente = reordenarMutation.isPending || 
-                              adicionarMutation.isPending || 
-                              editarMutation.isPending || 
-                              removerMutation.isPending;
-    
-    if (temMutacaoPendente) {
-      acc[carteira] = dadosLocal;
-      console.log(`⏳ ${carteira}: Local (mutação pendente)`);
-    } else if (query?.isSuccess && dadosBanco.length >= 0) {
-      acc[carteira] = dadosBanco;
-      console.log(`✅ ${carteira}: Banco (${dadosBanco.length} itens)`);
-    } else {
-      acc[carteira] = dadosLocal;
-      console.log(`📁 ${carteira}: Local (${dadosLocal.length} itens)`);
+  const dadosFinais = useMemo(() => {
+    if (modoSincronizacao === 'localStorage' || !user?.id) {
+      console.log('📁 Usando dados localStorage');
+      return dados;
     }
     
-    return acc;
-  }, {} as any);
-  
-  return dadosCombinados;
-}, [
-  dados, 
-  carteirasQueries, 
-  modoSincronizacao, 
-  user?.id,
-  reordenarMutation.isPending,
-  adicionarMutation.isPending,
-  editarMutation.isPending,
-  removerMutation.isPending
-]);
+    // 🔥 MODO HÍBRIDO MELHORADO
+    const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
+      const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+      const dadosBanco = query?.data || [];
+      const dadosLocal = dados[carteira] || [];
+      
+      // 🔥 LÓGICA MELHORADA: 
+      // - Se tem mutação em andamento, usa local
+      // - Se query é mais recente que local, usa query
+      // - Senão, usa local
+      
+      const temMutacaoPendente = reordenarMutation.isPending || 
+                                adicionarMutation.isPending || 
+                                editarMutation.isPending || 
+                                removerMutation.isPending;
+      
+      if (temMutacaoPendente) {
+        acc[carteira] = dadosLocal;
+        console.log(`⏳ ${carteira}: Local (mutação pendente)`);
+      } else if (query?.isSuccess && dadosBanco.length >= 0) {
+        acc[carteira] = dadosBanco;
+        console.log(`✅ ${carteira}: Banco (${dadosBanco.length} itens)`);
+      } else {
+        acc[carteira] = dadosLocal;
+        console.log(`📁 ${carteira}: Local (${dadosLocal.length} itens)`);
+      }
+      
+      return acc;
+    }, {} as any);
+    
+    return dadosCombinados;
+  }, [
+    dados, 
+    carteirasQueries, 
+    modoSincronizacao, 
+    user?.id,
+    reordenarMutation.isPending,
+    adicionarMutation.isPending,
+    editarMutation.isPending,
+    removerMutation.isPending
+  ]);
 
   // 🔥 FUNÇÕES DE COTAÇÃO (mantidas iguais)
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
@@ -896,34 +946,47 @@ const dadosFinais = useMemo(() => {
     return true;
   }, [dados, salvarDados, removerMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
-const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
-  console.log(`🔄 Reordenando ${carteira}:`, novosAtivos.length, 'ativos');
-  
-  const ativosComTimestamp = novosAtivos.map((ativo, index) => ({
-    ...ativo,
-    ordem: index, // 🔥 ADICIONA CAMPO ORDEM EXPLÍCITO
-    editadoEm: new Date().toISOString()
-  }));
+  const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
+    console.log(`🔄 INICIANDO REORDENAÇÃO ${carteira}:`, novosAtivos.length, 'ativos');
+    
+    // 🔥 PREPARAR ATIVOS COM ORDEM EXPLÍCITA
+    const ativosComOrdem = novosAtivos.map((ativo, index) => ({
+      ...ativo,
+      ordem: index,
+      editadoEm: new Date().toISOString()
+    }));
 
-  // 🔥 ATUALIZAÇÃO LOCAL IMEDIATA
-  const novosDados = {
-    ...dados,
-    [carteira]: ativosComTimestamp
-  };
+    console.log('📋 Nova ordem:', ativosComOrdem.map(a => `${a.ticker} (pos: ${a.ordem})`));
 
-  setDados(novosDados);
-  
-  if (modoSincronizacao === 'localStorage') {
-    salvarDados(novosDados);
-    console.log(`✅ ${carteira} reordenado no localStorage`);
-  } else if (user?.id && isAuthenticated) {
-    console.log(`🔄 Sincronizando ${carteira} com banco...`);
-    reordenarMutation.mutate({ 
-      carteira, 
-      novosAtivos: ativosComTimestamp 
-    });
-  }
-}, [dados, salvarDados, reordenarMutation, modoSincronizacao, user?.id, isAuthenticated]);
+    // 🔥 MODO LOCALSTORAGE - Salvar imediatamente
+    if (modoSincronizacao === 'localStorage') {
+      const novosDados = {
+        ...dados,
+        [carteira]: ativosComOrdem
+      };
+      setDados(novosDados);
+      salvarDados(novosDados);
+      console.log(`✅ ${carteira} reordenado no localStorage`);
+      return;
+    }
+    
+    // 🔥 MODO HÍBRIDO - Usar mutation
+    if (user?.id && isAuthenticated) {
+      console.log(`🔄 Sincronizando ${carteira} com banco...`);
+      reordenarMutation.mutate({ 
+        carteira, 
+        novosAtivos: ativosComOrdem 
+      });
+    } else {
+      console.warn('⚠️ Não autenticado, salvando apenas local');
+      const novosDados = {
+        ...dados,
+        [carteira]: ativosComOrdem
+      };
+      setDados(novosDados);
+      salvarDados(novosDados);
+    }
+  }, [dados, setDados, salvarDados, reordenarMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
   // 🔥 OUTRAS FUNÇÕES MANTIDAS
   const atualizarTodasCotacoes = useCallback(async () => {
@@ -1038,39 +1101,39 @@ const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
     };
   }, [isInitialized, buscarCotacaoUSD]);
 
-// 🔥 ADICIONAR debugReordenacao ANTES DO useEffect
-const debugReordenacao = useCallback((carteira: string) => {
-  const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
-  
-  console.log(`🔍 DEBUG REORDENAÇÃO ${carteira}:`, {
-    estadoLocal: dados[carteira]?.length || 0,
-    queryData: query?.data?.length || 0,
-    queryStatus: query?.status,
-    queryUpdatedAt: query?.dataUpdatedAt,
-    mutationStatus: reordenarMutation.status,
-    isPending: reordenarMutation.isPending,
-    dadosFinaisCount: dadosFinais[carteira]?.length || 0
-  });
-  
-  return {
-    local: dados[carteira],
-    query: query?.data,
-    final: dadosFinais[carteira]
-  };
-}, [dados, carteirasQueries, dadosFinais, reordenarMutation]);
+  // 🔥 ADICIONAR debugReordenacao ANTES DO useEffect
+  const debugReordenacao = useCallback((carteira: string) => {
+    const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
+    
+    console.log(`🔍 DEBUG REORDENAÇÃO ${carteira}:`, {
+      estadoLocal: dados[carteira]?.length || 0,
+      queryData: query?.data?.length || 0,
+      queryStatus: query?.status,
+      queryUpdatedAt: query?.dataUpdatedAt,
+      mutationStatus: reordenarMutation.status,
+      isPending: reordenarMutation.isPending,
+      dadosFinaisCount: dadosFinais[carteira]?.length || 0
+    });
+    
+    return {
+      local: dados[carteira],
+      query: query?.data,
+      final: dadosFinais[carteira]
+    };
+  }, [dados, carteirasQueries, dadosFinais, reordenarMutation]);
 
   // 🔥 DEBUG GLOBAL
-useEffect(() => {
-  if (typeof window !== 'undefined' && isInitialized) {
-    (window as any).debugDataStore = debug;
-    (window as any).debugReordenacao = debugReordenacao; // 🔥 NOVO
-    
-    return () => {
-      delete (window as any).debugDataStore;
-      delete (window as any).debugReordenacao;
-    };
-  }
-}, [debug, debugReordenacao, isInitialized]);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isInitialized) {
+      (window as any).debugDataStore = debug;
+      (window as any).debugReordenacao = debugReordenacao; // 🔥 NOVO
+      
+      return () => {
+        delete (window as any).debugDataStore;
+        delete (window as any).debugReordenacao;
+      };
+    }
+  }, [debug, debugReordenacao, isInitialized]);
 
   if (!isInitialized) {
     return (
@@ -1107,13 +1170,13 @@ useEffect(() => {
     converterUSDparaBRL,
     obterEstatisticas,
     debug,
- debugReordenacao,
+    debugReordenacao,
 
     // Estados React Query
     isLoading: Object.values(carteirasQueries).some((q: any) => q.isLoading),
     isError: Object.values(carteirasQueries).some((q: any) => q.isError),
-  isMutating: reordenarMutation.isPending || adicionarMutation.isPending || editarMutation.isPending || removerMutation.isPending // 🔥 NOVO
-};
+    isMutating: reordenarMutation.isPending || adicionarMutation.isPending || editarMutation.isPending || removerMutation.isPending // 🔥 NOVO
+  };
 
   return (
     <DataStoreContext.Provider value={contextValue}>
