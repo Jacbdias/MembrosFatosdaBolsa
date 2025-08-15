@@ -638,136 +638,121 @@ export async function OPTIONS(request: NextRequest) {
 // Métodos PUT e DELETE permanecem iguais...
 
 // 🔍 PUT - EDITAR ATIVO
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { carteira: string } }
-) {
+export async function PUT(request: NextRequest, { params }: { params: { carteira: string } }) {
   try {
-    debugLog('✏️ INICIO PUT - Carteira:', params.carteira);
+    console.log('✏️ INICIO EDIÇÃO - Carteira:', params.carteira);
     
     // Autenticação
     const user = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
-    
-    // Parse do body
+
+    const { carteira } = params;
     const body = await request.json();
-    debugLog('✏️ Body recebido:', body);
-    
     const { id, ...dadosAtualizacao } = body;
+    
+    console.log('✏️ Editando ativo ID:', id);
+    console.log('✏️ Dados recebidos:', dadosAtualizacao);
     
     if (!id) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
     
+    // Usar a mesma estrutura do arquivo de reordenação
+    const CARTEIRA_MODELS = {
+      microCaps: 'userMicroCaps',
+      smallCaps: 'userSmallCaps', 
+      dividendos: 'userDividendos',
+      fiis: 'userFiis',
+      dividendosInternacional: 'userDividendosInternacional',
+      etfs: 'userEtfs',
+      projetoAmerica: 'userProjetoAmerica',
+      exteriorStocks: 'userExteriorStocks'
+    } as const;
+    
+    const modelName = CARTEIRA_MODELS[carteira as keyof typeof CARTEIRA_MODELS];
+    if (!modelName) {
+      return NextResponse.json({ error: 'Carteira inválida' }, { status: 400 });
+    }
+
+    const model = (prisma as any)[modelName];
+    
     // Preparar dados para atualização
     const dadosUpdate: any = {
-      ticker: dadosAtualizacao.ticker?.toUpperCase(),
-      setor: dadosAtualizacao.setor,
-      dataEntrada: dadosAtualizacao.dataEntrada,
-      precoEntrada: parseFloat(dadosAtualizacao.precoEntrada),
       editadoEm: new Date()
     };
     
-    // Campos opcionais
-    if (dadosAtualizacao.precoTeto) dadosUpdate.precoTeto = parseFloat(dadosAtualizacao.precoTeto);
-    if (dadosAtualizacao.precoTetoBDR) dadosUpdate.precoTetoBDR = parseFloat(dadosAtualizacao.precoTetoBDR);
-    if (dadosAtualizacao.posicaoEncerrada !== undefined) dadosUpdate.posicaoEncerrada = dadosAtualizacao.posicaoEncerrada;
-    if (dadosAtualizacao.dataSaida) dadosUpdate.dataSaida = dadosAtualizacao.dataSaida;
-    if (dadosAtualizacao.precoSaida) dadosUpdate.precoSaida = parseFloat(dadosAtualizacao.precoSaida);
-    if (dadosAtualizacao.motivoEncerramento) dadosUpdate.motivoEncerramento = dadosAtualizacao.motivoEncerramento;
-    
-    debugLog('✏️ Dados para atualizar:', dadosUpdate);
-    
-    let ativoAtualizado;
-    
-    switch (params.carteira) {
-      case 'smallCaps':
-        ativoAtualizado = await prisma.userSmallCaps.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'microCaps':
-        ativoAtualizado = await prisma.userMicroCaps.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'dividendos':
-        ativoAtualizado = await prisma.userDividendos.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'fiis':
-        ativoAtualizado = await prisma.userFiis.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'dividendosInternacional':
-        ativoAtualizado = await prisma.userDividendosInternacional.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'etfs':
-        ativoAtualizado = await prisma.userEtfs.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'projetoAmerica':
-        ativoAtualizado = await prisma.userProjetoAmerica.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      case 'exteriorStocks':
-        ativoAtualizado = await prisma.userExteriorStocks.update({
-          where: { 
-            id: id,
-            userId: user.id 
-          },
-          data: dadosUpdate
-        });
-        break;
-      default:
-        return NextResponse.json({ error: 'Carteira não implementada' }, { status: 400 });
+    // Campos obrigatórios
+    if (dadosAtualizacao.ticker) {
+      dadosUpdate.ticker = dadosAtualizacao.ticker.toUpperCase();
+    }
+    if (dadosAtualizacao.setor) {
+      dadosUpdate.setor = dadosAtualizacao.setor;
+    }
+    if (dadosAtualizacao.dataEntrada) {
+      dadosUpdate.dataEntrada = dadosAtualizacao.dataEntrada;
+    }
+    if (dadosAtualizacao.precoEntrada) {
+      dadosUpdate.precoEntrada = parseFloat(dadosAtualizacao.precoEntrada);
     }
     
-    debugLog('✅ Ativo atualizado:', ativoAtualizado.id);
-    console.log(`✅ Ativo ${dadosUpdate.ticker} atualizado na carteira ${params.carteira}`);
+    // Campos opcionais
+    if (dadosAtualizacao.precoTeto !== undefined) {
+      dadosUpdate.precoTeto = dadosAtualizacao.precoTeto ? parseFloat(dadosAtualizacao.precoTeto) : null;
+    }
+    if (dadosAtualizacao.precoTetoBDR !== undefined) {
+      dadosUpdate.precoTetoBDR = dadosAtualizacao.precoTetoBDR ? parseFloat(dadosAtualizacao.precoTetoBDR) : null;
+    }
+    if (dadosAtualizacao.posicaoEncerrada !== undefined) {
+      dadosUpdate.posicaoEncerrada = dadosAtualizacao.posicaoEncerrada;
+    }
+    if (dadosAtualizacao.dataSaida) {
+      dadosUpdate.dataSaida = dadosAtualizacao.dataSaida;
+    }
+    if (dadosAtualizacao.precoSaida !== undefined) {
+      dadosUpdate.precoSaida = dadosAtualizacao.precoSaida ? parseFloat(dadosAtualizacao.precoSaida) : null;
+    }
+    if (dadosAtualizacao.motivoEncerramento) {
+      dadosUpdate.motivoEncerramento = dadosAtualizacao.motivoEncerramento;
+    }
     
-    return NextResponse.json(ativoAtualizado);
+    console.log('✏️ Dados para atualizar:', dadosUpdate);
+    
+    // 🔥 ATUALIZAR NO BANCO - IGUAL AO PADRÃO DE REORDENAÇÃO
+    const ativoAtualizado = await model.update({
+      where: { 
+        id: id,
+        userId: user.id  // Garantir que só edita próprios ativos
+      },
+      data: dadosUpdate
+    });
+    
+    console.log('✅ Ativo atualizado com sucesso:', ativoAtualizado.id);
+    console.log(`✅ Ativo ${ativoAtualizado.ticker} atualizado na carteira ${carteira}`);
+    
+    return NextResponse.json({
+      success: true,
+      ativo: ativoAtualizado,
+      message: `Ativo ${ativoAtualizado.ticker} atualizado com sucesso`
+    });
     
   } catch (error) {
-    debugLog('❌ Erro PUT:', error);
-    console.error(`❌ Erro PUT carteira ${params.carteira}:`, error);
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+    console.error('❌ Erro na edição:', error);
+    
+    // Log detalhado do erro
+    if (error instanceof Error) {
+      console.error('❌ Detalhes do erro:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    
+    return NextResponse.json({ 
+      error: 'Erro ao editar ativo',
+      details: (error as Error).message 
+    }, { status: 500 });
   }
 }
 
