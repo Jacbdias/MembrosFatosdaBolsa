@@ -193,7 +193,7 @@ async function buscarDadosMestres(carteira: string): Promise<any[]> {
     case 'exteriorStocks':
       return await prisma.userExteriorStocks.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { id: 'asc' }  
+        orderBy: { editadoEm: 'asc' }
       });
     default:
       throw new Error('Carteira não implementada');
@@ -334,47 +334,112 @@ function getAccessLevel(plano: string, carteira: string): string {
 }
 
 // 🔍 GET - BUSCAR ATIVOS - VERSÃO FINAL INTEGRADA
-export async function GET(request: NextRequest, { params }: { params: { carteira: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { carteira: string } }
+) {
+  const inicioRequest = Date.now();
+  let auditData: Partial<AuditLog> = {
+    carteira: params.carteira,
+    timestamp: new Date()
+  };
+  
   try {
-    console.log('🔍 GET Carteira:', params.carteira);
+    debugLog('📊 INICIO GET - Carteira:', params.carteira);
     
+    // Extrair informações de auditoria
+    auditData.ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    auditData.userAgent = request.headers.get('user-agent') || 'unknown';
+    
+    // 1. Autenticação
     const user = await getAuthenticatedUser(request);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      auditData.acessoPermitido = false;
+      auditData.totalItensRetornados = 0;
+      auditData.userEmail = 'UNKNOWN';
+      auditData.userPlan = 'UNKNOWN';
+      registrarAcessoAuditoria(auditData as AuditLog);
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
-
-    const { carteira } = params;
-    const modelName = CARTEIRA_MODELS[carteira as keyof typeof CARTEIRA_MODELS];
     
-    if (!modelName) {
+    auditData.userEmail = user.email;
+    auditData.userPlan = user.plan;
+    
+    // 2. Validar carteira
+    const carteirasValidas = [
+      'microCaps', 'smallCaps', 'dividendos', 'fiis', 
+      'dividendosInternacional', 'etfs', 'projetoAmerica', 'exteriorStocks'
+    ];
+    
+    if (!carteirasValidas.includes(params.carteira)) {
+      auditData.acessoPermitido = false;
+      auditData.totalItensRetornados = 0;
+      registrarAcessoAuditoria(auditData as AuditLog);
       return NextResponse.json({ error: 'Carteira inválida' }, { status: 400 });
     }
 
-    const model = (prisma as any)[modelName];
+    // 3. ⚡ VERIFICAR PERMISSÕES COM CACHE
+    const temPermissao = verificarPermissaoComCache(user.plan, params.carteira);
+    auditData.acessoPermitido = temPermissao;
     
-    // 🔥 BUSCAR COM ORDENAÇÃO CORRETA
-    const ativos = await model.findMany({
-      where: { userId: user.id },
-      orderBy: [
-        { ordem: 'asc' },        // 🔥 PRIMEIRO POR ORDEM EXPLÍCITA
-        { editadoEm: 'desc' },   // 🔥 DEPOIS POR DATA DE EDIÇÃO
-        { criadoEm: 'asc' }      // 🔥 POR ÚLTIMO POR DATA DE CRIAÇÃO
-      ]
-    });
-    
-    console.log(`✅ Encontrados ${ativos.length} ativos na carteira ${carteira}`);
-    console.log('📋 Ordem dos ativos:', ativos.map((a: any, i: number) => 
-      `${i + 1}. ${a.ticker} (ordem: ${a.ordem || 'null'})`).join(', ')
+    if (!temPermissao) {
+      debugLog(`🚫 Plano ${user.plan} NÃO tem acesso à carteira ${params.carteira}`);
+      auditData.totalItensRetornados = 0;
+      registrarAcessoAuditoria(auditData as AuditLog);
+      return NextResponse.json([]); // Retorna vazio para planos sem acesso
+    }
+
+    debugLog(`✅ Plano ${user.plan} tem acesso à carteira ${params.carteira}`);
+
+    // 4. ⚡ BUSCAR DADOS MESTRES COM CACHE
+    const dadosMestres = await obterDadosMestresComCache(params.carteira);
+    debugLog(`📊 Dados mestres encontrados: ${dadosMestres.length} itens`);
+
+    // 5. 🔒 APLICAR FILTROS RIGOROSOS
+    const dadosFiltrados = aplicarFiltrosRigorososPorPlano(
+      dadosMestres, 
+      user.plan, 
+      params.carteira,
+      user.email
     );
+
+    debugLog(`🔒 Após filtro do plano ${user.plan}: ${dadosFiltrados.length} itens`);
+    auditData.totalItensRetornados = dadosFiltrados.length;
+
+    // 6. Preparar resposta otimizada
+    const ativosSerializados = dadosFiltrados.map(ativo => ({
+      ...ativo,
+      createdAt: ativo.createdAt?.toISOString(),
+      updatedAt: ativo.updatedAt?.toISOString(), 
+      editadoEm: ativo.editadoEm?.toISOString(),
+      // Metadados de performance e segurança
+      isFiltered: true,
+      userPlan: user.plan,
+      accessLevel: getAccessLevel(user.plan, params.carteira),
+      cached: true,
+      requestTime: Date.now() - inicioRequest
+    }));
     
-    return NextResponse.json(ativos);
+    // 7. Registrar auditoria de sucesso
+    registrarAcessoAuditoria(auditData as AuditLog);
+    
+    // 8. Headers de performance
+    const response = NextResponse.json(ativosSerializados);
+    response.headers.set('X-Cache-Status', 'INTEGRATED');
+    response.headers.set('X-Items-Count', dadosFiltrados.length.toString());
+    response.headers.set('X-Access-Level', getAccessLevel(user.plan, params.carteira));
+    response.headers.set('X-Request-Time', (Date.now() - inicioRequest).toString());
+    
+    return response;
     
   } catch (error) {
-    console.error('❌ Erro ao buscar carteira:', error);
-    return NextResponse.json({ 
-      error: 'Erro ao buscar dados',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
-    }, { status: 500 });
+    debugLog('❌ Erro GET:', error);
+    auditData.acessoPermitido = false;
+    auditData.totalItensRetornados = 0;
+    registrarAcessoAuditoria(auditData as AuditLog);
+    
+    console.error(`❌ [ERROR] ${auditData.userEmail} - ${params.carteira}:`, error);
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
 

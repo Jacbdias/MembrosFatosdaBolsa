@@ -1,4 +1,4 @@
-// src/hooks/useDataStore.tsx - VERSÃO COMPLETA CORRIGIDA - SINCRONIZAÇÃO FIXA
+// src/hooks/useDataStore.tsx - VERSÃO COMPLETA CORRIGIDA - REORDENAÇÃO FIXA
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -415,13 +415,17 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  // 🔥 STATES SIMPLIFICADOS
+  // 🔥 STATES SIMPLIFICADOS + NOVOS PARA REORDENAÇÃO
   const [dados, setDados] = useState(DADOS_INICIAIS);
   const [cotacoes, setCotacoes] = useState<Record<string, number>>({});
   const [cotacaoUSD, setCotacaoUSD] = useState(5.85);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [modoSincronizacao, setModoSincronizacao] = useState<'localStorage' | 'banco' | 'hibrido'>('localStorage');
+  
+  // 🔥 NOVOS STATES PARA CONTROLE DE REORDENAÇÃO
+  const [carteirasSendoReordenadas, setCarteirasSendoReordenadas] = useState<Set<string>>(new Set());
+  const [ultimaReordenacao, setUltimaReordenacao] = useState<Record<string, Date>>({});
   
   // 🔥 REFS PARA CONTROLE
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -660,26 +664,53 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
   });
 
+  // 🔥 MUTATION DE REORDENAÇÃO CORRIGIDA
   const reordenarMutation = useMutation({
     mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => {
-      console.log(`🚀 INICIANDO REORDENAÇÃO: ${carteira} (${novosAtivos.length} ativos)`);
+      console.log(`🚀 INICIANDO REORDENAÇÃO: ${carteira}`);
+      console.log('📋 Nova ordem:', novosAtivos.map((a, i) => `${i + 1}. ${a.ticker}`));
       return api.reordenarAtivos(carteira, novosAtivos);
     },
+    onMutate: ({ carteira }) => {
+      // 🔥 MARCAR CARTEIRA COMO SENDO REORDENADA
+      console.log(`⏳ Marcando ${carteira} como sendo reordenada`);
+      setCarteirasSendoReordenadas(prev => new Set([...prev, carteira]));
+      setUltimaReordenacao(prev => ({ ...prev, [carteira]: new Date() }));
+    },
     onSuccess: (result, { carteira }) => {
-      console.log(`✅ REORDENAÇÃO SUCESSO: ${carteira}`);
+      console.log(`✅ REORDENAÇÃO SUCESSO: ${carteira}`, result);
       
-      // 🔥 INVALIDAR APÓS DELAY LONGO
+      // 🔥 AGUARDAR MAIS TEMPO ANTES DE INVALIDAR
       setTimeout(() => {
-        queryClient.invalidateQueries({ 
-          queryKey: ['carteira', carteira, user?.id],
-          exact: true
+        console.log(`🔄 Removendo ${carteira} da lista de reordenação`);
+        setCarteirasSendoReordenadas(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(carteira);
+          return newSet;
         });
-        console.log(`🔄 Query invalidada: ${carteira}`);
-      }, 10000); // 🔥 10 SEGUNDOS
+        
+        // 🔥 INVALIDAR QUERY APÓS REMOVER DA LISTA
+        setTimeout(() => {
+          console.log(`🔄 Invalidando query: ${carteira}`);
+          queryClient.invalidateQueries({ 
+            queryKey: ['carteira', carteira, user?.id],
+            exact: true
+          });
+        }, 2000); // 🔥 DELAY ADICIONAL DE 2 SEGUNDOS
+        
+      }, 20000); // 🔥 AUMENTAR PARA 20 SEGUNDOS
     },
     onError: (error, { carteira }) => {
       console.error(`❌ REORDENAÇÃO FALHOU: ${carteira}`, error);
-      alert(`Erro ao reordenar ativos: ${error.message}`);
+      
+      // 🔥 REMOVER DA LISTA EM CASO DE ERRO
+      setCarteirasSendoReordenadas(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(carteira);
+        return newSet;
+      });
+      
+      alert(`Erro ao reordenar ativos da carteira ${carteira}: ${error.message}`);
     }
   });
 
@@ -705,29 +736,35 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     isLoadingRef.current = false;
   }, [user?.id, isAuthenticated, lerDados]);
 
-  // 🔥 DADOS FINAIS COM MERGE INTELIGENTE
+  // 🔥 DADOS FINAIS COM CONTROLE MELHORADO
   const dadosFinais = useMemo(() => {
     if (modoSincronizacao === 'localStorage' || !user?.id) {
       console.log('📁 Usando dados localStorage');
       return dados;
     }
     
-    // 🔥 MODO HÍBRIDO COM MERGE INTELIGENTE
     const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
       const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
       const dadosBanco = query?.data || [];
       const dadosLocal = dados[carteira] || [];
       
-      // 🔥 LÓGICA: Durante mutations, usar local. Senão, usar banco com fallback local
-      const temMutacaoPendente = reordenarMutation.isPending || 
-                                adicionarMutation.isPending || 
-                                editarMutation.isPending || 
-                                removerMutation.isPending;
+      // 🔥 VERIFICAÇÕES MAIS ESPECÍFICAS
+      const temMutacaoGeral = adicionarMutation.isPending || 
+                             editarMutation.isPending || 
+                             removerMutation.isPending;
       
-      if (temMutacaoPendente) {
+      const estaReordenando = carteirasSendoReordenadas.has(carteira);
+      const reordenacaoRecente = ultimaReordenacao[carteira] && 
+                                (Date.now() - ultimaReordenacao[carteira].getTime()) < 25000; // 25 segundos
+      
+      const deveUsarLocal = estaReordenando || reordenacaoRecente || temMutacaoGeral;
+      
+      if (deveUsarLocal) {
         acc[carteira] = dadosLocal;
-        console.log(`⏳ ${carteira}: Local (mutação pendente) - ${dadosLocal.length} ativos`);
-      } else if (query?.isSuccess && Array.isArray(dadosBanco)) {
+        const motivo = estaReordenando ? 'reordenando' : 
+                      reordenacaoRecente ? 'reordenação recente' : 'mutação geral';
+        console.log(`⏳ ${carteira}: Local (${motivo}) - ${dadosLocal.length} ativos`);
+      } else if (query?.isSuccess && Array.isArray(dadosBanco) && dadosBanco.length > 0) {
         acc[carteira] = dadosBanco;
         console.log(`✅ ${carteira}: Banco - ${dadosBanco.length} ativos`);
       } else {
@@ -744,6 +781,8 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     carteirasQueries, 
     modoSincronizacao, 
     user?.id,
+    carteirasSendoReordenadas,
+    ultimaReordenacao,
     reordenarMutation.isPending,
     adicionarMutation.isPending,
     editarMutation.isPending,
@@ -895,32 +934,46 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     return true;
   }, [dados, setDados, salvarDados, removerMutation, user?.id, isAuthenticated]);
 
+  // 🔥 FUNÇÃO REORDENAR CORRIGIDA
   const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
-    console.log(`🔄 REORDENANDO ATIVOS: ${carteira} (${novosAtivos.length} ativos)`);
+    console.log(`🔄 === REORDENAÇÃO INICIADA ===`);
+    console.log(`📂 Carteira: ${carteira}`);
+    console.log(`📋 ${novosAtivos.length} ativos na nova ordem:`);
+    novosAtivos.forEach((ativo, i) => {
+      console.log(`   ${i + 1}. ${ativo.ticker} (ID: ${ativo.id})`);
+    });
+    
+    // 🔥 VALIDAR DADOS
+    if (!novosAtivos || novosAtivos.length === 0) {
+      console.error('❌ Lista de ativos vazia');
+      return;
+    }
     
     // 🔥 PREPARAR ATIVOS COM ORDEM EXPLÍCITA
     const ativosComOrdem = novosAtivos.map((ativo, index) => ({
       ...ativo,
-      ordem: index,
+      ordem: index + 1,
       editadoEm: new Date().toISOString()
     }));
 
-    // 🔥 ATUALIZAR ESTADO LOCAL PRIMEIRO
+    // 🔥 ATUALIZAR ESTADO LOCAL IMEDIATAMENTE
     const novosDados = {
       ...dados,
       [carteira]: ativosComOrdem
     };
+    
+    console.log(`💾 Atualizando estado local com nova ordem`);
     setDados(novosDados);
 
     // 🔥 SINCRONIZAR COM BANCO SE AUTENTICADO
     if (user?.id && isAuthenticated) {
-      console.log(`🔄 Sincronizando reordenação com banco...`);
+      console.log(`🌐 Sincronizando com banco...`);
       reordenarMutation.mutate({ 
         carteira, 
         novosAtivos: ativosComOrdem 
       });
     } else {
-      console.warn(`⚠️ Não autenticado - reordenação salva apenas localmente`);
+      console.warn(`⚠️ Não autenticado - salvando apenas localmente`);
       salvarDados(novosDados);
     }
   }, [dados, setDados, salvarDados, reordenarMutation, user?.id, isAuthenticated]);
@@ -1050,6 +1103,32 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     };
   }, [adicionarMutation, editarMutation, removerMutation, reordenarMutation]);
 
+  // 🔥 FUNÇÃO DEBUG ESPECÍFICA PARA REORDENAÇÃO
+  const debugReordenacao = useCallback(() => {
+    console.log('🔍 === DEBUG REORDENAÇÃO ===');
+    
+    const info = {
+      carteirasSendoReordenadas: Array.from(carteirasSendoReordenadas),
+      ultimaReordenacao: Object.entries(ultimaReordenacao).reduce((acc, [carteira, data]) => {
+        acc[carteira] = {
+          data: data.toISOString(),
+          tempoDecorrido: `${Math.round((Date.now() - data.getTime()) / 1000)}s`
+        };
+        return acc;
+      }, {} as any),
+      reordenarMutation: {
+        isPending: reordenarMutation.isPending,
+        isError: reordenarMutation.isError,
+        error: reordenarMutation.error?.message
+      },
+      modoSincronizacao,
+      isAuthenticated
+    };
+    
+    console.table(info);
+    return info;
+  }, [carteirasSendoReordenadas, ultimaReordenacao, reordenarMutation, modoSincronizacao, isAuthenticated]);
+
   // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
     if (!isInitialized || typeof window === 'undefined') return;
@@ -1077,13 +1156,15 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     if (typeof window !== 'undefined' && isInitialized) {
       (window as any).debugDataStore = debug;
       (window as any).debugMutations = debugMutations;
+      (window as any).debugReordenacao = debugReordenacao;
       
       return () => {
         delete (window as any).debugDataStore;
         delete (window as any).debugMutations;
+        delete (window as any).debugReordenacao;
       };
     }
-  }, [debug, debugMutations, isInitialized]);
+  }, [debug, debugMutations, debugReordenacao, isInitialized]);
 
   if (!isInitialized) {
     return (
@@ -1121,11 +1202,16 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     obterEstatisticas,
     debug,
     debugMutations,
+    debugReordenacao, // 🔥 NOVA FUNÇÃO DEBUG
 
     // Estados React Query
     isLoading: Object.values(carteirasQueries).some((q: any) => q.isLoading),
     isError: Object.values(carteirasQueries).some((q: any) => q.isError),
-    isMutating: reordenarMutation.isPending || adicionarMutation.isPending || editarMutation.isPending || removerMutation.isPending
+    isMutating: reordenarMutation.isPending || adicionarMutation.isPending || editarMutation.isPending || removerMutation.isPending,
+    
+    // 🔥 NOVOS ESTADOS EXPOSTOS
+    carteirasSendoReordenadas: Array.from(carteirasSendoReordenadas),
+    ultimaReordenacao
   };
 
   return (
