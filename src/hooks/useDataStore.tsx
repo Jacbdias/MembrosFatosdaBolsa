@@ -1,11 +1,11 @@
-// src/hooks/useDataStore.tsx - VERSÃO HÍBRIDA CORRIGIDA PARA PRISMA E BUILD
+// src/hooks/useDataStore.tsx - VERSÃO CORRIGIDA - HEADERS + SIMPLIFICAÇÃO
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/use-user';
 
-// 🎯 DADOS INICIAIS DAS CARTEIRAS
+// 🎯 DADOS INICIAIS DAS CARTEIRAS (mantidos iguais)
 const DADOS_INICIAIS = {
   smallCaps: [
     { id: 'sc1', ticker: "ALOS3", dataEntrada: "15/01/2021", precoEntrada: 26.68, precoTeto: 23.76, setor: "Shoppings" },
@@ -171,7 +171,7 @@ const DADOS_INICIAIS = {
   ]
 };
 
-// 🎯 CONFIGURAÇÕES DAS CARTEIRAS
+// 🎯 CONFIGURAÇÕES DAS CARTEIRAS (mantidas iguais)
 const CARTEIRAS_CONFIG = {
   smallCaps: { 
     nome: 'Small Caps', 
@@ -241,7 +241,7 @@ const CARTEIRAS_CONFIG = {
 
 const STORAGE_KEY = 'carteiras-dados';
 
-// 🔥 FUNÇÕES DA API PARA PRISMA (com error handling robusto)
+// 🔥 API CORRIGIDA - HEADERS CORRETOS + ERROR HANDLING
 const api = {
   getCarteira: async (carteira: string) => {
     try {
@@ -251,25 +251,30 @@ const api = {
       const token = localStorage.getItem('custom-auth-token');
       
       if (!userEmail || !token) {
+        console.log('⚠️ Credenciais não encontradas');
         return [];
       }
+      
+      console.log(`🔄 API: Buscando ${carteira} para ${userEmail}`);
       
       const response = await fetch(`/api/meus-ativos/${carteira}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Email': userEmail,
+          'x-user-email': userEmail, // 🔥 CORRIGIDO: minúsculo!
           'Authorization': `Bearer ${token}`
         }
       });
       
       if (!response.ok) {
-        console.warn(`API Prisma - Erro ao buscar ${carteira}: ${response.status}`);
+        console.warn(`❌ API: Erro ${response.status} ao buscar ${carteira}`);
         return [];
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log(`✅ API: ${carteira} retornou ${data.length} itens`);
+      return data;
     } catch (error) {
-      console.warn(`API Prisma - Erro na requisição ${carteira}:`, error);
+      console.error(`❌ API: Erro na requisição ${carteira}:`, error);
       return [];
     }
   },
@@ -285,7 +290,7 @@ const api = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Email': userEmail || '',
+          'x-user-email': userEmail || '', // 🔥 CORRIGIDO: minúsculo!
           'Authorization': `Bearer ${token || ''}`
         },
         body: JSON.stringify(dados)
@@ -297,7 +302,7 @@ const api = {
       
       return response.json();
     } catch (error) {
-      console.error('API Prisma - Erro ao adicionar:', error);
+      console.error('❌ API: Erro ao adicionar:', error);
       throw error;
     }
   },
@@ -313,7 +318,7 @@ const api = {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Email': userEmail || '',
+          'x-user-email': userEmail || '', // 🔥 CORRIGIDO: minúsculo!
           'Authorization': `Bearer ${token || ''}`
         },
         body: JSON.stringify({ id, ...dados })
@@ -325,7 +330,7 @@ const api = {
       
       return response.json();
     } catch (error) {
-      console.error('API Prisma - Erro ao editar:', error);
+      console.error('❌ API: Erro ao editar:', error);
       throw error;
     }
   },
@@ -341,7 +346,7 @@ const api = {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Email': userEmail || '',
+          'x-user-email': userEmail || '', // 🔥 CORRIGIDO: minúsculo!
           'Authorization': `Bearer ${token || ''}`
         },
         body: JSON.stringify({ id })
@@ -353,7 +358,7 @@ const api = {
       
       return response.json();
     } catch (error) {
-      console.error('API Prisma - Erro ao remover:', error);
+      console.error('❌ API: Erro ao remover:', error);
       throw error;
     }
   },
@@ -369,7 +374,7 @@ const api = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Email': userEmail || '',
+          'x-user-email': userEmail || '', // 🔥 CORRIGIDO: minúsculo!
           'Authorization': `Bearer ${token || ''}`
         },
         body: JSON.stringify({ novosAtivos })
@@ -381,7 +386,7 @@ const api = {
       
       return response.json();
     } catch (error) {
-      console.error('API Prisma - Erro ao reordenar:', error);
+      console.error('❌ API: Erro ao reordenar:', error);
       throw error;
     }
   }
@@ -401,223 +406,107 @@ export const useDataStore = () => {
   return context;
 };
 
-// 🎯 PROVIDER HÍBRIDO CORRIGIDO PARA BUILD
+// 🎯 PROVIDER SIMPLIFICADO - CORRIGIDO PARA FUNCIONAR
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
-  
-  // 🔥 ACESSAR O QUERY CLIENT CORRETAMENTE (DENTRO DO PROVIDER)
-  let queryClientInstance = null;
-  try {
-    queryClientInstance = useQueryClient(); // 🔥 AGORA FUNCIONA!
-  } catch (error) {
-    console.log('⚠️ QueryClient não disponível:', error);
-  }
+  const queryClient = useQueryClient();
 
-  // 🔥 STATES ESTÁVEIS - COM NOVO STATE PARA CONTROLAR QUERIES
+  // 🔥 STATES SIMPLIFICADOS
   const [dados, setDados] = useState(DADOS_INICIAIS);
   const [cotacoes, setCotacoes] = useState<Record<string, number>>({});
   const [cotacaoUSD, setCotacaoUSD] = useState(5.85);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [modoSincronizacao, setModoSincronizacao] = useState<'localStorage' | 'banco' | 'hibrido'>('localStorage');
-  const [queriesHabilitadas, setQueriesHabilitadas] = useState(false); // 🔥 NOVO STATE
   
   // 🔥 REFS PARA CONTROLE
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingRef = useRef(false);
 
-  // 🔥 FUNÇÃO PARA VERIFICAR AUTENTICAÇÃO SEGURA PARA SSR
-  const verificarAutenticacao = useCallback(() => {
-    // ✅ CRÍTICO: Verificar se estamos no browser
-    if (typeof window === 'undefined') {
-      return false; // No servidor, sempre retorna false
-    }
+  // 🔥 VERIFICAÇÃO DE AUTENTICAÇÃO SIMPLES
+  const isAuthenticated = useMemo(() => {
+    if (typeof window === 'undefined') return false;
     
     try {
       const userEmail = localStorage.getItem('user-email');
       const token = localStorage.getItem('custom-auth-token');
-      
-      // ✅ Se tem credenciais válidas, considera autenticado
-      return !!(userEmail && token && userEmail.includes('@') && token.length > 10);
-    } catch (error) {
-      console.error('Erro ao verificar autenticação:', error);
+      return !!(userEmail && token && userEmail.includes('@'));
+    } catch {
       return false;
     }
-  }, []);
+  }, [user?.id]);
 
-  // 🔥 COMPUTED VALUE SEGURO PARA SSR
-  const isAuthenticated = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return verificarAutenticacao();
-  }, [verificarAutenticacao]);
-
-  // 🔥 TODAS AS 8 REACT QUERY CORRIGIDAS - COM NOVA CONDIÇÃO queriesHabilitadas
+  // 🔥 REACT QUERIES SIMPLIFICADAS COM ENABLED CORRETO
   const smallCapsQuery = useQuery({
-    queryKey: ['carteira', 'smallCaps', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'smallCaps', user?.id],
     queryFn: () => api.getCarteira('smallCaps'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ smallCaps Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ smallCaps Query erro:', error);
-    }
+    retry: 1
   });
 
   const microCapsQuery = useQuery({
-    queryKey: ['carteira', 'microCaps', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'microCaps', user?.id],
     queryFn: () => api.getCarteira('microCaps'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ microCaps Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ microCaps Query erro:', error);
-    }
+    retry: 1
   });
 
   const dividendosQuery = useQuery({
-    queryKey: ['carteira', 'dividendos', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'dividendos', user?.id],
     queryFn: () => api.getCarteira('dividendos'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ dividendos Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ dividendos Query erro:', error);
-    }
+    retry: 1
   });
 
   const fiisQuery = useQuery({
-    queryKey: ['carteira', 'fiis', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'fiis', user?.id],
     queryFn: () => api.getCarteira('fiis'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ fiis Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ fiis Query erro:', error);
-    }
+    retry: 1
   });
 
   const dividendosInternacionalQuery = useQuery({
-    queryKey: ['carteira', 'dividendosInternacional', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'dividendosInternacional', user?.id],
     queryFn: () => api.getCarteira('dividendosInternacional'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ dividendosInternacional Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ dividendosInternacional Query erro:', error);
-    }
+    retry: 1
   });
 
   const etfsQuery = useQuery({
-    queryKey: ['carteira', 'etfs', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'etfs', user?.id],
     queryFn: () => api.getCarteira('etfs'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ etfs Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ etfs Query erro:', error);
-    }
+    retry: 1
   });
 
   const projetoAmericaQuery = useQuery({
-    queryKey: ['carteira', 'projetoAmerica', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'projetoAmerica', user?.id],
     queryFn: () => api.getCarteira('projetoAmerica'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ projetoAmerica Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ projetoAmerica Query erro:', error);
-    }
+    retry: 1
   });
 
   const exteriorStocksQuery = useQuery({
-    queryKey: ['carteira', 'exteriorStocks', isAuthenticated ? 'auth' : 'anon'],
+    queryKey: ['carteira', 'exteriorStocks', user?.id],
     queryFn: () => api.getCarteira('exteriorStocks'),
-    enabled: typeof window !== 'undefined' && 
-             isAuthenticated && 
-             modoSincronizacao === 'hibrido' && 
-             queriesHabilitadas && 
-             isInitialized,
+    enabled: !!user?.id && isAuthenticated && modoSincronizacao === 'hibrido',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchInterval: false,
-    retry: 2,
-    retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('✅ exteriorStocks Query sucesso:', data?.length || 0, 'itens');
-    },
-    onError: (error) => {
-      console.error('❌ exteriorStocks Query erro:', error);
-    }
+    retry: 1
   });
 
   // 🔥 OBJECT COM TODAS AS QUERIES
@@ -632,17 +521,15 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     exteriorStocks: exteriorStocksQuery
   };
 
-  // 🔥 MUTATIONS OTIMIZADAS
+  // 🔥 MUTATIONS SIMPLIFICADAS
   const adicionarMutation = useMutation({
     mutationFn: ({ carteira, dados }: { carteira: string, dados: any }) => 
       api.adicionarAtivo(carteira, dados),
     onSuccess: (_, { carteira }) => {
-      if (queryClientInstance) {
-        queryClientInstance.invalidateQueries({ 
-          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-          exact: true
-        });
-      }
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
@@ -650,12 +537,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, id, dados }: { carteira: string, id: string, dados: any }) => 
       api.editarAtivo(carteira, id, dados),
     onSuccess: (_, { carteira }) => {
-      if (queryClientInstance) {
-        queryClientInstance.invalidateQueries({ 
-          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-          exact: true
-        });
-      }
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
@@ -663,12 +548,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, id }: { carteira: string, id: string }) => 
       api.removerAtivo(carteira, id),
     onSuccess: (_, { carteira }) => {
-      if (queryClientInstance) {
-        queryClientInstance.invalidateQueries({ 
-          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-          exact: true
-        });
-      }
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
@@ -676,16 +559,14 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     mutationFn: ({ carteira, novosAtivos }: { carteira: string, novosAtivos: any[] }) => 
       api.reordenarAtivos(carteira, novosAtivos),
     onSuccess: (_, { carteira }) => {
-      if (queryClientInstance) {
-        queryClientInstance.invalidateQueries({ 
-          queryKey: ['carteira', carteira, isAuthenticated ? 'auth' : 'anon'],
-          exact: true
-        });
-      }
+      queryClient.invalidateQueries({ 
+        queryKey: ['carteira', carteira, user?.id],
+        exact: true
+      });
     }
   });
 
-  // 🔥 FUNÇÕES BÁSICAS COM VERIFICAÇÃO SSR
+  // 🔥 FUNÇÕES BÁSICAS
   const lerDados = useCallback(() => {
     try {
       if (typeof window === 'undefined') return DADOS_INICIAIS;
@@ -713,129 +594,57 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
   }, []);
 
-  // 🔥 INICIALIZAÇÃO CORRIGIDA - COM VERIFICAÇÃO REACT QUERY
+  // 🔥 INICIALIZAÇÃO SIMPLIFICADA
   useEffect(() => {
-    if (isLoadingRef.current) return;
-    
-    // ✅ CRÍTICO: Só executar no browser
-    if (typeof window === 'undefined') {
-      setIsInitialized(true);
-      return;
-    }
-    
+    if (isLoadingRef.current || typeof window === 'undefined') return;
     isLoadingRef.current = true;
     
-    console.log('🚀 DataStore: Inicializando...');
+    console.log('🚀 DataStore: Inicializando modo híbrido simples...');
+    console.log('👤 User:', { id: user?.id, isAuthenticated });
     
-    const isAuth = verificarAutenticacao();
-    
-    // 🔥 VERIFICAÇÃO CORRETA DO QUERY CLIENT
-    const reactQueryDisponivel = !!queryClientInstance;
-    
-    console.log('🔍 Status de inicialização:', { 
-      isAuth,
-      reactQueryDisponivel,
-      queryClientInstance: !!queryClientInstance,
-      userFromHook: !!user?.id,
-      userEmail: localStorage.getItem('user-email'),
-      hasToken: !!localStorage.getItem('custom-auth-token')
-    });
-    
-    if (isAuth && reactQueryDisponivel) {
-      console.log('✅ Usuário autenticado + React Query disponível - USANDO PRISMA');
+    if (user?.id && isAuthenticated) {
+      console.log('✅ Usuário autenticado - MODO HÍBRIDO');
       setModoSincronizacao('hibrido');
-      
-      setTimeout(() => {
-        setQueriesHabilitadas(true);
-        console.log('✅ Queries habilitadas para Prisma');
-      }, 200);
     } else {
-      if (isAuth && !reactQueryDisponivel) {
-        console.log('⚠️ Usuário autenticado MAS React Query indisponível - usando localStorage');
-      } else {
-        console.log('❌ Usuário não autenticado - usando localStorage');
-      }
-      
+      console.log('❌ Usuário não autenticado - MODO LOCALSTORAGE');
       setModoSincronizacao('localStorage');
       const dadosIniciais = lerDados();
       setDados(dadosIniciais);
-      
-      console.log('📁 Dados carregados do localStorage:', {
-        totalCarteiras: Object.keys(dadosIniciais).length,
-        detalhes: Object.entries(dadosIniciais).map(([nome, carteira]) => ({
-          nome,
-          count: Array.isArray(carteira) ? carteira.length : 0
-        }))
-      });
     }
     
     setIsInitialized(true);
     isLoadingRef.current = false;
-  }, [verificarAutenticacao, lerDados, user?.id, queryClientInstance]);
+  }, [user?.id, isAuthenticated, lerDados]);
 
-  // 🔥 DADOS FINAIS CORRIGIDOS - COM VERIFICAÇÃO DE queriesHabilitadas
+  // 🔥 DADOS FINAIS SIMPLIFICADOS
   const dadosFinais = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return DADOS_INICIAIS;
-    }
-    
-    console.log('🔄 Recalculando dadosFinais:', { 
-      modoSincronizacao, 
-      isAuthenticated,
-      queriesHabilitadas,
-      isInitialized,
-      dadosLength: Object.keys(dados).length,
-      userId: user?.id 
-    });
-    
-    // 🔥 PRIORIZAR LOCALSTORAGE QUANDO MODO É LOCALSTORAGE
-    if (modoSincronizacao === 'localStorage') {
-      console.log('📁 Usando dados localStorage (modo localStorage ativo)');
-      console.log('📊 Dados localStorage detalhados:', Object.entries(dados).map(([nome, carteira]) => ({
-        nome,
-        count: Array.isArray(carteira) ? carteira.length : 0,
-        hasData: Array.isArray(carteira) && carteira.length > 0
-      })));
-      
-      // 🔥 GARANTIR QUE RETORNA OS DADOS CORRETOS
+    if (modoSincronizacao === 'localStorage' || !user?.id) {
+      console.log('📁 Usando dados localStorage');
       return dados;
     }
     
-    // 🔥 AGUARDAR QUERIES SEREM HABILITADAS APENAS NO MODO HÍBRIDO
-    if (!queriesHabilitadas) {
-      console.log('⏳ Aguardando queries serem habilitadas... usando dados locais temporariamente');
-      return dados;
-    }
-    
-    // Modo híbrido: banco + localStorage com FALLBACK
+    // Modo híbrido: banco + localStorage
     const dadosCombinados = Object.keys(CARTEIRAS_CONFIG).reduce((acc, carteira) => {
       const query = carteirasQueries[carteira as keyof typeof carteirasQueries];
       const dadosBanco = query?.data || [];
       const dadosLocal = dados[carteira] || [];
       
-      console.log(`📊 ${carteira}:`, { 
-        isLoading: query?.isLoading,
-        isError: query?.isError,
-        isSuccess: query?.isSuccess, 
-        dadosBanco: dadosBanco.length,
-        dadosLocal: dadosLocal.length 
-      });
-      
+      // Priorizar dados do banco quando disponível
       if (query?.isSuccess && dadosBanco.length >= 0) {
         acc[carteira] = dadosBanco;
-        console.log(`✅ ${carteira}: Usando dados do banco (${dadosBanco.length} itens)`);
+        console.log(`✅ ${carteira}: Banco (${dadosBanco.length} itens)`);
       } else {
         acc[carteira] = dadosLocal;
-        console.log(`⚠️ ${carteira}: Usando dados locais (${dadosLocal.length} itens)`);
+        console.log(`📁 ${carteira}: Local (${dadosLocal.length} itens)`);
       }
       
       return acc;
     }, {} as any);
     
     return dadosCombinados;
-  }, [dados, carteirasQueries, modoSincronizacao, isAuthenticated, queriesHabilitadas, isInitialized]);
+  }, [dados, carteirasQueries, modoSincronizacao, user?.id]);
 
-  // 🔥 FUNÇÕES DE COTAÇÃO
+  // 🔥 FUNÇÕES DE COTAÇÃO (mantidas iguais)
   const buscarCotacoes = useCallback(async (tickers: string[]) => {
     if (!tickers || tickers.length === 0) return {};
     
@@ -916,7 +725,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) {
+    } else if (user?.id && isAuthenticated) {
       // Sync com Prisma
       adicionarMutation.mutate({ carteira, dados: ativoComId });
     }
@@ -926,7 +735,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     }
     
     return ativoComId;
-  }, [dados, salvarDados, adicionarMutation, buscarCotacoes, modoSincronizacao, isAuthenticated]);
+  }, [dados, salvarDados, adicionarMutation, buscarCotacoes, modoSincronizacao, user?.id, isAuthenticated]);
 
   const editarAtivo = useCallback((carteira: string, id: string, dadosAtualizados: any) => {
     const novosDados = {
@@ -942,12 +751,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) {
+    } else if (user?.id && isAuthenticated) {
       editarMutation.mutate({ carteira, id, dados: dadosAtualizados });
     }
     
     return novosDados[carteira].find((a: any) => a.id === id);
-  }, [dados, salvarDados, editarMutation, modoSincronizacao, isAuthenticated]);
+  }, [dados, salvarDados, editarMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
   const removerAtivo = useCallback((carteira: string, ativoId: string) => {
     const novosDados = {
@@ -959,12 +768,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) {
+    } else if (user?.id && isAuthenticated) {
       removerMutation.mutate({ carteira, id: ativoId });
     }
     
     return true;
-  }, [dados, salvarDados, removerMutation, modoSincronizacao, isAuthenticated]);
+  }, [dados, salvarDados, removerMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
   const reordenarAtivos = useCallback((carteira: string, novosAtivos: any[]) => {
     const novosDados = {
@@ -979,10 +788,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     
     if (modoSincronizacao === 'localStorage') {
       salvarDados(novosDados);
-    } else if (isAuthenticated) {
+    } else if (user?.id && isAuthenticated) {
       reordenarMutation.mutate({ carteira, novosAtivos });
     }
-  }, [dados, salvarDados, reordenarMutation, modoSincronizacao, isAuthenticated]);
+  }, [dados, salvarDados, reordenarMutation, modoSincronizacao, user?.id, isAuthenticated]);
 
   // 🔥 OUTRAS FUNÇÕES MANTIDAS
   const atualizarTodasCotacoes = useCallback(async () => {
@@ -1053,45 +862,27 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       carteirasPorTamanho,
       modoSincronizacao,
       isAuthenticated,
-      queriesHabilitadas, // 🔥 INCLUIR NO DEBUG
       ultimaAtualizacao: new Date().toISOString()
     };
-  }, [dadosFinais, modoSincronizacao, isAuthenticated, queriesHabilitadas]);
+  }, [dadosFinais, modoSincronizacao, isAuthenticated]);
 
   const debug = useCallback(() => {
-    const queryStates = Object.entries(carteirasQueries).reduce((acc, [nome, query]) => {
-      acc[nome] = {
-        isLoading: query.isLoading,
-        isError: query.isError,
-        isSuccess: query.isSuccess,
-        error: query.error?.message,
-        dataLength: query.data?.length || 0
-      };
-      return acc;
-    }, {} as any);
-
     const stats = obterEstatisticas();
-    
-    const debugInfo = {
+    console.log('🔍 DataStore Debug:', {
       dados: dadosFinais,
       stats,
       modoSincronizacao,
       isAuthenticated,
-      queriesHabilitadas, // 🔥 INCLUIR queriesHabilitadas
-      queryClientInstance: !!queryClientInstance, // 🔥 INCLUIR queryClient
       user: user?.id,
       cotacaoUSD,
-      queryStates,
       credenciais: {
         hasEmail: !!localStorage.getItem('user-email'),
         hasToken: !!localStorage.getItem('custom-auth-token'),
         email: localStorage.getItem('user-email')
       }
-    };
-    
-    console.log('🔍 DataStore Debug Completo:', debugInfo);
-    return debugInfo;
-  }, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, queriesHabilitadas, queryClientInstance, user?.id, cotacaoUSD, carteirasQueries]);
+    });
+    return { dados: dadosFinais, stats, modoSincronizacao, isAuthenticated, user: user?.id, cotacaoUSD };
+  }, [dadosFinais, obterEstatisticas, modoSincronizacao, isAuthenticated, user?.id, cotacaoUSD]);
 
   // 🔥 SETUP INICIAL CONTROLADO
   useEffect(() => {
@@ -1133,7 +924,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     );
   }
 
-  // 🔥 CONTEXT VALUE COM VERIFICAÇÃO SEGURA
+  // 🔥 VALUE OBJECT ESTÁVEL
   const contextValue = {
     // Dados
     dados: dadosFinais,
@@ -1143,8 +934,6 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     isInitialized,
     modoSincronizacao,
     isAuthenticated,
-    queriesHabilitadas, // 🔥 INCLUIR no context
-    queryClient: queryClientInstance, // 🔥 EXPOR O QUERY CLIENT
     
     // Configurações
     CARTEIRAS_CONFIG,
