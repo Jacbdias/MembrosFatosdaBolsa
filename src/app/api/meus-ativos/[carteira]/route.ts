@@ -158,42 +158,42 @@ async function buscarDadosMestres(carteira: string): Promise<any[]> {
     case 'microCaps':
       return await prisma.userMicroCaps.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' } 
       });
     case 'smallCaps':
       return await prisma.userSmallCaps.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     case 'dividendos':
       return await prisma.userDividendos.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     case 'fiis':
       return await prisma.userFiis.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     case 'dividendosInternacional':
       return await prisma.userDividendosInternacional.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     case 'etfs':
       return await prisma.userEtfs.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     case 'projetoAmerica':
       return await prisma.userProjetoAmerica.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     case 'exteriorStocks':
       return await prisma.userExteriorStocks.findMany({
         where: { userId: ADMIN_USER_ID },
-        orderBy: { editadoEm: 'asc' }
+        orderBy: { id: 'asc' }  
       });
     default:
       throw new Error('Carteira não implementada');
@@ -620,26 +620,36 @@ export async function PUT(request: NextRequest, { params }: { params: { carteira
     
     const { id, ...dadosAtualizacao } = body;
     
-    // 🔥 VALIDAÇÃO CRÍTICA DO ID
+    // 🔥 VALIDAÇÃO DE ID CORRIGIDA - ACEITA STRING E NUMBER
     if (!id) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
     
-    // 🔥 CONVERSÃO SEGURA DO ID
-    let idNumerico: number;
+    // 🔥 NOVA LÓGICA: Aceita tanto string quanto number
+    let idParaBusca: any;
+    let tipoId: 'string' | 'number';
+    
     if (typeof id === 'string') {
-      idNumerico = parseInt(id, 10);
-      if (isNaN(idNumerico)) {
-        return NextResponse.json({ error: 'ID deve ser um número válido' }, { status: 400 });
+      // Se é string, tenta converter para número
+      const idNumerico = parseInt(id, 10);
+      if (!isNaN(idNumerico)) {
+        // É uma string numérica (ex: "123")
+        idParaBusca = idNumerico;
+        tipoId = 'number';
+      } else {
+        // É uma string alfanumérica (ex: "cmea86jo70001ky04yzuv00q0")
+        idParaBusca = id;
+        tipoId = 'string';
       }
     } else if (typeof id === 'number') {
-      idNumerico = id;
+      // É um número puro
+      idParaBusca = id;
+      tipoId = 'number';
     } else {
-      return NextResponse.json({ error: 'ID deve ser número ou string numérica' }, { status: 400 });
+      return NextResponse.json({ error: 'ID deve ser string ou número' }, { status: 400 });
     }
     
-    console.log('✏️ ID validado:', idNumerico);
-    console.log('✏️ Dados para atualização:', dadosAtualizacao);
+    console.log('✏️ ID processado:', { original: id, processado: idParaBusca, tipo: tipoId });
     
     // 2. Validar carteira
     const CARTEIRA_MODELS = {
@@ -660,30 +670,72 @@ export async function PUT(request: NextRequest, { params }: { params: { carteira
 
     const model = (prisma as any)[modelName];
     
-    // 3. 🔥 VERIFICAR SE ATIVO EXISTE ANTES DE ATUALIZAR
+    // 3. 🔥 BUSCAR ATIVO COM ID FLEXÍVEL
     console.log('🔍 Verificando se ativo existe...');
-    const ativoExistente = await model.findFirst({
-      where: { 
-        id: idNumerico,
-        userId: user.id 
+    let ativoExistente;
+    
+    try {
+      ativoExistente = await model.findFirst({
+        where: { 
+          id: idParaBusca,  // 🔥 Usa o ID processado
+          userId: user.id 
+        }
+      });
+    } catch (findError) {
+      console.log('🔍 Primeira busca falhou, tentando com tipo alternativo...');
+      
+      // Se falhou, tenta com o tipo alternativo
+      if (tipoId === 'number') {
+        // Tenta como string
+        try {
+          ativoExistente = await model.findFirst({
+            where: { 
+              id: id.toString(),
+              userId: user.id 
+            }
+          });
+        } catch (e) {
+          console.error('❌ Busca alternativa como string falhou:', e);
+        }
+      } else {
+        // Tenta como número se possível
+        const idNum = parseInt(id, 10);
+        if (!isNaN(idNum)) {
+          try {
+            ativoExistente = await model.findFirst({
+              where: { 
+                id: idNum,
+                userId: user.id 
+              }
+            });
+          } catch (e) {
+            console.error('❌ Busca alternativa como número falhou:', e);
+          }
+        }
       }
-    });
+    }
     
     if (!ativoExistente) {
-      console.log('❌ Ativo não encontrado ou não pertence ao usuário');
+      console.log('❌ Ativo não encontrado após todas as tentativas');
       return NextResponse.json({ 
-        error: 'Ativo não encontrado ou sem permissão' 
+        error: 'Ativo não encontrado ou sem permissão',
+        debug: {
+          idOriginal: id,
+          idProcessado: idParaBusca,
+          tipoId: tipoId,
+          userId: user.id
+        }
       }, { status: 404 });
     }
     
-    console.log('✅ Ativo encontrado:', ativoExistente.ticker);
+    console.log('✅ Ativo encontrado:', ativoExistente.ticker, 'ID:', ativoExistente.id);
     
-    // 4. 🔥 PREPARAR DADOS LIMPOS PARA ATUALIZAÇÃO
+    // 4. 🔥 PREPARAR DADOS LIMPOS PARA ATUALIZAÇÃO (mantido igual)
     const dadosUpdate: any = {
       editadoEm: new Date()
     };
     
-    // Validação e conversão de campos
+    // Validação e conversão de campos (mantido igual)
     if (dadosAtualizacao.ticker !== undefined) {
       dadosUpdate.ticker = dadosAtualizacao.ticker.toString().toUpperCase();
     }
@@ -741,12 +793,12 @@ export async function PUT(request: NextRequest, { params }: { params: { carteira
     
     console.log('✏️ Dados LIMPOS para atualizar:', dadosUpdate);
     
-    // 5. 🔥 ATUALIZAR COM TRY/CATCH ESPECÍFICO
+    // 5. 🔥 ATUALIZAR COM ID FLEXÍVEL
     let ativoAtualizado;
     try {
       ativoAtualizado = await model.update({
         where: { 
-          id: idNumerico,
+          id: ativoExistente.id,  // 🔥 Usa o ID do ativo encontrado
           userId: user.id
         },
         data: dadosUpdate
@@ -793,27 +845,33 @@ export async function DELETE(request: NextRequest, { params }: { params: { carte
     
     const { id } = body;
     
-    // 🔥 VALIDAÇÃO CRÍTICA DO ID
+    // 🔥 VALIDAÇÃO DE ID FLEXÍVEL (MESMA LÓGICA DO PUT)
     if (!id) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
     
-    // 🔥 CONVERSÃO SEGURA DO ID
-    let idNumerico: number;
+    let idParaBusca: any;
+    let tipoId: 'string' | 'number';
+    
     if (typeof id === 'string') {
-      idNumerico = parseInt(id, 10);
-      if (isNaN(idNumerico)) {
-        return NextResponse.json({ error: 'ID deve ser um número válido' }, { status: 400 });
+      const idNumerico = parseInt(id, 10);
+      if (!isNaN(idNumerico)) {
+        idParaBusca = idNumerico;
+        tipoId = 'number';
+      } else {
+        idParaBusca = id;
+        tipoId = 'string';
       }
     } else if (typeof id === 'number') {
-      idNumerico = id;
+      idParaBusca = id;
+      tipoId = 'number';
     } else {
-      return NextResponse.json({ error: 'ID deve ser número ou string numérica' }, { status: 400 });
+      return NextResponse.json({ error: 'ID deve ser string ou número' }, { status: 400 });
     }
     
-    console.log('🗑️ ID validado:', idNumerico);
+    console.log('🗑️ ID processado:', { original: id, processado: idParaBusca, tipo: tipoId });
     
-    // 2. Validar carteira
+    // 2. Validar carteira (mesmo código)
     const CARTEIRA_MODELS = {
       microCaps: 'userMicroCaps',
       smallCaps: 'userSmallCaps', 
@@ -832,17 +890,48 @@ export async function DELETE(request: NextRequest, { params }: { params: { carte
 
     const model = (prisma as any)[modelName];
     
-    // 3. 🔥 VERIFICAR SE ATIVO EXISTE ANTES DE DELETAR
-    console.log('🔍 Verificando se ativo existe...');
-    const ativoExistente = await model.findFirst({
-      where: { 
-        id: idNumerico,
-        userId: user.id 
+    // 3. 🔥 BUSCAR COM ID FLEXÍVEL (mesma lógica)
+    let ativoExistente;
+    
+    try {
+      ativoExistente = await model.findFirst({
+        where: { 
+          id: idParaBusca,
+          userId: user.id 
+        }
+      });
+    } catch (findError) {
+      // Busca alternativa (mesmo código do PUT)
+      if (tipoId === 'number') {
+        try {
+          ativoExistente = await model.findFirst({
+            where: { 
+              id: id.toString(),
+              userId: user.id 
+            }
+          });
+        } catch (e) {
+          console.error('❌ Busca alternativa como string falhou:', e);
+        }
+      } else {
+        const idNum = parseInt(id, 10);
+        if (!isNaN(idNum)) {
+          try {
+            ativoExistente = await model.findFirst({
+              where: { 
+                id: idNum,
+                userId: user.id 
+              }
+            });
+          } catch (e) {
+            console.error('❌ Busca alternativa como número falhou:', e);
+          }
+        }
       }
-    });
+    }
     
     if (!ativoExistente) {
-      console.log('❌ Ativo não encontrado ou não pertence ao usuário');
+      console.log('❌ Ativo não encontrado para remoção');
       return NextResponse.json({ 
         error: 'Ativo não encontrado ou sem permissão' 
       }, { status: 404 });
@@ -850,12 +939,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { carte
     
     console.log('✅ Ativo encontrado para remoção:', ativoExistente.ticker);
     
-    // 4. 🔥 DELETAR COM TRY/CATCH ESPECÍFICO
+    // 4. 🔥 DELETAR COM ID DO ATIVO ENCONTRADO
     let ativoRemovido;
     try {
       ativoRemovido = await model.delete({
         where: { 
-          id: idNumerico,
+          id: ativoExistente.id,  // 🔥 Usa ID do ativo encontrado
           userId: user.id
         }
       });
@@ -882,26 +971,4 @@ export async function DELETE(request: NextRequest, { params }: { params: { carte
       details: (error as Error).message 
     }, { status: 500 });
   }
-}
-
-// 📊 ENDPOINT PARA ESTATÍSTICAS (ADMIN ONLY)
-export async function OPTIONS(request: NextRequest) {
-  const user = await getAuthenticatedUser(request);
-  
-  if (user?.plan !== 'ADMIN') {
-    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
-  }
-  
-  return NextResponse.json({
-    estatisticas: estatisticasUso,
-    cache: {
-      permissoes: cachePermissoes.size,
-      dadosMestres: cacheDadosMestres.size,
-      ultimaLimpeza: new Date(estatisticasUso.ultimaLimpezaCache)
-    },
-    performance: {
-      cacheHitRate: ((estatisticasUso.totalRequests - Object.values(estatisticasUso.requestsPorCarteira).length) / estatisticasUso.totalRequests * 100).toFixed(2) + '%',
-      acessosNegadosPercent: (estatisticasUso.acessosNegados / estatisticasUso.totalRequests * 100).toFixed(2) + '%'
-    }
-  });
 }
