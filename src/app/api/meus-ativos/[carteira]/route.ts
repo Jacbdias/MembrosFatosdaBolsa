@@ -443,6 +443,176 @@ export async function GET(
   }
 }
 
+// 🔥 ADICIONAR ESTA FUNÇÃO POST LOGO APÓS A FUNÇÃO GET
+
+// 🔍 POST - CRIAR NOVO ATIVO
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { carteira: string } }
+) {
+  const inicioRequest = Date.now();
+  let auditData: Partial<AuditLog> = {
+    carteira: params.carteira,
+    timestamp: new Date()
+  };
+  
+  try {
+    debugLog('➕ INICIO POST - Carteira:', params.carteira);
+    
+    // Extrair informações de auditoria
+    auditData.ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    auditData.userAgent = request.headers.get('user-agent') || 'unknown';
+    
+    // 1. Autenticação
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      auditData.acessoPermitido = false;
+      auditData.totalItensRetornados = 0;
+      auditData.userEmail = 'UNKNOWN';
+      auditData.userPlan = 'UNKNOWN';
+      registrarAcessoAuditoria(auditData as AuditLog);
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+    
+    auditData.userEmail = user.email;
+    auditData.userPlan = user.plan;
+    
+    // 2. Validar carteira
+    const carteirasValidas = [
+      'microCaps', 'smallCaps', 'dividendos', 'fiis', 
+      'dividendosInternacional', 'etfs', 'projetoAmerica', 'exteriorStocks'
+    ];
+    
+    if (!carteirasValidas.includes(params.carteira)) {
+      auditData.acessoPermitido = false;
+      auditData.totalItensRetornados = 0;
+      registrarAcessoAuditoria(auditData as AuditLog);
+      return NextResponse.json({ error: 'Carteira inválida' }, { status: 400 });
+    }
+
+    // 3. ⚡ VERIFICAR PERMISSÕES COM CACHE
+    const temPermissao = verificarPermissaoComCache(user.plan, params.carteira);
+    auditData.acessoPermitido = temPermissao;
+    
+    if (!temPermissao) {
+      debugLog(`🚫 Plano ${user.plan} NÃO tem permissão para criar na carteira ${params.carteira}`);
+      auditData.totalItensRetornados = 0;
+      registrarAcessoAuditoria(auditData as AuditLog);
+      return NextResponse.json({ error: 'Sem permissão para esta carteira' }, { status: 403 });
+    }
+
+    debugLog(`✅ Plano ${user.plan} tem permissão para criar na carteira ${params.carteira}`);
+    
+    // 4. Parse do body
+    const body = await request.json();
+    debugLog('➕ Body recebido:', body);
+    
+    // 5. Preparar dados para criação
+    const dadosCreate: any = {
+      userId: user.id,
+      ticker: body.ticker?.toUpperCase(),
+      setor: body.setor,
+      dataEntrada: body.dataEntrada,
+      precoEntrada: parseFloat(body.precoEntrada),
+      editadoEm: new Date()
+    };
+    
+    // Campos opcionais
+    if (body.precoTeto) dadosCreate.precoTeto = parseFloat(body.precoTeto);
+    if (body.precoTetoBDR) dadosCreate.precoTetoBDR = parseFloat(body.precoTetoBDR);
+    if (body.posicaoEncerrada !== undefined) dadosCreate.posicaoEncerrada = body.posicaoEncerrada;
+    if (body.dataSaida) dadosCreate.dataSaida = body.dataSaida;
+    if (body.precoSaida) dadosCreate.precoSaida = parseFloat(body.precoSaida);
+    if (body.motivoEncerramento) dadosCreate.motivoEncerramento = body.motivoEncerramento;
+    
+    debugLog('➕ Dados para criar:', dadosCreate);
+    
+    let ativoCriado;
+    
+    // 6. Criar ativo na carteira específica
+    switch (params.carteira) {
+      case 'smallCaps':
+        ativoCriado = await prisma.userSmallCaps.create({
+          data: dadosCreate
+        });
+        break;
+      case 'microCaps':
+        ativoCriado = await prisma.userMicroCaps.create({
+          data: dadosCreate
+        });
+        break;
+      case 'dividendos':
+        ativoCriado = await prisma.userDividendos.create({
+          data: dadosCreate
+        });
+        break;
+      case 'fiis':
+        ativoCriado = await prisma.userFiis.create({
+          data: dadosCreate
+        });
+        break;
+      case 'dividendosInternacional':
+        ativoCriado = await prisma.userDividendosInternacional.create({
+          data: dadosCreate
+        });
+        break;
+      case 'etfs':
+        ativoCriado = await prisma.userEtfs.create({
+          data: dadosCreate
+        });
+        break;
+      case 'projetoAmerica':
+        ativoCriado = await prisma.userProjetoAmerica.create({
+          data: dadosCreate
+        });
+        break;
+      case 'exteriorStocks':
+        ativoCriado = await prisma.userExteriorStocks.create({
+          data: dadosCreate
+        });
+        break;
+      default:
+        return NextResponse.json({ error: 'Carteira não implementada' }, { status: 400 });
+    }
+    
+    debugLog('✅ Ativo criado:', ativoCriado.id);
+    console.log(`✅ Ativo ${dadosCreate.ticker} criado na carteira ${params.carteira} pelo usuário ${user.email} (${user.plan})`);
+    
+    // 7. Registrar auditoria de sucesso
+    auditData.totalItensRetornados = 1;
+    registrarAcessoAuditoria(auditData as AuditLog);
+    
+    // 8. Preparar resposta
+    const ativoSerializado = {
+      ...ativoCriado,
+      createdAt: ativoCriado.createdAt?.toISOString(),
+      updatedAt: ativoCriado.updatedAt?.toISOString(), 
+      editadoEm: ativoCriado.editadoEm?.toISOString(),
+      // Metadados
+      userPlan: user.plan,
+      accessLevel: getAccessLevel(user.plan, params.carteira),
+      requestTime: Date.now() - inicioRequest
+    };
+    
+    // 9. Headers de resposta
+    const response = NextResponse.json(ativoSerializado);
+    response.headers.set('X-Operation', 'CREATE');
+    response.headers.set('X-Access-Level', getAccessLevel(user.plan, params.carteira));
+    response.headers.set('X-Request-Time', (Date.now() - inicioRequest).toString());
+    
+    return response;
+    
+  } catch (error) {
+    debugLog('❌ Erro POST:', error);
+    auditData.acessoPermitido = false;
+    auditData.totalItensRetornados = 0;
+    registrarAcessoAuditoria(auditData as AuditLog);
+    
+    console.error(`❌ [ERROR] POST ${auditData.userEmail} - ${params.carteira}:`, error);
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+  }
+}
+
 // 📊 ENDPOINT PARA ESTATÍSTICAS (ADMIN ONLY)
 export async function OPTIONS(request: NextRequest) {
   const user = await getAuthenticatedUser(request);
