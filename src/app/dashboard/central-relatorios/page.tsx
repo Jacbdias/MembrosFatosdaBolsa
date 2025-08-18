@@ -36,7 +36,8 @@ import {
   Checkbox,
   Toolbar,
   Menu,
-  Tooltip
+  Tooltip,
+  Autocomplete  // ← ADICIONAR ESTA LINHA
 } from '@mui/material';
 
 // Ícones simples seguindo o padrão
@@ -67,7 +68,7 @@ import {
 interface NovoRelatorio {
   ticker: string;
   nome: string;
-  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
+  tipo: 'apresentacao' | 'trimestral' | 'didatico' | 'outros';  // ← ALTERADO
   dataReferencia: string;
   linkCanva: string;
   linkExterno: string;
@@ -78,7 +79,9 @@ interface NovoRelatorio {
 const LIMITE_BASE64 = 3 * 1024 * 1024; // 3MB
 const TICKERS_DISPONIVEIS = [
   'KEPL3', 'AGRO3', 'LEVE3', 'BBAS3', 'BRSR6', 'ABCB4', 'SANB11',
-  'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'TRIS3', 'FESA4', 'CEAB3'
+  'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'TRIS3', 'FESA4', 'CEAB3',
+  'PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'ABEV3', 'MGLU3', 'WEGE3',
+  'RENT3', 'LREN3', 'AZUL4', 'GOLL4', 'HAPV3', 'TOTS3'
 ];
 
 const calcularHash = async (arquivo: File): Promise<string> => {
@@ -148,7 +151,8 @@ export default function CentralRelatorios() {
     error: exportError
   } = useRelatoriosExport();
 
-  const [tabAtiva, setTabAtiva] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);  
+const [tabAtiva, setTabAtiva] = useState(0);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [dialogBackup, setDialogBackup] = useState(false);
   const [dialogMigracao, setDialogMigracao] = useState(false);
@@ -165,7 +169,7 @@ export default function CentralRelatorios() {
   const [novoRelatorio, setNovoRelatorio] = useState<NovoRelatorio>({
     ticker: '',
     nome: '',
-    tipo: 'trimestral',
+    tipo: 'apresentacao',
     dataReferencia: '',
     linkCanva: '',
     linkExterno: '',
@@ -292,7 +296,7 @@ const migrarDadosParaAPI = useCallback(async () => {
       setNovoRelatorio({
         ticker: '',
         nome: '',
-        tipo: 'trimestral',
+        tipo: 'apresentacao',
         dataReferencia: '',
         linkCanva: '',
         linkExterno: '',
@@ -376,6 +380,7 @@ const migrarDadosParaAPI = useCallback(async () => {
       try {
         await excluirRelatorio(relatorioParaExcluir);
         await carregarEstatisticas();
+      setRefreshKey(prev => prev + 1); // ← ADICIONE ESTA LINHA
         setRelatorioParaExcluir(null);
         alert('✅ Relatório excluído com sucesso!');
       } catch (error) {
@@ -394,6 +399,7 @@ const migrarDadosParaAPI = useCallback(async () => {
         const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length;
         await excluirPorTicker(tickerParaExcluir);
         await carregarEstatisticas();
+      setRefreshKey(prev => prev + 1); // ← ADICIONE ESTA LINHA
         setTickerParaExcluir(null);
         alert(`✅ ${relatoriosDoTicker} relatórios do ticker ${tickerParaExcluir} excluídos!`);
       } catch (error) {
@@ -423,6 +429,7 @@ const migrarDadosParaAPI = useCallback(async () => {
       try {
         await excluirRelatorios(relatoriosSelecionados);
         await carregarEstatisticas();
+      setRefreshKey(prev => prev + 1); // ← ADICIONE ESTA LINHA
         setRelatoriosSelecionados([]);
         setModoSelecao(false);
         alert(`✅ ${relatoriosSelecionados.length} relatórios excluídos!`);
@@ -906,7 +913,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                         <TableCell align="center">Ações</TableCell>
                       </TableRow>
                     </TableHead>
-                    <TableBody>
+        <TableBody key={refreshKey}>
                       {estatisticas.relatorios
                         .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
                         .map((relatorio) => (
@@ -1179,22 +1186,38 @@ const migrarDadosParaAPI = useCallback(async () => {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Ticker *</InputLabel>
-                <Select
-                  value={novoRelatorio.ticker}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, ticker: e.target.value }))}
-                  sx={{
-                    borderRadius: '8px'
-                  }}
-                >
-                  {TICKERS_DISPONIVEIS.map(ticker => (
-                    <MenuItem key={ticker} value={ticker}>{ticker}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+<Grid item xs={12} md={6}>
+  <Autocomplete
+    freeSolo
+    options={TICKERS_DISPONIVEIS}
+    value={novoRelatorio.ticker}
+    onChange={(event, newValue) => {
+      setNovoRelatorio(prev => ({ 
+        ...prev, 
+        ticker: (newValue || '').toUpperCase() 
+      }));
+    }}
+    onInputChange={(event, newInputValue) => {
+      setNovoRelatorio(prev => ({ 
+        ...prev, 
+        ticker: newInputValue.toUpperCase() 
+      }));
+    }}
+    renderInput={(params) => (
+      <TextField
+        {...params}
+        label="Ticker *"
+        placeholder="Digite ou selecione um ticker (ex: PETR4)"
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '8px'
+          }
+        }}
+      />
+    )}
+    sx={{ width: '100%' }}
+  />
+</Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -1208,24 +1231,25 @@ const migrarDadosParaAPI = useCallback(async () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo</InputLabel>
-                <Select
-                  value={novoRelatorio.tipo}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
-                  sx={{
-                    borderRadius: '8px'
-                  }}
-                >
-                  <MenuItem value="trimestral">Trimestral</MenuItem>
-                  <MenuItem value="anual">Anual</MenuItem>
-                  <MenuItem value="apresentacao">Apresentação</MenuItem>
-                  <MenuItem value="outros">Outros</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
+<Grid item xs={12} md={6}>
+  <FormControl fullWidth>
+    <InputLabel>Tipo</InputLabel>
+    <Select
+      value={novoRelatorio.tipo}
+  label="Tipo" 
+      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+      sx={{
+        borderRadius: '8px'
+      }}
+    >
+      <MenuItem value="apresentacao">Apresentação</MenuItem>
+      <MenuItem value="trimestral">Trimestral</MenuItem>
+      <MenuItem value="didatico">Didático</MenuItem>
+      <MenuItem value="outros">Outros</MenuItem>
+    </Select>
+  </FormControl>
+</Grid>            
+<Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Data de Referência"
@@ -1244,6 +1268,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                 <InputLabel>Tipo de Visualização</InputLabel>
                 <Select
                   value={novoRelatorio.tipoVisualizacao}
+label="Tipo de Visualização" 
                   onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
                   sx={{
                     borderRadius: '8px'
