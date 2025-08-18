@@ -2,19 +2,153 @@
 
 import React, { useState } from 'react';
 import { useDataStore } from '../../../hooks/useDataStore';
+import { useUser } from '@/hooks/use-user'; // 🔥 IMPORTAR HOOK DE USUÁRIO
 
 export default function GerenciamentoPage() {
+  // 🔒 VERIFICAÇÃO DE ADMIN LOGO NO INÍCIO
+  const { user } = useUser();
+  
+  // 🚫 BLOQUEAR ACESSO SE NÃO FOR ADMIN
+  if (!user) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f8fafc', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '48px',
+          textAlign: 'center',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0',
+          maxWidth: '500px'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px' }}>⏳</div>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: '0 0 16px 0'
+          }}>
+            Verificando Autenticação...
+          </h1>
+          <p style={{
+            color: '#64748b',
+            fontSize: '16px',
+            margin: '0'
+          }}>
+            Aguarde enquanto verificamos suas credenciais.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-const { 
-  dados, 
-  CARTEIRAS_CONFIG, 
-  adicionarAtivo, 
-  editarAtivo, 
-  removerAtivo,        
-  reordenarAtivos,     
-  obterEstatisticas, 
-  setDados 
-} = useDataStore();
+  if (user.plan !== 'ADMIN') {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f8fafc', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '48px',
+          textAlign: 'center',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+          border: '2px solid #ef4444',
+          maxWidth: '500px'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px' }}>🚫</div>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '800',
+            color: '#dc2626',
+            margin: '0 0 16px 0'
+          }}>
+            Acesso Negado
+          </h1>
+          <p style={{
+            color: '#64748b',
+            fontSize: '16px',
+            margin: '0 0 24px 0',
+            lineHeight: '1.6'
+          }}>
+            Esta página é restrita a <strong>administradores</strong>.<br/>
+            Seu plano atual: <span style={{ 
+              color: '#dc2626', 
+              fontWeight: '600',
+              backgroundColor: '#fee2e2',
+              padding: '2px 8px',
+              borderRadius: '4px'
+            }}>{user.plan}</span>
+          </p>
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#991b1b',
+              margin: '0 0 8px 0'
+            }}>
+              📋 Informações da Conta:
+            </h3>
+            <div style={{ fontSize: '12px', color: '#7f1d1d', textAlign: 'left' }}>
+              <div><strong>Email:</strong> {user.email}</div>
+              <div><strong>Nome:</strong> {user.firstName} {user.lastName}</div>
+              <div><strong>Plano:</strong> {user.plan}</div>
+              <div><strong>Status:</strong> {user.status}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              margin: '0 auto'
+            }}
+          >
+            🏠 Voltar ao Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 SE CHEGOU ATÉ AQUI, É ADMIN - CARREGAR INTERFACE NORMAL
+  const { 
+    dados, 
+    CARTEIRAS_CONFIG, 
+    adicionarAtivo, 
+    editarAtivo, 
+    removerAtivo,        
+    reordenarAtivos,     
+    obterEstatisticas, 
+    setDados 
+  } = useDataStore();
   
   const [carteiraAtiva, setCarteiraAtiva] = useState('smallCaps');
   const [modoEdicao, setModoEdicao] = useState(null);
@@ -654,8 +788,29 @@ const {
       backgroundColor: '#f8fafc', 
       padding: '24px' 
     }}>
-      {/* Header */}
+      {/* 🔒 HEADER COM INDICAÇÃO DE ADMIN */}
       <div style={{ marginBottom: '32px' }}>
+        <div style={{
+          backgroundColor: '#059669',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <span style={{ fontSize: '20px' }}>👑</span>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '16px' }}>
+              Modo Administrador Ativo
+            </div>
+            <div style={{ fontSize: '12px', opacity: 0.9 }}>
+              Logado como: {user.firstName} {user.lastName} ({user.email}) • Plano: {user.plan}
+            </div>
+          </div>
+        </div>
+        
         <h1 style={{ 
           fontSize: '48px', 
           fontWeight: '800', 
