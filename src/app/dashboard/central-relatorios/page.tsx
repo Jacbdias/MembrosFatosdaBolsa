@@ -37,7 +37,7 @@ import {
   Toolbar,
   Menu,
   Tooltip,
-  Autocomplete  // ← ADICIONAR ESTA LINHA
+  Autocomplete
 } from '@mui/material';
 
 // Ícones simples seguindo o padrão
@@ -68,7 +68,7 @@ import {
 interface NovoRelatorio {
   ticker: string;
   nome: string;
-  tipo: 'apresentacao' | 'trimestral' | 'didatico' | 'outros';  // ← ALTERADO
+  tipo: 'apresentacao' | 'trimestral' | 'didatico' | 'outros';
   dataReferencia: string;
   linkCanva: string;
   linkExterno: string;
@@ -152,7 +152,7 @@ export default function CentralRelatorios() {
   } = useRelatoriosExport();
 
   const [refreshKey, setRefreshKey] = useState(0);  
-const [tabAtiva, setTabAtiva] = useState(0);
+  const [tabAtiva, setTabAtiva] = useState(0);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [dialogBackup, setDialogBackup] = useState(false);
   const [dialogMigracao, setDialogMigracao] = useState(false);
@@ -183,80 +183,80 @@ const [tabAtiva, setTabAtiva] = useState(0);
     verificarMigracaoIndexedDB();
   }, [carregarEstatisticas]);
 
-// 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
-const verificarMigracaoIndexedDB = useCallback(async () => {
-  try {
-    // Verificar apenas localStorage (mais simples e seguro)
-    const dadosLocalStorage = localStorage.getItem('relatorios_central');
-    
-    if (dadosLocalStorage) {
-      setDialogMigracao(true);
+  // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
+  const verificarMigracaoIndexedDB = useCallback(async () => {
+    try {
+      // Verificar apenas localStorage (mais simples e seguro)
+      const dadosLocalStorage = localStorage.getItem('relatorios_central');
+      
+      if (dadosLocalStorage) {
+        setDialogMigracao(true);
+      }
+    } catch (error) {
+      console.log('Nenhum dado local encontrado para migração');
     }
-  } catch (error) {
-    console.log('Nenhum dado local encontrado para migração');
-  }
-}, []);
+  }, []);
 
-// 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
-const migrarDadosParaAPI = useCallback(async () => {
-  try {
-    setEtapaProcessamento('Coletando dados do localStorage...');
-    
-    let relatoriosParaMigrar: any[] = [];
-    
-    // Coletar apenas do localStorage
-    const dadosLocalStorage = localStorage.getItem('relatorios_central');
-    if (dadosLocalStorage) {
-      const dados = JSON.parse(dadosLocalStorage);
-      Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
-        relatoriosTicker.forEach(relatorio => {
-          relatoriosParaMigrar.push({
-            ...relatorio,
-            ticker: relatorio.ticker || ticker
+  // 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
+  const migrarDadosParaAPI = useCallback(async () => {
+    try {
+      setEtapaProcessamento('Coletando dados do localStorage...');
+      
+      let relatoriosParaMigrar: any[] = [];
+      
+      // Coletar apenas do localStorage
+      const dadosLocalStorage = localStorage.getItem('relatorios_central');
+      if (dadosLocalStorage) {
+        const dados = JSON.parse(dadosLocalStorage);
+        Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
+          relatoriosTicker.forEach(relatorio => {
+            relatoriosParaMigrar.push({
+              ...relatorio,
+              ticker: relatorio.ticker || ticker
+            });
           });
         });
-      });
+      }
+      
+      if (relatoriosParaMigrar.length > 0) {
+        setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
+        
+        // Upload em lote para API
+        await uploadRelatoriosLote(relatoriosParaMigrar, {
+          nomeArquivo: 'migracao_localStorage',
+          totalItens: relatoriosParaMigrar.length,
+          itensProcessados: relatoriosParaMigrar.length
+        });
+        
+        // Fazer backup antes de limpar
+        const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        // Limpar dados antigos
+        localStorage.removeItem('relatorios_central');
+        
+        // Recarregar dados
+        await carregarEstatisticas();
+        
+        alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
+      } else {
+        alert('Nenhum dado encontrado para migrar.');
+      }
+      
+      setDialogMigracao(false);
+      
+    } catch (error) {
+      console.error('Erro na migração:', error);
+      alert('❌ Erro na migração. Dados preservados no localStorage.');
+    } finally {
+      setEtapaProcessamento('');
     }
-    
-    if (relatoriosParaMigrar.length > 0) {
-      setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
-      
-      // Upload em lote para API
-      await uploadRelatoriosLote(relatoriosParaMigrar, {
-        nomeArquivo: 'migracao_localStorage',
-        totalItens: relatoriosParaMigrar.length,
-        itensProcessados: relatoriosParaMigrar.length
-      });
-      
-      // Fazer backup antes de limpar
-      const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-      
-      // Limpar dados antigos
-      localStorage.removeItem('relatorios_central');
-      
-      // Recarregar dados
-      await carregarEstatisticas();
-      
-      alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
-    } else {
-      alert('Nenhum dado encontrado para migrar.');
-    }
-    
-    setDialogMigracao(false);
-    
-  } catch (error) {
-    console.error('Erro na migração:', error);
-    alert('❌ Erro na migração. Dados preservados no localStorage.');
-  } finally {
-    setEtapaProcessamento('');
-  }
-}, [uploadRelatoriosLote, carregarEstatisticas]);
+  }, [uploadRelatoriosLote, carregarEstatisticas]);
 
   // 📤 SALVAR RELATÓRIO VIA API
   const salvarRelatorioIndividual = useCallback(async () => {
@@ -289,10 +289,12 @@ const migrarDadosParaAPI = useCallback(async () => {
         totalItens: 1,
         itensProcessados: 1
       });
-      
-      // ✅ RECARREGAR ESTATÍSTICAS
+
+      // ✅ RECARREGAR ESTATÍSTICAS E FORÇAR RE-RENDER
       await carregarEstatisticas();
+      setRefreshKey(prev => prev + 1);
       
+      // Limpar formulário
       setNovoRelatorio({
         ticker: '',
         nome: '',
@@ -336,6 +338,7 @@ const migrarDadosParaAPI = useCallback(async () => {
         const dados = e.target?.result as string;
         await importarDados(dados);
         await carregarEstatisticas();
+        setRefreshKey(prev => prev + 1);
         alert('✅ Dados importados com sucesso!');
         setDialogBackup(false);
       } catch (error) {
@@ -353,6 +356,7 @@ const migrarDadosParaAPI = useCallback(async () => {
     try {
       await limparTodos();
       await carregarEstatisticas();
+      setRefreshKey(prev => prev + 1);
       alert('✅ Dados removidos com sucesso.');
     } catch (error) {
       alert('❌ Erro ao remover dados');
@@ -380,7 +384,7 @@ const migrarDadosParaAPI = useCallback(async () => {
       try {
         await excluirRelatorio(relatorioParaExcluir);
         await carregarEstatisticas();
-      setRefreshKey(prev => prev + 1); // ← ADICIONE ESTA LINHA
+        setRefreshKey(prev => prev + 1);
         setRelatorioParaExcluir(null);
         alert('✅ Relatório excluído com sucesso!');
       } catch (error) {
@@ -399,7 +403,7 @@ const migrarDadosParaAPI = useCallback(async () => {
         const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length;
         await excluirPorTicker(tickerParaExcluir);
         await carregarEstatisticas();
-      setRefreshKey(prev => prev + 1); // ← ADICIONE ESTA LINHA
+        setRefreshKey(prev => prev + 1);
         setTickerParaExcluir(null);
         alert(`✅ ${relatoriosDoTicker} relatórios do ticker ${tickerParaExcluir} excluídos!`);
       } catch (error) {
@@ -429,7 +433,7 @@ const migrarDadosParaAPI = useCallback(async () => {
       try {
         await excluirRelatorios(relatoriosSelecionados);
         await carregarEstatisticas();
-      setRefreshKey(prev => prev + 1); // ← ADICIONE ESTA LINHA
+        setRefreshKey(prev => prev + 1);
         setRelatoriosSelecionados([]);
         setModoSelecao(false);
         alert(`✅ ${relatoriosSelecionados.length} relatórios excluídos!`);
@@ -859,7 +863,7 @@ const migrarDadosParaAPI = useCallback(async () => {
           <CardContent sx={{ p: 0 }}>
             {/* Tab 1: Lista de Relatórios */}
             {tabAtiva === 0 && (
-              <>
+              <Box key={refreshKey}>
                 {/* 🗑️ Toolbar de ações */}
                 <Toolbar sx={{ borderBottom: 1, borderColor: 'divider' }}>
                   <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
@@ -873,7 +877,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                     >
                       {modoSelecao ? 'Cancelar Seleção' : 'Selecionar Múltiplos'}
                     </Button>
-
+                    
                     {modoSelecao && (
                       <>
                         <Button
@@ -882,7 +886,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                         >
                           {relatoriosSelecionados.length === estatisticas.relatorios.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                         </Button>
-
+                        
                         {relatoriosSelecionados.length > 0 && (
                           <Button
                             size="small"
@@ -913,7 +917,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                         <TableCell align="center">Ações</TableCell>
                       </TableRow>
                     </TableHead>
-        <TableBody key={refreshKey}>
+                    <TableBody>
                       {estatisticas.relatorios
                         .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
                         .map((relatorio) => (
@@ -990,7 +994,6 @@ const migrarDadosParaAPI = useCallback(async () => {
                                 </Typography>
                               )}
                             </TableCell>
-
                             <TableCell align="center">
                               <Tooltip title="Mais opções">
                                 <IconButton
@@ -1006,7 +1009,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </>
+              </Box>
             )}
 
             {/* Tab 2: Estatísticas por Ticker */}
@@ -1052,7 +1055,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                 </Grid>
               </Box>
             )}
-          </CardContent>
+          </CardContent>       
         </Card>
       )}
 
@@ -1163,7 +1166,7 @@ const migrarDadosParaAPI = useCallback(async () => {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog - Novo Relatório Individual - (MANTIDO IGUAL) */}
+      {/* Dialog - Novo Relatório Individual */}
       <Dialog 
         open={dialogAberto} 
         onClose={() => !isCarregando && setDialogAberto(false)} 
@@ -1186,38 +1189,38 @@ const migrarDadosParaAPI = useCallback(async () => {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-<Grid item xs={12} md={6}>
-  <Autocomplete
-    freeSolo
-    options={TICKERS_DISPONIVEIS}
-    value={novoRelatorio.ticker}
-    onChange={(event, newValue) => {
-      setNovoRelatorio(prev => ({ 
-        ...prev, 
-        ticker: (newValue || '').toUpperCase() 
-      }));
-    }}
-    onInputChange={(event, newInputValue) => {
-      setNovoRelatorio(prev => ({ 
-        ...prev, 
-        ticker: newInputValue.toUpperCase() 
-      }));
-    }}
-    renderInput={(params) => (
-      <TextField
-        {...params}
-        label="Ticker *"
-        placeholder="Digite ou selecione um ticker (ex: PETR4)"
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '8px'
-          }
-        }}
-      />
-    )}
-    sx={{ width: '100%' }}
-  />
-</Grid>
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                freeSolo
+                options={TICKERS_DISPONIVEIS}
+                value={novoRelatorio.ticker}
+                onChange={(event, newValue) => {
+                  setNovoRelatorio(prev => ({ 
+                    ...prev, 
+                    ticker: (newValue || '').toUpperCase() 
+                  }));
+                }}
+                onInputChange={(event, newInputValue) => {
+                  setNovoRelatorio(prev => ({ 
+                    ...prev, 
+                    ticker: newInputValue.toUpperCase() 
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Ticker *"
+                    placeholder="Digite ou selecione um ticker (ex: PETR4)"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '8px'
+                      }
+                    }}
+                  />
+                )}
+                sx={{ width: '100%' }}
+              />
+            </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -1231,25 +1234,25 @@ const migrarDadosParaAPI = useCallback(async () => {
                 }}
               />
             </Grid>
-<Grid item xs={12} md={6}>
-  <FormControl fullWidth>
-    <InputLabel>Tipo</InputLabel>
-    <Select
-      value={novoRelatorio.tipo}
-  label="Tipo" 
-      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
-      sx={{
-        borderRadius: '8px'
-      }}
-    >
-      <MenuItem value="apresentacao">Apresentação</MenuItem>
-      <MenuItem value="trimestral">Trimestral</MenuItem>
-      <MenuItem value="didatico">Didático</MenuItem>
-      <MenuItem value="outros">Outros</MenuItem>
-    </Select>
-  </FormControl>
-</Grid>            
-<Grid item xs={12} md={6}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Tipo</InputLabel>
+                <Select
+                  value={novoRelatorio.tipo}
+                  label="Tipo" 
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+                  sx={{
+                    borderRadius: '8px'
+                  }}
+                >
+                  <MenuItem value="apresentacao">Apresentação</MenuItem>
+                  <MenuItem value="trimestral">Trimestral</MenuItem>
+                  <MenuItem value="didatico">Didático</MenuItem>
+                  <MenuItem value="outros">Outros</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>            
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Data de Referência"
@@ -1268,7 +1271,7 @@ const migrarDadosParaAPI = useCallback(async () => {
                 <InputLabel>Tipo de Visualização</InputLabel>
                 <Select
                   value={novoRelatorio.tipoVisualizacao}
-label="Tipo de Visualização" 
+                  label="Tipo de Visualização" 
                   onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
                   sx={{
                     borderRadius: '8px'
@@ -1509,6 +1512,7 @@ label="Tipo de Visualização"
                 }}
               >
                 {exportLoading ? 'Exportando da API...' : 'Baixar Backup da API'}
+
               </Button>
             </Box>
             
