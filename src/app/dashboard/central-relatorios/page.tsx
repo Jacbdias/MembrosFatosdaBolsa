@@ -129,7 +129,8 @@ export default function CentralRelatorios() {
     estatisticas, 
     loading: statsLoading, 
     error: statsError,
-    carregarEstatisticas 
+    carregarEstatisticas,
+    setEstatisticas // Adicionar este setter se disponível no hook
   } = useRelatoriosEstatisticas();
   
   const { 
@@ -182,6 +183,13 @@ export default function CentralRelatorios() {
     carregarEstatisticas();
     verificarMigracaoIndexedDB();
   }, [carregarEstatisticas]);
+  
+  // Recarregar dados quando refreshKey mudar
+  useEffect(() => {
+    if (refreshKey > 0) {
+      carregarEstatisticas();
+    }
+  }, [refreshKey, carregarEstatisticas]);
 
   // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
   const verificarMigracaoIndexedDB = useCallback(async () => {
@@ -383,15 +391,32 @@ export default function CentralRelatorios() {
     if (relatorioParaExcluir) {
       try {
         await excluirRelatorio(relatorioParaExcluir);
-        await carregarEstatisticas();
+        
+        // Atualização otimista: remover imediatamente da lista local
+        if (setEstatisticas) {
+          setEstatisticas(prev => ({
+            ...prev,
+            relatorios: prev.relatorios.filter(r => r.id !== relatorioParaExcluir),
+            totalRelatorios: prev.totalRelatorios - 1
+          }));
+        }
+        
+        // Forçar recarga completa dos dados
+        setTimeout(() => {
+          carregarEstatisticas();
+        }, 100);
+        
         setRefreshKey(prev => prev + 1);
         setRelatorioParaExcluir(null);
         alert('✅ Relatório excluído com sucesso!');
       } catch (error) {
+        console.error('Erro ao excluir:', error);
         alert('❌ Erro ao excluir relatório');
+        // Recarregar em caso de erro para sincronizar
+        carregarEstatisticas();
       }
     }
-  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas]);
+  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas, setEstatisticas]);
 
   const handleExcluirTicker = useCallback((ticker: string) => {
     setTickerParaExcluir(ticker);
@@ -400,17 +425,37 @@ export default function CentralRelatorios() {
   const confirmarExclusaoTicker = useCallback(async () => {
     if (tickerParaExcluir) {
       try {
-        const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length;
+        const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir);
+        const quantidadeRelatorios = relatoriosDoTicker.length;
+        
         await excluirPorTicker(tickerParaExcluir);
-        await carregarEstatisticas();
+        
+        // Atualização otimista: remover imediatamente da lista local
+        if (setEstatisticas) {
+          setEstatisticas(prev => ({
+            ...prev,
+            relatorios: prev.relatorios.filter(r => r.ticker !== tickerParaExcluir),
+            totalRelatorios: prev.totalRelatorios - quantidadeRelatorios,
+            totalTickers: prev.totalTickers - 1
+          }));
+        }
+        
+        // Forçar recarga completa dos dados
+        setTimeout(() => {
+          carregarEstatisticas();
+        }, 100);
+        
         setRefreshKey(prev => prev + 1);
         setTickerParaExcluir(null);
-        alert(`✅ ${relatoriosDoTicker} relatórios do ticker ${tickerParaExcluir} excluídos!`);
+        alert(`✅ ${quantidadeRelatorios} relatórios do ticker ${tickerParaExcluir} excluídos!`);
       } catch (error) {
+        console.error('Erro ao excluir ticker:', error);
         alert('❌ Erro ao excluir relatórios do ticker');
+        // Recarregar em caso de erro para sincronizar
+        carregarEstatisticas();
       }
     }
-  }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios]);
+  }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios, setEstatisticas]);
 
   const handleSelecionar = useCallback((id: string) => {
     setRelatoriosSelecionados(prev => 
@@ -431,17 +476,35 @@ export default function CentralRelatorios() {
   const excluirSelecionados = useCallback(async () => {
     if (relatoriosSelecionados.length > 0) {
       try {
+        const quantidade = relatoriosSelecionados.length;
         await excluirRelatorios(relatoriosSelecionados);
-        await carregarEstatisticas();
+        
+        // Atualização otimista: remover imediatamente da lista local
+        if (setEstatisticas) {
+          setEstatisticas(prev => ({
+            ...prev,
+            relatorios: prev.relatorios.filter(r => !relatoriosSelecionados.includes(r.id)),
+            totalRelatorios: prev.totalRelatorios - quantidade
+          }));
+        }
+        
+        // Forçar recarga completa dos dados
+        setTimeout(() => {
+          carregarEstatisticas();
+        }, 100);
+        
         setRefreshKey(prev => prev + 1);
         setRelatoriosSelecionados([]);
         setModoSelecao(false);
-        alert(`✅ ${relatoriosSelecionados.length} relatórios excluídos!`);
+        alert(`✅ ${quantidade} relatórios excluídos!`);
       } catch (error) {
+        console.error('Erro ao excluir selecionados:', error);
         alert('❌ Erro ao excluir relatórios selecionados');
+        // Recarregar em caso de erro para sincronizar
+        carregarEstatisticas();
       }
     }
-  }, [relatoriosSelecionados, excluirRelatorios, carregarEstatisticas]);
+  }, [relatoriosSelecionados, excluirRelatorios, carregarEstatisticas, setEstatisticas]);
 
   // Estatísticas por ticker VIA API
   const estatisticasPorTicker = useMemo(() => {
