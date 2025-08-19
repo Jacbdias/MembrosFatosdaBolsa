@@ -338,11 +338,15 @@ export default function CentralRelatorios() {
   });
 
   // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
-  useEffect(() => {
-  setupAuthInterceptor(); // 👈 ADICIONAR ESTA LINHA
-    carregarEstatisticas();
+useEffect(() => {
+  const initializeApp = async () => {
+    await setupAuthInterceptor(); // AGUARDAR auth
+    carregarEstatisticas(); // SÓ DEPOIS executar
     verificarMigracaoIndexedDB();
-  }, [carregarEstatisticas]);
+  };
+  
+  initializeApp();
+}, [carregarEstatisticas]);
 
 // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
 const verificarMigracaoIndexedDB = useCallback(async () => {
