@@ -64,6 +64,170 @@ import {
   type RelatorioAPI 
 } from '../../../hooks/useRelatoriosAPI';
 
+// 🔐 CONFIGURAÇÃO DE AUTENTICAÇÃO AUTOMÁTICA
+interface AuthConfig {
+  defaultEmail: string;
+  fallbackEmails: string[];
+  enableAutoAuth: boolean;
+}
+
+const AUTH_CONFIG: AuthConfig = {
+  // 📧 Email padrão (substitua pelo seu email de admin)
+  defaultEmail: 'admin@fatosdobolsa.com',
+  
+  // 📧 Emails de fallback para testar
+  fallbackEmails: [
+    'admin@fatosdobolsa.com',
+    'admin@admin.com',
+    // ADICIONE SEU EMAIL AQUI:
+    // 'seu-email@empresa.com',
+  ],
+  
+  // ⚙️ Ativar autenticação automática
+  enableAutoAuth: true
+};
+
+// 🔍 FUNÇÃO PARA DETECTAR USUÁRIO VÁLIDO
+async function detectarUsuarioValido(): Promise<string | null> {
+  // Verificar se já tem usuário salvo no localStorage
+  const savedUser = localStorage.getItem('auth_user_email');
+  if (savedUser) {
+    console.log(`🔑 [AUTH] Usuário salvo encontrado: ${savedUser}`);
+    return savedUser;
+  }
+  
+  // Testar emails em ordem de prioridade
+  const emailsParaTestar = [AUTH_CONFIG.defaultEmail, ...AUTH_CONFIG.fallbackEmails];
+  
+  for (const email of emailsParaTestar) {
+    try {
+      console.log(`🔍 [AUTH] Testando email: ${email}`);
+      
+      const response = await fetch('/api/user/profile', {
+        headers: { 'x-user-email': email }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        console.log(`✅ [AUTH] Email válido encontrado: ${email} (${userData.plan})`);
+        
+        // Salvar para próximas sessões
+        localStorage.setItem('auth_user_email', email);
+        localStorage.setItem('auth_user_plan', userData.plan);
+        
+        return email;
+      }
+    } catch (error) {
+      console.log(`❌ [AUTH] Erro testando ${email}:`, error);
+    }
+  }
+  
+  console.error('❌ [AUTH] Nenhum email válido encontrado!');
+  return null;
+}
+
+// 🔐 INTERCEPTOR AUTOMÁTICO DE FETCH
+async function setupAuthInterceptor() {
+  if (!AUTH_CONFIG.enableAutoAuth || typeof window === 'undefined') {
+    return;
+  }
+  
+  console.log('🚀 [AUTH] Configurando interceptor automático...');
+  
+  // Detectar usuário válido
+  const userEmail = await detectarUsuarioValido();
+  
+  if (!userEmail) {
+    console.error('🚨 [AUTH] Falha na autenticação automática!');
+    // Mostrar alerta para o usuário
+    alert('❌ Erro de autenticação. Verifique se você tem permissão para acessar relatórios.');
+    return;
+  }
+  
+  // Configurar interceptor global
+  const originalFetch = window.fetch;
+  window.fetch = function(url: string, options: RequestInit = {}) {
+    
+    // Adicionar header de autenticação para todas as APIs
+    if (url.includes('/api/')) {
+      options.headers = {
+        ...options.headers,
+        'x-user-email': userEmail
+      };
+      
+      // Log apenas para APIs de relatórios (evitar spam)
+      if (url.includes('relatorio')) {
+        console.log(`🔑 [AUTH] Request autenticado: ${url.split('/').pop()} (${userEmail})`);
+      }
+    }
+    
+    return originalFetch(url, options);
+  };
+  
+  console.log(`✅ [AUTH] Interceptor configurado para: ${userEmail}`);
+  
+  // Mostrar informações do usuário no console
+  const userPlan = localStorage.getItem('auth_user_plan');
+  const permissoes = ['ADMIN', 'VIP'].includes(userPlan || '') ? 'Ver todos os relatórios' : 'Ver apenas próprios relatórios';
+  
+  console.log(`👤 [AUTH] Usuário: ${userEmail}`);
+  console.log(`🏷️ [AUTH] Plano: ${userPlan}`);
+  console.log(`🔐 [AUTH] Permissões: ${permissoes}`);
+}
+
+// 🔧 FUNÇÃO PARA LIMPAR AUTENTICAÇÃO (se necessário)
+function limparAutenticacao() {
+  localStorage.removeItem('auth_user_email');
+  localStorage.removeItem('auth_user_plan');
+  console.log('🧹 [AUTH] Cache de autenticação limpo');
+}
+
+// 🔧 FUNÇÃO PARA TROCAR USUÁRIO MANUALMENTE
+async function trocarUsuario(novoEmail: string) {
+  try {
+    console.log(`🔄 [AUTH] Testando novo usuário: ${novoEmail}`);
+    
+    const response = await fetch('/api/user/profile', {
+      headers: { 'x-user-email': novoEmail }
+    });
+    
+    if (response.ok) {
+      const userData = await response.json();
+      localStorage.setItem('auth_user_email', novoEmail);
+      localStorage.setItem('auth_user_plan', userData.plan);
+      
+      console.log(`✅ [AUTH] Usuário alterado para: ${novoEmail} (${userData.plan})`);
+      alert(`✅ Usuário alterado para: ${novoEmail}\nPlano: ${userData.plan}\nRecarregue a página para aplicar.`);
+      
+      return true;
+    } else {
+      console.error(`❌ [AUTH] Email inválido: ${novoEmail}`);
+      alert(`❌ Email inválido: ${novoEmail}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ [AUTH] Erro ao trocar usuário:`, error);
+    alert('❌ Erro ao verificar usuário');
+    return false;
+  }
+}
+
+// 🎮 FUNÇÕES DISPONÍVEIS NO CONSOLE GLOBAL
+if (typeof window !== 'undefined') {
+  (window as any).authDebug = {
+    limpar: limparAutenticacao,
+    trocar: trocarUsuario,
+    info: () => {
+      const email = localStorage.getItem('auth_user_email');
+      const plan = localStorage.getItem('auth_user_plan');
+      console.log('👤 Usuário atual:', email);
+      console.log('🏷️ Plano atual:', plan);
+      console.log('💡 Para trocar usuário: authDebug.trocar("novo@email.com")');
+      console.log('🧹 Para limpar auth: authDebug.limpar()');
+    }
+  };
+}
+
 interface NovoRelatorio {
   ticker: string;
   nome: string;
@@ -175,6 +339,7 @@ export default function CentralRelatorios() {
 
   // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
   useEffect(() => {
+  setupAuthInterceptor(); // 👈 ADICIONAR ESTA LINHA
     carregarEstatisticas();
     verificarMigracaoIndexedDB();
   }, [carregarEstatisticas]);
