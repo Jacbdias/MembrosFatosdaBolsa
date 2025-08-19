@@ -38,6 +38,7 @@ export interface MetadataUpload {
 }
 
 // 🔄 HOOK DE ESTATÍSTICAS
+// 🔄 HOOK DE ESTATÍSTICAS - VERSÃO PERSISTENTE (SUBSTITUA O EXISTENTE)
 export function useRelatoriosEstatisticas() {
   const [estatisticas, setEstatisticas] = useState<EstatisticasRelatorios>({
     totalRelatorios: 0,
@@ -48,12 +49,21 @@ export function useRelatoriosEstatisticas() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [carregado, setCarregado] = useState(false); // ✅ NOVO: Controle de carregamento
 
-  const carregarEstatisticas = useCallback(async () => {
+  const carregarEstatisticas = useCallback(async (forcarRecarregar = false) => {
+    // ✅ SÓ CARREGA SE NÃO FOI CARREGADO AINDA OU SE FORÇADO
+    if (carregado && !forcarRecarregar) {
+      console.log('📋 Dados já carregados, pulando requisição...');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
+      console.log('🔍 Carregando relatórios...');
+      
       const response = await fetch('/api/relatorios/estatisticas');
       
       if (!response.ok) {
@@ -61,7 +71,11 @@ export function useRelatoriosEstatisticas() {
       }
 
       const dados = await response.json();
+      console.log('✅ Dados carregados com sucesso:', dados.totalRelatorios, 'relatórios');
+      
       setEstatisticas(dados);
+      setCarregado(true); // ✅ NOVO: Marca como carregado
+      setError(null);
 
     } catch (error) {
       console.error('Erro ao carregar estatísticas dos relatórios:', error);
@@ -78,12 +92,13 @@ export function useRelatoriosEstatisticas() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [carregado]); // ✅ NOVO: Dependência do carregado
 
   return {
     estatisticas,
     loading,
     error,
+    carregado, // ✅ NOVO: Exposar status de carregamento
     carregarEstatisticas
   };
 }

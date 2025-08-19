@@ -3,20 +3,20 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// 🔐 FUNÇÃO DE AUTENTICAÇÃO (SEGUINDO O PADRÃO EXISTENTE)
+// 🔐 FUNÇÃO DE AUTENTICAÇÃO FLEXÍVEL
 async function getAuthenticatedUser(request: NextRequest) {
   try {
-    console.log('🔍 [AUTH] Iniciando autenticação...');
+    console.log('🔍 [AUTH] Iniciando autenticação flexível...');
     
     const userEmail = request.headers.get('x-user-email');
     console.log('🔍 [AUTH] Email do header:', userEmail);
     
     if (!userEmail) {
-      console.log('❌ [AUTH] Email não fornecido');
-      return null;
+      console.log('⚠️ [AUTH] Email não fornecido - permitindo acesso público');
+      return { isPublic: true, user: null };
     }
 
-    // Buscar no banco de dados (igual ao padrão existente)
+    // Buscar no banco de dados
     console.log('🔍 [AUTH] Buscando usuário no banco...');
     const user = await prisma.user.findUnique({
       where: { email: userEmail },
@@ -25,123 +25,84 @@ async function getAuthenticatedUser(request: NextRequest) {
         firstName: true,
         lastName: true,
         email: true,
-        plan: true,     // 👑 Plano do usuário
+        plan: true,
         status: true
       }
     });
 
     if (!user) {
-      console.log('❌ [AUTH] Usuário não encontrado no banco');
-      return null;
+      console.log('⚠️ [AUTH] Usuário não encontrado - permitindo acesso público');
+      return { isPublic: true, user: null };
     }
 
     console.log('✅ [AUTH] Usuário encontrado:', user.email, 'Plano:', user.plan);
-    return user;
+    return { isPublic: false, user };
   } catch (error) {
-    console.log('❌ [AUTH] Erro na autenticação:', error);
-    return null;
+    console.log('⚠️ [AUTH] Erro na autenticação - fallback para público:', error);
+    return { isPublic: true, user: null };
   }
 }
 
-// 👑 VERIFICAR SE USUÁRIO TEM PERMISSÃO PARA VER RELATÓRIOS
-function canViewRelatorios(user: any): { canView: boolean; viewAll: boolean } {
-  if (!user) {
-    return { canView: false, viewAll: false };
+// 👑 VERIFICAR PERMISSÕES FLEXÍVEIS
+function getPermissions(user: any, isPublic: boolean) {
+  if (isPublic) {
+    // ACESSO PÚBLICO: ver todos os relatórios (sem restrição)
+    return { 
+      canView: true, 
+      viewAll: true, 
+      accessType: 'public' 
+    };
   }
   
-  // 🔧 DEFINIR PERMISSÕES POR PLANO (adapte conforme sua regra de negócio)
+  if (!user) {
+    return { 
+      canView: true, 
+      viewAll: true, 
+      accessType: 'public' 
+    };
+  }
+  
+  // USUÁRIOS LOGADOS: permissões baseadas no plano
   const PERMISSOES_RELATORIOS = {
-    'ADMIN': { canView: true, viewAll: true },      // Admin vê tudo
-    'VIP': { canView: true, viewAll: true },        // VIP vê tudo  
-    'LITE': { canView: true, viewAll: false },      // LITE vê só próprios
-    'LITE_V2': { canView: true, viewAll: false },   // LITE_V2 vê só próprios
-    'RENDA_PASSIVA': { canView: true, viewAll: false }, // RENDA_PASSIVA vê só próprios
-    'FIIS': { canView: true, viewAll: false },      // FIIS vê só próprios
-    'AMERICA': { canView: true, viewAll: false }    // AMERICA vê só próprios
+    'ADMIN': { canView: true, viewAll: true, accessType: 'admin' },
+    'VIP': { canView: true, viewAll: true, accessType: 'vip' },
+    'LITE': { canView: true, viewAll: true, accessType: 'lite' },        // ✅ LITE pode ver todos
+    'LITE_V2': { canView: true, viewAll: true, accessType: 'lite_v2' },  // ✅ LITE_V2 pode ver todos
+    'RENDA_PASSIVA': { canView: true, viewAll: true, accessType: 'renda_passiva' },
+    'FIIS': { canView: true, viewAll: true, accessType: 'fiis' },
+    'AMERICA': { canView: true, viewAll: true, accessType: 'america' }
   };
   
-  const permissao = PERMISSOES_RELATORIOS[user.plan] || { canView: false, viewAll: false };
+  const permissao = PERMISSOES_RELATORIOS[user.plan] || { 
+    canView: true, 
+    viewAll: true, 
+    accessType: 'default' 
+  };
   
   console.log(`👑 [PERM] Usuário ${user.email} (${user.plan}):`, permissao);
   
   return permissao;
 }
 
-// 📊 GET - Obter estatísticas dos relatórios (SEGUINDO PADRÃO EXISTENTE)
+// 📊 GET - Obter estatísticas dos relatórios (ACESSO PÚBLICO)
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 [STATS] INICIO - Obter estatísticas dos relatórios');
+    console.log('📊 [STATS] INICIO - Obter estatísticas (acesso público permitido)');
     
-    // 🔐 Autenticação (seguindo padrão existente)
-    const user = await getAuthenticatedUser(request);
+    // 🔐 Autenticação flexível
+    const { isPublic, user } = await getAuthenticatedUser(request);
     
-    if (!user) {
-      console.log('❌ [STATS] Usuário não autenticado');
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Usuário não autenticado',
-          totalRelatorios: 0,
-          totalTickers: 0,
-          relatoriosComPdf: 0,
-          tamanhoTotalMB: 0,
-          relatorios: []
-        },
-        { status: 401 }
-      );
-    }
+    // 👑 Verificar permissões (sempre permite acesso)
+    const { canView, viewAll, accessType } = getPermissions(user, isPublic);
     
-    // 👑 Verificar permissões
-    const { canView, viewAll } = canViewRelatorios(user);
+    console.log(`🔓 [STATS] Acesso permitido - Tipo: ${accessType}`);
     
-    if (!canView) {
-      console.log(`🚫 [STATS] Usuário ${user.email} (${user.plan}) sem permissão para ver relatórios`);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Sem permissão para acessar relatórios',
-          totalRelatorios: 0,
-          totalTickers: 0,
-          relatoriosComPdf: 0,
-          tamanhoTotalMB: 0,
-          relatorios: []
-        },
-        { status: 403 }
-      );
-    }
-    
-    // 📋 Determinar filtro baseado nas permissões
-    let whereClause: any = {};
-    
-    if (!viewAll) {
-      // Usuário normal: ver apenas seus próprios relatórios
-      whereClause = { userId: user.id };
-      console.log(`🔍 [STATS] Filtro aplicado: userId = ${user.id}`);
-    } else {
-      // Admin/VIP: ver todos os relatórios
-      console.log(`👑 [STATS] Admin/VIP: vendo todos os relatórios`);
-      
-      // 🔧 CORREÇÃO ESPECIAL: Para dados existentes com 'SEM_USER_ID'
-      // (Remova esta seção após migrar os dados existentes)
-      const isDev = process.env.NODE_ENV === 'development';
-      if (isDev) {
-        whereClause = {
-          OR: [
-            { userId: user.id },           // Relatórios do usuário
-            { userId: null },              // Relatórios sem userId
-            { userId: 'SEM_USER_ID' },     // Relatórios com placeholder
-            { userId: '' }                 // Relatórios com string vazia
-          ]
-        };
-        console.log(`🔧 [STATS] Modo DEV: incluindo dados órfãos`);
-      }
-    }
+    // 📋 Buscar TODOS os relatórios (sem filtro de usuário)
+    // Para a página dos ativos, mostramos todos os relatórios disponíveis
+    console.log(`🌍 [STATS] Buscando todos os relatórios disponíveis`);
 
-    console.log('🔍 [STATS] Where clause:', whereClause);
-
-    // Buscar relatórios com filtro apropriado
     const relatorios = await prisma.relatorio.findMany({
-      where: whereClause,
+      // SEM WHERE CLAUSE - mostra todos os relatórios
       orderBy: [
         { ticker: 'asc' },
         { dataReferencia: 'desc' }
@@ -209,15 +170,7 @@ export async function GET(request: NextRequest) {
       };
     }).sort((a, b) => b.total - a.total);
 
-    // Estatísticas por tipo
-    const estatisticasPorTipo = {
-      trimestral: relatorios.filter(r => r.tipo === 'trimestral').length,
-      anual: relatorios.filter(r => r.tipo === 'anual').length,
-      apresentacao: relatorios.filter(r => r.tipo === 'apresentacao').length,
-      outros: relatorios.filter(r => r.tipo === 'outros').length
-    };
-
-    console.log(`✅ [STATS] Retornando ${totalRelatorios} relatórios para ${user.email} (${user.plan})`);
+    console.log(`✅ [STATS] Retornando ${totalRelatorios} relatórios (acesso ${accessType})`);
 
     return NextResponse.json({
       success: true,
@@ -228,18 +181,12 @@ export async function GET(request: NextRequest) {
       dataUltimoUpload,
       relatorios: relatoriosFormatados,
       estatisticasPorTicker,
-      estatisticasPorTipo,
-      resumo: {
-        base64: relatorios.filter(r => r.tipoPdf === 'base64').length,
-        referencia: relatorios.filter(r => r.tipoPdf === 'referencia').length,
-        semPdf: relatorios.filter(r => !r.arquivoPdf && !r.nomeArquivoPdf).length
-      },
-      // 🔐 Informações de contexto (útil para debug)
+      // 🔐 Informações de contexto
       context: {
-        isAuthenticated: true,
-        userEmail: user.email,
-        userPlan: user.plan,
-        canViewAll: viewAll,
+        accessType,
+        isPublic,
+        userEmail: user?.email || 'público',
+        userPlan: user?.plan || 'público',
         environment: process.env.NODE_ENV
       }
     });
