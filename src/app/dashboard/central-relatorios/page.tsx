@@ -36,8 +36,7 @@ import {
   Checkbox,
   Toolbar,
   Menu,
-  Tooltip,
-  Autocomplete
+  Tooltip
 } from '@mui/material';
 
 // Ícones simples seguindo o padrão
@@ -68,7 +67,7 @@ import {
 interface NovoRelatorio {
   ticker: string;
   nome: string;
-  tipo: 'apresentacao' | 'trimestral' | 'didatico' | 'outros';
+  tipo: 'trimestral' | 'anual' | 'apresentacao' | 'outros';
   dataReferencia: string;
   linkCanva: string;
   linkExterno: string;
@@ -79,9 +78,7 @@ interface NovoRelatorio {
 const LIMITE_BASE64 = 3 * 1024 * 1024; // 3MB
 const TICKERS_DISPONIVEIS = [
   'KEPL3', 'AGRO3', 'LEVE3', 'BBAS3', 'BRSR6', 'ABCB4', 'SANB11',
-  'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'TRIS3', 'FESA4', 'CEAB3',
-  'PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'ABEV3', 'MGLU3', 'WEGE3',
-  'RENT3', 'LREN3', 'AZUL4', 'GOLL4', 'HAPV3', 'TOTS3'
+  'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'TRIS3', 'FESA4', 'CEAB3'
 ];
 
 const calcularHash = async (arquivo: File): Promise<string> => {
@@ -124,12 +121,12 @@ const processarPdfHibrido = async (arquivo: File): Promise<any> => {
 export default function CentralRelatorios() {
   const router = useRouter();
   
-  // 🔄 USAR NOVOS HOOKS DA API - SEM setEstatisticas
+  // 🔄 USAR NOVOS HOOKS DA API (similar à agenda)
   const { 
     estatisticas, 
     loading: statsLoading, 
     error: statsError,
-    carregarEstatisticas
+    carregarEstatisticas 
   } = useRelatoriosEstatisticas();
   
   const { 
@@ -151,14 +148,13 @@ export default function CentralRelatorios() {
     error: exportError
   } = useRelatoriosExport();
 
-  const [refreshKey, setRefreshKey] = useState(0);  
   const [tabAtiva, setTabAtiva] = useState(0);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [dialogBackup, setDialogBackup] = useState(false);
   const [dialogMigracao, setDialogMigracao] = useState(false);
   const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
   
-  // 🗑️ Estados para exclusão
+  // 🗑️ Estados para exclusão (similar à agenda)
   const [relatorioParaExcluir, setRelatorioParaExcluir] = useState<string | null>(null);
   const [tickerParaExcluir, setTickerParaExcluir] = useState<string | null>(null);
   const [relatoriosSelecionados, setRelatoriosSelecionados] = useState<string[]>([]);
@@ -169,7 +165,7 @@ export default function CentralRelatorios() {
   const [novoRelatorio, setNovoRelatorio] = useState<NovoRelatorio>({
     ticker: '',
     nome: '',
-    tipo: 'apresentacao',
+    tipo: 'trimestral',
     dataReferencia: '',
     linkCanva: '',
     linkExterno: '',
@@ -179,93 +175,84 @@ export default function CentralRelatorios() {
 
   // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
   useEffect(() => {
-    console.log('Carregando estatísticas iniciais...');
     carregarEstatisticas();
     verificarMigracaoIndexedDB();
-  }, []);
-  
-  // Debug: Log dos dados carregados
-  useEffect(() => {
-    console.log('Estatísticas atualizadas:', estatisticas);
-    console.log('Relatórios:', estatisticas?.relatorios);
-    console.log('Total de relatórios:', estatisticas?.totalRelatorios);
-  }, [estatisticas]);
+  }, [carregarEstatisticas]);
 
-  // Recarregar dados quando refreshKey mudar
-  useEffect(() => {
-    if (refreshKey > 0) {
-      console.log('Recarregando por refreshKey...');
-      carregarEstatisticas();
+// 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
+const verificarMigracaoIndexedDB = useCallback(async () => {
+  try {
+    // Verificar apenas localStorage (mais simples e seguro)
+    const dadosLocalStorage = localStorage.getItem('relatorios_central');
+    
+    if (dadosLocalStorage) {
+      setDialogMigracao(true);
     }
-  }, [refreshKey]);
+  } catch (error) {
+    console.log('Nenhum dado local encontrado para migração');
+  }
+}, []);
 
-  // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE
-  const verificarMigracaoIndexedDB = useCallback(async () => {
-    try {
-      const dadosLocalStorage = localStorage.getItem('relatorios_central');
-      if (dadosLocalStorage) {
-        setDialogMigracao(true);
-      }
-    } catch (error) {
-      console.log('Nenhum dado local encontrado para migração');
-    }
-  }, []);
-
-  // 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
-  const migrarDadosParaAPI = useCallback(async () => {
-    try {
-      setEtapaProcessamento('Coletando dados do localStorage...');
-      
-      let relatoriosParaMigrar: any[] = [];
-      
-      const dadosLocalStorage = localStorage.getItem('relatorios_central');
-      if (dadosLocalStorage) {
-        const dados = JSON.parse(dadosLocalStorage);
-        Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
-          relatoriosTicker.forEach(relatorio => {
-            relatoriosParaMigrar.push({
-              ...relatorio,
-              ticker: relatorio.ticker || ticker
-            });
+// 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
+const migrarDadosParaAPI = useCallback(async () => {
+  try {
+    setEtapaProcessamento('Coletando dados do localStorage...');
+    
+    let relatoriosParaMigrar: any[] = [];
+    
+    // Coletar apenas do localStorage
+    const dadosLocalStorage = localStorage.getItem('relatorios_central');
+    if (dadosLocalStorage) {
+      const dados = JSON.parse(dadosLocalStorage);
+      Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
+        relatoriosTicker.forEach(relatorio => {
+          relatoriosParaMigrar.push({
+            ...relatorio,
+            ticker: relatorio.ticker || ticker
           });
         });
-      }
-      
-      if (relatoriosParaMigrar.length > 0) {
-        setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
-        
-        await uploadRelatoriosLote(relatoriosParaMigrar, {
-          nomeArquivo: 'migracao_localStorage',
-          totalItens: relatoriosParaMigrar.length,
-          itensProcessados: relatoriosParaMigrar.length
-        });
-        
-        const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-        
-        localStorage.removeItem('relatorios_central');
-        
-        await carregarEstatisticas();
-        
-        alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
-      } else {
-        alert('Nenhum dado encontrado para migrar.');
-      }
-      
-      setDialogMigracao(false);
-      
-    } catch (error) {
-      console.error('Erro na migração:', error);
-      alert('❌ Erro na migração. Dados preservados no localStorage.');
-    } finally {
-      setEtapaProcessamento('');
+      });
     }
-  }, [uploadRelatoriosLote, carregarEstatisticas]);
+    
+    if (relatoriosParaMigrar.length > 0) {
+      setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
+      
+      // Upload em lote para API
+      await uploadRelatoriosLote(relatoriosParaMigrar, {
+        nomeArquivo: 'migracao_localStorage',
+        totalItens: relatoriosParaMigrar.length,
+        itensProcessados: relatoriosParaMigrar.length
+      });
+      
+      // Fazer backup antes de limpar
+      const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      // Limpar dados antigos
+      localStorage.removeItem('relatorios_central');
+      
+      // Recarregar dados
+      await carregarEstatisticas();
+      
+      alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
+    } else {
+      alert('Nenhum dado encontrado para migrar.');
+    }
+    
+    setDialogMigracao(false);
+    
+  } catch (error) {
+    console.error('Erro na migração:', error);
+    alert('❌ Erro na migração. Dados preservados no localStorage.');
+  } finally {
+    setEtapaProcessamento('');
+  }
+}, [uploadRelatoriosLote, carregarEstatisticas]);
 
   // 📤 SALVAR RELATÓRIO VIA API
   const salvarRelatorioIndividual = useCallback(async () => {
@@ -298,16 +285,14 @@ export default function CentralRelatorios() {
         totalItens: 1,
         itensProcessados: 1
       });
-
-      // ✅ RECARREGAR ESTATÍSTICAS E FORÇAR RE-RENDER
-      await carregarEstatisticas();
-      setRefreshKey(prev => prev + 1);
       
-      // Limpar formulário
+      // ✅ RECARREGAR ESTATÍSTICAS
+      await carregarEstatisticas();
+      
       setNovoRelatorio({
         ticker: '',
         nome: '',
-        tipo: 'apresentacao',
+        tipo: 'trimestral',
         dataReferencia: '',
         linkCanva: '',
         linkExterno: '',
@@ -347,7 +332,6 @@ export default function CentralRelatorios() {
         const dados = e.target?.result as string;
         await importarDados(dados);
         await carregarEstatisticas();
-        setRefreshKey(prev => prev + 1);
         alert('✅ Dados importados com sucesso!');
         setDialogBackup(false);
       } catch (error) {
@@ -365,14 +349,13 @@ export default function CentralRelatorios() {
     try {
       await limparTodos();
       await carregarEstatisticas();
-      setRefreshKey(prev => prev + 1);
       alert('✅ Dados removidos com sucesso.');
     } catch (error) {
       alert('❌ Erro ao remover dados');
     }
   }, [limparTodos, carregarEstatisticas]);
 
-  // 🗑️ Funções de exclusão VIA API
+  // 🗑️ Funções de exclusão VIA API (similar à agenda)
   const handleMenuClick = useCallback((event: React.MouseEvent<HTMLElement>, id: string) => {
     setMenuAnchor(event.currentTarget);
     setMenuRelatorioId(id);
@@ -392,17 +375,11 @@ export default function CentralRelatorios() {
     if (relatorioParaExcluir) {
       try {
         await excluirRelatorio(relatorioParaExcluir);
-        
-        // Forçar recarga completa dos dados
         await carregarEstatisticas();
-        
-        setRefreshKey(prev => prev + 1);
         setRelatorioParaExcluir(null);
         alert('✅ Relatório excluído com sucesso!');
       } catch (error) {
-        console.error('Erro ao excluir:', error);
         alert('❌ Erro ao excluir relatório');
-        carregarEstatisticas();
       }
     }
   }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas]);
@@ -414,21 +391,13 @@ export default function CentralRelatorios() {
   const confirmarExclusaoTicker = useCallback(async () => {
     if (tickerParaExcluir) {
       try {
-        const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir);
-        const quantidadeRelatorios = relatoriosDoTicker.length;
-        
+        const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length;
         await excluirPorTicker(tickerParaExcluir);
-        
-        // Forçar recarga completa dos dados
         await carregarEstatisticas();
-        
-        setRefreshKey(prev => prev + 1);
         setTickerParaExcluir(null);
-        alert(`✅ ${quantidadeRelatorios} relatórios do ticker ${tickerParaExcluir} excluídos!`);
+        alert(`✅ ${relatoriosDoTicker} relatórios do ticker ${tickerParaExcluir} excluídos!`);
       } catch (error) {
-        console.error('Erro ao excluir ticker:', error);
         alert('❌ Erro ao excluir relatórios do ticker');
-        carregarEstatisticas();
       }
     }
   }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios]);
@@ -452,20 +421,13 @@ export default function CentralRelatorios() {
   const excluirSelecionados = useCallback(async () => {
     if (relatoriosSelecionados.length > 0) {
       try {
-        const quantidade = relatoriosSelecionados.length;
         await excluirRelatorios(relatoriosSelecionados);
-        
-        // Forçar recarga completa dos dados
         await carregarEstatisticas();
-        
-        setRefreshKey(prev => prev + 1);
         setRelatoriosSelecionados([]);
         setModoSelecao(false);
-        alert(`✅ ${quantidade} relatórios excluídos!`);
+        alert(`✅ ${relatoriosSelecionados.length} relatórios excluídos!`);
       } catch (error) {
-        console.error('Erro ao excluir selecionados:', error);
         alert('❌ Erro ao excluir relatórios selecionados');
-        carregarEstatisticas();
       }
     }
   }, [relatoriosSelecionados, excluirRelatorios, carregarEstatisticas]);
@@ -474,18 +436,16 @@ export default function CentralRelatorios() {
   const estatisticasPorTicker = useMemo(() => {
     const stats: { [ticker: string]: { total: number; comPdf: number } } = {};
     
-    if (estatisticas.relatorios && Array.isArray(estatisticas.relatorios)) {
-      estatisticas.relatorios.forEach(relatorio => {
-        if (!stats[relatorio.ticker]) {
-          stats[relatorio.ticker] = { total: 0, comPdf: 0 };
-        }
-        stats[relatorio.ticker].total++;
-        
-        if (relatorio.arquivoPdf || relatorio.nomeArquivoPdf) {
-          stats[relatorio.ticker].comPdf++;
-        }
-      });
-    }
+    estatisticas.relatorios.forEach(relatorio => {
+      if (!stats[relatorio.ticker]) {
+        stats[relatorio.ticker] = { total: 0, comPdf: 0 };
+      }
+      stats[relatorio.ticker].total++;
+      
+      if (relatorio.arquivoPdf || relatorio.nomeArquivoPdf) {
+        stats[relatorio.ticker].comPdf++;
+      }
+    });
 
     return Object.entries(stats)
       .map(([ticker, data]) => ({ ticker, ...data }))
@@ -892,7 +852,7 @@ export default function CentralRelatorios() {
           <CardContent sx={{ p: 0 }}>
             {/* Tab 1: Lista de Relatórios */}
             {tabAtiva === 0 && (
-              <Box key={refreshKey}>
+              <>
                 {/* 🗑️ Toolbar de ações */}
                 <Toolbar sx={{ borderBottom: 1, borderColor: 'divider' }}>
                   <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
@@ -906,7 +866,7 @@ export default function CentralRelatorios() {
                     >
                       {modoSelecao ? 'Cancelar Seleção' : 'Selecionar Múltiplos'}
                     </Button>
-                    
+
                     {modoSelecao && (
                       <>
                         <Button
@@ -915,7 +875,7 @@ export default function CentralRelatorios() {
                         >
                           {relatoriosSelecionados.length === estatisticas.relatorios.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                         </Button>
-                        
+
                         {relatoriosSelecionados.length > 0 && (
                           <Button
                             size="small"
@@ -947,108 +907,99 @@ export default function CentralRelatorios() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {estatisticas.relatorios && estatisticas.relatorios.length > 0 ? (
-                        estatisticas.relatorios
-                          .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
-                          .map((relatorio) => (
-                            <TableRow key={relatorio.id} hover>
-                              {modoSelecao && (
-                                <TableCell padding="checkbox">
-                                  <Checkbox
-                                    checked={relatoriosSelecionados.includes(relatorio.id)}
-                                    onChange={() => handleSelecionar(relatorio.id)}
-                                  />
-                                </TableCell>
-                              )}
-                              <TableCell>
-                                <Chip 
-                                  label={relatorio.ticker} 
-                                  size="small" 
-                                  sx={{
-                                    backgroundColor: '#dbeafe',
-                                    color: '#1e40af',
-                                    fontWeight: 500,
-                                    borderRadius: '8px'
-                                  }}
+                      {estatisticas.relatorios
+                        .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
+                        .map((relatorio) => (
+                          <TableRow key={relatorio.id} hover>
+                            {modoSelecao && (
+                              <TableCell padding="checkbox">
+                                <Checkbox
+                                  checked={relatoriosSelecionados.includes(relatorio.id)}
+                                  onChange={() => handleSelecionar(relatorio.id)}
                                 />
                               </TableCell>
-                              <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
-                                {relatorio.nome}
-                              </TableCell>
-                              <TableCell>
-                                <Chip 
-                                  label={relatorio.tipo} 
-                                  size="small" 
-                                  variant="outlined"
-                                  sx={{
-                                    borderColor: '#e2e8f0',
-                                    color: '#64748b',
-                                    borderRadius: '8px'
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell sx={{ color: '#64748b' }}>
-                                {relatorio.dataReferencia}
-                              </TableCell>
-                              <TableCell>
+                            )}
+                            <TableCell>
+                              <Chip 
+                                label={relatorio.ticker} 
+                                size="small" 
+                                sx={{
+                                  backgroundColor: '#dbeafe',
+                                  color: '#1e40af',
+                                  fontWeight: 500,
+                                  borderRadius: '8px'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
+                              {relatorio.nome}
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={relatorio.tipo} 
+                                size="small" 
+                                variant="outlined"
+                                sx={{
+                                  borderColor: '#e2e8f0',
+                                  color: '#64748b',
+                                  borderRadius: '8px'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ color: '#64748b' }}>
+                              {relatorio.dataReferencia}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {relatorio.tipoVisualizacao === 'canva' && '🎨'}
+                                {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
+                                {relatorio.tipoVisualizacao === 'link' && '🔗'}
+                                {relatorio.tipoVisualizacao === 'pdf' && '📄'}
+                                <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                  {relatorio.tipoVisualizacao}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              {relatorio.nomeArquivoPdf ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {relatorio.tipoVisualizacao === 'canva' && '🎨'}
-                                  {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
-                                  {relatorio.tipoVisualizacao === 'link' && '🔗'}
-                                  {relatorio.tipoVisualizacao === 'pdf' && '📄'}
-                                  <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
-                                    {relatorio.tipoVisualizacao}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                {relatorio.nomeArquivoPdf ? (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Chip
-                                      label={`${((relatorio.tamanhoArquivo || 0) / 1024 / 1024).toFixed(1)}MB`}
-                                      size="small"
-                                      sx={{
-                                        backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
-                                        color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
-                                        borderRadius: '6px',
-                                        fontSize: '0.75rem'
-                                      }}
-                                    />
-                                    {relatorio.tipoPdf === 'referencia' && (
-                                      <span style={{ fontSize: '14px' }}>⚠️</span>
-                                    )}
-                                  </Box>
-                                ) : (
-                                  <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                                    Sem PDF
-                                  </Typography>
-                                )}
-                              </TableCell>
-                              <TableCell align="center">
-                                <Tooltip title="Mais opções">
-                                  <IconButton
+                                  <Chip
+                                    label={`${((relatorio.tamanhoArquivo || 0) / 1024 / 1024).toFixed(1)}MB`}
                                     size="small"
-                                    onClick={(e) => handleMenuClick(e, relatorio.id)}
-                                  >
-                                    <MoreVertIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={modoSelecao ? 8 : 7} align="center" sx={{ py: 4 }}>
-                            <Typography color="textSecondary">
-                              Nenhum relatório encontrado
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      )}
+                                    sx={{
+                                      backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
+                                      color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
+                                      borderRadius: '6px',
+                                      fontSize: '0.75rem'
+                                    }}
+                                  />
+                                  {relatorio.tipoPdf === 'referencia' && (
+                                    <span style={{ fontSize: '14px' }}>⚠️</span>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
+                                  Sem PDF
+                                </Typography>
+                              )}
+                            </TableCell>
+
+                            <TableCell align="center">
+                              <Tooltip title="Mais opções">
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => handleMenuClick(e, relatorio.id)}
+                                >
+                                  <MoreVertIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </Box>
+              </>
             )}
 
             {/* Tab 2: Estatísticas por Ticker */}
@@ -1094,7 +1045,7 @@ export default function CentralRelatorios() {
                 </Grid>
               </Box>
             )}
-          </CardContent>       
+          </CardContent>
         </Card>
       )}
 
@@ -1205,7 +1156,7 @@ export default function CentralRelatorios() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog - Novo Relatório Individual */}
+      {/* Dialog - Novo Relatório Individual - (MANTIDO IGUAL) */}
       <Dialog 
         open={dialogAberto} 
         onClose={() => !isCarregando && setDialogAberto(false)} 
@@ -1229,36 +1180,20 @@ export default function CentralRelatorios() {
         <DialogContent sx={{ p: 3 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} md={6}>
-              <Autocomplete
-                freeSolo
-                options={TICKERS_DISPONIVEIS}
-                value={novoRelatorio.ticker}
-                onChange={(event, newValue) => {
-                  setNovoRelatorio(prev => ({ 
-                    ...prev, 
-                    ticker: (newValue || '').toUpperCase() 
-                  }));
-                }}
-                onInputChange={(event, newInputValue) => {
-                  setNovoRelatorio(prev => ({ 
-                    ...prev, 
-                    ticker: newInputValue.toUpperCase() 
-                  }));
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Ticker *"
-                    placeholder="Digite ou selecione um ticker (ex: PETR4)"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px'
-                      }
-                    }}
-                  />
-                )}
-                sx={{ width: '100%' }}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Ticker *</InputLabel>
+                <Select
+                  value={novoRelatorio.ticker}
+                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, ticker: e.target.value }))}
+                  sx={{
+                    borderRadius: '8px'
+                  }}
+                >
+                  {TICKERS_DISPONIVEIS.map(ticker => (
+                    <MenuItem key={ticker} value={ticker}>{ticker}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
@@ -1278,19 +1213,18 @@ export default function CentralRelatorios() {
                 <InputLabel>Tipo</InputLabel>
                 <Select
                   value={novoRelatorio.tipo}
-                  label="Tipo" 
                   onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
                   sx={{
                     borderRadius: '8px'
                   }}
                 >
-                  <MenuItem value="apresentacao">Apresentação</MenuItem>
                   <MenuItem value="trimestral">Trimestral</MenuItem>
-                  <MenuItem value="didatico">Didático</MenuItem>
+                  <MenuItem value="anual">Anual</MenuItem>
+                  <MenuItem value="apresentacao">Apresentação</MenuItem>
                   <MenuItem value="outros">Outros</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>            
+            </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -1310,7 +1244,6 @@ export default function CentralRelatorios() {
                 <InputLabel>Tipo de Visualização</InputLabel>
                 <Select
                   value={novoRelatorio.tipoVisualizacao}
-                  label="Tipo de Visualização" 
                   onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
                   sx={{
                     borderRadius: '8px'
