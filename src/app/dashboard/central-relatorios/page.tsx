@@ -179,83 +179,80 @@ export default function CentralRelatorios() {
     verificarMigracaoIndexedDB();
   }, [carregarEstatisticas]);
 
-  // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
-  const verificarMigracaoIndexedDB = useCallback(async () => {
-    try {
-      // Verificar apenas localStorage (mais simples e seguro)
-      const dadosLocalStorage = localStorage.getItem('relatorios_central');
-      
-      if (dadosLocalStorage) {
-        setDialogMigracao(true);
-      }
-    } catch (error) {
-      console.log('Nenhum dado local encontrado para migração');
+// 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
+const verificarMigracaoIndexedDB = useCallback(async () => {
+  try {
+    // Verificar apenas localStorage (mais simples e seguro)
+    const dadosLocalStorage = localStorage.getItem('relatorios_central');
+    
+    if (dadosLocalStorage) {
+      setDialogMigracao(true);
     }
-  }, []);
+  } catch (error) {
+    console.log('Nenhum dado local encontrado para migração');
+  }
+}, []);
 
-  // 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
-  const migrarDadosParaAPI = useCallback(async () => {
-    try {
-      setEtapaProcessamento('Coletando dados do localStorage...');
-      
-      let relatoriosParaMigrar: any[] = [];
-      
-      // Coletar apenas do localStorage
-      const dadosLocalStorage = localStorage.getItem('relatorios_central');
-      if (dadosLocalStorage) {
-        const dados = JSON.parse(dadosLocalStorage);
-        Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
-          relatoriosTicker.forEach(relatorio => {
-            relatoriosParaMigrar.push({
-              ...relatorio,
-              ticker: relatorio.ticker || ticker
-            });
+// 🔄 MIGRAR DADOS DO LOCALSTORAGE PARA API
+const migrarDadosParaAPI = useCallback(async () => {
+  try {
+    setEtapaProcessamento('Coletando dados do localStorage...');
+    
+    let relatoriosParaMigrar: any[] = [];
+    
+    // Coletar apenas do localStorage
+    const dadosLocalStorage = localStorage.getItem('relatorios_central');
+    if (dadosLocalStorage) {
+      const dados = JSON.parse(dadosLocalStorage);
+      Object.entries(dados).forEach(([ticker, relatoriosTicker]: [string, any[]]) => {
+        relatoriosTicker.forEach(relatorio => {
+          relatoriosParaMigrar.push({
+            ...relatorio,
+            ticker: relatorio.ticker || ticker
           });
         });
-      }
-      
-      if (relatoriosParaMigrar.length > 0) {
-        setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
-        console.log('🔄 [VERCEL-DEBUG] Migrando:', relatoriosParaMigrar.length, 'relatórios');
-        
-        // Upload em lote para API
-        await uploadRelatoriosLote(relatoriosParaMigrar, {
-          nomeArquivo: 'migracao_localStorage',
-          totalItens: relatoriosParaMigrar.length,
-          itensProcessados: relatoriosParaMigrar.length
-        });
-        
-        // Fazer backup antes de limpar
-        const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-        
-        // Limpar dados antigos
-        localStorage.removeItem('relatorios_central');
-        
-        // Recarregar dados
-        setTimeout(async () => {
-          await carregarEstatisticas();
-        }, 1000);
-        
-        alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
-      } else {
-        alert('Nenhum dado encontrado para migrar.');
-      }
-      
-      setDialogMigracao(false);
-      
-    } catch (error) {
-      console.error('❌ [VERCEL-DEBUG] Erro na migração:', error);
-      alert('❌ Erro na migração. Dados preservados no localStorage.');
-    } finally {
-      setEtapaProcessamento('');
+      });
     }
-  }, [uploadRelatoriosLote, carregarEstatisticas]);
+    
+    if (relatoriosParaMigrar.length > 0) {
+      setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
+      
+      // Upload em lote para API
+      await uploadRelatoriosLote(relatoriosParaMigrar, {
+        nomeArquivo: 'migracao_localStorage',
+        totalItens: relatoriosParaMigrar.length,
+        itensProcessados: relatoriosParaMigrar.length
+      });
+      
+      // Fazer backup antes de limpar
+      const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `backup_migracao_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      // Limpar dados antigos
+      localStorage.removeItem('relatorios_central');
+      
+      // Recarregar dados
+      await carregarEstatisticas();
+      
+      alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
+    } else {
+      alert('Nenhum dado encontrado para migrar.');
+    }
+    
+    setDialogMigracao(false);
+    
+  } catch (error) {
+    console.error('Erro na migração:', error);
+    alert('❌ Erro na migração. Dados preservados no localStorage.');
+  } finally {
+    setEtapaProcessamento('');
+  }
+}, [uploadRelatoriosLote, carregarEstatisticas]);
 
   // 📤 SALVAR RELATÓRIO VIA API
   const salvarRelatorioIndividual = useCallback(async () => {
@@ -283,21 +280,14 @@ export default function CentralRelatorios() {
         ...dadosPdf
       };
 
-      console.log('💾 [VERCEL-DEBUG] Salvando relatório:', relatorioCompleto.nome);
-      
       await uploadRelatorio(relatorioCompleto, {
         nomeArquivo: 'upload_individual',
         totalItens: 1,
         itensProcessados: 1
       });
       
-      console.log('✅ [VERCEL-DEBUG] Relatório salvo, recarregando dados...');
-      
-      // 🔥 AGUARDAR UM POUCO E RECARREGAR (para garantir que o banco foi atualizado)
-      setTimeout(async () => {
-        console.log('🔄 [VERCEL-DEBUG] Executando reload forçado...');
-        await carregarEstatisticas();
-      }, 1000); // 1 segundo de delay
+      // ✅ RECARREGAR ESTATÍSTICAS
+      await carregarEstatisticas();
       
       setNovoRelatorio({
         ticker: '',
@@ -314,50 +304,24 @@ export default function CentralRelatorios() {
       alert('✅ Relatório salvo com sucesso!');
       
     } catch (error) {
-      console.error('❌ [VERCEL-DEBUG] Erro ao salvar relatório:', error);
+      console.error('Erro ao salvar relatório:', error);
       alert('❌ Erro ao processar relatório');
     } finally {
       setEtapaProcessamento('');
     }
   }, [novoRelatorio, uploadRelatorio, carregarEstatisticas]);
 
-  // ✅ CONFIRMAR EXCLUSÃO COM DELAY
-  const confirmarExclusaoRelatorio = useCallback(async () => {
-    if (relatorioParaExcluir) {
-      try {
-        console.log('🗑️ [VERCEL-DEBUG] Confirmando exclusão:', relatorioParaExcluir);
-        
-        await excluirRelatorio(relatorioParaExcluir);
-        
-        console.log('✅ [VERCEL-DEBUG] Relatório excluído, recarregando...');
-        
-        // 🔥 AGUARDAR E RECARREGAR
-        setTimeout(async () => {
-          await carregarEstatisticas();
-        }, 1000);
-        
-        setRelatorioParaExcluir(null);
-        alert('✅ Relatório excluído com sucesso!');
-      } catch (error) {
-        console.error('❌ [VERCEL-DEBUG] Erro ao excluir:', error);
-        alert('❌ Erro ao excluir relatório');
-      }
-    }
-  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas]);
-
-  // ✅ EXPORTAR VIA API COM NOME CORRETO
+  // ✅ EXPORTAR VIA API
   const handleExportarDados = useCallback(async () => {
     try {
-      console.log('📤 [VERCEL-DEBUG] Iniciando exportação...');
       await exportarDados();
       alert('✅ Dados exportados com sucesso!');
     } catch (error) {
-      console.error('❌ [VERCEL-DEBUG] Erro na exportação:', error);
       alert('❌ Erro ao exportar dados');
     }
   }, [exportarDados]);
 
-  // ✅ IMPORTAR VIA API COM NOME CORRETO
+  // ✅ IMPORTAR VIA API
   const handleImportarDados = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -365,19 +329,12 @@ export default function CentralRelatorios() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        console.log('📥 [VERCEL-DEBUG] Iniciando importação...');
         const dados = e.target?.result as string;
         await importarDados(dados);
-        
-        // 🔥 AGUARDAR E RECARREGAR
-        setTimeout(async () => {
-          await carregarEstatisticas();
-        }, 1000);
-        
+        await carregarEstatisticas();
         alert('✅ Dados importados com sucesso!');
         setDialogBackup(false);
       } catch (error) {
-        console.error('❌ [VERCEL-DEBUG] Erro na importação:', error);
         alert('❌ Erro ao importar arquivo');
       }
     };
@@ -385,27 +342,20 @@ export default function CentralRelatorios() {
     event.target.value = '';
   }, [importarDados, carregarEstatisticas]);
 
-  // ✅ LIMPAR VIA API COM DELAY
+  // ✅ LIMPAR VIA API
   const handleLimparTudo = useCallback(async () => {
     if (!confirm('Tem certeza que deseja apagar todos os dados?')) return;
     
     try {
-      console.log('🧹 [VERCEL-DEBUG] Limpando todos os dados...');
       await limparTodos();
-      
-      // 🔥 AGUARDAR E RECARREGAR
-      setTimeout(async () => {
-        await carregarEstatisticas();
-      }, 1000);
-      
+      await carregarEstatisticas();
       alert('✅ Dados removidos com sucesso.');
     } catch (error) {
-      console.error('❌ [VERCEL-DEBUG] Erro ao limpar:', error);
       alert('❌ Erro ao remover dados');
     }
   }, [limparTodos, carregarEstatisticas]);
 
-  // ✅ FUNÇÕES DE MENU
+  // 🗑️ Funções de exclusão VIA API (similar à agenda)
   const handleMenuClick = useCallback((event: React.MouseEvent<HTMLElement>, id: string) => {
     setMenuAnchor(event.currentTarget);
     setMenuRelatorioId(id);
@@ -421,35 +371,37 @@ export default function CentralRelatorios() {
     handleMenuClose();
   }, [handleMenuClose]);
 
-  // ✅ FUNÇÃO PARA EXCLUIR TICKER
+  const confirmarExclusaoRelatorio = useCallback(async () => {
+    if (relatorioParaExcluir) {
+      try {
+        await excluirRelatorio(relatorioParaExcluir);
+        await carregarEstatisticas();
+        setRelatorioParaExcluir(null);
+        alert('✅ Relatório excluído com sucesso!');
+      } catch (error) {
+        alert('❌ Erro ao excluir relatório');
+      }
+    }
+  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas]);
+
   const handleExcluirTicker = useCallback((ticker: string) => {
     setTickerParaExcluir(ticker);
   }, []);
 
-  // ✅ CONFIRMAR EXCLUSÃO POR TICKER COM DELAY
   const confirmarExclusaoTicker = useCallback(async () => {
     if (tickerParaExcluir) {
       try {
-        console.log('🗑️ [VERCEL-DEBUG] Excluindo ticker:', tickerParaExcluir);
         const relatoriosDoTicker = estatisticas.relatorios.filter(r => r.ticker === tickerParaExcluir).length;
-        
         await excluirPorTicker(tickerParaExcluir);
-        
-        // 🔥 AGUARDAR E RECARREGAR
-        setTimeout(async () => {
-          await carregarEstatisticas();
-        }, 1000);
-        
+        await carregarEstatisticas();
         setTickerParaExcluir(null);
         alert(`✅ ${relatoriosDoTicker} relatórios do ticker ${tickerParaExcluir} excluídos!`);
       } catch (error) {
-        console.error('❌ [VERCEL-DEBUG] Erro ao excluir ticker:', error);
         alert('❌ Erro ao excluir relatórios do ticker');
       }
     }
   }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios]);
 
-  // ✅ FUNÇÕES DE SELEÇÃO
   const handleSelecionar = useCallback((id: string) => {
     setRelatoriosSelecionados(prev => 
       prev.includes(id) 
@@ -466,24 +418,15 @@ export default function CentralRelatorios() {
     }
   }, [relatoriosSelecionados.length, estatisticas.relatorios]);
 
-  // ✅ EXCLUIR SELECIONADOS COM DELAY
   const excluirSelecionados = useCallback(async () => {
     if (relatoriosSelecionados.length > 0) {
       try {
-        console.log('🗑️ [VERCEL-DEBUG] Excluindo selecionados:', relatoriosSelecionados.length);
-        
         await excluirRelatorios(relatoriosSelecionados);
-        
-        // 🔥 AGUARDAR E RECARREGAR
-        setTimeout(async () => {
-          await carregarEstatisticas();
-        }, 1000);
-        
+        await carregarEstatisticas();
         setRelatoriosSelecionados([]);
         setModoSelecao(false);
         alert(`✅ ${relatoriosSelecionados.length} relatórios excluídos!`);
       } catch (error) {
-        console.error('❌ [VERCEL-DEBUG] Erro ao excluir selecionados:', error);
         alert('❌ Erro ao excluir relatórios selecionados');
       }
     }
@@ -1213,7 +1156,7 @@ export default function CentralRelatorios() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog - Novo Relatório Individual */}
+      {/* Dialog - Novo Relatório Individual - (MANTIDO IGUAL) */}
       <Dialog 
         open={dialogAberto} 
         onClose={() => !isCarregando && setDialogAberto(false)} 
@@ -1471,7 +1414,7 @@ export default function CentralRelatorios() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog - Backup/Restore */}
+      {/* Dialog - Backup/Restore (ATUALIZADO PARA API) */}
       <Dialog 
         open={dialogBackup} 
         onClose={() => setDialogBackup(false)} 
