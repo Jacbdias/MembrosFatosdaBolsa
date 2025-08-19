@@ -37,7 +37,20 @@ export interface MetadataUpload {
   itensProcessados?: number;
 }
 
-// 🔄 HOOK DE ESTATÍSTICAS
+// 🔧 FUNÇÕES HELPER PARA CACHE E DEBUG
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+});
+
+const getUrlWithTimestamp = (url: string) => {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_t=${Date.now()}&_r=${Math.random()}`;
+};
+
+// 🔄 HOOK DE ESTATÍSTICAS - ATUALIZADO
 export function useRelatoriosEstatisticas() {
   const [estatisticas, setEstatisticas] = useState<EstatisticasRelatorios>({
     totalRelatorios: 0,
@@ -50,21 +63,38 @@ export function useRelatoriosEstatisticas() {
   const [error, setError] = useState<string | null>(null);
 
   const carregarEstatisticas = useCallback(async () => {
+    console.log('🔄 [VERCEL-DEBUG] Iniciando carregamento estatísticas...', new Date().toISOString());
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/relatorios/estatisticas');
+      // 🔥 URL com timestamp para forçar reload
+      const url = getUrlWithTimestamp('/api/relatorios/estatisticas');
+      console.log('📡 [VERCEL-DEBUG] URL estatísticas:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+
+      console.log('📊 [VERCEL-DEBUG] Response status estatísticas:', response.status);
       
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
 
       const dados = await response.json();
+      console.log('✅ [VERCEL-DEBUG] Dados estatísticas recebidos:', {
+        totalRelatorios: dados.totalRelatorios,
+        totalTickers: dados.totalTickers,
+        timestamp: new Date().toISOString()
+      });
+
       setEstatisticas(dados);
 
     } catch (error) {
-      console.error('Erro ao carregar estatísticas dos relatórios:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao carregar estatísticas:', error);
       setError(error instanceof Error ? error.message : 'Erro desconhecido');
       
       // Fallback para dados vazios em caso de erro
@@ -88,7 +118,7 @@ export function useRelatoriosEstatisticas() {
   };
 }
 
-// 📤 HOOK DE UPLOAD E CRUD
+// 📤 HOOK DE UPLOAD E CRUD - ATUALIZADO
 export function useRelatoriosUpload() {
   const [loading, setLoading] = useState(false);
   const [progresso, setProgresso] = useState(0);
@@ -98,6 +128,8 @@ export function useRelatoriosUpload() {
     relatorio: Omit<RelatorioAPI, 'id' | 'dataUpload'>, 
     metadata?: MetadataUpload
   ) => {
+    console.log('🚀 [VERCEL-DEBUG] Upload relatório iniciado:', relatorio.nome);
+    
     setLoading(true);
     setProgresso(0);
     setError(null);
@@ -106,11 +138,12 @@ export function useRelatoriosUpload() {
       // Simular progresso
       setProgresso(25);
 
-      const response = await fetch('/api/relatorios', {
+      const url = getUrlWithTimestamp('/api/relatorios');
+      console.log('📤 [VERCEL-DEBUG] URL upload:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: JSON.stringify({
           ...relatorio,
           metadata
@@ -118,6 +151,7 @@ export function useRelatoriosUpload() {
       });
 
       setProgresso(75);
+      console.log('📤 [VERCEL-DEBUG] Upload response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -126,11 +160,12 @@ export function useRelatoriosUpload() {
 
       const resultado = await response.json();
       setProgresso(100);
+      console.log('✅ [VERCEL-DEBUG] Upload relatório concluído:', resultado);
 
       return resultado;
 
     } catch (error) {
-      console.error('Erro no upload do relatório:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro no upload do relatório:', error);
       setError(error instanceof Error ? error.message : 'Erro no upload');
       throw error;
     } finally {
@@ -144,21 +179,25 @@ export function useRelatoriosUpload() {
     relatorios: Omit<RelatorioAPI, 'id' | 'dataUpload'>[], 
     metadata?: MetadataUpload
   ) => {
+    console.log('📦 [VERCEL-DEBUG] Upload lote iniciado:', relatorios.length, 'relatórios');
+    
     setLoading(true);
     setProgresso(0);
     setError(null);
 
     try {
-      const response = await fetch('/api/relatorios/lote', {
+      const url = getUrlWithTimestamp('/api/relatorios/lote');
+
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: JSON.stringify({
           relatorios,
           metadata
         }),
       });
+
+      console.log('📦 [VERCEL-DEBUG] Upload lote response:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -167,11 +206,12 @@ export function useRelatoriosUpload() {
 
       const resultado = await response.json();
       setProgresso(100);
+      console.log('✅ [VERCEL-DEBUG] Upload lote concluído');
 
       return resultado;
 
     } catch (error) {
-      console.error('Erro no upload em lote:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro no upload em lote:', error);
       setError(error instanceof Error ? error.message : 'Erro no upload em lote');
       throw error;
     } finally {
@@ -181,23 +221,33 @@ export function useRelatoriosUpload() {
   }, []);
 
   const excluirRelatorio = useCallback(async (id: string) => {
+    console.log('🗑️ [VERCEL-DEBUG] Excluindo relatório:', id);
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/relatorios/${id}`, {
+      const url = getUrlWithTimestamp(`/api/relatorios/${id}`);
+
+      const response = await fetch(url, {
         method: 'DELETE',
+        headers: getHeaders()
       });
+
+      console.log('🗑️ [VERCEL-DEBUG] Delete response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erro ${response.status}`);
       }
 
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ [VERCEL-DEBUG] Relatório excluído com sucesso');
+
+      return resultado;
 
     } catch (error) {
-      console.error('Erro ao excluir relatório:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao excluir relatório:', error);
       setError(error instanceof Error ? error.message : 'Erro ao excluir');
       throw error;
     } finally {
@@ -206,27 +256,34 @@ export function useRelatoriosUpload() {
   }, []);
 
   const excluirRelatorios = useCallback(async (ids: string[]) => {
+    console.log('🗑️ [VERCEL-DEBUG] Excluindo múltiplos relatórios:', ids.length);
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/relatorios/excluir-multiplos', {
+      const url = getUrlWithTimestamp('/api/relatorios/excluir-multiplos');
+
+      const response = await fetch(url, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: JSON.stringify({ ids }),
       });
+
+      console.log('🗑️ [VERCEL-DEBUG] Delete múltiplos response:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erro ${response.status}`);
       }
 
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ [VERCEL-DEBUG] Múltiplos relatórios excluídos');
+
+      return resultado;
 
     } catch (error) {
-      console.error('Erro ao excluir relatórios:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao excluir relatórios:', error);
       setError(error instanceof Error ? error.message : 'Erro ao excluir múltiplos');
       throw error;
     } finally {
@@ -235,23 +292,33 @@ export function useRelatoriosUpload() {
   }, []);
 
   const excluirPorTicker = useCallback(async (ticker: string) => {
+    console.log('🗑️ [VERCEL-DEBUG] Excluindo por ticker:', ticker);
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/relatorios/ticker/${ticker}`, {
+      const url = getUrlWithTimestamp(`/api/relatorios/ticker/${ticker}`);
+
+      const response = await fetch(url, {
         method: 'DELETE',
+        headers: getHeaders()
       });
+
+      console.log('🗑️ [VERCEL-DEBUG] Delete ticker response:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erro ${response.status}`);
       }
 
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ [VERCEL-DEBUG] Relatórios do ticker excluídos');
+
+      return resultado;
 
     } catch (error) {
-      console.error('Erro ao excluir relatórios do ticker:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao excluir relatórios do ticker:', error);
       setError(error instanceof Error ? error.message : 'Erro ao excluir por ticker');
       throw error;
     } finally {
@@ -260,23 +327,33 @@ export function useRelatoriosUpload() {
   }, []);
 
   const limparTodos = useCallback(async () => {
+    console.log('🧹 [VERCEL-DEBUG] Limpando todos os relatórios');
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/relatorios/limpar', {
+      const url = getUrlWithTimestamp('/api/relatorios/limpar');
+
+      const response = await fetch(url, {
         method: 'DELETE',
+        headers: getHeaders()
       });
+
+      console.log('🧹 [VERCEL-DEBUG] Limpar tudo response:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erro ${response.status}`);
       }
 
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ [VERCEL-DEBUG] Todos os relatórios limpos');
+
+      return resultado;
 
     } catch (error) {
-      console.error('Erro ao limpar todos os relatórios:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao limpar todos os relatórios:', error);
       setError(error instanceof Error ? error.message : 'Erro ao limpar tudo');
       throw error;
     } finally {
@@ -297,34 +374,45 @@ export function useRelatoriosUpload() {
   };
 }
 
-// 📥 HOOK DE EXPORTAÇÃO
+// 📥 HOOK DE EXPORTAÇÃO - ATUALIZADO
 export function useRelatoriosExport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const exportarDados = useCallback(async () => {
+    console.log('📤 [VERCEL-DEBUG] Exportando dados');
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/relatorios/exportar');
+      const url = getUrlWithTimestamp('/api/relatorios/exportar');
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders()
+      });
+
+      console.log('📤 [VERCEL-DEBUG] Export response:', response.status);
 
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
 
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
+      link.href = downloadUrl;
       link.download = `relatorios_backup_${new Date().toISOString().split('T')[0]}.json`;
       link.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(downloadUrl);
+
+      console.log('✅ [VERCEL-DEBUG] Export concluído');
 
       return true;
 
     } catch (error) {
-      console.error('Erro ao exportar relatórios:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao exportar relatórios:', error);
       setError(error instanceof Error ? error.message : 'Erro na exportação');
       throw error;
     } finally {
@@ -333,27 +421,34 @@ export function useRelatoriosExport() {
   }, []);
 
   const importarDados = useCallback(async (dadosJson: string) => {
+    console.log('📥 [VERCEL-DEBUG] Importando dados');
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/relatorios/importar', {
+      const url = getUrlWithTimestamp('/api/relatorios/importar');
+
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: dadosJson,
       });
+
+      console.log('📥 [VERCEL-DEBUG] Import response:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Erro ${response.status}`);
       }
 
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ [VERCEL-DEBUG] Import concluído');
+
+      return resultado;
 
     } catch (error) {
-      console.error('Erro ao importar relatórios:', error);
+      console.error('❌ [VERCEL-DEBUG] Erro ao importar relatórios:', error);
       setError(error instanceof Error ? error.message : 'Erro na importação');
       throw error;
     } finally {
