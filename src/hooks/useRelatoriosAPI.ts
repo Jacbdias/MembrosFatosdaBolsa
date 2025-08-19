@@ -62,53 +62,69 @@ export function useRelatoriosEstatisticas() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const carregarEstatisticas = useCallback(async () => {
-    console.log('🔄 [VERCEL-DEBUG] Iniciando carregamento estatísticas...', new Date().toISOString());
+const carregarEstatisticas = useCallback(async () => {
+  console.log('🔄 [VERCEL-DEBUG] Iniciando carregamento estatísticas...', new Date().toISOString());
+  
+  setLoading(true);
+  setError(null);
+
+  try {
+    // 🔥 USAR O ENDPOINT QUE FUNCIONA
+    const url = getUrlWithTimestamp('/api/relatorios');
+    console.log('📡 [VERCEL-DEBUG] URL estatísticas:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+
+    console.log('📊 [VERCEL-DEBUG] Response status estatísticas:', response.status);
     
-    setLoading(true);
-    setError(null);
-
-    try {
-      // 🔥 URL com timestamp para forçar reload
-      const url = getUrlWithTimestamp('/api/relatorios/estatisticas');
-      console.log('📡 [VERCEL-DEBUG] URL estatísticas:', url);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: getHeaders()
-      });
-
-      console.log('📊 [VERCEL-DEBUG] Response status estatísticas:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
-      }
-
-      const dados = await response.json();
-      console.log('✅ [VERCEL-DEBUG] Dados estatísticas recebidos:', {
-        totalRelatorios: dados.totalRelatorios,
-        totalTickers: dados.totalTickers,
-        timestamp: new Date().toISOString()
-      });
-
-      setEstatisticas(dados);
-
-    } catch (error) {
-      console.error('❌ [VERCEL-DEBUG] Erro ao carregar estatísticas:', error);
-      setError(error instanceof Error ? error.message : 'Erro desconhecido');
-      
-      // Fallback para dados vazios em caso de erro
-      setEstatisticas({
-        totalRelatorios: 0,
-        totalTickers: 0,
-        relatoriosComPdf: 0,
-        tamanhoTotalMB: 0,
-        relatorios: []
-      });
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}: ${response.statusText}`);
     }
-  }, []);
+
+    const dados = await response.json();
+    console.log('✅ [VERCEL-DEBUG] Dados brutos recebidos:', dados);
+
+    // 🔄 PROCESSAR COMO ESTATÍSTICAS (igual ao teste que funcionou)
+    const estatisticas = {
+      totalRelatorios: dados.total || dados.relatorios?.length || 0,
+      totalTickers: new Set(dados.relatorios?.map(r => r.ticker) || []).size,
+      relatoriosComPdf: dados.relatorios?.filter(r => r.nomeArquivoPdf)?.length || 0,
+      tamanhoTotalMB: Math.round(
+        (dados.relatorios?.reduce((acc, r) => acc + (r.tamanhoArquivo || 0), 0) || 0) / (1024 * 1024) * 100
+      ) / 100,
+      dataUltimoUpload: dados.relatorios?.length > 0 
+        ? dados.relatorios.sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())[0].dataUpload
+        : null,
+      relatorios: dados.relatorios || []
+    };
+
+    console.log('📊 [VERCEL-DEBUG] Estatísticas processadas:', {
+      totalRelatorios: estatisticas.totalRelatorios,
+      totalTickers: estatisticas.totalTickers,
+      timestamp: new Date().toISOString()
+    });
+
+    setEstatisticas(estatisticas);
+
+  } catch (error) {
+    console.error('❌ [VERCEL-DEBUG] Erro ao carregar estatísticas:', error);
+    setError(error instanceof Error ? error.message : 'Erro desconhecido');
+    
+    // Fallback para dados vazios em caso de erro
+    setEstatisticas({
+      totalRelatorios: 0,
+      totalTickers: 0,
+      relatoriosComPdf: 0,
+      tamanhoTotalMB: 0,
+      relatorios: []
+    });
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   return {
     estatisticas,
