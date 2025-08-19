@@ -124,13 +124,12 @@ const processarPdfHibrido = async (arquivo: File): Promise<any> => {
 export default function CentralRelatorios() {
   const router = useRouter();
   
-  // 🔄 USAR NOVOS HOOKS DA API (similar à agenda)
+  // 🔄 USAR NOVOS HOOKS DA API - SEM setEstatisticas
   const { 
     estatisticas, 
     loading: statsLoading, 
     error: statsError,
-    carregarEstatisticas,
-    setEstatisticas // Adicionar este setter se disponível no hook
+    carregarEstatisticas
   } = useRelatoriosEstatisticas();
   
   const { 
@@ -159,7 +158,7 @@ export default function CentralRelatorios() {
   const [dialogMigracao, setDialogMigracao] = useState(false);
   const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
   
-  // 🗑️ Estados para exclusão (similar à agenda)
+  // 🗑️ Estados para exclusão
   const [relatorioParaExcluir, setRelatorioParaExcluir] = useState<string | null>(null);
   const [tickerParaExcluir, setTickerParaExcluir] = useState<string | null>(null);
   const [relatoriosSelecionados, setRelatoriosSelecionados] = useState<string[]>([]);
@@ -180,23 +179,30 @@ export default function CentralRelatorios() {
 
   // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
   useEffect(() => {
+    console.log('Carregando estatísticas iniciais...');
     carregarEstatisticas();
     verificarMigracaoIndexedDB();
-  }, [carregarEstatisticas]);
+  }, []);
   
+  // Debug: Log dos dados carregados
+  useEffect(() => {
+    console.log('Estatísticas atualizadas:', estatisticas);
+    console.log('Relatórios:', estatisticas?.relatorios);
+    console.log('Total de relatórios:', estatisticas?.totalRelatorios);
+  }, [estatisticas]);
+
   // Recarregar dados quando refreshKey mudar
   useEffect(() => {
     if (refreshKey > 0) {
+      console.log('Recarregando por refreshKey...');
       carregarEstatisticas();
     }
-  }, [refreshKey, carregarEstatisticas]);
+  }, [refreshKey]);
 
-  // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE APENAS
+  // 🔄 VERIFICAR SE PRECISA MIGRAR DO LOCALSTORAGE
   const verificarMigracaoIndexedDB = useCallback(async () => {
     try {
-      // Verificar apenas localStorage (mais simples e seguro)
       const dadosLocalStorage = localStorage.getItem('relatorios_central');
-      
       if (dadosLocalStorage) {
         setDialogMigracao(true);
       }
@@ -212,7 +218,6 @@ export default function CentralRelatorios() {
       
       let relatoriosParaMigrar: any[] = [];
       
-      // Coletar apenas do localStorage
       const dadosLocalStorage = localStorage.getItem('relatorios_central');
       if (dadosLocalStorage) {
         const dados = JSON.parse(dadosLocalStorage);
@@ -229,14 +234,12 @@ export default function CentralRelatorios() {
       if (relatoriosParaMigrar.length > 0) {
         setEtapaProcessamento(`Enviando ${relatoriosParaMigrar.length} relatórios para API...`);
         
-        // Upload em lote para API
         await uploadRelatoriosLote(relatoriosParaMigrar, {
           nomeArquivo: 'migracao_localStorage',
           totalItens: relatoriosParaMigrar.length,
           itensProcessados: relatoriosParaMigrar.length
         });
         
-        // Fazer backup antes de limpar
         const blob = new Blob([JSON.stringify(relatoriosParaMigrar, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -245,10 +248,8 @@ export default function CentralRelatorios() {
         link.click();
         URL.revokeObjectURL(url);
         
-        // Limpar dados antigos
         localStorage.removeItem('relatorios_central');
         
-        // Recarregar dados
         await carregarEstatisticas();
         
         alert(`✅ Migração concluída!\n\n${relatoriosParaMigrar.length} relatórios foram migrados para a API.\n\nBackup foi baixado automaticamente.`);
@@ -371,7 +372,7 @@ export default function CentralRelatorios() {
     }
   }, [limparTodos, carregarEstatisticas]);
 
-  // 🗑️ Funções de exclusão VIA API (similar à agenda)
+  // 🗑️ Funções de exclusão VIA API
   const handleMenuClick = useCallback((event: React.MouseEvent<HTMLElement>, id: string) => {
     setMenuAnchor(event.currentTarget);
     setMenuRelatorioId(id);
@@ -392,19 +393,8 @@ export default function CentralRelatorios() {
       try {
         await excluirRelatorio(relatorioParaExcluir);
         
-        // Atualização otimista: remover imediatamente da lista local
-        if (setEstatisticas) {
-          setEstatisticas(prev => ({
-            ...prev,
-            relatorios: prev.relatorios.filter(r => r.id !== relatorioParaExcluir),
-            totalRelatorios: prev.totalRelatorios - 1
-          }));
-        }
-        
         // Forçar recarga completa dos dados
-        setTimeout(() => {
-          carregarEstatisticas();
-        }, 100);
+        await carregarEstatisticas();
         
         setRefreshKey(prev => prev + 1);
         setRelatorioParaExcluir(null);
@@ -412,11 +402,10 @@ export default function CentralRelatorios() {
       } catch (error) {
         console.error('Erro ao excluir:', error);
         alert('❌ Erro ao excluir relatório');
-        // Recarregar em caso de erro para sincronizar
         carregarEstatisticas();
       }
     }
-  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas, setEstatisticas]);
+  }, [relatorioParaExcluir, excluirRelatorio, carregarEstatisticas]);
 
   const handleExcluirTicker = useCallback((ticker: string) => {
     setTickerParaExcluir(ticker);
@@ -430,20 +419,8 @@ export default function CentralRelatorios() {
         
         await excluirPorTicker(tickerParaExcluir);
         
-        // Atualização otimista: remover imediatamente da lista local
-        if (setEstatisticas) {
-          setEstatisticas(prev => ({
-            ...prev,
-            relatorios: prev.relatorios.filter(r => r.ticker !== tickerParaExcluir),
-            totalRelatorios: prev.totalRelatorios - quantidadeRelatorios,
-            totalTickers: prev.totalTickers - 1
-          }));
-        }
-        
         // Forçar recarga completa dos dados
-        setTimeout(() => {
-          carregarEstatisticas();
-        }, 100);
+        await carregarEstatisticas();
         
         setRefreshKey(prev => prev + 1);
         setTickerParaExcluir(null);
@@ -451,11 +428,10 @@ export default function CentralRelatorios() {
       } catch (error) {
         console.error('Erro ao excluir ticker:', error);
         alert('❌ Erro ao excluir relatórios do ticker');
-        // Recarregar em caso de erro para sincronizar
         carregarEstatisticas();
       }
     }
-  }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios, setEstatisticas]);
+  }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios]);
 
   const handleSelecionar = useCallback((id: string) => {
     setRelatoriosSelecionados(prev => 
@@ -479,19 +455,8 @@ export default function CentralRelatorios() {
         const quantidade = relatoriosSelecionados.length;
         await excluirRelatorios(relatoriosSelecionados);
         
-        // Atualização otimista: remover imediatamente da lista local
-        if (setEstatisticas) {
-          setEstatisticas(prev => ({
-            ...prev,
-            relatorios: prev.relatorios.filter(r => !relatoriosSelecionados.includes(r.id)),
-            totalRelatorios: prev.totalRelatorios - quantidade
-          }));
-        }
-        
         // Forçar recarga completa dos dados
-        setTimeout(() => {
-          carregarEstatisticas();
-        }, 100);
+        await carregarEstatisticas();
         
         setRefreshKey(prev => prev + 1);
         setRelatoriosSelecionados([]);
@@ -500,26 +465,27 @@ export default function CentralRelatorios() {
       } catch (error) {
         console.error('Erro ao excluir selecionados:', error);
         alert('❌ Erro ao excluir relatórios selecionados');
-        // Recarregar em caso de erro para sincronizar
         carregarEstatisticas();
       }
     }
-  }, [relatoriosSelecionados, excluirRelatorios, carregarEstatisticas, setEstatisticas]);
+  }, [relatoriosSelecionados, excluirRelatorios, carregarEstatisticas]);
 
   // Estatísticas por ticker VIA API
   const estatisticasPorTicker = useMemo(() => {
     const stats: { [ticker: string]: { total: number; comPdf: number } } = {};
     
-    estatisticas.relatorios.forEach(relatorio => {
-      if (!stats[relatorio.ticker]) {
-        stats[relatorio.ticker] = { total: 0, comPdf: 0 };
-      }
-      stats[relatorio.ticker].total++;
-      
-      if (relatorio.arquivoPdf || relatorio.nomeArquivoPdf) {
-        stats[relatorio.ticker].comPdf++;
-      }
-    });
+    if (estatisticas.relatorios && Array.isArray(estatisticas.relatorios)) {
+      estatisticas.relatorios.forEach(relatorio => {
+        if (!stats[relatorio.ticker]) {
+          stats[relatorio.ticker] = { total: 0, comPdf: 0 };
+        }
+        stats[relatorio.ticker].total++;
+        
+        if (relatorio.arquivoPdf || relatorio.nomeArquivoPdf) {
+          stats[relatorio.ticker].comPdf++;
+        }
+      });
+    }
 
     return Object.entries(stats)
       .map(([ticker, data]) => ({ ticker, ...data }))
@@ -981,94 +947,104 @@ export default function CentralRelatorios() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {estatisticas.relatorios
-                        .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
-                        .map((relatorio) => (
-                          <TableRow key={relatorio.id} hover>
-                            {modoSelecao && (
-                              <TableCell padding="checkbox">
-                                <Checkbox
-                                  checked={relatoriosSelecionados.includes(relatorio.id)}
-                                  onChange={() => handleSelecionar(relatorio.id)}
+                      {estatisticas.relatorios && estatisticas.relatorios.length > 0 ? (
+                        estatisticas.relatorios
+                          .sort((a, b) => new Date(b.dataUpload).getTime() - new Date(a.dataUpload).getTime())
+                          .map((relatorio) => (
+                            <TableRow key={relatorio.id} hover>
+                              {modoSelecao && (
+                                <TableCell padding="checkbox">
+                                  <Checkbox
+                                    checked={relatoriosSelecionados.includes(relatorio.id)}
+                                    onChange={() => handleSelecionar(relatorio.id)}
+                                  />
+                                </TableCell>
+                              )}
+                              <TableCell>
+                                <Chip 
+                                  label={relatorio.ticker} 
+                                  size="small" 
+                                  sx={{
+                                    backgroundColor: '#dbeafe',
+                                    color: '#1e40af',
+                                    fontWeight: 500,
+                                    borderRadius: '8px'
+                                  }}
                                 />
                               </TableCell>
-                            )}
-                            <TableCell>
-                              <Chip 
-                                label={relatorio.ticker} 
-                                size="small" 
-                                sx={{
-                                  backgroundColor: '#dbeafe',
-                                  color: '#1e40af',
-                                  fontWeight: 500,
-                                  borderRadius: '8px'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
-                              {relatorio.nome}
-                            </TableCell>
-                            <TableCell>
-                              <Chip 
-                                label={relatorio.tipo} 
-                                size="small" 
-                                variant="outlined"
-                                sx={{
-                                  borderColor: '#e2e8f0',
-                                  color: '#64748b',
-                                  borderRadius: '8px'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ color: '#64748b' }}>
-                              {relatorio.dataReferencia}
-                            </TableCell>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {relatorio.tipoVisualizacao === 'canva' && '🎨'}
-                                {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
-                                {relatorio.tipoVisualizacao === 'link' && '🔗'}
-                                {relatorio.tipoVisualizacao === 'pdf' && '📄'}
-                                <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
-                                  {relatorio.tipoVisualizacao}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              {relatorio.nomeArquivoPdf ? (
+                              <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>
+                                {relatorio.nome}
+                              </TableCell>
+                              <TableCell>
+                                <Chip 
+                                  label={relatorio.tipo} 
+                                  size="small" 
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: '#e2e8f0',
+                                    color: '#64748b',
+                                    borderRadius: '8px'
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ color: '#64748b' }}>
+                                {relatorio.dataReferencia}
+                              </TableCell>
+                              <TableCell>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Chip
-                                    label={`${((relatorio.tamanhoArquivo || 0) / 1024 / 1024).toFixed(1)}MB`}
-                                    size="small"
-                                    sx={{
-                                      backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
-                                      color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
-                                      borderRadius: '6px',
-                                      fontSize: '0.75rem'
-                                    }}
-                                  />
-                                  {relatorio.tipoPdf === 'referencia' && (
-                                    <span style={{ fontSize: '14px' }}>⚠️</span>
-                                  )}
+                                  {relatorio.tipoVisualizacao === 'canva' && '🎨'}
+                                  {relatorio.tipoVisualizacao === 'iframe' && '🖼️'}
+                                  {relatorio.tipoVisualizacao === 'link' && '🔗'}
+                                  {relatorio.tipoVisualizacao === 'pdf' && '📄'}
+                                  <Typography sx={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                    {relatorio.tipoVisualizacao}
+                                  </Typography>
                                 </Box>
-                              ) : (
-                                <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                                  Sem PDF
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Tooltip title="Mais opções">
-                                <IconButton
-                                  size="small"
-                                  onClick={(e) => handleMenuClick(e, relatorio.id)}
-                                >
-                                  <MoreVertIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell>
+                                {relatorio.nomeArquivoPdf ? (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Chip
+                                      label={`${((relatorio.tamanhoArquivo || 0) / 1024 / 1024).toFixed(1)}MB`}
+                                      size="small"
+                                      sx={{
+                                        backgroundColor: relatorio.tipoPdf === 'base64' ? '#dcfce7' : '#fef3c7',
+                                        color: relatorio.tipoPdf === 'base64' ? '#166534' : '#92400e',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem'
+                                      }}
+                                    />
+                                    {relatorio.tipoPdf === 'referencia' && (
+                                      <span style={{ fontSize: '14px' }}>⚠️</span>
+                                    )}
+                                  </Box>
+                                ) : (
+                                  <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>
+                                    Sem PDF
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="center">
+                                <Tooltip title="Mais opções">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => handleMenuClick(e, relatorio.id)}
+                                  >
+                                    <MoreVertIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={modoSelecao ? 8 : 7} align="center" sx={{ py: 4 }}>
+                            <Typography color="textSecondary">
+                              Nenhum relatório encontrado
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -1575,7 +1551,6 @@ export default function CentralRelatorios() {
                 }}
               >
                 {exportLoading ? 'Exportando da API...' : 'Baixar Backup da API'}
-
               </Button>
             </Box>
             
