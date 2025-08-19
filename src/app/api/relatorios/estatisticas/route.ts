@@ -3,16 +3,152 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// 📊 GET - Obter estatísticas dos relatórios
+// 🔐 FUNÇÃO DE AUTENTICAÇÃO (SEGUINDO O PADRÃO EXISTENTE)
+async function getAuthenticatedUser(request: NextRequest) {
+  try {
+    console.log('🔍 [AUTH] Iniciando autenticação...');
+    
+    const userEmail = request.headers.get('x-user-email');
+    console.log('🔍 [AUTH] Email do header:', userEmail);
+    
+    if (!userEmail) {
+      console.log('❌ [AUTH] Email não fornecido');
+      return null;
+    }
+
+    // Buscar no banco de dados (igual ao padrão existente)
+    console.log('🔍 [AUTH] Buscando usuário no banco...');
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        plan: true,     // 👑 Plano do usuário
+        status: true
+      }
+    });
+
+    if (!user) {
+      console.log('❌ [AUTH] Usuário não encontrado no banco');
+      return null;
+    }
+
+    console.log('✅ [AUTH] Usuário encontrado:', user.email, 'Plano:', user.plan);
+    return user;
+  } catch (error) {
+    console.log('❌ [AUTH] Erro na autenticação:', error);
+    return null;
+  }
+}
+
+// 👑 VERIFICAR SE USUÁRIO TEM PERMISSÃO PARA VER RELATÓRIOS
+function canViewRelatorios(user: any): { canView: boolean; viewAll: boolean } {
+  if (!user) {
+    return { canView: false, viewAll: false };
+  }
+  
+  // 🔧 DEFINIR PERMISSÕES POR PLANO (adapte conforme sua regra de negócio)
+  const PERMISSOES_RELATORIOS = {
+    'ADMIN': { canView: true, viewAll: true },      // Admin vê tudo
+    'VIP': { canView: true, viewAll: true },        // VIP vê tudo  
+    'LITE': { canView: true, viewAll: false },      // LITE vê só próprios
+    'LITE_V2': { canView: true, viewAll: false },   // LITE_V2 vê só próprios
+    'RENDA_PASSIVA': { canView: true, viewAll: false }, // RENDA_PASSIVA vê só próprios
+    'FIIS': { canView: true, viewAll: false },      // FIIS vê só próprios
+    'AMERICA': { canView: true, viewAll: false }    // AMERICA vê só próprios
+  };
+  
+  const permissao = PERMISSOES_RELATORIOS[user.plan] || { canView: false, viewAll: false };
+  
+  console.log(`👑 [PERM] Usuário ${user.email} (${user.plan}):`, permissao);
+  
+  return permissao;
+}
+
+// 📊 GET - Obter estatísticas dos relatórios (SEGUINDO PADRÃO EXISTENTE)
 export async function GET(request: NextRequest) {
   try {
-    // Buscar todos os relatórios
+    console.log('📊 [STATS] INICIO - Obter estatísticas dos relatórios');
+    
+    // 🔐 Autenticação (seguindo padrão existente)
+    const user = await getAuthenticatedUser(request);
+    
+    if (!user) {
+      console.log('❌ [STATS] Usuário não autenticado');
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Usuário não autenticado',
+          totalRelatorios: 0,
+          totalTickers: 0,
+          relatoriosComPdf: 0,
+          tamanhoTotalMB: 0,
+          relatorios: []
+        },
+        { status: 401 }
+      );
+    }
+    
+    // 👑 Verificar permissões
+    const { canView, viewAll } = canViewRelatorios(user);
+    
+    if (!canView) {
+      console.log(`🚫 [STATS] Usuário ${user.email} (${user.plan}) sem permissão para ver relatórios`);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Sem permissão para acessar relatórios',
+          totalRelatorios: 0,
+          totalTickers: 0,
+          relatoriosComPdf: 0,
+          tamanhoTotalMB: 0,
+          relatorios: []
+        },
+        { status: 403 }
+      );
+    }
+    
+    // 📋 Determinar filtro baseado nas permissões
+    let whereClause: any = {};
+    
+    if (!viewAll) {
+      // Usuário normal: ver apenas seus próprios relatórios
+      whereClause = { userId: user.id };
+      console.log(`🔍 [STATS] Filtro aplicado: userId = ${user.id}`);
+    } else {
+      // Admin/VIP: ver todos os relatórios
+      console.log(`👑 [STATS] Admin/VIP: vendo todos os relatórios`);
+      
+      // 🔧 CORREÇÃO ESPECIAL: Para dados existentes com 'SEM_USER_ID'
+      // (Remova esta seção após migrar os dados existentes)
+      const isDev = process.env.NODE_ENV === 'development';
+      if (isDev) {
+        whereClause = {
+          OR: [
+            { userId: user.id },           // Relatórios do usuário
+            { userId: null },              // Relatórios sem userId
+            { userId: 'SEM_USER_ID' },     // Relatórios com placeholder
+            { userId: '' }                 // Relatórios com string vazia
+          ]
+        };
+        console.log(`🔧 [STATS] Modo DEV: incluindo dados órfãos`);
+      }
+    }
+
+    console.log('🔍 [STATS] Where clause:', whereClause);
+
+    // Buscar relatórios com filtro apropriado
     const relatorios = await prisma.relatorio.findMany({
+      where: whereClause,
       orderBy: [
         { ticker: 'asc' },
         { dataReferencia: 'desc' }
       ]
     });
+
+    console.log('📋 [STATS] Relatórios encontrados:', relatorios.length);
 
     // Calcular estatísticas
     const totalRelatorios = relatorios.length;
@@ -81,6 +217,8 @@ export async function GET(request: NextRequest) {
       outros: relatorios.filter(r => r.tipo === 'outros').length
     };
 
+    console.log(`✅ [STATS] Retornando ${totalRelatorios} relatórios para ${user.email} (${user.plan})`);
+
     return NextResponse.json({
       success: true,
       totalRelatorios,
@@ -95,11 +233,19 @@ export async function GET(request: NextRequest) {
         base64: relatorios.filter(r => r.tipoPdf === 'base64').length,
         referencia: relatorios.filter(r => r.tipoPdf === 'referencia').length,
         semPdf: relatorios.filter(r => !r.arquivoPdf && !r.nomeArquivoPdf).length
+      },
+      // 🔐 Informações de contexto (útil para debug)
+      context: {
+        isAuthenticated: true,
+        userEmail: user.email,
+        userPlan: user.plan,
+        canViewAll: viewAll,
+        environment: process.env.NODE_ENV
       }
     });
 
   } catch (error) {
-    console.error('Erro ao calcular estatísticas dos relatórios:', error);
+    console.error('❌ [STATS] Erro ao calcular estatísticas dos relatórios:', error);
     
     return NextResponse.json(
       { 
