@@ -400,7 +400,7 @@ const migrarDadosParaAPI = useCallback(async () => {
         alert('❌ Erro ao excluir relatórios do ticker');
       }
     }
-  }, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas, estatisticas.relatorios]);
+}, [tickerParaExcluir, excluirPorTicker, carregarEstatisticas]);
 
   const handleSelecionar = useCallback((id: string) => {
     setRelatoriosSelecionados(prev => 
@@ -416,7 +416,7 @@ const migrarDadosParaAPI = useCallback(async () => {
     } else {
       setRelatoriosSelecionados(estatisticas.relatorios.map(r => r.id));
     }
-  }, [relatoriosSelecionados.length, estatisticas.relatorios]);
+}, [relatoriosSelecionados.length]);
 
   const excluirSelecionados = useCallback(async () => {
     if (relatoriosSelecionados.length > 0) {
