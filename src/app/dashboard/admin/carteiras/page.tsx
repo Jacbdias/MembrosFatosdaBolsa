@@ -44,6 +44,35 @@ export default function AdminCarteirasPage() {
     }
   };
 
+  // Função para deletar carteira
+  const handleDeleteCarteira = async (carteiraId, clienteNome) => {
+    const clienteEmail = carteiras.find(c => c.id === carteiraId)?.cliente?.email || 
+                        carteiras.find(c => c.id === carteiraId)?.user?.email || 
+                        'Email não encontrado';
+    
+    if (!confirm(`Tem certeza que deseja DELETAR a carteira de ${clienteNome}?\n\nEsta ação permitirá que o cliente envie uma nova carteira.`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/carteiras/${carteiraId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Sucesso: ${result.message}\n\nO cliente ${clienteEmail} agora pode enviar uma nova carteira.`);
+        carregarCarteiras(); // Recarrega a lista em vez de window.location.reload()
+      } else {
+        const error = await response.json();
+        alert(`Erro: ${error.error}`);
+      }
+    } catch (error) {
+      alert('Erro ao remover carteira');
+      console.error(error);
+    }
+  };
+
   const salvarAnalise = async (dadosAnalise) => {
     try {
       const response = await fetch('/api/admin/carteiras', {
@@ -535,7 +564,7 @@ const getStatusIcon = (status) => {
                   </div>
                 </div>
 
-                {/* Questionário do Cliente - VERSÃO CORRIGIDA */}
+                {/* Questionário do Cliente */}
                 {carteira.questionario && (
                   <div style={{
                     backgroundColor: '#f0f9ff',
@@ -564,7 +593,6 @@ const getStatusIcon = (status) => {
                     }}>
                       {(() => {
                         try {
-                          // Se já é um objeto, usar direto. Se é string, fazer parse
                           const questionarioData = typeof carteira.questionario === 'string' 
                             ? JSON.parse(carteira.questionario) 
                             : carteira.questionario;
@@ -864,7 +892,7 @@ const getStatusIcon = (status) => {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => {
                         setEditando(carteira.id);
@@ -904,6 +932,31 @@ const getStatusIcon = (status) => {
                       }}
                     >
                       ✏️ Análise Simples
+                    </button>
+
+                    {/* Botão de Delete */}
+                    <button
+                      onClick={() => handleDeleteCarteira(
+                        carteira.id, 
+                        carteira.cliente?.name || 
+                        (carteira.user ? `${carteira.user.firstName || ''} ${carteira.user.lastName || ''}`.trim() : '') || 
+                        'Cliente não informado'
+                      )}
+                      style={{
+                        backgroundColor: '#dc2626',
+                        color: 'white',
+                        padding: '12px 24px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      🗑️ Deletar Carteira
                     </button>
                   </div>
                 )}

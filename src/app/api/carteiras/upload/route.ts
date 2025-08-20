@@ -19,33 +19,32 @@ export async function POST(request: NextRequest) {
 
     console.log('UPLOAD: Tentativa de upload de carteira por:', session.user.id);
 
-    // Verificar se usuário já enviou carteira
-    const carteiraExistente = await prisma.carteiraAnalise.findFirst({
-      where: {
-        userId: session.user.id
-      },
-      select: {
-        id: true,
-        status: true,
-        dataEnvio: true,
-        nomeArquivo: true,
-        createdAt: true
-      }
-    });
+// Verificar se usuário já enviou carteira
+const carteiraExistente = await prisma.carteiraAnalise.findFirst({
+  where: {
+    userId: session.user.id
+  },
+  select: {
+    id: true,
+    status: true,
+    dataEnvio: true,
+    nomeArquivo: true,
+    createdAt: true
+  }
+});
 
-    if (carteiraExistente) {
-      console.log('REJEITADO: Upload rejeitado - usuário já enviou carteira');
-      return NextResponse.json({
-        error: 'Você já enviou uma carteira para análise. Apenas uma análise por usuário é permitida.',
-        carteiraExistente: {
-          id: carteiraExistente.id,
-          status: carteiraExistente.status.toLowerCase(),
-          dataEnvio: carteiraExistente.dataEnvio,
-          nomeArquivo: carteiraExistente.nomeArquivo
-        }
-      }, { status: 400 });
+if (carteiraExistente) {
+  console.log('REJEITADO: Upload rejeitado - usuário já enviou carteira');
+  return NextResponse.json({
+    error: 'Você já enviou uma carteira para análise. Apenas uma análise por usuário é permitida. Entre em contato com o suporte se precisar enviar uma nova carteira.',
+    carteiraExistente: {
+      id: carteiraExistente.id,
+      status: carteiraExistente.status.toLowerCase(),
+      dataEnvio: carteiraExistente.dataEnvio,
+      nomeArquivo: carteiraExistente.nomeArquivo
     }
-
+  }, { status: 400 });
+}
     console.log('SUCESSO: Usuário pode enviar carteira - prosseguindo...');
 
     const data = await request.formData();
