@@ -4,35 +4,25 @@ import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import { auth } from '@/lib/auth'; // USAR A FUNÇÃO AUTH REAL
 
 export async function POST(request: NextRequest) {
   try {
-    // 🔧 CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
-    const userEmail = request.headers.get('x-user-email');
+    // CORRIGIDO: Usar a função auth() que realmente existe
+    const session = await auth();
     
-    if (!userEmail) {
+    if (!session?.user?.id) {
       return NextResponse.json({ 
         error: 'Usuário não autenticado' 
       }, { status: 401 });
     }
 
-    // Buscar usuário no banco pelo email
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail.toLowerCase() }
-    });
+    console.log('UPLOAD: Tentativa de upload de carteira por:', session.user.id);
 
-    if (!user) {
-      return NextResponse.json({ 
-        error: 'Usuário não encontrado' 
-      }, { status: 404 });
-    }
-
-    console.log('UPLOAD: Tentativa de upload de carteira por:', user.id);
-
-    // VERIFICACAO: Usuário já enviou carteira?
+    // Verificar se usuário já enviou carteira
     const carteiraExistente = await prisma.carteiraAnalise.findFirst({
       where: {
-        userId: user.id
+        userId: session.user.id
       },
       select: {
         id: true,
@@ -61,7 +51,7 @@ export async function POST(request: NextRequest) {
     const data = await request.formData();
     const file: File | null = data.get('arquivo') as unknown as File;
     
-    // NOVO: Capturar dados do questionário
+    // Capturar dados do questionário
     const questionarioData = data.get('questionario');
     let questionario = null;
     
@@ -105,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Salvar arquivo
     const timestamp = Date.now();
-    const fileName = `carteira_${user.id}_${timestamp}_${file.name}`;
+    const fileName = `carteira_${session.user.id}_${timestamp}_${file.name}`;
     const filePath = join(process.cwd(), 'uploads', 'carteiras', fileName);
     
     await writeFile(filePath, buffer);
@@ -118,15 +108,15 @@ export async function POST(request: NextRequest) {
     const valorTotal = ativos.reduce((sum, ativo) => sum + ativo.valorTotal, 0);
     const quantidadeAtivos = ativos.length;
 
-    // NOVO: Salvar no banco COM questionário
+    // Salvar no banco COM questionário
     const carteira = await prisma.carteiraAnalise.create({
       data: {
-        userId: user.id, // CORRIGIDO: Usar user.id em vez de session.user.id
+        userId: session.user.id, // USAR session.user.id
         nomeArquivo: file.name,
         arquivoUrl: `/uploads/carteiras/${fileName}`,
         valorTotal,
         quantidadeAtivos,
-        questionario, // NOVO: INCLUIR O QUESTIONÁRIO
+        questionario, // INCLUIR O QUESTIONÁRIO
         ativos: {
           create: ativos.map(ativo => ({
             codigo: ativo.codigo,
@@ -157,7 +147,7 @@ export async function POST(request: NextRequest) {
         valorTotal,
         quantidadeAtivos,
         arquivoProcessado: true,
-        questionarioIncluido: !!questionario // NOVO: INFORMAR SE QUESTIONÁRIO FOI SALVO
+        questionarioIncluido: !!questionario
       }
     });
 

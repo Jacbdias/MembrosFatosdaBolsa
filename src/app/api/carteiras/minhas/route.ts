@@ -2,27 +2,17 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth'; // ADICIONAR ESTA LINHA
 
 export async function GET(request: NextRequest) {
   try {
-    // CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
-    const userEmail = request.headers.get('x-user-email');
+    // CORRIGIDO: Usar a função auth() real
+    const session = await auth();
     
-    if (!userEmail) {
+    if (!session?.user?.id) {
       return NextResponse.json({ 
         error: 'Usuário não autenticado' 
       }, { status: 401 });
-    }
-
-    // Buscar usuário no banco pelo email
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail.toLowerCase() }
-    });
-
-    if (!user) {
-      return NextResponse.json({ 
-        error: 'Usuário não encontrado' 
-      }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Filtros
     const where: any = {
-      userId: user.id // CORRIGIDO: Usar user.id em vez de session.user.id
+      userId: session.user.id // CORRIGIDO: Usar session.user.id
     };
 
     if (status && status !== 'todos') {
@@ -66,6 +56,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.carteiraAnalise.count({ where })
     ]);
+
 
     // Processar carteiras
     const carteirasProcessadas = carteiras.map(carteira => {

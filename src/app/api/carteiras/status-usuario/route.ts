@@ -1,37 +1,26 @@
 // src/app/api/carteiras/status-usuario/route.ts
 export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
-    const userEmail = request.headers.get('x-user-email');
+    // CORRIGIDO: Usar a função auth() real
+    const session = await auth();
     
-    if (!userEmail) {
+    if (!session?.user?.id) {
       return NextResponse.json({ 
         error: 'Usuário não autenticado' 
       }, { status: 401 });
     }
-
-    // Buscar usuário no banco pelo email
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail.toLowerCase() }
-    });
-
-    if (!user) {
-      return NextResponse.json({ 
-        error: 'Usuário não encontrado' 
-      }, { status: 404 });
-    }
     
-    console.log('VERIFICANDO: Status para usuário:', user.id);
+    console.log('VERIFICANDO: Status para usuário:', session.user.id);
     
     // Verificar se o usuário já enviou uma carteira
     const carteiraExistente = await prisma.carteiraAnalise.findFirst({
       where: {
-        userId: user.id // CORRIGIDO: Usar user.id em vez de session.user.id
+        userId: session.user.id
       },
       select: {
         id: true,
@@ -48,7 +37,7 @@ export async function GET(request: NextRequest) {
     const jaEnviou = !!carteiraExistente;
     
     console.log('RESULTADO: Verificação de status:', {
-      userId: user.id,
+      userId: session.user.id,
       jaEnviou,
       carteira: carteiraExistente
     });
