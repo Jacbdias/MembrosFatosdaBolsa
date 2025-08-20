@@ -49,9 +49,9 @@ export function SideNav(): React.JSX.Element {
           const enhancedInfo = {
             ...info,
             userEmail,
-            pages: info.isAdmin 
-              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais'] // 🆕 NOVO: admin-analises-trimesestrais
-              : (info.pages || [])
+pages: info.isAdmin 
+  ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-carteiras']
+  : (info.pages || [])
           };
           
           // 🔥 GARANTIR que 'relatorio-semanal' esteja sempre presente

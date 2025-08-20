@@ -32,7 +32,7 @@ export default function RecursosExclusivos() {
       badge: 'NOVIDADE'
     },
     {
-      title: 'Acesso ao Telegram', 
+      title: 'Telegram e Stories', 
       description: 'Entre no nosso grupo exclusivo para dicas, análises e discussões sobre investimentos',
       href: '/dashboard/recursos-exclusivos/telegram',
       icon: '💬',
@@ -233,34 +233,6 @@ export default function RecursosExclusivos() {
             }} />
           </div>
         ))}
-      </div>
-
-      {/* Call to Action */}
-      <div style={{
-        marginTop: '64px',
-        padding: '32px',
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        textAlign: 'center',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
-      }}>
-        <h3 style={{
-          fontWeight: '600',
-          fontSize: '24px',
-          margin: '0 0 16px 0',
-          color: '#1e293b'
-        }}>
-          Precisa de ajuda com algum recurso?
-        </h3>
-        <p style={{
-          color: '#64748b',
-          fontSize: '16px',
-          margin: '0',
-          lineHeight: '1.5'
-        }}>
-          Nossa equipe está pronta para te ajudar a aproveitar ao máximo todos os recursos disponíveis.
-        </p>
       </div>
     </div>
   );

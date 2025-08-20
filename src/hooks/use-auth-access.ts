@@ -94,7 +94,7 @@ export function useAuthAccess() {
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
             'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs' // 🆕 NOVO: admin-analises-trimesestrais
+            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-carteiras' // 🆕 NOVO: admin-carteiras
           ]
         };
 
@@ -162,7 +162,7 @@ export function useAuthAccess() {
       return false;
     }
 
-    // Admin sempre tem acesso (incluindo Instagram, Renovações, Relatório Semanal e Análises Trimestrais Admin)
+    // Admin sempre tem acesso (incluindo Instagram, Renovações, Relatório Semanal, Análises Trimestrais Admin e Analisar Carteiras)
     if (user.plan === 'ADMIN') {
       console.log('✅ Admin - acesso liberado para:', page);
       return true;
@@ -194,6 +194,13 @@ export function useAuthAccess() {
       const isAnalisesTrimesestraisAdmin = user.plan === 'ADMIN';
       console.log(`📊 Verificando acesso Análises Trimestrais Admin para ${user.email}:`, isAnalisesTrimesestraisAdmin);
       return isAnalisesTrimesestraisAdmin;
+    }
+
+    // 📊 NOVA: Verificação específica para Analisar Carteiras Admin
+    if (page === 'admin-carteiras') {
+      const isCarteirasAdmin = user.plan === 'ADMIN';
+      console.log(`📊 Verificando acesso Analisar Carteiras Admin para ${user.email}:`, isCarteirasAdmin);
+      return isCarteirasAdmin;
     }
 
     // 📋 GARANTIR acesso ao relatório semanal para todos os usuários logados
@@ -283,6 +290,19 @@ export function useAuthAccess() {
     return isAnalisesTrimesestraisAdmin;
   };
 
+  // 📊 NOVA: Função para verificar acesso ao Analisar Carteiras Admin
+  const hasCarteirasAdminAccess = (): boolean => {
+    if (!user) {
+      console.log('❌ Usuário não logado - sem acesso Analisar Carteiras Admin');
+      return false;
+    }
+
+    const isCarteirasAdmin = user.plan === 'ADMIN';
+    console.log(`📊 Verificando acesso Analisar Carteiras Admin para ${user.email}:`, isCarteirasAdmin);
+    
+    return isCarteirasAdmin;
+  };
+
   return {
     planInfo,
     loading,
@@ -291,7 +311,8 @@ export function useAuthAccess() {
     hasInstagramAdminAccess, // 📱 FUNÇÃO PARA INSTAGRAM
     hasRenovacoesAdminAccess, // 📊 FUNÇÃO PARA RENOVAÇÕES
     hasRelatorioSemanalAdminAccess, // 📋 FUNÇÃO PARA RELATÓRIO SEMANAL ADMIN
-    hasAnalisesTrimesestraisAdminAccess, // 📊 NOVA FUNÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
+    hasAnalisesTrimesestraisAdminAccess, // 📊 FUNÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
+    hasCarteirasAdminAccess, // 📊 NOVA FUNÇÃO PARA ANALISAR CARTEIRAS ADMIN
     user,
     debugInfo: {
       userPlan: user?.plan,
@@ -301,7 +322,8 @@ export function useAuthAccess() {
       hasInstagramAccess: user?.plan === 'ADMIN' || user?.email === 'jacbdias@gmail.com', // 📱 DEBUG INFO
       hasRenovacoesAccess: user?.plan === 'ADMIN', // 📊 DEBUG INFO RENOVAÇÕES
       hasRelatorioSemanalAdminAccess: user?.plan === 'ADMIN', // 📋 DEBUG INFO RELATÓRIO SEMANAL ADMIN
-      hasAnalisesTrimesestraisAdminAccess: user?.plan === 'ADMIN' // 📊 DEBUG INFO ANÁLISES TRIMESTRAIS ADMIN
+      hasAnalisesTrimesestraisAdminAccess: user?.plan === 'ADMIN', // 📊 DEBUG INFO ANÁLISES TRIMESTRAIS ADMIN
+      hasCarteirasAdminAccess: user?.plan === 'ADMIN' // 📊 DEBUG INFO ANALISAR CARTEIRAS ADMIN
     }
   };
 }

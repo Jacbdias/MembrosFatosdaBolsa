@@ -245,11 +245,11 @@ export const navItems = [
         page: 'admin-integracoes'
       },
       {
-        key: 'admin-logs',
-        title: 'Logs do Sistema',
-        href: paths.dashboard.adminLogs,
-        icon: 'list',
-        page: 'admin-logs'
+        key: 'admin-carteiras',
+        title: 'Analisar Carteiras',
+        href: paths.dashboard.admin + '/carteiras',
+        icon: 'chart-line',
+        page: 'admin-carteiras'
       }
     ]
   },

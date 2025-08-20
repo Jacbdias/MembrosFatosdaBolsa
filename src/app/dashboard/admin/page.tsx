@@ -25,7 +25,7 @@ export default function AdminDashboard() {
     if (url.includes('integracoes')) return 'Integrações';
     if (url.includes('central-agenda')) return 'Agenda Corporativa';
     if (url.includes('configuracoes')) return 'Configurações';
-    if (url.includes('logs')) return 'Logs do Sistema';
+    if (url.includes('carteiras')) return 'Analisar Carteiras'; // 🆕 ALTERADO: logs → carteiras
     if (url.includes('analytics')) return 'Analytics';
     return 'página solicitada';
   };
@@ -125,11 +125,11 @@ export default function AdminDashboard() {
       status: 'development'
     },
     {
-      title: 'Logs do Sistema',
-      description: 'Monitore atividades do sistema, erros e registros de auditoria em tempo real.',
-      icon: '📝',
-      href: '/dashboard/admin/logs',
-      status: 'development'
+      title: 'Analisar Carteiras', // 🆕 ALTERADO: Logs do Sistema → Analisar Carteiras
+      description: 'Analise e monitore as carteiras de investimentos dos usuários com ferramentas avançadas de acompanhamento.', // 🆕 NOVA DESCRIÇÃO
+      icon: '📈', // 🆕 ALTERADO: 📝 → 📈 (mais apropriado para análise)
+      href: '/dashboard/admin/carteiras', // 🆕 ALTERADO: /logs → /carteiras
+      status: 'active' // 🆕 ALTERADO: development → active
     },
     {
       title: 'Configurações',
