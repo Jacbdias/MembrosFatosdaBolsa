@@ -1500,77 +1500,45 @@ export default function RelatorioSemanalPage() {
   }, []);
 
   // Carregar relatório
-  useEffect(() => {
-    const loadRelatorio = async () => {
-      try {
-        setLoading(true);
-        
-        // Buscar o relatório mais recente do IndexedDB
-        const request = indexedDB.open('RelatoriosSemanaisDB', 3);
-        
-        request.onsuccess = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          
-          if (!db.objectStoreNames.contains('relatorios')) {
-            setError('Nenhum relatório disponível');
-            setLoading(false);
-            return;
-          }
-          
-          const transaction = db.transaction(['relatorios'], 'readonly');
-          const store = transaction.objectStore('relatorios');
-          const getAllRequest = store.getAll();
-          
-          getAllRequest.onsuccess = () => {
-            const relatorios = getAllRequest.result || [];
-            
-            // Filtrar apenas publicados e pegar o mais recente
-            const publicados = relatorios
-              .filter(r => r.status === 'published')
-              .sort((a, b) => {
-                if (b.semana && a.semana) return b.semana.localeCompare(a.semana);
-                return 0;
-              });
-            
-            if (publicados.length > 0) {
-              const relatorioMaisRecente = publicados[0];
-              
-              // Migrar dados legados se necessário
-              if (relatorioMaisRecente.exterior && !relatorioMaisRecente.exteriorStocks) {
-                relatorioMaisRecente.exteriorStocks = relatorioMaisRecente.exterior;
-                relatorioMaisRecente.exteriorETFs = [];
-                relatorioMaisRecente.exteriorDividendos = [];
-                relatorioMaisRecente.exteriorProjetoAmerica = [];
-              }
-              
-              setRelatorio(relatorioMaisRecente);
-            } else {
-              setError('Nenhum relatório publicado disponível');
-            }
-            
-            setLoading(false);
-          };
-          
-          getAllRequest.onerror = () => {
-            setError('Erro ao carregar relatórios');
-            setLoading(false);
-          };
-        };
-        
-        request.onerror = () => {
-          setError('Erro ao conectar com o banco de dados');
-          setLoading(false);
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro ao carregar relatório:', error);
-        setError('Erro ao carregar relatório');
-        setLoading(false);
+useEffect(() => {
+  const loadRelatorio = async () => {
+    try {
+      setLoading(true);
+      
+      // Buscar da API em vez do IndexedDB
+      const response = await fetch('/api/relatorio-semanal');
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
       }
-    };
-    
-    loadRelatorio();
-  }, []);
+      
+      const relatorio = await response.json();
+      
+      if (relatorio) {
+        // Migrar dados legados se necessário
+        if (relatorio.exterior && !relatorio.exteriorStocks) {
+          relatorio.exteriorStocks = relatorio.exterior;
+          relatorio.exteriorETFs = [];
+          relatorio.exteriorDividendos = [];
+          relatorio.exteriorProjetoAmerica = [];
+        }
+        
+        setRelatorio(relatorio);
+      } else {
+        setError('Nenhum relatório publicado disponível');
+      }
+      
+      setLoading(false);
+      
+    } catch (error) {
+      console.error('Erro ao carregar relatório:', error);
+      setError('Erro ao carregar relatório');
+      setLoading(false);
+    }
+  };
+  
+  loadRelatorio();
+}, []);
 
   if (loading) {
     return (
