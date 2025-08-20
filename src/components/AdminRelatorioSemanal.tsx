@@ -40,7 +40,6 @@ interface RelatorioSemanalData {
   id?: string;
   semana: string;
   dataPublicacao: string;
-  autor: string;
   titulo: string;
   
   // Seções do relatório - SEM PROVENTOS SEPARADOS
@@ -116,6 +115,45 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       execCommand('createLink', url);
     }
   }, [execCommand]);
+
+const insertImage = useCallback(() => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  
+  input.onchange = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
+        
+        // Criar elemento img com estilos
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.borderRadius = '8px';
+        img.style.margin = '8px 0';
+        
+        // Inserir no editor
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.insertNode(img);
+          range.collapse(false);
+        }
+        
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  input.click();
+}, [execCommand, onChange]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
@@ -221,6 +259,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         >
           <Link size={14} />
         </button>
+
+<button
+  onClick={insertImage}
+  style={{
+    padding: '6px',
+    border: 'none',
+    borderRadius: '4px',
+    backgroundColor: 'transparent',
+    color: '#6b7280',
+    cursor: 'pointer'
+  }}
+>
+  <Image size={14} />
+</button>
+
       </div>
 
       <div
@@ -485,32 +538,35 @@ const ItemEditor = memo(({
       </div>
 
       <div style={{ display: 'grid', gap: '12px' }}>
-        {/* Campos comuns */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <input
-            placeholder="Ticker"
-            value={item.ticker}
-            onChange={(e) => onUpdate({ ...item, ticker: e.target.value.toUpperCase() })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          />
-          <input
-            placeholder="Empresa"
-            value={item.empresa}
-            onChange={(e) => onUpdate({ ...item, empresa: e.target.value })}
-            style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '14px'
-            }}
-          />
-        </div>
+
+        {/* Campos comuns - exceto para Panorama Macro */}
+        {secaoNome !== 'Panorama Macro' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <input
+              placeholder="Ticker"
+              value={item.ticker}
+              onChange={(e) => onUpdate({ ...item, ticker: e.target.value.toUpperCase() })}
+              style={{
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            />
+            <input
+              placeholder="Empresa"
+              value={item.empresa}
+              onChange={(e) => onUpdate({ ...item, empresa: e.target.value })}
+              style={{
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px',
+                fontSize: '14px'
+              }}
+            />
+          </div>
+        )}
 
         {/* 🆕 CAMPOS ESPECÍFICOS BASEADO NO TIPO */}
         {isProvento ? (
@@ -533,6 +589,18 @@ const ItemEditor = memo(({
               <DollarSign size={16} />
               Informações do Provento
             </h5>
+
+<div style={{ marginBottom: '12px' }}>
+  <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+    Resumo do Provento
+  </label>
+  <RichTextEditor
+    value={item.resumo || ''}
+    onChange={(value) => onUpdate({ ...item, resumo: value })}
+    placeholder="Resumo sobre o provento..."
+    minHeight="60px"
+  />
+</div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <div>
@@ -630,109 +698,64 @@ const ItemEditor = memo(({
             </div>
           </div>
         ) : (
-          // CAMPOS PARA NOTÍCIA/ANÁLISE
+// CAMPOS PARA NOTÍCIA/ANÁLISE
           <>
-            <input
-              placeholder="Título da notícia/análise"
-              value={item.titulo || ''}
-              onChange={(e) => onUpdate({ ...item, titulo: e.target.value })}
-              style={{
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                padding: '8px',
-                fontSize: '14px'
-              }}
-            />
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Resumo/Destaque
-              </label>
-              <RichTextEditor
-                value={item.resumo || ''}
-                onChange={(value) => onUpdate({ ...item, resumo: value })}
-                placeholder="Resumo dos principais pontos..."
-                minHeight="80px"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Análise Completa
-              </label>
-              <RichTextEditor
-                value={item.analise || ''}
-                onChange={(value) => onUpdate({ ...item, analise: value })}
-                placeholder="Análise detalhada..."
-                minHeight="100px"
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                  Recomendação
-                </label>
-                <select
-                  value={item.recomendacao || ''}
-                  onChange={(e) => onUpdate({ ...item, recomendacao: e.target.value as any || undefined })}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    padding: '8px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Selecione</option>
-                  <option value="COMPRA">🟢 COMPRA</option>
-                  <option value="MANTER">🟡 MANTER</option>
-                  <option value="VENDA">🔴 VENDA</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                  Impacto
-                </label>
-                <select
-                  value={item.impacto || ''}
-                  onChange={(e) => onUpdate({ ...item, impacto: e.target.value as any || undefined })}
-                  style={{
-                    width: '100%',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    padding: '8px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Selecione</option>
-                  <option value="positivo">📈 Positivo</option>
-                  <option value="neutro">➖ Neutro</option>
-                  <option value="negativo">📉 Negativo</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                  Preço Alvo (R$)
-                </label>
+            {/* Verificar se é seção Panorama Macro */}
+            {secaoNome === 'Panorama Macro' ? (
+              // CAMPOS SIMPLIFICADOS PARA PANORAMA MACRO
+              <>
                 <input
-                  type="number"
-                  step="0.01"
-                  placeholder="25.50"
-                  value={item.precoAlvo || ''}
-                  onChange={(e) => onUpdate({ ...item, precoAlvo: parseFloat(e.target.value) || undefined })}
+                  placeholder="Título da notícia"
+                  value={item.titulo || ''}
+                  onChange={(e) => onUpdate({ ...item, titulo: e.target.value })}
                   style={{
-                    width: '100%',
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     padding: '8px',
                     fontSize: '14px'
                   }}
                 />
-              </div>
-            </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                    Análise Completa
+                  </label>
+                  <RichTextEditor
+                    value={item.analise || ''}
+                    onChange={(value) => onUpdate({ ...item, analise: value })}
+                    placeholder="Análise detalhada..."
+                    minHeight="100px"
+                  />
+                </div>
+              </>
+            ) : (
+// CAMPOS PARA OUTRAS SEÇÕES (simplificados)
+              <>
+                <input
+                  placeholder="Título da notícia/análise"
+                  value={item.titulo || ''}
+                  onChange={(e) => onUpdate({ ...item, titulo: e.target.value })}
+                  style={{
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                    Análise Completa
+                  </label>
+                  <RichTextEditor
+                    value={item.analise || ''}
+                    onChange={(value) => onUpdate({ ...item, analise: value })}
+                    placeholder="Análise detalhada..."
+                    minHeight="100px"
+                  />
+                </div>
+              </>
+            )}
 
             {/* 🆕 SEÇÃO ANÁLISE TRIMESTRAL VINCULADA */}
             <div style={{
@@ -1145,7 +1168,6 @@ const CriarRelatorioForm = memo(({
       id: Date.now().toString(),
       semana: getWeekNumber(hoje),
       dataPublicacao: hoje.toISOString().split('T')[0],
-      autor: '',
       titulo: '',
       macro: [],
       dividendos: [],
@@ -1221,7 +1243,6 @@ const CriarRelatorioForm = memo(({
           id: Date.now().toString(),
           semana: getWeekNumber(hoje),
           dataPublicacao: hoje.toISOString().split('T')[0],
-          autor: '',
           titulo: '',
           macro: [],
           dividendos: [],
@@ -1350,26 +1371,6 @@ const CriarRelatorioForm = memo(({
               type="date"
               value={relatorio.dataPublicacao}
               onChange={(e) => updateField('dataPublicacao', e.target.value)}
-              style={{
-                width: '100%',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '12px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-              Autor
-            </label>
-            <input
-              type="text"
-              value={relatorio.autor}
-              onChange={(e) => updateField('autor', e.target.value)}
-              placeholder="Seu Nome"
               style={{
                 width: '100%',
                 border: '2px solid #e5e7eb',
@@ -1707,7 +1708,6 @@ const RelatoriosPublicados = memo(({
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
                           <span>📅 {new Date(relatorio.dataPublicacao).toLocaleDateString('pt-BR')}</span>
-                          <span>✍️ {relatorio.autor}</span>
                           <span>📊 {totalItens} itens</span>
                           {totalNoticias > 0 && <span>📰 {totalNoticias} notícias</span>}
                           {totalProventos > 0 && <span>💰 {totalProventos} proventos</span>}
@@ -1953,7 +1953,7 @@ const RascunhosRelatorios = memo(({
                       </div>
                       
                       <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '8px' }}>
-                        {relatorio.autor || 'Autor não definido'} • {totalItens} itens
+{totalItens} itens
                       </div>
                       
                       <div style={{ fontSize: '12px', color: '#a16207' }}>

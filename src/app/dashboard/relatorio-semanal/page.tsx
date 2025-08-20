@@ -62,7 +62,6 @@ interface RelatorioData {
   weekOf?: string;
   semana?: string;
   titulo?: string;
-  autor?: string;
   status: 'draft' | 'published';
   
   // Seções nacionais
@@ -776,77 +775,46 @@ const SectionHeader = ({ icon: Icon, title, color, count, proventosCount, notici
   analisesCount?: number
 }) => (
   <div style={{
-    backgroundColor: 'white',
+    background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+    color: 'white',
     borderRadius: '12px',
     padding: 'clamp(20px, 3vw, 28px) clamp(16px, 2.5vw, 24px)',
     marginBottom: 'clamp(16px, 2.5vw, 24px)',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    border: `1px solid ${color}20`
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    border: '1px solid #333'
   }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 2vw, 16px)' }}>
-      <div style={{
-        width: 'clamp(40px, 5vw, 48px)',
-        height: 'clamp(40px, 5vw, 48px)',
-        backgroundColor: color,
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    }}>
+      <h2 style={{
+        fontSize: 'clamp(24px, 5vw, 32px)',
+        fontWeight: '900',
+        color: 'white',
+        margin: 0,
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        fontFamily: 'Arial Black, sans-serif'
       }}>
-        <Icon size={22} style={{ color: 'white' }} />
-      </div>
+        {title}
+      </h2>
       
-      <div style={{ flex: 1 }}>
-        <h2 style={{
-          fontSize: 'clamp(20px, 4vw, 28px)',
-          fontWeight: '700',
-          color: '#1f2937',
-          margin: '0 0 6px 0'
-        }}>
-          {title}
-        </h2>
-        {count > 0 && (
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <p style={{
-              fontSize: 'clamp(13px, 2vw, 15px)',
-              color: '#6b7280',
-              margin: 0,
-              fontWeight: '500'
-            }}>
-              {count} {count === 1 ? 'item' : 'itens'}
-            </p>
-            {(proventosCount !== undefined && proventosCount > 0) && (
-              <span style={{
-                fontSize: 'clamp(11px, 1.8vw, 13px)',
-                color: '#059669',
-                fontWeight: '600'
-              }}>
-                💰 {proventosCount} provento{proventosCount > 1 ? 's' : ''}
-              </span>
-            )}
-            {(noticiasCount !== undefined && noticiasCount > 0) && (
-              <span style={{
-                fontSize: 'clamp(11px, 1.8vw, 13px)',
-                color: '#2563eb',
-                fontWeight: '600'
-              }}>
-                📰 {noticiasCount} notícia{noticiasCount > 1 ? 's' : ''}
-              </span>
-            )}
-            {(analisesCount !== undefined && analisesCount > 0) && (
-              <span style={{
-                fontSize: 'clamp(11px, 1.8vw, 13px)',
-                color: '#22c55e',
-                fontWeight: '600',
-                backgroundColor: '#dcfce7',
-                padding: '2px 8px',
-                borderRadius: '6px'
-              }}>
-                📊 {analisesCount} c/ análise
-              </span>
-            )}
-          </div>
-        )}
+      {/* Padrão de quadradinhos logo após o texto */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 6px)',
+        gridTemplateRows: 'repeat(2, 6px)',
+        gap: '2px'
+      }}>
+        <div style={{ backgroundColor: '#4cfa00' }}></div>
+        <div style={{ backgroundColor: 'transparent' }}></div>
+        <div style={{ backgroundColor: '#4cfa00' }}></div>
+        <div style={{ backgroundColor: 'transparent' }}></div>
+        <div style={{ backgroundColor: 'transparent' }}></div>
+        <div style={{ backgroundColor: '#4cfa00' }}></div>
+        <div style={{ backgroundColor: 'transparent' }}></div>
+        <div style={{ backgroundColor: '#4cfa00' }}></div>
       </div>
     </div>
   </div>
@@ -1065,6 +1033,9 @@ const ItemCard = ({ item, sectionColor, onOpenAnalise }: {
   const isProvento = item.isProvento || item.type || item.tipoProvento || item.value || item.valor;
   const temAnalise = item.temAnaliseTrismestral && item.analiseTrismestralId;
   
+  // Verificar se é item do Panorama Macro (sem ticker/empresa)
+  const isPanoramaMacro = !ticker && !empresa && (item.titulo || item.analise);
+  
   return (
     <div style={{
       backgroundColor: isProvento ? '#fefce8' : 'white',
@@ -1096,82 +1067,97 @@ const ItemCard = ({ item, sectionColor, onOpenAnalise }: {
         </div>
       )}
 
-      {/* Header com ticker e empresa */}
+{/* Header - condicional para Panorama Macro */}
+{isPanoramaMacro ? (
+  // Renderização simplificada para Panorama Macro
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center',
+    marginBottom: 'clamp(12px, 2vw, 18px)',
+    gap: 'clamp(12px, 2vw, 16px)'
+  }}>
+    <div style={{
+      width: '40px',
+      height: '40px',
+      backgroundColor: sectionColor,
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '20px'
+    }}>
+      🌍
+    </div>
+    <h3 style={{
+      fontSize: 'clamp(18px, 3vw, 22px)',
+      fontWeight: '700',
+      color: '#1f2937',
+      margin: 0
+    }}>
+      Notícia Macro
+    </h3>
+  </div>
+) : (
+  // Renderização normal com ticker e empresa
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'flex-start', 
+    marginBottom: 'clamp(12px, 2vw, 18px)',
+    gap: 'clamp(12px, 2vw, 16px)'
+  }}>
+    <CompanyLogo 
+      ticker={ticker} 
+      fallbackColor={sectionColor} 
+      isProvento={isProvento} 
+      temAnalise={temAnalise}
+    />
+    
+    <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ 
         display: 'flex', 
-        alignItems: 'flex-start', 
-        marginBottom: 'clamp(12px, 2vw, 18px)',
-        gap: 'clamp(12px, 2vw, 16px)'
+        alignItems: 'center', 
+        gap: '8px', 
+        marginBottom: '6px',
+        flexWrap: 'wrap'
       }}>
-        <CompanyLogo 
-          ticker={ticker} 
-          fallbackColor={sectionColor} 
-          isProvento={isProvento} 
-          temAnalise={temAnalise}
-        />
+        <h3 style={{
+          fontSize: 'clamp(18px, 3vw, 22px)',
+          fontWeight: '700',
+          color: '#1f2937',
+          margin: 0
+        }}>
+          {ticker}
+        </h3>
         
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            marginBottom: '6px',
-            flexWrap: 'wrap'
+        {/* Badge de tipo */}
+        {isProvento && (
+          <span style={{
+            fontSize: 'clamp(10px, 1.5vw, 12px)',
+            fontWeight: '600',
+            color: '#92400e',
+            backgroundColor: '#fef3c7',
+            padding: '3px 8px',
+            borderRadius: '4px'
           }}>
-            <h3 style={{
-              fontSize: 'clamp(18px, 3vw, 22px)',
-              fontWeight: '700',
-              color: '#1f2937',
-              margin: 0
-            }}>
-              {ticker}
-            </h3>
-            
-            {/* Badge de tipo */}
-            {isProvento && (
-              <span style={{
-                fontSize: 'clamp(10px, 1.5vw, 12px)',
-                fontWeight: '600',
-                color: '#92400e',
-                backgroundColor: '#fef3c7',
-                padding: '3px 8px',
-                borderRadius: '4px'
-              }}>
-                {item.tipoProvento || item.type || 'Provento'}
-              </span>
-            )}
-            
-            {/* Badge de impacto para notícias */}
-            {!isProvento && (item.impacto || item.impact) && (
-              <span style={{
-                fontSize: 'clamp(10px, 1.5vw, 12px)',
-                fontWeight: '600',
-                color: (item.impacto === 'positivo' || item.impact === 'positive') ? '#059669' : 
-                       (item.impacto === 'negativo' || item.impact === 'negative') ? '#dc2626' : '#6b7280',
-                backgroundColor: (item.impacto === 'positivo' || item.impact === 'positive') ? '#ecfdf5' : 
-                                (item.impacto === 'negativo' || item.impact === 'negative') ? '#fef2f2' : '#f3f4f6',
-                padding: '3px 8px',
-                borderRadius: '4px',
-                textTransform: 'uppercase'
-              }}>
-                {(item.impacto === 'positivo' || item.impact === 'positive') ? 'Positivo' : 
-                 (item.impacto === 'negativo' || item.impact === 'negative') ? 'Negativo' : 'Neutro'}
-              </span>
-            )}
-          </div>
-          
-          <p style={{
-            fontSize: 'clamp(14px, 2.2vw, 16px)',
-            color: '#6b7280',
-            margin: 0,
-            fontWeight: '500'
-          }}>
-            {empresa}
-          </p>
-        </div>
+            {item.tipoProvento || item.type || 'Provento'}
+          </span>
+        )}
+     
       </div>
-
-      {/* Conteúdo específico baseado no tipo */}
+      
+      <p style={{
+        fontSize: 'clamp(14px, 2.2vw, 16px)',
+        color: '#6b7280',
+        margin: 0,
+        fontWeight: '500'
+      }}>
+        {empresa}
+      </p>
+    </div>
+  </div>
+)}      
+{/* Conteúdo específico baseado no tipo */}
       {isProvento ? (
         // 💰 LAYOUT PARA PROVENTO
         <div>
@@ -1913,15 +1899,6 @@ useEffect(() => {
           }}>
             © Fatos da Bolsa - contato@fatosdabolsa.com.br
           </p>
-          {relatorio.autor && (
-            <p style={{ 
-              color: '#9ca3af', 
-              fontSize: '11px',
-              margin: '4px 0'
-            }}>
-              Relatório elaborado por: {relatorio.autor}
-            </p>
-          )}
           <p style={{ 
             color: '#9ca3af', 
             fontSize: '11px',
