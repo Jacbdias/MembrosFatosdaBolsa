@@ -4,22 +4,35 @@ import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import { auth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticação
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    // 🔧 CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
+    const userEmail = request.headers.get('x-user-email');
+    
+    if (!userEmail) {
+      return NextResponse.json({ 
+        error: 'Usuário não autenticado' 
+      }, { status: 401 });
     }
 
-    // 🚨 VERIFICAÇÃO: Usuário já enviou carteira?
-    console.log('📤 Tentativa de upload de carteira por:', session.user.id);
+    // Buscar usuário no banco pelo email
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail.toLowerCase() }
+    });
 
+    if (!user) {
+      return NextResponse.json({ 
+        error: 'Usuário não encontrado' 
+      }, { status: 404 });
+    }
+
+    console.log('UPLOAD: Tentativa de upload de carteira por:', user.id);
+
+    // VERIFICACAO: Usuário já enviou carteira?
     const carteiraExistente = await prisma.carteiraAnalise.findFirst({
       where: {
-        userId: session.user.id
+        userId: user.id
       },
       select: {
         id: true,
@@ -31,7 +44,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (carteiraExistente) {
-      console.log('🚫 Upload rejeitado - usuário já enviou carteira');
+      console.log('REJEITADO: Upload rejeitado - usuário já enviou carteira');
       return NextResponse.json({
         error: 'Você já enviou uma carteira para análise. Apenas uma análise por usuário é permitida.',
         carteiraExistente: {
@@ -43,12 +56,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('✅ Usuário pode enviar carteira - prosseguindo...');
+    console.log('SUCESSO: Usuário pode enviar carteira - prosseguindo...');
 
     const data = await request.formData();
     const file: File | null = data.get('arquivo') as unknown as File;
     
-    // 🆕 NOVO: Capturar dados do questionário
+    // NOVO: Capturar dados do questionário
     const questionarioData = data.get('questionario');
     let questionario = null;
     
@@ -60,13 +73,13 @@ export async function POST(request: NextRequest) {
         
         // Validar se é JSON válido
         JSON.parse(questionario);
-        console.log('✅ Questionário recebido e validado');
+        console.log('SUCESSO: Questionário recebido e validado');
       } catch (error) {
-        console.error('❌ Erro ao processar questionário:', error);
+        console.error('ERRO: Erro ao processar questionário:', error);
         questionario = null;
       }
     } else {
-      console.log('⚠️ Nenhum questionário enviado');
+      console.log('AVISO: Nenhum questionário enviado');
     }
 
     if (!file) {
@@ -92,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Salvar arquivo
     const timestamp = Date.now();
-    const fileName = `carteira_${session.user.id}_${timestamp}_${file.name}`;
+    const fileName = `carteira_${user.id}_${timestamp}_${file.name}`;
     const filePath = join(process.cwd(), 'uploads', 'carteiras', fileName);
     
     await writeFile(filePath, buffer);
@@ -105,15 +118,15 @@ export async function POST(request: NextRequest) {
     const valorTotal = ativos.reduce((sum, ativo) => sum + ativo.valorTotal, 0);
     const quantidadeAtivos = ativos.length;
 
-    // 🆕 NOVO: Salvar no banco COM questionário
+    // NOVO: Salvar no banco COM questionário
     const carteira = await prisma.carteiraAnalise.create({
       data: {
-        userId: session.user.id,
+        userId: user.id, // CORRIGIDO: Usar user.id em vez de session.user.id
         nomeArquivo: file.name,
         arquivoUrl: `/uploads/carteiras/${fileName}`,
         valorTotal,
         quantidadeAtivos,
-        questionario, // 🆕 INCLUIR O QUESTIONÁRIO
+        questionario, // NOVO: INCLUIR O QUESTIONÁRIO
         ativos: {
           create: ativos.map(ativo => ({
             codigo: ativo.codigo,
@@ -130,8 +143,8 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('✅ Carteira salva com ID:', carteira.id);
-    console.log('📋 Questionário salvo:', !!questionario);
+    console.log('SUCESSO: Carteira salva com ID:', carteira.id);
+    console.log('INFO: Questionário salvo:', !!questionario);
 
     // Notificar analistas (implementar webhook/email)
     await notificarAnalistas(carteira.id);
@@ -144,7 +157,7 @@ export async function POST(request: NextRequest) {
         valorTotal,
         quantidadeAtivos,
         arquivoProcessado: true,
-        questionarioIncluido: !!questionario // 🆕 INFORMAR SE QUESTIONÁRIO FOI SALVO
+        questionarioIncluido: !!questionario // NOVO: INFORMAR SE QUESTIONÁRIO FOI SALVO
       }
     });
 

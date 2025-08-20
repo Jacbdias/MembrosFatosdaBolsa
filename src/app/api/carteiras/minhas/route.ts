@@ -1,14 +1,28 @@
-export const dynamic = 'force-dynamic'; // 👈 ADICIONAR ESTA LINHA AQUI
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    // CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
+    const userEmail = request.headers.get('x-user-email');
+    
+    if (!userEmail) {
+      return NextResponse.json({ 
+        error: 'Usuário não autenticado' 
+      }, { status: 401 });
+    }
+
+    // Buscar usuário no banco pelo email
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail.toLowerCase() }
+    });
+
+    if (!user) {
+      return NextResponse.json({ 
+        error: 'Usuário não encontrado' 
+      }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -19,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Filtros
     const where: any = {
-      userId: session.user.id
+      userId: user.id // CORRIGIDO: Usar user.id em vez de session.user.id
     };
 
     if (status && status !== 'todos') {
@@ -69,7 +83,7 @@ export async function GET(request: NextRequest) {
         percentual: totalCarteira > 0 ? (valor / totalCarteira) * 100 : 0
       }));
 
-      // 🆕 PARSE DOS DADOS ESTRUTURADOS
+      // PARSE DOS DADOS ESTRUTURADOS
       let dadosEstruturados = null;
       if (carteira.dadosEstruturados) {
         try {
@@ -92,9 +106,9 @@ export async function GET(request: NextRequest) {
         feedback: carteira.feedback,
         recomendacoes: carteira.recomendacoes ? JSON.parse(carteira.recomendacoes) : [],
         pontuacao: carteira.pontuacao,
-        // 🆕 INCLUIR DADOS ESTRUTURADOS
+        // INCLUIR DADOS ESTRUTURADOS
         dadosEstruturados: dadosEstruturados,
-        // 🆕 CAMPOS INDIVIDUAIS PARA COMPATIBILIDADE
+        // CAMPOS INDIVIDUAIS PARA COMPATIBILIDADE
         avaliacaoQualidade: dadosEstruturados?.avaliacoes?.qualidade,
         avaliacaoDiversificacao: dadosEstruturados?.avaliacoes?.diversificacao,
         avaliacaoAdaptacao: dadosEstruturados?.avaliacoes?.adaptacao,

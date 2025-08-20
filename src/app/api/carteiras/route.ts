@@ -1,17 +1,30 @@
 // src/app/api/carteiras/minhas/route.ts
 
-export const dynamic = 'force-dynamic'; // 👈 ADICIONAR ESTA LINHA AQUI
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    // CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
+    const userEmail = request.headers.get('x-user-email');
     
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    if (!userEmail) {
+      return NextResponse.json({ 
+        error: 'Usuário não autenticado' 
+      }, { status: 401 });
+    }
+
+    // Buscar usuário no banco pelo email
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail.toLowerCase() }
+    });
+
+    if (!user) {
+      return NextResponse.json({ 
+        error: 'Usuário não encontrado' 
+      }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -23,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     // Filtros
     const where: any = {
-      userId: session.user.id
+      userId: user.id // CORRIGIDO: Usar user.id em vez de session.user.id
     };
 
     if (status && status !== 'todos') {

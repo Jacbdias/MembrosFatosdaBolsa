@@ -1,25 +1,37 @@
 // src/app/api/carteiras/status-usuario/route.ts
-
-export const dynamic = 'force-dynamic'; // 👈 ADICIONAR ESTA LINHA AQUI
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    // CORRIGIDO: Usar a mesma estratégia de autenticação que funciona
+    const userEmail = request.headers.get('x-user-email');
     
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    if (!userEmail) {
+      return NextResponse.json({ 
+        error: 'Usuário não autenticado' 
+      }, { status: 401 });
     }
 
-    console.log('🔍 Verificando status para usuário:', session.user.id);
+    // Buscar usuário no banco pelo email
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail.toLowerCase() }
+    });
 
+    if (!user) {
+      return NextResponse.json({ 
+        error: 'Usuário não encontrado' 
+      }, { status: 404 });
+    }
+    
+    console.log('VERIFICANDO: Status para usuário:', user.id);
+    
     // Verificar se o usuário já enviou uma carteira
     const carteiraExistente = await prisma.carteiraAnalise.findFirst({
       where: {
-        userId: session.user.id
+        userId: user.id // CORRIGIDO: Usar user.id em vez de session.user.id
       },
       select: {
         id: true,
@@ -32,15 +44,15 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc' // Pegar a mais recente
       }
     });
-
+    
     const jaEnviou = !!carteiraExistente;
-
-    console.log('📊 Resultado da verificação:', {
-      userId: session.user.id,
+    
+    console.log('RESULTADO: Verificação de status:', {
+      userId: user.id,
       jaEnviou,
       carteira: carteiraExistente
     });
-
+    
     return NextResponse.json({
       jaEnviou,
       carteira: carteiraExistente ? {
@@ -50,9 +62,9 @@ export async function GET(request: NextRequest) {
         nomeArquivo: carteiraExistente.nomeArquivo
       } : null
     });
-
+    
   } catch (error) {
-    console.error('❌ Erro ao verificar status do usuário:', error);
+    console.error('ERRO: Erro ao verificar status do usuário:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
