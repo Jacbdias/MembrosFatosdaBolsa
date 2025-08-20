@@ -35,7 +35,6 @@ interface AnaliseTrimestreData {
   
   // Conteúdo principal
   titulo: string;
-  resumoExecutivo: string;
   analiseCompleta: string;
   
   // Métricas do trimestre
@@ -52,8 +51,8 @@ interface AnaliseTrimestreData {
   
   // Recomendação
   recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
-  precoAlvo?: number;
-  risco: 'BAIXO' | 'MÉDIO' | 'ALTO';
+nota?: number;
+
   
   // Links externos
   linkResultado?: string;
@@ -74,18 +73,6 @@ const formatarValorMetrica = (metrica: MetricaTrimestreData | undefined): string
   }
   
   return `R$ ${valor.toFixed(1)} ${unidade}`;
-};
-
-// Função auxiliar para limpar HTML - melhorada
-const stripHtml = (html: string): string => {
-  if (!html) return '';
-  return html
-    .replace(/<[^>]*>/g, '') // Remove tags HTML
-    .replace(/&nbsp;/g, ' ') // Replace &nbsp; com espaço
-    .replace(/&amp;/g, '&')  // Replace &amp; com &
-    .replace(/&lt;/g, '<')   // Replace &lt; com <
-    .replace(/&gt;/g, '>')   // Replace &gt; com >
-    .trim();
 };
 
 // Hook para detectar mobile - evita problemas de hidratação
@@ -154,29 +141,6 @@ const ModalAnaliseCompleta = memo(({
         gap: '6px'
       }}>
         {config.emoji} {recomendacao}
-      </span>
-    );
-  };
-
-  const getBadgeRisco = (risco: string) => {
-    const cores = {
-      'BAIXO': { bg: '#dcfce7', color: '#166534' },
-      'MÉDIO': { bg: '#fef3c7', color: '#92400e' },
-      'ALTO': { bg: '#fef2f2', color: '#dc2626' }
-    };
-    
-    const config = cores[risco as keyof typeof cores] || cores.MÉDIO;
-    
-    return (
-      <span style={{
-        backgroundColor: config.bg,
-        color: config.color,
-        padding: '4px 8px',
-        borderRadius: '6px',
-        fontSize: '12px',
-        fontWeight: '600'
-      }}>
-        {risco}
       </span>
     );
   };
@@ -303,18 +267,14 @@ const ModalAnaliseCompleta = memo(({
             flexWrap: 'wrap' 
           }}>
             {getBadgeRecomendacao(analise.recomendacao)}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Risco:</span>
-              {getBadgeRisco(analise.risco)}
-            </div>
-            {analise.precoAlvo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Preço Teto:</span>
-                <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1e293b' }}>
-                  R$ {analise.precoAlvo.toFixed(2)}
-                </span>
-              </div>
-            )}
+{analise.nota && (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <span style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>Nota:</span>
+    <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#1e293b' }}>
+      {analise.nota}/10
+    </span>
+  </div>
+)}
           </div>
         </div>
 
@@ -325,25 +285,6 @@ const ModalAnaliseCompleta = memo(({
           padding: isMobile ? '20px 16px' : '32px',
           WebkitOverflowScrolling: 'touch'
         }}>
-          {/* Resumo Executivo */}
-          {analise.resumoExecutivo && (
-            <div style={{ marginBottom: '32px' }}>
-              <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <BarChart3 size={20} />
-                Resumo Executivo
-              </h4>
-              <div 
-                style={{
-                  backgroundColor: '#f8fafc',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  lineHeight: '1.6'
-                }}
-                dangerouslySetInnerHTML={{ __html: analise.resumoExecutivo }}
-              />
-            </div>
-          )}
 
           {/* Métricas do Trimestre - CORRIGIDO */}
           {Object.keys(analise.metricas).length > 0 && (
@@ -853,21 +794,6 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       </span>
                     </div>
 
-                    {/* Resumo Executivo - RESPONSIVO */}
-                    {analise.resumoExecutivo && (
-                      <p style={{
-                        color: '#64748b',
-                        fontSize: isMobile ? '13px' : '14px',
-                        lineHeight: '1.5',
-                        margin: '8px 0',
-                        display: '-webkit-box',
-                        WebkitLineClamp: isMobile ? 3 : 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {stripHtml(analise.resumoExecutivo)}
-                      </p>
-                    )}
                   </div>
 
                   <div style={{ 
@@ -906,15 +832,11 @@ const AnalisesTrimesestrais = memo(({ ticker }: { ticker: string }) => {
                       {analise.recomendacao === 'COMPRA' ? '🟢' : analise.recomendacao === 'VENDA' ? '🔴' : '🟡'} {analise.recomendacao}
                     </div>
                     
-                    {analise.precoAlvo && (
-                      <div style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
-                        Preço Teto: R$ {analise.precoAlvo.toFixed(2)}
-                      </div>
-                    )}
-                    
-                    <div style={{ fontSize: isMobile ? '11px' : '12px', color: '#94a3b8' }}>
-                      Risco: {analise.risco}
-                    </div>
+{analise.nota && (
+  <div style={{ fontSize: isMobile ? '12px' : '14px', color: '#64748b' }}>
+    Nota: {analise.nota}/10
+  </div>
+)}
                   </div>
                 </div>
 

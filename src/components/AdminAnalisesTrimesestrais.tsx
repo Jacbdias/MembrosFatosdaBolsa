@@ -41,15 +41,14 @@ interface DadosExtraidosPDF {
     }>;
   };
   
-  relatorioGerado?: {
-    titulo: string;
-    resumoExecutivo: string;
-    destaques: string[];
-    pontosAtencao: string[];
-    conclusao: string;
-    recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
-    precoAlvo?: number;
-  };
+relatorioGerado?: {
+  titulo: string;
+  destaques: string[];
+  pontosAtencao: string[];
+  conclusao: string;
+  recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
+  nota?: number;
+};
   
   contextoMercado?: string;
   outlook?: string;
@@ -66,7 +65,6 @@ interface AnaliseTrimestreData {
   categoria: 'resultado_trimestral' | 'analise_setorial' | 'tese_investimento';
   
   titulo: string;
-  resumoExecutivo: string;
   analiseCompleta: string;
   
   metricas: {
@@ -733,7 +731,6 @@ const usePDFProcessor = () => {
       
       relatorioGerado: {
         titulo: `${ticker} - ${trimestreExtraido || '3T24'}: Análise baseada em processamento local aprimorado`,
-        resumoExecutivo: `Análise da ${empresa} para o ${trimestreExtraido || '3T24'} baseada em extração automática de dados do PDF. ${valoresExtraidos.receita ? `Receita identificada: ${valoresExtraidos.receita.toLocaleString('pt-BR')} milhões.` : ''} ${valoresExtraidos.ebitda ? `EBITDA: ${valoresExtraidos.ebitda.toLocaleString('pt-BR')} milhões.` : ''} Os dados foram extraídos com algoritmos melhorados de reconhecimento de padrões financeiros.`,
         destaques: [
           valoresExtraidos.receita ? `Receita extraída: ${valoresExtraidos.receita.toLocaleString('pt-BR')} milhões` : "Sistema de extração ativo",
           valoresExtraidos.ebitda ? `EBITDA identificado: ${valoresExtraidos.ebitda.toLocaleString('pt-BR')} milhões` : "Algoritmos de padrão financeiro funcionais",
@@ -752,7 +749,7 @@ const usePDFProcessor = () => {
         ],
         conclusao: `A análise da ${empresa} (${ticker}) foi processada com sucesso utilizando algoritmos aprimorados de extração de dados financeiros. ${valoresExtraidos.receita && valoresExtraidos.ebitda ? 'Os principais valores financeiros foram identificados automaticamente no documento.' : 'O sistema utilizou valores estimados devido à estrutura específica do PDF.'} O período ${trimestreExtraido || '3T24'} foi reconhecido no documento. Recomenda-se revisão manual dos dados extraídos para garantir precisão total, especialmente para variações percentuais e métricas comparativas.`,
         recomendacao: 'MANTER',
-        precoAlvo: 25.50
+        nota: 8.5
       }
     };
   }, []);
@@ -1028,13 +1025,11 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
       autor: '',
       categoria: 'resultado_trimestral',
       titulo: '',
-      resumoExecutivo: '',
       analiseCompleta: '',
       metricas: {},
       pontosFavoraveis: '',
       pontosAtencao: '',
       recomendacao: 'MANTER',
-      risco: 'MÉDIO',
       status: 'draft'
     };
   });
@@ -1045,7 +1040,6 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
     if (!relatorio) return '';
     
     let analiseCompleta = `<h3>Resumo dos Resultados</h3>\n`;
-    analiseCompleta += `<p>${relatorio.resumoExecutivo}</p>\n\n`;
     
     if (relatorio.destaques && relatorio.destaques.length > 0) {
       analiseCompleta += `<h3>Principais Destaques</h3>\n<ul>\n`;
@@ -1104,7 +1098,6 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
       empresa: dadosPDF.empresa || prev.empresa,
       trimestre: dadosPDF.trimestre || prev.trimestre,
       titulo: dadosPDF.relatorioGerado?.titulo || prev.titulo,
-      resumoExecutivo: dadosPDF.relatorioGerado?.resumoExecutivo || prev.resumoExecutivo,
       analiseCompleta: dadosPDF.relatorioGerado ? 
         gerarAnaliseCompleta(dadosPDF.relatorioGerado) : prev.analiseCompleta,
       pontosFavoraveis: dadosPDF.relatorioGerado?.destaques ? 
@@ -1112,7 +1105,7 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
       pontosAtencao: dadosPDF.relatorioGerado?.pontosAtencao ? 
         dadosPDF.relatorioGerado.pontosAtencao.map(p => `• ${p}`).join('\n') : prev.pontosAtencao,
       recomendacao: dadosPDF.relatorioGerado?.recomendacao || prev.recomendacao,
-      precoAlvo: dadosPDF.relatorioGerado?.precoAlvo || prev.precoAlvo,
+nota: dadosPDF.relatorioGerado?.nota || prev.nota,
       // CORRIGIDO: Mapeamento correto variacaoAA -> variacaoYoY
       metricas: {
         receita: dadosPDF.dadosFinanceiros?.receita ? {
@@ -1178,7 +1171,6 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
           autor: '',
           categoria: 'resultado_trimestral',
           titulo: '',
-          resumoExecutivo: '',
           analiseCompleta: '',
           metricas: {},
           pontosFavoraveis: '',
@@ -1407,11 +1399,11 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
                         {analise.dadosExtraidos.relatorioGerado.recomendacao === 'COMPRA' ? '🟢 COMPRA' : 
                          analise.dadosExtraidos.relatorioGerado.recomendacao === 'VENDA' ? '🔴 VENDA' : '🟡 MANTER'}
                       </div>
-                      {analise.dadosExtraidos.relatorioGerado.precoAlvo && (
-                        <div style={{ fontSize: '11px', color: '#15803d' }}>
-                          Alvo: R$ {analise.dadosExtraidos.relatorioGerado.precoAlvo.toFixed(2)}
-                        </div>
-                      )}
+{analise.dadosExtraidos.relatorioGerado.nota && (
+  <div style={{ fontSize: '11px', color: '#15803d' }}>
+    Nota: {analise.dadosExtraidos.relatorioGerado.nota}/10
+  </div>
+)}
                     </div>
                   )}
                 </div>
@@ -1455,19 +1447,6 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
                 placeholder="TUPY3 - 3T24: Resultados sólidos com expansão internacional"
               />
             </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Resumo Executivo
-              </label>
-              <RichTextEditor
-                value={analise.resumoExecutivo}
-                onChange={(value) => updateField('resumoExecutivo', value)}
-                placeholder="Principais pontos do trimestre (3-4 bullets)..."
-                minHeight="150px"
-              />
-            </div>
-
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                 Análise Completa
@@ -1647,73 +1626,53 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
             🎯 Recomendação de Investimento
           </h5>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Recomendação
-              </label>
-              <select
-                value={analise.recomendacao}
-                onChange={(e) => updateField('recomendacao', e.target.value as AnaliseTrimestreData['recomendacao'])}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  fontWeight: '600'
-                }}
-              >
-                <option value="COMPRA">🟢 COMPRA</option>
-                <option value="MANTER">🟡 MANTER</option>
-                <option value="VENDA">🔴 VENDA</option>
-              </select>
-            </div>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+  <div>
+    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+      Recomendação
+    </label>
+    <select
+      value={analise.recomendacao}
+      onChange={(e) => updateField('recomendacao', e.target.value as AnaliseTrimestreData['recomendacao'])}
+      style={{
+        width: '100%',
+        border: '2px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '12px',
+        fontSize: '14px',
+        boxSizing: 'border-box',
+        fontWeight: '600'
+      }}
+    >
+      <option value="COMPRA">🟢 COMPRA</option>
+      <option value="MANTER">🟡 MANTER</option>
+      <option value="VENDA">🔴 VENDA</option>
+    </select>
+  </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Preço Alvo (R$)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={analise.precoAlvo || ''}
-                onChange={(e) => updateField('precoAlvo', parseFloat(e.target.value) || undefined)}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="25.50"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Nível de Risco
-              </label>
-              <select
-                value={analise.risco}
-                onChange={(e) => updateField('risco', e.target.value as AnaliseTrimestreData['risco'])}
-                style={{
-                  width: '100%',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="BAIXO">🟢 BAIXO</option>
-                <option value="MÉDIO">🟡 MÉDIO</option>
-                <option value="ALTO">🔴 ALTO</option>
-              </select>
-            </div>
-          </div>
+  <div>
+    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+      Nota (0-10)
+    </label>
+    <input
+      type="number"
+      step="0.1"
+      min="0"
+      max="10"
+      value={analise.nota || ''}
+      onChange={(e) => updateField('nota', parseFloat(e.target.value) || undefined)}
+      style={{
+        width: '100%',
+        border: '2px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '12px',
+        fontSize: '14px',
+        boxSizing: 'border-box'
+      }}
+      placeholder="8.5"
+    />
+  </div>
+</div>
         </div>
       </div>
     </div>

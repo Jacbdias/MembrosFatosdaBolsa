@@ -90,7 +90,6 @@ interface AnaliseTrimestreData {
   autor: string;
   categoria: 'resultado_trimestral' | 'analise_setorial' | 'tese_investimento';
   titulo: string;
-  resumoExecutivo: string;
   analiseCompleta: string;
   metricas: {
     receita?: { valor: number; unidade: string; variacaoYoY?: number; margem?: number };
@@ -101,8 +100,7 @@ interface AnaliseTrimestreData {
   pontosFavoraveis: string;
   pontosAtencao: string;
   recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
-  precoAlvo?: number;
-  risco: 'BAIXO' | 'MÉDIO' | 'ALTO';
+nota?: number;
   linkResultado?: string;
   linkConferencia?: string;
   status: 'draft' | 'published';
@@ -219,29 +217,6 @@ const ModalAnaliseCompleta = memo(({
     );
   };
 
-  const getBadgeRisco = (risco: string) => {
-    const cores = {
-      'BAIXO': { bg: '#dcfce7', color: '#166534' },
-      'MÉDIO': { bg: '#fef3c7', color: '#92400e' },
-      'ALTO': { bg: '#fef2f2', color: '#dc2626' }
-    };
-    
-    const config = cores[risco as keyof typeof cores] || cores.MÉDIO;
-    
-    return (
-      <span style={{
-        backgroundColor: config.bg,
-        color: config.color,
-        padding: '4px 8px',
-        borderRadius: '6px',
-        fontSize: '12px',
-        fontWeight: '600'
-      }}>
-        {risco}
-      </span>
-    );
-  };
-
   const formatarValorMetrica = (metrica: any): string => {
     if (!metrica || !metrica.valor) return 'N/A';
     
@@ -347,8 +322,7 @@ const ModalAnaliseCompleta = memo(({
                 color: '#64748b',
                 flexWrap: 'wrap'
               }}>
-                <span>📅 {new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
-                <span>✍️ {analise.autor}</span>
+                <span>{new Date(analise.dataPublicacao).toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
             
@@ -368,8 +342,8 @@ const ModalAnaliseCompleta = memo(({
               ✕
             </button>
           </div>
-          
-          {/* Recomendação e Risco */}
+
+{/* Recomendação e Nota */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -377,19 +351,16 @@ const ModalAnaliseCompleta = memo(({
             flexWrap: 'wrap' 
           }}>
             {getBadgeRecomendacao(analise.recomendacao)}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: '#64748b' }}>Risco:</span>
-              {getBadgeRisco(analise.risco)}
-            </div>
-            {analise.precoAlvo && (
+            {analise.nota && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: '#64748b' }}>Preço Alvo:</span>
+                <span style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: '#64748b' }}>Nota:</span>
                 <span style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', fontWeight: '600', color: '#1e293b' }}>
-                  R$ {analise.precoAlvo.toFixed(2)}
+                  {analise.nota}/10
                 </span>
               </div>
             )}
           </div>
+          
         </div>
 
         {/* Conteúdo Scrollável */}
@@ -399,26 +370,6 @@ const ModalAnaliseCompleta = memo(({
           padding: window.innerWidth < 768 ? '20px 16px' : '32px',
           WebkitOverflowScrolling: 'touch'
         }}>
-          {/* Resumo Executivo */}
-          {analise.resumoExecutivo && (
-            <div style={{ marginBottom: '32px' }}>
-              <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <BarChart3 size={20} />
-                Resumo Executivo
-              </h4>
-              <div 
-                style={{
-                  backgroundColor: '#f8fafc',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  lineHeight: '1.6'
-                }}
-                dangerouslySetInnerHTML={{ __html: analise.resumoExecutivo }}
-              />
-            </div>
-          )}
-
           {/* Métricas do Trimestre - COMPLETAS */}
           {Object.keys(analise.metricas).length > 0 && (
             <div style={{ marginBottom: '32px' }}>
