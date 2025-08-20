@@ -44,6 +44,7 @@ export async function PUT(
       ...(body.recomendacao && { recomendacao: body.recomendacao }),
       ...(body.precoAlvo !== undefined && { precoAlvo: body.precoAlvo }),
       ...(body.risco && { risco: body.risco }),
+  ...(body.nota !== undefined && { nota: body.nota }),  // ← ADICIONAR ESTA LINHA
       ...(body.linkResultado !== undefined && { linkResultado: body.linkResultado }),
       ...(body.linkConferencia !== undefined && { linkConferencia: body.linkConferencia }),
       ...(body.status && { status: body.status }),

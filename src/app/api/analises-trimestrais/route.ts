@@ -85,8 +85,7 @@ export async function POST(request: NextRequest) {
       pontosFavoraveis: body.pontosFavoraveis || null,
       pontosAtencao: body.pontosAtencao || null,
       recomendacao: body.recomendacao || 'MANTER',
-      precoAlvo: body.precoAlvo || null,
-      risco: body.risco || 'MÉDIO',
+  nota: body.nota || null,            // ← ADICIONAR ESTA LINHA
       linkResultado: body.linkResultado || null,
       linkConferencia: body.linkConferencia || null,
       status: body.status || 'draft',

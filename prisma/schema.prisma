@@ -29,15 +29,11 @@ model User {
   loginLogs               LoginLog[]
   resetTokens             PasswordResetToken[]
   purchases               Purchase[]
+  analisesTrimestrais     AnaliseTrimestreData[]        @relation("AnalisesTrimestrais")
   carteirasAnalista       CarteiraAnalise[]             @relation("CarteirasAnalista")
   carteiras               CarteiraAnalise[]             @relation("CarteirasUsuario")
   instagramCadastro       InstagramCadastro?
-
-  // ✅ NOVO: Relacionamento com análises trimestrais
-  analisesTrimestrais     AnaliseTrimestreData[]        @relation("AnalisesTrimestrais")
-
-  // ✅ COMENTADO TEMPORARIAMENTE PARA RESOLVER FK CONSTRAINT
-  // relatorios              RelatorioSemanal[]
+  proventoUploads         ProventoUpload[]              @relation("ProventoUploads")
   dividendos              UserDividendos[]
   dividendosInternacional UserDividendosInternacional[]
   etfs                    UserEtfs[]
@@ -46,9 +42,6 @@ model User {
   microCaps               UserMicroCaps[]
   projetoAmerica          UserProjetoAmerica[]
   smallCaps               UserSmallCaps[]
-  
-  // ✅ NOVO: Relacionamento com uploads de proventos
-  proventoUploads         ProventoUpload[]              @relation("ProventoUploads")
 }
 
 model Purchase {
@@ -156,34 +149,27 @@ model HotmartIntegration {
 }
 
 model RelatorioSemanal {
-  id                      String   @id @default(cuid())
-  
-  // Campos novos (compatíveis com admin)
-  semana                  String?
-  dataPublicacao          String?
-  autor                   String?
-  titulo                  String?
-  
-  // Campos existentes
-  date                    String
-  weekOf                  String
-  macro                   Json     @default("[]")
-  proventos               Json     @default("[]")
-  dividendos              Json     @default("[]")
-  smallCaps               Json     @default("[]")
-  microCaps               Json     @default("[]")
-  exterior                Json     @default("[]")
-  
-  // Campos internacionais novos
-  exteriorStocks          Json     @default("[]")
-  exteriorETFs            Json     @default("[]")
-  exteriorDividendos      Json     @default("[]")
-  exteriorProjetoAmerica  Json     @default("[]")
-  
-  status                  String   @default("draft")
-  authorId                String
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  date                   String
+  weekOf                 String
+  macro                  Json     @default("[]")
+  proventos              Json     @default("[]")
+  dividendos             Json     @default("[]")
+  smallCaps              Json     @default("[]")
+  microCaps              Json     @default("[]")
+  exterior               Json     @default("[]")
+  status                 String   @default("draft")
+  authorId               String
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  autor                  String?
+  dataPublicacao         String?
+  exteriorDividendos     Json     @default("[]")
+  exteriorETFs           Json     @default("[]")
+  exteriorProjetoAmerica Json     @default("[]")
+  exteriorStocks         Json     @default("[]")
+  semana                 String?
+  titulo                 String?
 
   @@map("relatorio_semanal")
 }
@@ -359,251 +345,167 @@ model UserExteriorStocks {
   @@map("user_exterior_stocks")
 }
 
-// =====================================================
-// 💰 NOVOS MODELOS PARA SISTEMA DE PROVENTOS
-// =====================================================
-
 model Provento {
-  id                    String   @id @default(cuid())
-  
-  // 📊 Dados básicos do provento
-  ticker                String   // ITUB4, PETR4, etc.
-  valor                 Float    // Valor em reais (ex: 0.50)
-  tipo                  String   // "dividendo", "jcp", "jscp", "bonus", etc.
-  
-  // 📅 Datas (mantendo flexibilidade do sistema atual)
-  data                  String   // Data original do CSV (formato string)
-  dataObj               DateTime // Data processada como DateTime
-  dataCom               String?  // Data com direito (opcional)
-  dataPagamento         String?  // Data de pagamento (opcional)
-  
-  // 📈 Dados calculados/formatados
-  dataFormatada         String   // "15/03/2024" - para exibição
-  valorFormatado        String   // "R$ 0,50" - para exibição
-  dividendYield         Float?   // DY% na época (opcional)
-  
-  // 🏢 Dados da empresa (desnormalizados para performance)
-  nomeEmpresa           String?  // Nome da empresa
-  setor                 String?  // Setor da empresa
-  
-  // 📋 Metadados
-  fonte                 String?  // "csv_upload", "manual", "api", etc.
-  observacoes           String?  // Observações adicionais
-  
-  // ⏰ Auditoria
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  // 📊 Indexes para performance
-  @@index([ticker])                    // Busca por ticker
-  @@index([dataObj])                   // Busca por data
-  @@index([ticker, dataObj])           // Busca combinada (mais comum)
-  @@index([tipo])                      // Busca por tipo
-  @@index([createdAt])                 // Ordenação por criação
-  
-  // 🔍 Constraint para evitar duplicatas
+  id             String   @id @default(cuid())
+  ticker         String
+  valor          Float
+  tipo           String
+  data           String
+  dataObj        DateTime
+  dataCom        String?
+  dataPagamento  String?
+  dataFormatada  String
+  valorFormatado String
+  dividendYield  Float?
+  nomeEmpresa    String?
+  setor          String?
+  fonte          String?
+  observacoes    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
   @@unique([ticker, dataObj, valor, tipo], name: "unique_provento")
-  
+  @@index([ticker])
+  @@index([dataObj])
+  @@index([ticker, dataObj])
+  @@index([tipo])
+  @@index([createdAt])
   @@map("proventos")
 }
 
-// 📊 MODELO PARA ESTATÍSTICAS DE PROVENTOS (OPCIONAL - para cache)
 model ProventoEstatistica {
-  id                    String   @id @default(cuid())
-  
-  // 📈 Agregações por ticker
-  ticker                String   @unique
-  nomeEmpresa           String?
-  setor                 String?
-  
-  // 💰 Estatísticas calculadas
-  totalProventos        Int      @default(0)           // Quantidade total
-  valorTotal            Float    @default(0)           // Soma total em R$
-  valorMedio            Float    @default(0)           // Valor médio
-  ultimoProvento        DateTime?                      // Data do último provento
-  primeiroProvento      DateTime?                      // Data do primeiro provento
-  
-  // 📊 Estatísticas por tipo
-  totalDividendos       Int      @default(0)
-  totalJCP              Int      @default(0)
-  totalBonus            Int      @default(0)
-  
-  valorDividendos       Float    @default(0)
-  valorJCP              Float    @default(0)
-  valorBonus            Float    @default(0)
-  
-  // 📈 Yield médio (se disponível)
-  dividendYieldMedio    Float?
-  
-  // ⏰ Cache control
-  ultimaAtualizacao     DateTime @default(now())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
+  id                 String    @id @default(cuid())
+  ticker             String    @unique
+  nomeEmpresa        String?
+  setor              String?
+  totalProventos     Int       @default(0)
+  valorTotal         Float     @default(0)
+  valorMedio         Float     @default(0)
+  ultimoProvento     DateTime?
+  primeiroProvento   DateTime?
+  totalDividendos    Int       @default(0)
+  totalJCP           Int       @default(0)
+  totalBonus         Int       @default(0)
+  valorDividendos    Float     @default(0)
+  valorJCP           Float     @default(0)
+  valorBonus         Float     @default(0)
+  dividendYieldMedio Float?
+  ultimaAtualizacao  DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
   @@index([ticker])
   @@index([ultimaAtualizacao])
-  
   @@map("proventos_estatisticas")
 }
 
-// 🔄 MODELO PARA LOG DE UPLOADS (OPCIONAL - para auditoria)
 model ProventoUpload {
-  id                    String   @id @default(cuid())
-  
-  // 📁 Dados do upload
-  nomeArquivo           String
-  tamanhoArquivo        Int                            // em bytes
-  totalLinhas           Int                            // linhas do CSV
-  linhasProcessadas     Int                            // linhas válidas
-  linhasComErro         Int                            // linhas com erro
-  
-  // 📊 Estatísticas do processamento
-  tempoProcessamento    Int?                           // em milissegundos
-  proventosCriados      Int      @default(0)
-  proventosAtualizados  Int      @default(0)
-  
-  // 🔍 Metadados
-  formatoDetectado      String?  // "novo_6_colunas", "antigo_4_colunas"
-  errosDetalhados       String?  // JSON com detalhes dos erros
-  
-  // 👤 Relacionamento com usuário (opcional)
-  userId                String?
-  user                  User?    @relation("ProventoUploads", fields: [userId], references: [id])
-  
-  // ⏰ Timestamps
-  iniciadoEm            DateTime @default(now())
-  finalizadoEm          DateTime?
-  createdAt             DateTime @default(now())
-  
+  id                   String    @id @default(cuid())
+  nomeArquivo          String
+  tamanhoArquivo       Int
+  totalLinhas          Int
+  linhasProcessadas    Int
+  linhasComErro        Int
+  tempoProcessamento   Int?
+  proventosCriados     Int       @default(0)
+  proventosAtualizados Int       @default(0)
+  formatoDetectado     String?
+  errosDetalhados      String?
+  userId               String?
+  iniciadoEm           DateTime  @default(now())
+  finalizadoEm         DateTime?
+  createdAt            DateTime  @default(now())
+  user                 User?     @relation("ProventoUploads", fields: [userId], references: [id])
+
   @@index([userId])
   @@index([createdAt])
-  
   @@map("proventos_uploads")
 }
 
 model EventoCorporativo {
-  id           String   @id @default(cuid())
-  ticker       String
-  tipo_evento  String
-  titulo       String
-  data_evento  DateTime
-  descricao    String
-  status       String
-  prioridade   String?
-  url_externo  String?
-  observacoes  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  ticker      String
+  tipo_evento String
+  titulo      String
+  data_evento DateTime
+  descricao   String
+  status      String
+  prioridade  String?
+  url_externo String?
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("eventos_corporativos")
-
 }
 
 model Relatorio {
-  id                  String    @id @default(cuid())
-  
-  // 📊 Dados básicos do relatório
-  ticker              String                        // VALE3, PETR4, etc.
-  nome                String                        // Nome do relatório
-  tipo                String                        // "trimestral", "anual", "apresentacao", "outros"
-  dataReferencia      String                        // "Q1 2024", "2023", etc.
-  
-  // 🔗 Links e visualização
-  linkCanva           String?                       // Link do Canva
-  linkExterno         String?                       // Link externo genérico
-  tipoVisualizacao    String    @default("iframe")  // "iframe", "canva", "link", "pdf"
-  
-  // 📄 Sistema híbrido de PDFs
-  arquivoPdf          String?   @db.Text            // Base64 para PDFs pequenos
-  nomeArquivoPdf      String?                       // Nome do arquivo original
-  tamanhoArquivo      Int?                          // Tamanho em bytes
-  tipoPdf             String?                       // "base64" ou "referencia"
-  hashArquivo         String?                       // Hash SHA-256 para verificação
-  solicitarReupload   Boolean   @default(false)     // Flag para PDFs grandes
-  
-  // ⏰ Timestamps
-  dataUpload          DateTime  @default(now())     // Data do upload
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  // 📊 Indexes para performance
-  @@index([ticker])                                 // Busca por ticker
-  @@index([tipo])                                   // Busca por tipo
-  @@index([dataUpload])                            // Ordenação por upload
-  @@index([ticker, tipo])                          // Busca combinada
-  @@index([ticker, dataReferencia])                // Busca ticker + período
-  
-  @@map("relatorios")
+  id                String   @id @default(cuid())
+  ticker            String
+  nome              String
+  tipo              String
+  dataReferencia    String
+  linkCanva         String?
+  linkExterno       String?
+  tipoVisualizacao  String   @default("iframe")
+  arquivoPdf        String?
+  nomeArquivoPdf    String?
+  tamanhoArquivo    Int?
+  tipoPdf           String?
+  hashArquivo       String?
+  solicitarReupload Boolean  @default(false)
+  dataUpload        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
+  @@index([ticker])
+  @@index([tipo])
+  @@index([dataUpload])
+  @@index([ticker, tipo])
+  @@index([ticker, dataReferencia])
+  @@map("relatorios")
 }
 
-// =====================================================
-// 📊 MODELO PARA ANÁLISES TRIMESTRAIS
-// =====================================================
-
 model AnaliseTrimestreData {
-  id                  String   @id @default(cuid())
-  
-  // 🏢 Informações básicas
-  ticker              String                        // TUPY3, VALE3, etc.
-  empresa             String                        // Nome da empresa
-  trimestre           String?                       // 3T24, Q1 2024, etc.
-  dataPublicacao      DateTime @default(now())      // Data de publicação
-  autor               String?                       // Nome do autor
-  categoria           String   @default("resultado_trimestral") // resultado_trimestral, analise_setorial, tese_investimento
-  
-  // 📝 Conteúdo principal
-  titulo              String                        // Título da análise
-  resumoExecutivo     String?  @db.Text             // Resumo executivo (rich text)
-  analiseCompleta     String?  @db.Text             // Análise completa (rich text)
-  
-  // 💰 Métricas financeiras (JSON para flexibilidade)
-  metricas            Json     @default("{}")       // { receita: { valor: 1200, unidade: "milhões", variacao: -8.5 }, ... }
-  
-  // 📊 Análise qualitativa
-  pontosFavoraveis    String?  @db.Text             // Pontos positivos (rich text)
-  pontosAtencao       String?  @db.Text             // Pontos de atenção (rich text)
-  
-  // 🎯 Recomendação
-  recomendacao        String   @default("MANTER")   // COMPRA, VENDA, MANTER
-  precoAlvo           Float?                        // Preço alvo em R$
-  risco               String   @default("MÉDIO")    // BAIXO, MÉDIO, ALTO
-  
-  // 🔗 Links externos
-  linkResultado       String?                       // Link do release de resultados
-  linkConferencia     String?                       // Link da conference call
-  
-  // 📋 Status e metadados
-  status              String   @default("draft")    // draft, published
-  visualizacoes       Int      @default(0)          // Contador de visualizações
-  
-  // 👤 Relacionamento com usuário (autor)
-  userId              String?                       // ID do usuário que criou
-  user                User?    @relation("AnalisesTrimestrais", fields: [userId], references: [id])
+  id                     String    @id @default(cuid())
+  ticker                 String
+  empresa                String
+  trimestre              String?
+  dataPublicacao         DateTime  @default(now())
+  autor                  String?
+  categoria              String    @default("resultado_trimestral")
+  titulo                 String
+  resumoExecutivo        String?
+  analiseCompleta        String?
+  metricas               Json      @default("{}")
+  pontosFavoraveis       String?
+  pontosAtencao          String?
+  recomendacao           String    @default("MANTER")
+  precoAlvo              Float?
+  risco                  String    @default("MÉDIO")
+  linkResultado          String?
+  linkConferencia        String?
+  status                 String    @default("draft")
+  visualizacoes          Int       @default(0)
+  userId                 String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  badges                 Json?     @default("[]")
+  dadosPeriodo           Json?     @default("{}")
+  fonteDados             String?   @default("manual")
+  historicoComparativo   Json?     @default("[]")
+  ultimaAtualizacaoBrapi DateTime?
+  nota                   Float?
+  user                   User?     @relation("AnalisesTrimestrais", fields: [userId], references: [id])
 
-  // ✅ NOVOS CAMPOS PARA INTEGRAÇÃO BRAPI
-  dadosPeriodo            Json?    @default("{}")     // Dados fixos do período (cotação, P/L, etc.)
-  historicoComparativo    Json?    @default("[]")     // Histórico dos últimos trimestres
-  badges                  Json?    @default("[]")     // Badges automáticos baseados nos dados
-  fonteDados              String?  @default("manual") // 'manual', 'brapi', 'misto'
-  ultimaAtualizacaoBrapi  DateTime?                   // Timestamp da última sincronização BRAPI
-  
-  // ⏰ Timestamps
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  // 📊 Indexes para performance
-  @@index([ticker])                                 // Busca por ticker
-  @@index([trimestre])                              // Busca por trimestre
-  @@index([status])                                 // Filtro por status
-  @@index([categoria])                              // Filtro por categoria
-  @@index([dataPublicacao])                         // Ordenação por data
-  @@index([ticker, trimestre])                      // Busca combinada
-  @@index([ticker, status])                         // Ticker + status
-  @@index([userId])                                 // Análises do usuário
-  
-  // 🔍 Constraint para evitar duplicatas
   @@unique([ticker, trimestre, titulo], name: "unique_analise_trimestre")
-  
+  @@index([ticker])
+  @@index([trimestre])
+  @@index([status])
+  @@index([categoria])
+  @@index([dataPublicacao])
+  @@index([ticker, trimestre])
+  @@index([ticker, status])
+  @@index([userId])
   @@map("analises_trimestrais")
 }

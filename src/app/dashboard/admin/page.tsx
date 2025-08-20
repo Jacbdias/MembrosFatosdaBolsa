@@ -18,9 +18,15 @@ export default function AdminDashboard() {
     if (url.includes('central-proventos')) return 'Central de Proventos';
     if (url.includes('central-relatorios')) return 'Central de Relatórios';
     if (url.includes('instagram-cadastros')) return 'Instagram Close Friends';
-    if (url.includes('renovacoes')) return 'Renovações'; // NOVO
+    if (url.includes('renovacoes')) return 'Renovações';
     if (url.includes('customers')) return 'Gestão de Clientes';
     if (url.includes('empresa')) return 'Gestão de Empresas';
+    if (url.includes('usuarios')) return 'Gestão de Usuários';
+    if (url.includes('integracoes')) return 'Integrações';
+    if (url.includes('central-agenda')) return 'Agenda Corporativa';
+    if (url.includes('configuracoes')) return 'Configurações';
+    if (url.includes('logs')) return 'Logs do Sistema';
+    if (url.includes('analytics')) return 'Analytics';
     return 'página solicitada';
   };
 
@@ -46,28 +52,131 @@ export default function AdminDashboard() {
     return () => clearTimeout(timer);
   }, []);
 
+  const adminCards = [
+    {
+      title: 'Central de Proventos',
+      description: 'Gerencie dividendos, JCP e outros proventos das empresas listadas na bolsa.',
+      icon: '💰',
+      href: '/dashboard/central-proventos',
+      status: 'active'
+    },
+    {
+      title: 'Gestão de Usuários',
+      description: 'Administre contas de usuários, permissões e níveis de acesso ao sistema.',
+      icon: '👥',
+      href: '/dashboard/admin/usuarios',
+      status: 'active'
+    },
+    {
+      title: 'Gestão de Clientes',
+      description: 'Administre perfis de clientes, histórico de transações e relacionamento comercial.',
+      icon: '🏢',
+      href: '/dashboard/admin/customers',
+      status: 'active'
+    },
+    {
+      title: 'Gestão de Empresas',
+      description: 'Gerencie cadastro de empresas listadas na bolsa, setores e informações corporativas.',
+      icon: '🏭',
+      href: '/dashboard/admin/empresa',
+      status: 'active'
+    },
+    {
+      title: 'Instagram Close Friends',
+      description: 'Gerencie cadastros de Instagram dos usuários para conteúdos exclusivos do Close Friends.',
+      icon: '📱',
+      href: '/dashboard/admin/instagram-cadastros',
+      status: 'active'
+    },
+    {
+      title: 'Renovações',
+      description: 'Controle e monitore renovações de assinaturas, vencimentos e status de pagamentos dos usuários.',
+      icon: '🔄',
+      href: '/dashboard/admin/renovacoes',
+      status: 'active',
+      isNew: true
+    },
+    {
+      title: 'Integrações',
+      description: 'Central de gerenciamentos das integrações com APIs externas e sistemas terceiros.',
+      icon: '🔗',
+      href: '/dashboard/admin/integracoes',
+      status: 'active'
+    },
+    {
+      title: 'Relatórios',
+      description: 'Gere relatórios detalhados e visualize métricas importantes do sistema.',
+      icon: '📊',
+      href: '/dashboard/central-relatorios',
+      status: 'active'
+    },
+    {
+      title: 'Agenda Corporativa',
+      description: 'Insira informações, notícias e eventos importantes sobre os ativos.',
+      icon: '📅',
+      href: '/dashboard/central-agenda',
+      status: 'active'
+    },
+    {
+      title: 'Analytics',
+      description: 'Monitore performance, métricas de uso e indicadores de crescimento da plataforma.',
+      icon: '📈',
+      href: '/dashboard/admin/analytics',
+      status: 'development'
+    },
+    {
+      title: 'Logs do Sistema',
+      description: 'Monitore atividades do sistema, erros e registros de auditoria em tempo real.',
+      icon: '📝',
+      href: '/dashboard/admin/logs',
+      status: 'development'
+    },
+    {
+      title: 'Configurações',
+      description: 'Gerencie configurações do sistema, segurança, backup e preferências gerais.',
+      icon: '⚙️',
+      href: '/dashboard/admin/configuracoes',
+      status: 'active'
+    }
+  ];
+
   const styles = {
-    adminContainer: {
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    container: {
       minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       padding: '24px'
     },
-    container: {
+    wrapper: {
       maxWidth: '1400px',
       margin: '0 auto'
     },
     header: {
-      textAlign: 'center' as const,
       marginBottom: '48px',
-      color: '#1e293b'
+      textAlign: 'center' as const
+    },
+    backButton: {
+      background: 'none',
+      border: 'none',
+      color: '#64748b',
+      fontWeight: 600,
+      cursor: 'pointer',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      marginBottom: '24px',
+      transition: 'all 0.3s ease',
+      fontSize: '0.95rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     title: {
-      fontSize: '2.75rem',
-      fontWeight: 700,
-      marginBottom: '12px',
-      color: '#000000',
-      margin: '0 0 12px 0'
+      fontSize: '3rem',
+      fontWeight: 800,
+      color: '#1e293b',
+      margin: '0 0 12px 0',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.02em'
     },
     subtitle: {
       fontSize: '1.125rem',
@@ -75,123 +184,135 @@ export default function AdminDashboard() {
       fontWeight: 400,
       margin: 0
     },
-    dashboardGrid: {
+    grid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-      gap: '24px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+      gap: '32px',
       marginBottom: '48px'
     },
     card: {
-      background: '#ffffff',
-      borderRadius: '16px',
-      padding: '32px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-      border: '1px solid #e2e8f0',
-      transition: 'all 0.3s ease',
-      cursor: 'pointer',
       position: 'relative' as const,
+      height: '300px',
+      borderRadius: '16px',
       overflow: 'hidden',
+      cursor: 'pointer',
+      background: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
+      border: '1px solid #333333',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       opacity: 0,
       transform: 'translateY(30px)'
     },
+    cardTopLine: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '3px',
+      background: 'linear-gradient(90deg, transparent 0%, #00ff41 50%, transparent 100%)'
+    },
+    cardContent: {
+      padding: '32px',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      justifyContent: 'center',
+      alignItems: 'center',
+      textAlign: 'center' as const,
+      position: 'relative' as const,
+      zIndex: 2
+    },
     cardIcon: {
-      width: '56px',
-      height: '56px',
-      background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
-      borderRadius: '12px',
+      width: '80px',
+      height: '80px',
+      borderRadius: '50%',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: '20px',
-      fontSize: '22px',
-      border: '1px solid #e2e8f0'
+      fontSize: '36px',
+      marginBottom: '24px',
+      transition: 'all 0.3s ease'
     },
     cardTitle: {
-      color: '#1e293b',
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      marginBottom: '8px',
-      margin: '0 0 8px 0'
+      fontSize: '1.5rem',
+      fontWeight: 700,
+      color: '#ffffff',
+      margin: '0 0 16px 0',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.02em',
+      transition: 'color 0.3s ease',
+      lineHeight: 1.2
     },
-    cardText: {
-      color: '#64748b',
-      lineHeight: 1.6,
-      marginBottom: '20px',
-      margin: '0 0 20px 0',
-      fontSize: '0.95rem'
+    cardDescription: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: '0.9rem',
+      lineHeight: 1.4,
+      fontWeight: 400,
+      maxWidth: '280px',
+      marginBottom: '20px'
+    },
+    badge: {
+      position: 'absolute' as const,
+      top: '16px',
+      right: '16px',
+      background: 'linear-gradient(135deg, #00ff41 0%, #00cc33 100%)',
+      borderRadius: '20px',
+      padding: '6px 12px',
+      zIndex: 3,
+      boxShadow: '0 4px 12px rgba(0, 255, 65, 0.4)'
+    },
+    badgeText: {
+      color: '#000000',
+      fontWeight: 700,
+      fontSize: '0.7rem',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.1em'
+    },
+    statusBadge: {
+      position: 'absolute' as const,
+      bottom: '16px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      padding: '4px 12px',
+      borderRadius: '20px',
+      fontSize: '0.7rem',
+      fontWeight: 500,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.05em'
     },
     statusActive: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '0.75rem',
-      fontWeight: 500,
-      textTransform: 'uppercase' as const,
-      background: '#dcfce7',
-      color: '#166534',
-      border: '1px solid #bbf7d0'
+      background: 'rgba(0, 255, 65, 0.2)',
+      color: '#00ff41',
+      border: '1px solid rgba(0, 255, 65, 0.3)'
     },
     statusDevelopment: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '0.75rem',
-      fontWeight: 500,
-      textTransform: 'uppercase' as const,
-      background: '#fef3c7',
-      color: '#92400e',
-      border: '1px solid #fde68a'
+      background: 'rgba(255, 193, 7, 0.2)',
+      color: '#ffc107',
+      border: '1px solid rgba(255, 193, 7, 0.3)'
     },
-    statusPlanned: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '0.75rem',
-      fontWeight: 500,
-      textTransform: 'uppercase' as const,
-      background: '#f1f5f9',
-      color: '#475569',
-      border: '1px solid #e2e8f0'
+    decorativeElement1: {
+      position: 'absolute' as const,
+      bottom: '-20px',
+      right: '-20px',
+      width: '80px',
+      height: '80px',
+      background: 'radial-gradient(circle, rgba(0,255,65,0.1) 0%, transparent 70%)',
+      borderRadius: '50%',
+      opacity: 0.5
     },
-    quickActions: {
-      background: '#ffffff',
-      borderRadius: '16px',
-      padding: '32px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-      border: '1px solid #e2e8f0',
-      marginBottom: '48px'
+    decorativeElement2: {
+      position: 'absolute' as const,
+      top: '-30px',
+      left: '-30px',
+      width: '100px',
+      height: '100px',
+      background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 70%)',
+      borderRadius: '50%',
+      opacity: 0.8
     },
-    quickActionsTitle: {
-      color: '#1e293b',
-      marginBottom: '24px',
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      margin: '0 0 24px 0'
-    },
-    actionsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px'
-    },
-    actionBtn: {
-      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-      color: 'white',
-      border: 'none',
-      padding: '14px 20px',
-      borderRadius: '12px',
-      fontSize: '0.95rem',
-      fontWeight: 500,
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-    },
+
     footer: {
       textAlign: 'center' as const,
       marginTop: '48px',
@@ -217,198 +338,121 @@ export default function AdminDashboard() {
   };
 
   const handleCardHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'translateY(-4px)';
-    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-    e.currentTarget.style.borderColor = '#cbd5e1';
+    const card = e.currentTarget;
+    const title = card.querySelector('.card-title') as HTMLElement;
+    const icon = card.querySelector('.card-icon') as HTMLElement;
+    
+    card.style.transform = 'translateY(-8px)';
+    card.style.boxShadow = '0 16px 48px rgba(0, 0, 0, 0.4)';
+    card.style.border = '1px solid #444444';
+    
+    if (title) title.style.color = '#00ff41';
+    if (icon) {
+      icon.style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
+      icon.style.border = '1px solid rgba(0, 255, 65, 0.3)';
+    }
   };
 
   const handleCardLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'translateY(0)';
-    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)';
-    e.currentTarget.style.borderColor = '#e2e8f0';
+    const card = e.currentTarget;
+    const title = card.querySelector('.card-title') as HTMLElement;
+    const icon = card.querySelector('.card-icon') as HTMLElement;
+    
+    card.style.transform = 'translateY(0)';
+    card.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+    card.style.border = '1px solid #333333';
+    
+    if (title) title.style.color = '#ffffff';
+    if (icon) {
+      icon.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+      icon.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+    }
   };
 
   const handleButtonHover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = 'translateY(-1px)';
-    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    e.currentTarget.style.transform = 'translateY(-2px)';
+    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 255, 65, 0.4)';
   };
 
   const handleButtonLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.transform = 'translateY(0)';
-    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 255, 65, 0.3)';
   };
 
   return (
-    <div style={styles.adminContainer}>
-      <div style={styles.container}>
+    <div style={styles.container}>
+      <div style={styles.wrapper}>
         <div style={styles.header}>
+          <button
+            style={styles.backButton}
+            onClick={() => window.location.href = '/dashboard'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f1f5f9';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            ← Dashboard
+          </button>
           <h1 style={styles.title}>Dashboard Administrativo</h1>
           <p style={styles.subtitle}>Centro de Gerenciamento - Fatos da Bolsa</p>
         </div>
 
-        <div style={styles.dashboardGrid}>
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/central-proventos')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>💰</div>
-            <h3 style={styles.cardTitle}>Central de Proventos</h3>
-            <p style={styles.cardText}>Gerencie dividendos, JCP e outros proventos das empresas listadas na bolsa.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
+        <div style={styles.grid}>
+          {adminCards.map((card, index) => (
+            <div
+              key={index}
+              className="admin-card"
+              style={styles.card}
+              onClick={() => navigateTo(card.href)}
+              onMouseEnter={handleCardHover}
+              onMouseLeave={handleCardLeave}
+            >
+              {/* Badge "NOVO" se aplicável */}
+              {card.isNew && (
+                <div style={styles.badge}>
+                  <span style={styles.badgeText}>🚀 NOVO</span>
+                </div>
+              )}
 
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/admin/usuarios')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>👥</div>
-            <h3 style={styles.cardTitle}>Gestão de Usuários</h3>
-            <p style={styles.cardText}>Administre contas de usuários, permissões e níveis de acesso ao sistema.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
+              {/* Linha verde no topo */}
+              <div style={styles.cardTopLine} />
+              
+              {/* Content */}
+              <div style={styles.cardContent}>
+                {/* Ícone */}
+                <div className="card-icon" style={styles.cardIcon}>
+                  {card.icon}
+                </div>
+                
+                {/* Título */}
+                <h3 className="card-title" style={styles.cardTitle}>
+                  {card.title}
+                </h3>
+                
+                {/* Descrição */}
+                <p style={styles.cardDescription}>
+                  {card.description}
+                </p>
 
-          {/* 📱 CARD - INSTAGRAM CLOSE FRIENDS */}
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/admin/instagram-cadastros')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>📱</div>
-            <h3 style={styles.cardTitle}>Instagram Close Friends</h3>
-            <p style={styles.cardText}>Gerencie cadastros de Instagram dos usuários para conteúdos exclusivos do Close Friends.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
+                {/* Status Badge */}
+                <div style={{
+                  ...styles.statusBadge,
+                  ...(card.status === 'active' ? styles.statusActive : styles.statusDevelopment)
+                }}>
+                  {card.status === 'active' ? 'Ativo' : 'Desenvolvimento'}
+                </div>
+              </div>
 
-          {/* 📊 NOVO CARD - RENOVAÇÕES */}
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/admin/renovacoes')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>📊</div>
-            <h3 style={styles.cardTitle}>Renovações</h3>
-            <p style={styles.cardText}>Controle e monitore renovações de assinaturas, vencimentos e status de pagamentos dos usuários.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
-
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/admin/integracoes')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>🔗</div>
-            <h3 style={styles.cardTitle}>Integrações</h3>
-            <p style={styles.cardText}>Central de gerenciamentos das integrações.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
-
-          {/* CARD RELATÓRIOS */}
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/central-relatorios')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>📋</div>
-            <h3 style={styles.cardTitle}>Relatórios</h3>
-            <p style={styles.cardText}>Gere relatórios detalhados e visualize métricas importantes do sistema.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
-
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => navigateTo('/dashboard/central-agenda')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>📅</div>
-            <h3 style={styles.cardTitle}>Agenda Corporativa</h3>
-            <p style={styles.cardText}>Insira informações (notícias) sobre os ativos.</p>
-            <span style={styles.statusActive}>Ativo</span>
-          </div>
-
-          <div 
-            className="admin-card"
-            style={styles.card} 
-            onClick={() => showComingSoon('Configurações')}
-            onMouseEnter={handleCardHover}
-            onMouseLeave={handleCardLeave}
-          >
-            <div style={styles.cardIcon}>⚙️</div>
-            <h3 style={styles.cardTitle}>Configurações</h3>
-            <p style={styles.cardText}>Gerencie configurações do sistema, logs e preferências gerais.</p>
-            <span style={styles.statusPlanned}>Planejado</span>
-          </div>
+              {/* Elementos decorativos */}
+              <div style={styles.decorativeElement1} />
+              <div style={styles.decorativeElement2} />
+            </div>
+          ))}
         </div>
 
-        <div style={styles.quickActions}>
-          <h2 style={styles.quickActionsTitle}>Ações Rápidas</h2>
-          <div style={styles.actionsGrid}>
-            <button 
-              style={styles.actionBtn} 
-              onClick={() => navigateTo('/dashboard/central-proventos')}
-              onMouseEnter={handleButtonHover}
-              onMouseLeave={handleButtonLeave}
-            >
-              💰 Central Proventos
-            </button>
-            <button 
-              style={styles.actionBtn} 
-              onClick={() => navigateTo('/dashboard/admin/instagram-cadastros')}
-              onMouseEnter={handleButtonHover}
-              onMouseLeave={handleButtonLeave}
-            >
-              📱 Instagram Admin
-            </button>
-            {/* 📊 NOVO BOTÃO - RENOVAÇÕES */}
-            <button 
-              style={styles.actionBtn} 
-              onClick={() => navigateTo('/dashboard/admin/renovacoes')}
-              onMouseEnter={handleButtonHover}
-              onMouseLeave={handleButtonLeave}
-            >
-              📊 Renovações
-            </button>
-            <button 
-              style={styles.actionBtn} 
-              onClick={() => showComingSoon('Novo Usuário')}
-              onMouseEnter={handleButtonHover}
-              onMouseLeave={handleButtonLeave}
-            >
-              👤 Novo Usuário
-            </button>
-            <button 
-              style={styles.actionBtn} 
-              onClick={() => showComingSoon('Nova Empresa')}
-              onMouseEnter={handleButtonHover}
-              onMouseLeave={handleButtonLeave}
-            >
-              🏢 Nova Empresa
-            </button>
-            <button 
-              style={styles.actionBtn} 
-              onClick={() => navigateTo('/dashboard/central-relatorios')}
-              onMouseEnter={handleButtonHover}
-              onMouseLeave={handleButtonLeave}
-            >
-              📊 Relatórios
-            </button>
-          </div>
-        </div>
+
 
         <div style={styles.footer}>
           <p>© 2025 Fatos da Bolsa - Dashboard Administrativo</p>
