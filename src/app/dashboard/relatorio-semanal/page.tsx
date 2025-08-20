@@ -1047,25 +1047,25 @@ const ItemCard = ({ item, sectionColor, onOpenAnalise }: {
       position: 'relative'
     }}>
       {/* 🆕 Badge de análise trimestral vinculada */}
-      {temAnalise && (
-        <div style={{
-          position: 'absolute',
-          top: '-8px',
-          right: '16px',
-          backgroundColor: '#22c55e',
-          color: 'white',
-          padding: '4px 12px',
-          borderRadius: '12px',
-          fontSize: '12px',
-          fontWeight: '600',
-          boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          📊 ANÁLISE DISPONÍVEL
-        </div>
-      )}
+{temAnalise && (
+  <div style={{
+    position: 'absolute',
+    top: '-8px',
+    right: '16px',
+    backgroundColor: '#374151',
+    color: 'white',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    boxShadow: '0 2px 8px rgba(55, 65, 81, 0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px'
+  }}>
+    📊 ANÁLISE DISPONÍVEL
+  </div>
+)}
 
 {/* Header - condicional para Panorama Macro */}
 {isPanoramaMacro ? (
@@ -1326,21 +1326,21 @@ const ItemCard = ({ item, sectionColor, onOpenAnalise }: {
           display: 'flex',
           justifyContent: 'center'
         }}>
-          <button
-            onClick={() => onOpenAnalise(item.analiseTrismestralId!)}
-            style={{
-              backgroundColor: '#22c55e',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '12px 24px',
-              fontSize: 'clamp(14px, 2.2vw, 16px)',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+<button
+  onClick={() => onOpenAnalise(item.analiseTrismestralId!)}
+  style={{
+    backgroundColor: '#374151',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: 'clamp(14px, 2.2vw, 16px)',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    boxShadow: '0 4px 12px rgba(55, 65, 81, 0.3)',
               transition: 'all 0.2s ease',
               width: '100%',
               maxWidth: '300px',
@@ -1348,49 +1348,19 @@ const ItemCard = ({ item, sectionColor, onOpenAnalise }: {
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(34, 197, 94, 0.4)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(55, 65, 81, 0.4)';
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.3)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(55, 65, 81, 0.3)';
             }}
           >
-            <BarChart3 size={18} />
             <span>Ver Análise Trimestral</span>
             <ExternalLink size={14} />
           </button>
         </div>
       )}
 
-      {/* 🆕 Preview da análise vinculada */}
-      {temAnalise && (
-        <div style={{
-          marginTop: '16px',
-          padding: '12px',
-          backgroundColor: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          borderRadius: '8px',
-          fontSize: 'clamp(12px, 2vw, 14px)'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#15803d',
-            fontWeight: '600',
-            marginBottom: '4px'
-          }}>
-            <BarChart3 size={14} />
-            <span>{item.analiseTrismestralTicker} - {item.analiseTrismestralTrimestre}</span>
-          </div>
-          <div style={{
-            color: '#166534',
-            fontSize: 'clamp(11px, 1.8vw, 13px)'
-          }}>
-            {item.analiseTrismestralTitulo}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
