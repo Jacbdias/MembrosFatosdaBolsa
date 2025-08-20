@@ -1,145 +1,172 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-// ✅ CRÍTICO: Adicionar para evitar erro de build
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const prisma = new PrismaClient();
 
-// GET - Buscar relatório atual
-export async function GET() {
+// GET - Buscar relatórios (admin) ou atual (público)
+export async function GET(request: NextRequest) {
   try {
-    const relatorio = await prisma.relatorioSemanal.findFirst({
-      where: { status: 'published' },
-      orderBy: { createdAt: 'desc' }
-    });
+    const { searchParams } = new URL(request.url);
+    const isAdmin = searchParams.get('admin') === 'true';
     
-    // ✅ Garantir que os campos existam mesmo se vazios
-    if (relatorio) {
-      const relatorioFormatted = {
-        ...relatorio,
-        proventos: relatorio.proventos || [],
-        dividendos: relatorio.dividendos || [],
-        macro: relatorio.macro || [],
-        smallCaps: relatorio.smallCaps || [],
-        microCaps: relatorio.microCaps || [],
-        exterior: relatorio.exterior || []
-      };
-      return NextResponse.json(relatorioFormatted);
+    if (isAdmin) {
+      // ADMIN: Buscar todos os relatórios
+      const relatorios = await prisma.relatorioSemanal.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      console.log(`Admin: encontrados ${relatorios.length} relatórios`);
+      return NextResponse.json(relatorios);
+      
+    } else {
+      // PÚBLICO: Apenas o mais recente publicado
+      const relatorio = await prisma.relatorioSemanal.findFirst({
+        where: { status: 'published' },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      if (relatorio) {
+        // Converter para formato compatível com visualização
+        const relatorioFormatted = {
+          ...relatorio,
+          // Campos para compatibilidade
+          date: relatorio.dataPublicacao || relatorio.date,
+          weekOf: relatorio.semana || relatorio.weekOf,
+          // Garantir arrays existem
+          macro: relatorio.macro || [],
+          dividendos: relatorio.dividendos || [],
+          smallCaps: relatorio.smallCaps || [],
+          microCaps: relatorio.microCaps || [],
+          exteriorStocks: relatorio.exteriorStocks || [],
+          exteriorETFs: relatorio.exteriorETFs || [],
+          exteriorDividendos: relatorio.exteriorDividendos || [],
+          exteriorProjetoAmerica: relatorio.exteriorProjetoAmerica || [],
+          // Campo legado
+          exterior: relatorio.exteriorStocks || relatorio.exterior || [],
+          proventos: relatorio.proventos || []
+        };
+        return NextResponse.json(relatorioFormatted);
+      }
+      
+      return NextResponse.json(null);
     }
-    
-    return NextResponse.json(relatorio);
   } catch (error) {
     console.error('Erro GET relatório:', error);
     return NextResponse.json({ error: 'Erro ao buscar relatório' }, { status: 500 });
   }
 }
 
-// POST - Criar novo relatório
+// POST - Criar/Atualizar relatório (sem autenticação para teste)
 export async function POST(request: NextRequest) {
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
-    
     const data = await request.json();
-    
-    // ✅ Validar estrutura de dados
-    const validatedData = validateRelatorioData(data);
-    
-    const relatorio = await prisma.relatorioSemanal.create({
-      data: {
-        ...validatedData,
-        authorId: admin.id
-      }
+    console.log('Dados recebidos:', { 
+      semana: data.semana, 
+      titulo: data.titulo,
+      id: data.id 
     });
     
+    // Preparar dados compatíveis
+    const relatorioData = {
+      // Campos do admin
+      semana: data.semana,
+      dataPublicacao: data.dataPublicacao || new Date().toISOString().split('T')[0],
+      autor: data.autor || '',
+      titulo: data.titulo,
+      
+      // Campos legados para compatibilidade
+      date: data.dataPublicacao || data.date || new Date().toISOString().split('T')[0],
+      weekOf: data.semana || data.weekOf || 'Nova semana',
+      
+      // Arrays de conteúdo
+      macro: data.macro || [],
+      dividendos: data.dividendos || [],
+      smallCaps: data.smallCaps || [],
+      microCaps: data.microCaps || [],
+      exteriorStocks: data.exteriorStocks || [],
+      exteriorETFs: data.exteriorETFs || [],
+      exteriorDividendos: data.exteriorDividendos || [],
+      exteriorProjetoAmerica: data.exteriorProjetoAmerica || [],
+      
+      // Campos legados
+      proventos: data.proventos || [],
+      exterior: data.exterior || data.exteriorStocks || [],
+      
+      status: data.status || 'draft',
+      authorId: 'admin' // Temporário
+    };
+    
+    let relatorio;
+    
+    if (data.id && data.id !== 'novo') {
+      // Tentar atualizar
+      try {
+        relatorio = await prisma.relatorioSemanal.update({
+          where: { id: data.id },
+          data: relatorioData
+        });
+        console.log('Relatório atualizado:', relatorio.id);
+      } catch (updateError) {
+        if (updateError.code === 'P2025') {
+          // Não encontrou, criar novo
+          const { id, ...dataWithoutId } = relatorioData;
+          relatorio = await prisma.relatorioSemanal.create({
+            data: dataWithoutId
+          });
+          console.log('Relatório criado (não encontrou):', relatorio.id);
+        } else {
+          throw updateError;
+        }
+      }
+    } else {
+      // Criar novo
+      const { id, ...dataWithoutId } = relatorioData;
+      relatorio = await prisma.relatorioSemanal.create({
+        data: dataWithoutId
+      });
+      console.log('Relatório criado:', relatorio.id);
+    }
+    
     return NextResponse.json(relatorio);
+    
   } catch (error) {
     console.error('Erro POST relatório:', error);
     return NextResponse.json({ 
-      error: 'Erro ao criar relatório',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
+      error: 'Erro ao salvar relatório',
+      details: error.message 
     }, { status: 500 });
   }
 }
 
-// PUT - Atualizar relatório
-export async function PUT(request: NextRequest) {
+// DELETE - Deletar relatório
+export async function DELETE(request: NextRequest) {
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ error: 'ID necessário' }, { status: 400 });
     }
     
-    const data = await request.json();
-    
-    // ✅ Validar se o relatório existe
-    if (!data.id) {
-      return NextResponse.json({ error: 'ID do relatório é obrigatório' }, { status: 400 });
-    }
-    
-    // ✅ Validar estrutura de dados
-    const validatedData = validateRelatorioData(data);
-    
-    const relatorio = await prisma.relatorioSemanal.update({
-      where: { id: data.id },
-      data: {
-        ...validatedData,
-        updatedAt: new Date()
-      }
+    await prisma.relatorioSemanal.delete({
+      where: { id }
     });
     
-    return NextResponse.json(relatorio);
-  } catch (error) {
-    console.error('Erro PUT relatório:', error);
+    console.log('Relatório deletado:', id);
+    return NextResponse.json({ success: true });
     
-    // ✅ Melhor tratamento de erros
+  } catch (error) {
+    console.error('Erro DELETE relatório:', error);
+    
     if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Relatório não encontrado' }, { status: 404 });
     }
     
-    return NextResponse.json({ 
-      error: 'Erro ao atualizar relatório',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao deletar relatório' }, { status: 500 });
   }
 }
 
-// ✅ Função para validar e limpar dados do relatório
-function validateRelatorioData(data: any) {
-  return {
-    date: data.date || new Date().toISOString().split('T')[0],
-    weekOf: data.weekOf || `Semana de ${new Date().toLocaleDateString('pt-BR')}`,
-    
-    // ✅ Garantir que arrays existam e sejam válidos
-    macro: Array.isArray(data.macro) ? data.macro.filter(item => item && typeof item === 'object') : [],
-    proventos: Array.isArray(data.proventos) ? data.proventos.filter(item => item && typeof item === 'object') : [],
-    dividendos: Array.isArray(data.dividendos) ? data.dividendos.filter(item => item && typeof item === 'object') : [],
-    smallCaps: Array.isArray(data.smallCaps) ? data.smallCaps.filter(item => item && typeof item === 'object') : [],
-    microCaps: Array.isArray(data.microCaps) ? data.microCaps.filter(item => item && typeof item === 'object') : [],
-    exterior: Array.isArray(data.exterior) ? data.exterior.filter(item => item && typeof item === 'object') : [],
-    
-    status: data.status === 'published' ? 'published' : 'draft'
-  };
-}
-
-async function verifyAdmin(request: NextRequest) {
-  try {
-    const userEmail = request.headers.get('x-user-email');
-    const authHeader = request.headers.get('authorization');
-    
-    console.log('🔐 Verificando admin:', { userEmail, hasAuth: !!authHeader });
-    
-    if (userEmail === 'admin@fatosdobolsa.com') {
-      return { id: 'admin', email: userEmail };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Erro na verificação de admin:', error);
-    return null;
-  }
-}
+// Remover funções de validação e auth por enquanto

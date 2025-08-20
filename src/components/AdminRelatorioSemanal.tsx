@@ -2046,132 +2046,116 @@ const AdminRelatorioSemanal = () => {
   const [error, setError] = useState<string | null>(null);
   const [relatorioEditando, setRelatorioEditando] = useState<RelatorioSemanalData | null>(null);
 
-  // 📚 CARREGAR RELATÓRIOS DO INDEXEDDB - COM MIGRAÇÃO
-  useEffect(() => {
-    const loadRelatorios = async () => {
+// Substitua as funções de carregamento e salvamento no código de administração:
+
+// 📚 CARREGAR RELATÓRIOS DA API - COM MIGRAÇÃO
+useEffect(() => {
+  const loadRelatorios = async () => {
+    try {
+      console.log('🔄 Carregando relatórios da API...');
+      setLoading(true);
+      
+      // Buscar da API
+      const response = await fetch('/api/relatorio-semanal?admin=true');
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+      
+      const relatoriosAPI = await response.json();
+      console.log(`✅ ${relatoriosAPI.length} relatórios carregados da API`);
+      
+      setRelatorios(relatoriosAPI);
+      setLoading(false);
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar relatórios da API:', error);
+      
+      // Fallback: tentar IndexedDB como backup
       try {
-        console.log('🔄 Carregando relatórios semanais do IndexedDB...');
-        
-        const request = indexedDB.open('RelatoriosSemanaisDB', 3); // Versão 3 para nova migração
-        
-        request.onupgradeneeded = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          
-          if (!db.objectStoreNames.contains('relatorios')) {
-            const store = db.createObjectStore('relatorios', { keyPath: 'id' });
-            store.createIndex('semana', 'semana', { unique: false });
-            store.createIndex('dataPublicacao', 'dataPublicacao', { unique: false });
-            store.createIndex('status', 'status', { unique: false });
-            console.log('✅ Object store "relatorios" criado');
-          }
-        };
+        console.log('🔄 Tentando fallback para IndexedDB...');
+        const request = indexedDB.open('RelatoriosSemanaisDB', 3);
         
         request.onsuccess = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
+          
+          if (!db.objectStoreNames.contains('relatorios')) {
+            setError('Nenhum relatório disponível');
+            setLoading(false);
+            return;
+          }
+          
           const transaction = db.transaction(['relatorios'], 'readonly');
           const store = transaction.objectStore('relatorios');
           const getAllRequest = store.getAll();
           
           getAllRequest.onsuccess = () => {
-            const relatoriosSalvos = getAllRequest.result || [];
-            
-            // 🆕 MIGRAÇÃO: Remover campo proventos se existir
-            const relatoriosMigrados = relatoriosSalvos.map(rel => {
-              const { proventos, ...resto } = rel as any;
-              
-              // Se tinha proventos separados, podemos ignorá-los ou migrá-los
-              // Por simplicidade, vamos apenas remover
-              
-              return {
-                ...resto,
-                macro: resto.macro || [],
-                dividendos: resto.dividendos || [],
-                smallCaps: resto.smallCaps || [],
-                microCaps: resto.microCaps || [],
-                exteriorStocks: resto.exteriorStocks || [],
-                exteriorETFs: resto.exteriorETFs || [],
-                exteriorDividendos: resto.exteriorDividendos || [],
-                exteriorProjetoAmerica: resto.exteriorProjetoAmerica || []
-              };
-            });
-            
-            console.log(`✅ ${relatoriosMigrados.length} relatórios carregados do IndexedDB`);
-            setRelatorios(relatoriosMigrados);
-            setLoading(false);
-          };
-          
-          getAllRequest.onerror = () => {
-            console.error('❌ Erro ao carregar relatórios do IndexedDB');
-            setError('Erro ao carregar relatórios');
+            const relatoriosIndexedDB = getAllRequest.result || [];
+            console.log(`📦 ${relatoriosIndexedDB.length} relatórios encontrados no IndexedDB`);
+            setRelatorios(relatoriosIndexedDB);
             setLoading(false);
           };
         };
         
         request.onerror = () => {
-          console.error('❌ Erro ao abrir IndexedDB');
-          setError('Erro ao conectar com o banco de dados');
+          setError('Erro ao conectar com dados locais');
           setLoading(false);
         };
         
-      } catch (error) {
-        console.error('❌ Erro geral ao carregar relatórios:', error);
+      } catch (fallbackError) {
+        console.error('❌ Fallback também falhou:', fallbackError);
         setError('Erro ao carregar relatórios');
         setLoading(false);
       }
-    };
-    
-    loadRelatorios();
-  }, []);
-
-  // 💾 SALVAR RELATÓRIO
-  const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
-    setSaving(true);
-    setError(null);
-    
-    try {
-      console.log('💾 Salvando relatório no IndexedDB...', relatorio);
-      
-      const request = indexedDB.open('RelatoriosSemanaisDB', 3);
-      
-      request.onsuccess = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        const transaction = db.transaction(['relatorios'], 'readwrite');
-        const store = transaction.objectStore('relatorios');
-        
-        const putRequest = store.put(relatorio);
-        
-        putRequest.onsuccess = () => {
-          console.log('✅ Relatório salvo no IndexedDB');
-          
-          setRelatorios(prev => {
-            const existing = prev.find(r => r.id === relatorio.id);
-            if (existing) {
-              return prev.map(r => r.id === relatorio.id ? relatorio : r);
-            } else {
-              return [...prev, relatorio];
-            }
-          });
-          
-          setRelatorioEditando(null);
-        };
-        
-        putRequest.onerror = () => {
-          throw new Error('Erro ao salvar no IndexedDB');
-        };
-      };
-      
-      request.onerror = () => {
-        throw new Error('Erro ao conectar com IndexedDB');
-      };
-      
-    } catch (error) {
-      console.error('❌ Erro ao salvar:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setError(`Erro ao salvar: ${errorMessage}`);
-    } finally {
-      setSaving(false);
     }
-  }, []);
+  };
+  
+  loadRelatorios();
+}, []);
+
+// 💾 SALVAR RELATÓRIO NA API
+const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
+  setSaving(true);
+  setError(null);
+  
+  try {
+    console.log('💾 Salvando relatório na API...', relatorio);
+    
+    const response = await fetch('/api/relatorio-semanal', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(relatorio)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+    }
+    
+    const relatorioSalvo = await response.json();
+    console.log('✅ Relatório salvo na API:', relatorioSalvo.id);
+    
+    setRelatorios(prev => {
+      const existing = prev.find(r => r.id === relatorioSalvo.id);
+      if (existing) {
+        return prev.map(r => r.id === relatorioSalvo.id ? relatorioSalvo : r);
+      } else {
+        return [...prev, relatorioSalvo];
+      }
+    });
+    
+    setRelatorioEditando(null);
+    
+  } catch (error) {
+    console.error('❌ Erro ao salvar na API:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    setError(`Erro ao salvar: ${errorMessage}`);
+  } finally {
+    setSaving(false);
+  }
+}, []);
 
   // Outras funções mantêm iguais
   const publishRelatorio = useCallback(async (id: string) => {
@@ -2191,30 +2175,27 @@ const AdminRelatorioSemanal = () => {
   }, [relatorios, saveRelatorio]);
 
   const deleteRelatorio = useCallback(async (id: string) => {
-    setSaving(true);
+  setSaving(true);
+  
+  try {
+    const response = await fetch(`/api/relatorio-semanal?id=${id}`, {
+      method: 'DELETE'
+    });
     
-    try {
-      const request = indexedDB.open('RelatoriosSemanaisDB', 3);
-      
-      request.onsuccess = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        const transaction = db.transaction(['relatorios'], 'readwrite');
-        const store = transaction.objectStore('relatorios');
-        
-        const deleteRequest = store.delete(id);
-        
-        deleteRequest.onsuccess = () => {
-          setRelatorios(prev => prev.filter(r => r.id !== id));
-          console.log('✅ Relatório excluído');
-        };
-      };
-      
-    } catch (error) {
-      console.error('❌ Erro ao excluir:', error);
-    } finally {
-      setSaving(false);
+    if (!response.ok) {
+      throw new Error(`Erro HTTP: ${response.status}`);
     }
-  }, []);
+    
+    setRelatorios(prev => prev.filter(r => r.id !== id));
+    console.log('✅ Relatório excluído da API');
+    
+  } catch (error) {
+    console.error('❌ Erro ao excluir:', error);
+    setError('Erro ao excluir relatório');
+  } finally {
+    setSaving(false);
+  }
+}, []);
 
   const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
     setRelatorioEditando(relatorio);

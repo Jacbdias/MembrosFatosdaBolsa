@@ -156,21 +156,34 @@ model HotmartIntegration {
 }
 
 model RelatorioSemanal {
-  id         String   @id @default(cuid())
-  date       String
-  weekOf     String
-  macro      Json     @default("[]")
-  proventos  Json     @default("[]")
-  dividendos Json     @default("[]")
-  smallCaps  Json     @default("[]")
-  microCaps  Json     @default("[]")
-  exterior   Json     @default("[]")
-  status     String   @default("draft")
-  authorId   String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  // ✅ COMENTADO TEMPORARIAMENTE PARA RESOLVER FK CONSTRAINT
-  // author     User     @relation(fields: [authorId], references: [id])
+  id                      String   @id @default(cuid())
+  
+  // Campos novos (compatíveis com admin)
+  semana                  String?
+  dataPublicacao          String?
+  autor                   String?
+  titulo                  String?
+  
+  // Campos existentes
+  date                    String
+  weekOf                  String
+  macro                   Json     @default("[]")
+  proventos               Json     @default("[]")
+  dividendos              Json     @default("[]")
+  smallCaps               Json     @default("[]")
+  microCaps               Json     @default("[]")
+  exterior                Json     @default("[]")
+  
+  // Campos internacionais novos
+  exteriorStocks          Json     @default("[]")
+  exteriorETFs            Json     @default("[]")
+  exteriorDividendos      Json     @default("[]")
+  exteriorProjetoAmerica  Json     @default("[]")
+  
+  status                  String   @default("draft")
+  authorId                String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   @@map("relatorio_semanal")
 }
