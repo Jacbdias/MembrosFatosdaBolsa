@@ -36,7 +36,8 @@ import {
   Checkbox,
   Toolbar,
   Menu,
-  Tooltip
+  Tooltip,
+  Autocomplete  // ← ADICIONAR ESTA LINHA
 } from '@mui/material';
 
 // Ícones simples seguindo o padrão
@@ -242,7 +243,33 @@ interface NovoRelatorio {
 const LIMITE_BASE64 = 3 * 1024 * 1024; // 3MB
 const TICKERS_DISPONIVEIS = [
   'KEPL3', 'AGRO3', 'LEVE3', 'BBAS3', 'BRSR6', 'ABCB4', 'SANB11',
-  'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'TRIS3', 'FESA4', 'CEAB3'
+  'TASA4', 'ROMI3', 'EZTC3', 'EVEN3', 'FESA4', 'CEAB3',
+
+  // Novos tickers Ações
+  'ALOS3', 'TUPY3', 'PRIO3', 'RECV3', 'CSED3', 'UNIP6', 'RAPT4',
+  'FLRY3', 'SMTO3', 'JALL3', 'YDUQ3', 'SIMH3', 'ALUP11', 'NEOE3',
+  'SHUL4', 'DEXP3', 'RANI3', 'WIZC3', 'RSUL4', 'POSI3', 'CGRA4',
+  'LOGG3', 'ODPV3', 'EGIE3', 'VALE3', 'PETR4', 'ELET3', 'KLBN11',
+  'SAPR4', 'CSMG3', 'BBSE3', 'ISAE4', 'VIVT3', 'B3SA3', 'CPLE6',
+
+  // FIIs
+  'PMLL11', 'KNSC11', 'KNHF11', 'HGBS11', 'BRCO11', 'RURA11', 'BCIA11',
+  'BPFF11', 'HGFF11', 'VGIP11', 'XPML11', 'HGLG11', 'LVBI11', 'HSML11',
+  'AFHI11', 'BTLG11', 'VRTA11', 'HGRU11', 'ALZR11', 'BCRI11', 'KNRI11',
+  'IRDM11', 'MXRF11',
+
+  // Ações internacionais
+  'AMD', 'XP', 'HD', 'AAPL', 'FIVE', 'AMAT', 'COST', 'GOOGL',
+  'META', 'BRK-B', 'NVDA', 'AMZN', 'PEP', 'PYPL', 'JPM', 'PLD',
+  'CRM',
+
+  // ETFs
+  'VOO', 'IJS', 'QUAL', 'QQQ', 'VNQ', 'SCHP', 'IAU', 'HERO',
+  'SOXX', 'MCHI', 'TFLO', 'SCHD', 'NOBL', 'TLT', 'JEPQ',
+
+  // REITs e outros ativos
+  'DOC', 'NNN', 'OXY', 'VZ', 'ADC', 'STAG', 'O', 'AVB',
+  'WPC', 'AMT', 'ARE'
 ];
 
 const calcularHash = async (arquivo: File): Promise<string> => {
@@ -1348,23 +1375,38 @@ const migrarDadosParaAPI = useCallback(async () => {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Ticker *</InputLabel>
-                <Select
-                  value={novoRelatorio.ticker}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, ticker: e.target.value }))}
-                  sx={{
-                    borderRadius: '8px'
-                  }}
-                >
-                  {TICKERS_DISPONIVEIS.map(ticker => (
-                    <MenuItem key={ticker} value={ticker}>{ticker}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
+<Grid item xs={12} md={6}>
+  <Autocomplete
+    freeSolo
+    options={TICKERS_DISPONIVEIS}
+    value={novoRelatorio.ticker}
+    onChange={(event, newValue) => {
+      setNovoRelatorio(prev => ({ 
+        ...prev, 
+        ticker: (newValue || '').toUpperCase() 
+      }));
+    }}
+    onInputChange={(event, newInputValue) => {
+      setNovoRelatorio(prev => ({ 
+        ...prev, 
+        ticker: newInputValue.toUpperCase() 
+      }));
+    }}
+    renderInput={(params) => (
+      <TextField
+        {...params}
+        label="Ticker *"
+        placeholder="Digite ou selecione um ticker (ex: PETR4)"
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '8px'
+          }
+        }}
+      />
+    )}
+    sx={{ width: '100%' }}
+  />
+</Grid>            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Nome do Relatório *"
