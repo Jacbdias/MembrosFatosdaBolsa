@@ -1419,23 +1419,32 @@ const migrarDadosParaAPI = useCallback(async () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo</InputLabel>
-                <Select
-                  value={novoRelatorio.tipo}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
-                  sx={{
-                    borderRadius: '8px'
-                  }}
-                >
-                  <MenuItem value="trimestral">Trimestral</MenuItem>
-                  <MenuItem value="anual">Anual</MenuItem>
-                  <MenuItem value="apresentacao">Apresentação</MenuItem>
-                  <MenuItem value="outros">Outros</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+<Grid item xs={12} md={6}>
+  <FormControl fullWidth>
+    <InputLabel 
+      shrink={true}
+      sx={{
+        backgroundColor: 'white',
+        padding: '0 4px',
+        zIndex: 1
+      }}
+    >
+      Tipo
+    </InputLabel>
+    <Select
+      value={novoRelatorio.tipo}
+      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipo: e.target.value as any }))}
+      sx={{
+        borderRadius: '8px'
+      }}
+    >
+      <MenuItem value="trimestral">Trimestral</MenuItem>
+      <MenuItem value="anual">Anual</MenuItem>
+      <MenuItem value="apresentacao">Apresentação</MenuItem>
+      <MenuItem value="outros">Outros</MenuItem>
+    </Select>
+  </FormControl>
+</Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -1450,24 +1459,32 @@ const migrarDadosParaAPI = useCallback(async () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Visualização</InputLabel>
-                <Select
-                  value={novoRelatorio.tipoVisualizacao}
-                  onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
-                  sx={{
-                    borderRadius: '8px'
-                  }}
-                >
-                  <MenuItem value="iframe">🖼️ Iframe Genérico</MenuItem>
-                  <MenuItem value="canva">🎨 Canva</MenuItem>
-                  <MenuItem value="link">🔗 Link Externo</MenuItem>
-                  <MenuItem value="pdf">📄 PDF para Download</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
+<Grid item xs={12}>
+  <FormControl fullWidth>
+    <InputLabel 
+      shrink={true}
+      sx={{
+        backgroundColor: 'white',
+        padding: '0 4px',
+        zIndex: 1
+      }}
+    >
+      Tipo de Visualização
+    </InputLabel>
+    <Select
+      value={novoRelatorio.tipoVisualizacao}
+      onChange={(e) => setNovoRelatorio(prev => ({ ...prev, tipoVisualizacao: e.target.value as any }))}
+      sx={{
+        borderRadius: '8px'
+      }}
+    >
+      <MenuItem value="iframe">🖼️ Iframe Genérico</MenuItem>
+      <MenuItem value="canva">🎨 Canva</MenuItem>
+      <MenuItem value="link">🔗 Link Externo</MenuItem>
+      <MenuItem value="pdf">📄 PDF para Download</MenuItem>
+    </Select>
+  </FormControl>
+</Grid>            
             {novoRelatorio.tipoVisualizacao === 'canva' && (
               <Grid item xs={12}>
                 <TextField
