@@ -1,3 +1,4 @@
+// src/components/dashboard/layout/main-nav.tsx
 'use client';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
@@ -16,9 +17,11 @@ import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/di
 import { usePopover } from '@/hooks/use-popover';
 import { useUser } from '@/hooks/use-user';
 import { useDataStore } from '@/hooks/useDataStore';
+import { useNotifications } from '@/hooks/useNotifications';
 import { authClient } from '@/lib/auth/client';
 import { MobileNav } from './mobile-nav';
 import { UserPopover } from './user-popover';
+import { NotificationPopover } from '@/components/core/notification-popover';
 
 // Hook para buscar ativos
 function useAtivos() {
@@ -83,12 +86,14 @@ export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
   const [searchMode, setSearchMode] = React.useState<boolean>(false);
   const userPopover = usePopover<HTMLDivElement>();
+  const notificationPopover = usePopover<HTMLButtonElement>();
   const router = useRouter();
   
   const { user } = useUser();
   const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
   
   const ativos = useAtivos();
+  const { unreadCount } = useNotifications();
 
   // Verificar localStorage para avatar
   React.useEffect(() => {
@@ -321,32 +326,55 @@ export function MainNav(): React.JSX.Element {
           </Stack>
           
           <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-            <Tooltip title="Notifications">
-              <Badge badgeContent={4} color="success" variant="dot">
-                <IconButton>
+            {/* NOTIFICAÇÕES INTEGRADAS */}
+            <Tooltip title="Notificações">
+              <IconButton
+                ref={notificationPopover.anchorRef}
+                onClick={notificationPopover.handleOpen}
+              >
+                <Badge 
+                  badgeContent={unreadCount} 
+                  color="error" 
+                  variant={unreadCount > 0 ? "standard" : "dot"}
+                  invisible={unreadCount === 0}
+                  max={99}
+                >
                   <BellIcon />
-                </IconButton>
-              </Badge>
+                </Badge>
+              </IconButton>
             </Tooltip>
 
-<Avatar
-  onClick={userPopover.handleOpen}
-  ref={userPopover.anchorRef}
-  src={userAvatar && userAvatar !== '/assets/avatar.png' ? userAvatar : undefined}
-  sx={{ 
-    cursor: 'pointer',
-    border: '2px solid #E2E8F0',
-    width: 40,
-    height: 40,
-    '&:hover': {
-      border: '2px solid #3B82F6'
-    }
-  }}            
-/>
+            <Avatar
+              onClick={userPopover.handleOpen}
+              ref={userPopover.anchorRef}
+              src={userAvatar && userAvatar !== '/assets/avatar.png' ? userAvatar : undefined}
+              sx={{ 
+                cursor: 'pointer',
+                border: '2px solid #E2E8F0',
+                width: 40,
+                height: 40,
+                '&:hover': {
+                  border: '2px solid #3B82F6'
+                }
+              }}            
+            />
           </Stack>
         </Stack>
       </Box>
-      <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
+
+      {/* POPOVERS */}
+      <UserPopover 
+        anchorEl={userPopover.anchorRef.current} 
+        onClose={userPopover.handleClose} 
+        open={userPopover.open} 
+      />
+      
+      <NotificationPopover
+        anchorEl={notificationPopover.anchorRef.current}
+        onClose={notificationPopover.handleClose}
+        open={notificationPopover.open}
+      />
+      
       <MobileNav
         onClose={() => {
           setOpenNav(false);

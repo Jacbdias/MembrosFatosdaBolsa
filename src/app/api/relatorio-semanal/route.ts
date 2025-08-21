@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { notifyNewReport } from '@/utils/notifications';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -13,7 +14,23 @@ export async function GET(request: NextRequest) {
     const isAdmin = searchParams.get('admin') === 'true';
     
     if (isAdmin) {
-      // ADMIN: Buscar todos os relatórios
+      // ADMIN: Verificar autenticação
+      const userEmail = request.headers.get('X-User-Email');
+      const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+
+      if (!userEmail || !token) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail }
+      });
+
+      if (!user || user.plan !== 'ADMIN') {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      }
+
+      // Buscar todos os relatórios para admin
       const relatorios = await prisma.relatorioSemanal.findMany({
         orderBy: { createdAt: 'desc' }
       });
@@ -55,67 +72,116 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Erro GET relatório:', error);
-    return NextResponse.json({ error: 'Erro ao buscar relatório' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Erro ao buscar relatório',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-// POST - Criar/Atualizar relatório (sem autenticação para teste)
+// POST - Criar/Atualizar relatório (com autenticação)
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticação
+    const userEmail = request.headers.get('X-User-Email');
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!userEmail || !token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail }
+    });
+
+    if (!user || user.plan !== 'ADMIN') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const data = await request.json();
     console.log('Dados recebidos:', { 
       semana: data.semana, 
       titulo: data.titulo,
-      id: data.id 
+      id: data.id,
+      status: data.status
     });
-    
+
+    // Validações básicas
+    if (!data.titulo || typeof data.titulo !== 'string') {
+      return NextResponse.json({ 
+        error: 'Título é obrigatório e deve ser uma string' 
+      }, { status: 400 });
+    }
+
+    if (!data.semana || typeof data.semana !== 'string') {
+      return NextResponse.json({ 
+        error: 'Semana é obrigatória e deve ser uma string' 
+      }, { status: 400 });
+    }
+
     // Preparar dados compatíveis
     const relatorioData = {
       // Campos do admin
-      semana: data.semana,
+      semana: data.semana.trim(),
       dataPublicacao: data.dataPublicacao || new Date().toISOString().split('T')[0],
-      autor: data.autor || '',
-      titulo: data.titulo,
+      autor: data.autor?.trim() || `${user.firstName} ${user.lastName}`,
+      titulo: data.titulo.trim(),
       
       // Campos legados para compatibilidade
       date: data.dataPublicacao || data.date || new Date().toISOString().split('T')[0],
-      weekOf: data.semana || data.weekOf || 'Nova semana',
+      weekOf: data.semana?.trim() || data.weekOf || 'Nova semana',
       
       // Arrays de conteúdo
-      macro: data.macro || [],
-      dividendos: data.dividendos || [],
-      smallCaps: data.smallCaps || [],
-      microCaps: data.microCaps || [],
-      exteriorStocks: data.exteriorStocks || [],
-      exteriorETFs: data.exteriorETFs || [],
-      exteriorDividendos: data.exteriorDividendos || [],
-      exteriorProjetoAmerica: data.exteriorProjetoAmerica || [],
+      macro: Array.isArray(data.macro) ? data.macro : [],
+      dividendos: Array.isArray(data.dividendos) ? data.dividendos : [],
+      smallCaps: Array.isArray(data.smallCaps) ? data.smallCaps : [],
+      microCaps: Array.isArray(data.microCaps) ? data.microCaps : [],
+      exteriorStocks: Array.isArray(data.exteriorStocks) ? data.exteriorStocks : [],
+      exteriorETFs: Array.isArray(data.exteriorETFs) ? data.exteriorETFs : [],
+      exteriorDividendos: Array.isArray(data.exteriorDividendos) ? data.exteriorDividendos : [],
+      exteriorProjetoAmerica: Array.isArray(data.exteriorProjetoAmerica) ? data.exteriorProjetoAmerica : [],
       
       // Campos legados
-      proventos: data.proventos || [],
-      exterior: data.exterior || data.exteriorStocks || [],
+      proventos: Array.isArray(data.proventos) ? data.proventos : [],
+      exterior: Array.isArray(data.exterior) ? data.exterior : Array.isArray(data.exteriorStocks) ? data.exteriorStocks : [],
       
       status: data.status || 'draft',
-      authorId: 'admin' // Temporário
+      authorId: user.id
     };
     
     let relatorio;
+    let isNewReport = false;
+    let wasPublished = false;
     
     if (data.id && data.id !== 'novo') {
       // Tentar atualizar
       try {
+        // Verificar status anterior
+        const existingReport = await prisma.relatorioSemanal.findUnique({
+          where: { id: data.id },
+          select: { status: true }
+        });
+
         relatorio = await prisma.relatorioSemanal.update({
           where: { id: data.id },
           data: relatorioData
         });
+
+        // Verificar se foi publicado agora (mudou de draft para published)
+        wasPublished = existingReport?.status !== 'published' && relatorio.status === 'published';
+        
         console.log('Relatório atualizado:', relatorio.id);
       } catch (updateError) {
-        if (updateError.code === 'P2025') {
+        if ((updateError as any).code === 'P2025') {
           // Não encontrou, criar novo
           const { id, ...dataWithoutId } = relatorioData;
           relatorio = await prisma.relatorioSemanal.create({
             data: dataWithoutId
           });
+          isNewReport = true;
+          wasPublished = relatorio.status === 'published';
           console.log('Relatório criado (não encontrou):', relatorio.id);
         } else {
           throw updateError;
@@ -127,28 +193,99 @@ export async function POST(request: NextRequest) {
       relatorio = await prisma.relatorioSemanal.create({
         data: dataWithoutId
       });
+      isNewReport = true;
+      wasPublished = relatorio.status === 'published';
       console.log('Relatório criado:', relatorio.id);
     }
+
+    // Disparar notificação se foi publicado (novo ou atualizado para published)
+    if (wasPublished) {
+      try {
+        const adminName = `${user.firstName} ${user.lastName}`;
+        await notifyNewReport(relatorio, adminName);
+        console.log('Notificações enviadas para usuários sobre novo relatório');
+      } catch (notificationError) {
+        console.error('Erro ao enviar notificações:', notificationError);
+        // Não falha a criação/atualização se a notificação falhar
+      }
+    }
     
-    return NextResponse.json(relatorio);
+    return NextResponse.json({
+      ...relatorio,
+      message: isNewReport ? 'Relatório criado com sucesso' : 'Relatório atualizado com sucesso',
+      notificationsSent: wasPublished
+    });
     
   } catch (error) {
     console.error('Erro POST relatório:', error);
+    
+    // Tratamento específico de erros do Prisma
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as any;
+      
+      if (prismaError.code === 'P2002') {
+        return NextResponse.json({ 
+          error: 'Já existe um relatório com estes dados únicos' 
+        }, { status: 400 });
+      }
+      
+      if (prismaError.code === 'P2003') {
+        return NextResponse.json({ 
+          error: 'Referência de usuário inválida' 
+        }, { status: 400 });
+      }
+    }
+
     return NextResponse.json({ 
       error: 'Erro ao salvar relatório',
-      details: error.message 
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 // DELETE - Deletar relatório
 export async function DELETE(request: NextRequest) {
   try {
+    // Verificar autenticação
+    const userEmail = request.headers.get('X-User-Email');
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!userEmail || !token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail }
+    });
+
+    if (!user || user.plan !== 'ADMIN') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
     if (!id) {
       return NextResponse.json({ error: 'ID necessário' }, { status: 400 });
+    }
+
+    // Verificar se o relatório existe antes de deletar
+    const existingReport = await prisma.relatorioSemanal.findUnique({
+      where: { id },
+      select: { id: true, titulo: true, status: true }
+    });
+
+    if (!existingReport) {
+      return NextResponse.json({ error: 'Relatório não encontrado' }, { status: 404 });
+    }
+
+    // Verificar se pode deletar (por exemplo, não deletar se já publicado)
+    if (existingReport.status === 'published') {
+      return NextResponse.json({ 
+        error: 'Não é possível deletar relatórios já publicados' 
+      }, { status: 400 });
     }
     
     await prisma.relatorioSemanal.delete({
@@ -156,17 +293,27 @@ export async function DELETE(request: NextRequest) {
     });
     
     console.log('Relatório deletado:', id);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: 'Relatório deletado com sucesso'
+    });
     
   } catch (error) {
     console.error('Erro DELETE relatório:', error);
     
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Relatório não encontrado' }, { status: 404 });
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as any;
+      
+      if (prismaError.code === 'P2025') {
+        return NextResponse.json({ error: 'Relatório não encontrado' }, { status: 404 });
+      }
     }
     
-    return NextResponse.json({ error: 'Erro ao deletar relatório' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Erro ao deletar relatório',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
-
-// Remover funções de validação e auth por enquanto
