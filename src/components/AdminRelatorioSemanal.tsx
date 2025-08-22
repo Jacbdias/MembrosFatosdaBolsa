@@ -1,7 +1,43 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter, LineChart, Coins, ToggleLeft, ToggleRight, TrendingDown as TrendingDownIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter, LineChart, Coins, ToggleLeft, ToggleRight, TrendingDown as TrendingDownIcon, User, X } from 'lucide-react';
+
+// Hook para autenticação (ajustado para seguir o padrão dos outros componentes)
+const useAuth = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('custom-auth-token');
+    const userEmail = localStorage.getItem('user-email');
+    
+    if (!token || !userEmail) {
+      setError('Você precisa estar logado para acessar esta página');
+      setLoading(false);
+      return;
+    }
+
+    setIsAuthenticated(true);
+    setUser({ email: userEmail });
+    setLoading(false);
+  }, []);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('custom-auth-token');
+    const userEmail = localStorage.getItem('user-email');
+    
+    return {
+      'Authorization': `Bearer ${token}`,
+      'X-User-Email': userEmail,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  return { isAuthenticated, loading, user, error, getAuthHeaders };
+};
 
 // Interface unificada para item de relatório (notícia ou provento)
 interface ItemRelatorioSemanal {
@@ -41,6 +77,8 @@ interface RelatorioSemanalData {
   semana: string;
   dataPublicacao: string;
   titulo: string;
+  authorId: string; // ADICIONAR
+  autor?: string;   // ADICIONAR
   
   // Seções do relatório - SEM PROVENTOS SEPARADOS
   macro: ItemRelatorioSemanal[];
@@ -55,6 +93,9 @@ interface RelatorioSemanalData {
   exteriorProjetoAmerica: ItemRelatorioSemanal[];
   
   status: 'draft' | 'published';
+  createdAt?: DateTime; // ADICIONAR
+  updatedAt?: DateTime; // ADICIONAR
+
 }
 
 // Rich Text Editor Component (mantém igual)
@@ -1153,10 +1194,12 @@ const SecaoEditor = memo(({
 // 🎯 COMPONENTE DE CRIAÇÃO DE RELATÓRIO - ATUALIZADO SEM SEÇÃO PROVENTOS
 const CriarRelatorioForm = memo(({ 
   onSave,
-  relatorioEditando 
+  relatorioEditando,
+  getAuthHeaders 
 }: { 
   onSave: (relatorio: RelatorioSemanalData) => void;
   relatorioEditando?: RelatorioSemanalData | null;
+  getAuthHeaders: () => any;
 }) => {
   const [relatorio, setRelatorio] = useState<RelatorioSemanalData>(() => {
     if (relatorioEditando) {
@@ -1169,6 +1212,7 @@ const CriarRelatorioForm = memo(({
       semana: getWeekNumber(hoje),
       dataPublicacao: hoje.toISOString().split('T')[0],
       titulo: '',
+      authorId: '', // será preenchido no save
       macro: [],
       dividendos: [],
       smallCaps: [],
@@ -1244,6 +1288,7 @@ const CriarRelatorioForm = memo(({
           semana: getWeekNumber(hoje),
           dataPublicacao: hoje.toISOString().split('T')[0],
           titulo: '',
+          authorId: '',
           macro: [],
           dividendos: [],
           smallCaps: [],
@@ -2039,6 +2084,7 @@ const RascunhosRelatorios = memo(({
 
 // 🏠 COMPONENTE PRINCIPAL
 const AdminRelatorioSemanal = () => {
+  const { isAuthenticated, loading: authLoading, error: authError, getAuthHeaders } = useAuth();
   const [relatorios, setRelatorios] = useState<RelatorioSemanalData[]>([]);
   const [activeTab, setActiveTab] = useState<'criar' | 'publicados' | 'rascunhos'>('criar');
   const [loading, setLoading] = useState(true);
@@ -2056,7 +2102,9 @@ useEffect(() => {
       setLoading(true);
       
       // Buscar da API
-      const response = await fetch('/api/relatorio-semanal?admin=true');
+      const response = await fetch('/api/relatorio-semanal?admin=true', {
+        headers: getAuthHeaders()
+      });
       
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status}`);
@@ -2110,8 +2158,10 @@ useEffect(() => {
     }
   };
   
-  loadRelatorios();
-}, []);
+  if (isAuthenticated) {
+    loadRelatorios();
+  }
+}, [isAuthenticated, getAuthHeaders]);
 
 // 💾 SALVAR RELATÓRIO NA API
 const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
@@ -2123,9 +2173,7 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
     
     const response = await fetch('/api/relatorio-semanal', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(relatorio)
     });
     
@@ -2155,7 +2203,7 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
   } finally {
     setSaving(false);
   }
-}, []);
+}, [getAuthHeaders]);
 
   // Outras funções mantêm iguais
   const publishRelatorio = useCallback(async (id: string) => {
@@ -2179,7 +2227,8 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
   
   try {
     const response = await fetch(`/api/relatorio-semanal?id=${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     
     if (!response.ok) {
@@ -2195,7 +2244,7 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
   } finally {
     setSaving(false);
   }
-}, []);
+}, [getAuthHeaders]);
 
   const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
     setRelatorioEditando(relatorio);
@@ -2205,6 +2254,69 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
   const totalRelatorios = relatorios.length;
   const relatoriosDraft = relatorios.filter(r => r.status === 'draft').length;
   const relatoriosPublicados = relatorios.filter(r => r.status === 'published').length;
+
+  // Loading de autenticação
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>
+            Carregando...
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  // Erro de autenticação
+  if (authError || !isAuthenticated) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ maxWidth: '500px', width: '100%', padding: '24px' }}>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)', textAlign: 'center' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              backgroundColor: '#fee2e2',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <X style={{ color: '#dc2626', width: '32px', height: '32px' }} />
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0' }}>
+              Acesso Negado
+            </h2>
+            <p style={{ fontSize: '16px', color: '#64748b', margin: '0 0 24px 0' }}>
+              {authError || 'Você precisa estar logado como administrador para acessar esta página.'}
+            </p>
+            <button
+              onClick={() => window.location.href = '/login'}
+              style={{
+                backgroundColor: '#2563eb',
+                color: 'white',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <User style={{ width: '16px', height: '16px' }} />
+              Fazer Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -2427,10 +2539,10 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
                       Cancelar Edição
                     </button>
                   </div>
-                  <CriarRelatorioForm onSave={saveRelatorio} relatorioEditando={relatorioEditando} />
+                  <CriarRelatorioForm onSave={saveRelatorio} relatorioEditando={relatorioEditando} getAuthHeaders={getAuthHeaders} />
                 </div>
               ) : (
-                <CriarRelatorioForm onSave={saveRelatorio} />
+                <CriarRelatorioForm onSave={saveRelatorio} getAuthHeaders={getAuthHeaders} />
               )
             )}
             

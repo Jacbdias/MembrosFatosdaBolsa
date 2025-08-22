@@ -7,33 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums para o sistema de dúvidas
-enum QuestionStatus {
-  NOVA
-  RESPONDIDA
-  FECHADA
-}
-
-enum QuestionPriority {
-  BAIXA
-  NORMAL
-  URGENTE
-}
-
-enum QuestionCategory {
-  SMALL_CAPS
-  MICRO_CAPS
-  DIVIDENDOS
-  FIIS
-  INTERNACIONAL_ETFS
-  INTERNACIONAL_STOCKS
-  INTERNACIONAL_DIVIDENDOS
-  PROJETO_AMERICA
-  GERAL
-  TECNICO
-  FISCAL
-}
-
 model User {
   id                      String                        @id @default(cuid())
   firstName               String
@@ -57,10 +30,15 @@ model User {
   resetTokens             PasswordResetToken[]
   purchases               Purchase[]
   analisesTrimestrais     AnaliseTrimestreData[]        @relation("AnalisesTrimestrais")
+  adminAnswers            Answer[]                      @relation("AdminAnswers")
   carteirasAnalista       CarteiraAnalise[]             @relation("CarteirasAnalista")
   carteiras               CarteiraAnalise[]             @relation("CarteirasUsuario")
   instagramCadastro       InstagramCadastro?
+  notifications           Notification[]                @relation("UserNotifications")
   proventoUploads         ProventoUpload[]              @relation("ProventoUploads")
+  questionsClosed         Question[]                    @relation("QuestionsClosed")
+  userQuestions           Question[]                    @relation("UserQuestions")
+  responseTemplates       ResponseTemplate[]            @relation("ResponseTemplates")
   dividendos              UserDividendos[]
   dividendosInternacional UserDividendosInternacional[]
   etfs                    UserEtfs[]
@@ -69,13 +47,6 @@ model User {
   microCaps               UserMicroCaps[]
   projetoAmerica          UserProjetoAmerica[]
   smallCaps               UserSmallCaps[]
-  // Relações do sistema de dúvidas
-  userQuestions           Question[]                    @relation("UserQuestions")
-  questionsClosed         Question[]                    @relation("QuestionsClosed")  
-  adminAnswers            Answer[]                      @relation("AdminAnswers")
-  responseTemplates       ResponseTemplate[]            @relation("ResponseTemplates")
-  // Relação do sistema de notificações
-  notifications           Notification[]                @relation("UserNotifications")
 }
 
 model Purchase {
@@ -184,15 +155,14 @@ model HotmartIntegration {
 
 model RelatorioSemanal {
   id                     String   @id @default(cuid())
-  date                   String
-  weekOf                 String
+  date                   String?
+  weekOf                 String?
   macro                  Json     @default("[]")
   proventos              Json     @default("[]")
   dividendos             Json     @default("[]")
   smallCaps              Json     @default("[]")
   microCaps              Json     @default("[]")
   exterior               Json     @default("[]")
-  status                 String   @default("draft")
   authorId               String
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
@@ -204,6 +174,7 @@ model RelatorioSemanal {
   exteriorStocks         Json     @default("[]")
   semana                 String?
   titulo                 String?
+  status                 String   @default("draft")
 
   @@map("relatorio_semanal")
 }
@@ -524,10 +495,10 @@ model AnaliseTrimestreData {
   userId                 String?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
-  badges                 Json?     @default("[]")
-  dadosPeriodo           Json?     @default("{}")
+  badges                 Json?
+  dadosPeriodo           Json?
   fonteDados             String?   @default("manual")
-  historicoComparativo   Json?     @default("[]")
+  historicoComparativo   Json?
   ultimaAtualizacaoBrapi DateTime?
   nota                   Float?
   user                   User?     @relation("AnalisesTrimestrais", fields: [userId], references: [id])
@@ -544,7 +515,6 @@ model AnaliseTrimestreData {
   @@map("analises_trimestrais")
 }
 
-// Sistema de Dúvidas - Modelos existentes e novos
 model Question {
   id          String           @id @default(cuid())
   title       String
@@ -558,11 +528,9 @@ model Question {
   closedBy    String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
-  
-  // Relacionamentos
-  user        User             @relation("UserQuestions", fields: [userId], references: [id], onDelete: Cascade)
   answers     Answer[]
   closer      User?            @relation("QuestionsClosed", fields: [closedBy], references: [id])
+  user        User             @relation("UserQuestions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
@@ -573,22 +541,19 @@ model Question {
 }
 
 model Answer {
-  id           String   @id @default(cuid())
-  content      String
-  questionId   String
-  adminId      String
-  isOfficial   Boolean  @default(true)
-  readByUser   Boolean  @default(false)
-  // Novos campos FAQ
-  isFaq        Boolean  @default(false)
-  faqTitle     String?
-  faqOrder     Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  // Relacionamentos
-  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  admin        User     @relation("AdminAnswers", fields: [adminId], references: [id])
+  id         String   @id @default(cuid())
+  content    String
+  questionId String
+  adminId    String
+  isOfficial Boolean  @default(true)
+  readByUser Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  faqOrder   Int      @default(0)
+  faqTitle   String?
+  isFaq      Boolean  @default(false)
+  admin      User     @relation("AdminAnswers", fields: [adminId], references: [id])
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([questionId])
   @@index([adminId])
@@ -598,20 +563,17 @@ model Answer {
   @@map("answers")
 }
 
-// Novo modelo para templates de respostas
 model ResponseTemplate {
-  id          String           @id @default(cuid())
-  title       String
-  content     String
-  category    QuestionCategory @default(GERAL)
-  isActive    Boolean          @default(true)
-  usageCount  Int              @default(0)
-  createdBy   String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  
-  // Relacionamento
-  creator     User             @relation("ResponseTemplates", fields: [createdBy], references: [id])
+  id         String           @id @default(cuid())
+  title      String
+  content    String
+  category   QuestionCategory @default(GERAL)
+  isActive   Boolean          @default(true)
+  usageCount Int              @default(0)
+  createdBy  String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  creator    User             @relation("ResponseTemplates", fields: [createdBy], references: [id])
 
   @@index([category])
   @@index([isActive])
@@ -620,22 +582,19 @@ model ResponseTemplate {
   @@map("response_templates")
 }
 
-// Sistema de Notificações - NOVO MODELO
 model Notification {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String
-  message     String
-  type        String   @default("info") // 'info', 'success', 'warning', 'error'
-  category    String   @default("general") // 'question_answered', 'new_report', 'general'
-  read        Boolean  @default(false)
-  actionUrl   String? // URL para onde redirecionar ao clicar
-  metadata    Json?    @default("{}") // Dados extras (questionId, reportId, etc)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relacionamento
-  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  category  String   @default("general")
+  read      Boolean  @default(false)
+  actionUrl String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
@@ -644,4 +603,30 @@ model Notification {
   @@index([category])
   @@index([type])
   @@map("notifications")
+}
+
+enum QuestionStatus {
+  NOVA
+  RESPONDIDA
+  FECHADA
+}
+
+enum QuestionPriority {
+  BAIXA
+  NORMAL
+  URGENTE
+}
+
+enum QuestionCategory {
+  SMALL_CAPS
+  MICRO_CAPS
+  DIVIDENDOS
+  FIIS
+  INTERNACIONAL_ETFS
+  INTERNACIONAL_STOCKS
+  INTERNACIONAL_DIVIDENDOS
+  PROJETO_AMERICA
+  GERAL
+  TECNICO
+  FISCAL
 }

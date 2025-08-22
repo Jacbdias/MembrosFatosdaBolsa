@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 // ============================================================================
-// TIPOS E INTERFACES - CORRIGIDOS
+// TIPOS E INTERFACES - CORRIGIDOS PARA CORRESPONDER AO BANCO REAL
 // ============================================================================
 
 interface MetricaTrimestreData {
@@ -41,32 +41,43 @@ interface DadosExtraidosPDF {
     }>;
   };
   
-relatorioGerado?: {
-  titulo: string;
-  destaques: string[];
-  pontosAtencao: string[];
-  conclusao: string;
-  recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
-  nota?: number;
-};
+  relatorioGerado?: {
+    titulo: string;
+    destaques: string[];
+    pontosAtencao: string[];
+    conclusao: string;
+    recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
+    nota?: number;
+  };
   
   contextoMercado?: string;
   outlook?: string;
   conteudoCompleto?: string;
 }
 
+// ✅ INTERFACE CORRIGIDA - CORRESPONDE AO BANCO REAL
 interface AnaliseTrimestreData {
   id?: string;
   ticker: string;
   empresa: string;
-  trimestre: string;
+  trimestre: string | null;
+  
+  // ✅ CORRIGIDO: Campo existe no banco com este nome
   dataPublicacao: string;
-  autor: string;
+  
+  // ✅ CORRIGIDO: Campos que podem ser null no banco
+  autor: string | null;
   categoria: 'resultado_trimestral' | 'analise_setorial' | 'tese_investimento';
   
   titulo: string;
-  analiseCompleta: string;
   
+  // ✅ NOVO: Campo que existe no banco
+  resumoExecutivo?: string | null;
+  
+  // ✅ CORRIGIDO: Pode ser null
+  analiseCompleta: string | null;
+  
+  // ✅ MANTIDO: Mas mapear de dadosPeriodo se necessário
   metricas: {
     receita?: MetricaTrimestreData;
     ebitda?: MetricaTrimestreData;
@@ -74,26 +85,71 @@ interface AnaliseTrimestreData {
     roe?: MetricaTrimestreData;
   };
   
-  dadosExtraidos?: DadosExtraidosPDF;
-  fonteDados?: 'manual' | 'pdf' | 'misto';
-  nomeArquivoPDF?: string;
-  dataProcessamentoPDF?: string;
-  
-  pontosFavoraveis: string;
-  pontosAtencao: string;
+  // ✅ CORRIGIDO: Pode ser null
+  pontosFavoraveis: string | null;
+  pontosAtencao: string | null;
   
   recomendacao: 'COMPRA' | 'VENDA' | 'MANTER';
-  precoAlvo?: number;
-  risco: 'BAIXO' | 'MÉDIO' | 'ALTO';
+  precoAlvo?: number | null;
+  risco?: 'BAIXO' | 'MÉDIO' | 'ALTO';
   
-  linkResultado?: string;
-  linkConferencia?: string;
+  linkResultado?: string | null;
+  linkConferencia?: string | null;
   
   status: 'draft' | 'published';
+  
+  // ✅ NOVOS: Campos que existem no banco
+  visualizacoes?: number;
+  userId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  badges?: string[];
+  dadosPeriodo?: Record<string, any>;
+  fonteDados?: 'manual' | 'pdf' | 'misto';
+  historicoComparativo?: any[];
+  ultimaAtualizacaoBrapi?: string | null;
+  nota?: number | null;
+  user?: any | null;
+  
+  // ✅ MANTIDO: Para compatibilidade com PDF
+  dadosExtraidos?: DadosExtraidosPDF;
+  nomeArquivoPDF?: string;
+  dataProcessamentoPDF?: string;
 }
 
 // ============================================================================
-// SERVIÇOS DE API REAIS
+// FUNÇÃO PARA MAPEAR DADOS DO BANCO PARA O COMPONENTE
+// ============================================================================
+
+function mapearAnaliseDoBank(analiseBank: any): AnaliseTrimestreData {
+  return {
+    ...analiseBank,
+    // Mapear dataPublicacao se necessário
+    dataPublicacao: analiseBank.dataPublicacao || analiseBank.createdAt || new Date().toISOString(),
+    
+    // Garantir que campos obrigatórios tenham valores padrão seguros
+    analiseCompleta: analiseBank.analiseCompleta || '',
+    pontosFavoraveis: analiseBank.pontosFavoraveis || '',
+    pontosAtencao: analiseBank.pontosAtencao || '',
+    autor: analiseBank.autor || '',
+    trimestre: analiseBank.trimestre || '',
+    
+    // Mapear métricas se estiverem em dadosPeriodo
+    metricas: analiseBank.metricas || analiseBank.dadosPeriodo || {},
+    
+    // Campos com valores padrão
+    badges: analiseBank.badges || [],
+    dadosPeriodo: analiseBank.dadosPeriodo || {},
+    historicoComparativo: analiseBank.historicoComparativo || [],
+    visualizacoes: analiseBank.visualizacoes || 0,
+    
+    // Garantir que risco tenha um valor válido
+    risco: analiseBank.risco || 'MÉDIO'
+  };
+}
+
+// ============================================================================
+// SERVIÇOS DE API REAIS COM MAPEAMENTO
 // ============================================================================
 
 const API_BASE = '/api/analises-trimestrais';
@@ -114,7 +170,11 @@ const analiseAPI = {
         throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
       }
       
-      return await response.json();
+      const dadosBrutos = await response.json();
+      
+      // ✅ CORRIGIDO: Mapear dados do banco para a interface esperada
+      return dadosBrutos.map(mapearAnaliseDoBank);
+      
     } catch (error) {
       console.error('❌ Erro ao listar análises:', error);
       throw error;
@@ -123,16 +183,21 @@ const analiseAPI = {
 
   async criar(analise: Omit<AnaliseTrimestreData, 'id' | 'createdAt' | 'updatedAt'>): Promise<AnaliseTrimestreData> {
     try {
-      // CORRIGIDO: Garantir que sempre tenha um ID único
-      const analiseComId = {
+      const analiseParaEnviar = {
         ...analise,
-        id: analise.id || `analise-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        id: analise.id || `analise-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        // Garantir campos obrigatórios
+        visualizacoes: 0,
+        badges: [],
+        dadosPeriodo: analise.metricas || {},
+        historicoComparativo: [],
+        fonteDados: analise.fonteDados || 'manual'
       };
 
       const response = await fetch(API_BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(analiseComId)
+        body: JSON.stringify(analiseParaEnviar)
       });
       
       if (!response.ok) {
@@ -140,7 +205,9 @@ const analiseAPI = {
         throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
       }
       
-      return await response.json();
+      const dadoBruto = await response.json();
+      return mapearAnaliseDoBank(dadoBruto);
+      
     } catch (error) {
       console.error('❌ Erro ao criar análise:', error);
       throw error;
@@ -160,7 +227,9 @@ const analiseAPI = {
         throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
       }
       
-      return await response.json();
+      const dadoBruto = await response.json();
+      return mapearAnaliseDoBank(dadoBruto);
+      
     } catch (error) {
       console.error('❌ Erro ao atualizar análise:', error);
       throw error;
@@ -208,7 +277,7 @@ const analiseAPI = {
 };
 
 // ============================================================================
-// RICH TEXT EDITOR COMPONENT (mantido igual)
+// RICH TEXT EDITOR COMPONENT
 // ============================================================================
 
 interface RichTextEditorProps {
@@ -502,7 +571,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = memo(({
 });
 
 // ============================================================================
-// FUNÇÕES AUXILIARES PARA PDF E IA (mantidas iguais, mas comentadas para brevidade)
+// FUNÇÕES AUXILIARES PARA PDF E IA
 // ============================================================================
 
 const extrairTrimestre = (texto: string): string | null => {
@@ -607,7 +676,7 @@ const extrairValoresFinanceiros = (texto: string): { [key: string]: number } => 
 };
 
 // ============================================================================
-// HOOK PARA PROCESSAMENTO DE PDF COM API REAL (mantido igual)
+// HOOK PARA PROCESSAMENTO DE PDF COM API REAL
 // ============================================================================
 
 const usePDFProcessor = () => {
@@ -798,7 +867,7 @@ const usePDFProcessor = () => {
 };
 
 // ============================================================================
-// COMPONENTE PDF UPLOADER (mantido igual)
+// COMPONENTE PDF UPLOADER
 // ============================================================================
 
 interface PDFUploaderProps {
@@ -1016,7 +1085,6 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
     }
     
     return {
-      // CORRIGIDO: Garantir ID único mesmo no estado inicial
       id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ticker: '',
       empresa: '',
@@ -1030,6 +1098,7 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
       pontosFavoraveis: '',
       pontosAtencao: '',
       recomendacao: 'MANTER',
+      risco: 'MÉDIO',
       status: 'draft'
     };
   });
@@ -1089,7 +1158,6 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
     });
   }, []);
 
-  // CORRIGIDO: Mapeamento correto dos campos do PDF para as métricas
   const handleImportarDadosPDF = useCallback((dadosPDF: DadosExtraidosPDF) => {
     console.log('📊 Importando relatório completo do PDF:', dadosPDF);
     
@@ -1105,32 +1173,31 @@ const CriarAnaliseForm = memo(({ onSave, analiseEditando }: CriarAnaliseFormProp
       pontosAtencao: dadosPDF.relatorioGerado?.pontosAtencao ? 
         dadosPDF.relatorioGerado.pontosAtencao.map(p => `• ${p}`).join('\n') : prev.pontosAtencao,
       recomendacao: dadosPDF.relatorioGerado?.recomendacao || prev.recomendacao,
-nota: dadosPDF.relatorioGerado?.nota || prev.nota,
-      // CORRIGIDO: Mapeamento correto variacaoAA -> variacaoYoY
+      nota: dadosPDF.relatorioGerado?.nota || prev.nota,
       metricas: {
         receita: dadosPDF.dadosFinanceiros?.receita ? {
           valor: dadosPDF.dadosFinanceiros.receita.valor,
           unidade: 'milhões',
           variacao: dadosPDF.dadosFinanceiros.receita.variacaoTT,
-          variacaoYoY: dadosPDF.dadosFinanceiros.receita.variacaoAA // ✅ CORRIGIDO
+          variacaoYoY: dadosPDF.dadosFinanceiros.receita.variacaoAA
         } : prev.metricas.receita,
         ebitda: dadosPDF.dadosFinanceiros?.ebitda ? {
           valor: dadosPDF.dadosFinanceiros.ebitda.valor,
           unidade: 'milhões',
           variacao: dadosPDF.dadosFinanceiros.ebitda.variacaoTT,
-          variacaoYoY: dadosPDF.dadosFinanceiros.ebitda.variacaoAA, // ✅ CORRIGIDO
+          variacaoYoY: dadosPDF.dadosFinanceiros.ebitda.variacaoAA,
           margem: dadosPDF.dadosFinanceiros.ebitda.margem
         } : prev.metricas.ebitda,
         lucroLiquido: dadosPDF.dadosFinanceiros?.lucroLiquido ? {
           valor: dadosPDF.dadosFinanceiros.lucroLiquido.valor,
           unidade: 'milhões',
           variacao: dadosPDF.dadosFinanceiros.lucroLiquido.variacaoTT,
-          variacaoYoY: dadosPDF.dadosFinanceiros.lucroLiquido.variacaoAA // ✅ CORRIGIDO
+          variacaoYoY: dadosPDF.dadosFinanceiros.lucroLiquido.variacaoAA
         } : prev.metricas.lucroLiquido,
         roe: dadosPDF.dadosFinanceiros?.roe ? {
           valor: dadosPDF.dadosFinanceiros.roe.valor,
           unidade: '%',
-          variacaoYoY: dadosPDF.dadosFinanceiros.roe.variacaoAA // ✅ CORRIGIDO
+          variacaoYoY: dadosPDF.dadosFinanceiros.roe.variacaoAA
         } : prev.metricas.roe
       },
       dadosExtraidos: dadosPDF,
@@ -1150,7 +1217,6 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
         return;
       }
       
-      // CORRIGIDO: Garantir ID único antes de salvar
       const analiseParaSalvar = {
         ...analise,
         id: analise.id && analise.id !== 'temp' && !analise.id.startsWith('temp-') ? 
@@ -1161,7 +1227,6 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
       await onSave(analiseParaSalvar);
       
       if (!analiseEditando) {
-        // Reset para nova análise
         setAnalise({
           id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           ticker: '',
@@ -1295,7 +1360,7 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
               </label>
               <input
                 type="text"
-                value={analise.trimestre}
+                value={analise.trimestre || ''}
                 onChange={(e) => updateField('trimestre', e.target.value.toUpperCase())}
                 style={{
                   width: '100%',
@@ -1317,7 +1382,7 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
           disabled={salvando} 
         />
 
-        {/* Mostrar dados extraídos - melhorado */}
+        {/* Mostrar dados extraídos */}
         {analise.dadosExtraidos && (
           <div style={{
             background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
@@ -1349,7 +1414,6 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
                       <div style={{ fontSize: '14px', color: '#15803d', fontWeight: '700' }}>
                         R$ {analise.dadosExtraidos.dadosFinanceiros.receita.valor}M
                       </div>
-                      {/* CORRIGIDO: Mostrar variacaoAA que será mapeada para variacaoYoY */}
                       {analise.dadosExtraidos.dadosFinanceiros.receita.variacaoAA && (
                         <div style={{ fontSize: '11px', color: analise.dadosExtraidos.dadosFinanceiros.receita.variacaoAA >= 0 ? '#059669' : '#dc2626' }}>
                           {analise.dadosExtraidos.dadosFinanceiros.receita.variacaoAA >= 0 ? '+' : ''}{analise.dadosExtraidos.dadosFinanceiros.receita.variacaoAA}% A/A
@@ -1378,7 +1442,6 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
                       <div style={{ fontSize: '14px', color: '#15803d', fontWeight: '700' }}>
                         R$ {analise.dadosExtraidos.dadosFinanceiros.lucroLiquido.valor}M
                       </div>
-                      {/* CORRIGIDO: Mostrar variacaoAA */}
                       {analise.dadosExtraidos.dadosFinanceiros.lucroLiquido.variacaoAA && (
                         <div style={{ fontSize: '11px', color: analise.dadosExtraidos.dadosFinanceiros.lucroLiquido.variacaoAA >= 0 ? '#059669' : '#dc2626' }}>
                           {analise.dadosExtraidos.dadosFinanceiros.lucroLiquido.variacaoAA >= 0 ? '+' : ''}{analise.dadosExtraidos.dadosFinanceiros.lucroLiquido.variacaoAA}% A/A
@@ -1399,11 +1462,11 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
                         {analise.dadosExtraidos.relatorioGerado.recomendacao === 'COMPRA' ? '🟢 COMPRA' : 
                          analise.dadosExtraidos.relatorioGerado.recomendacao === 'VENDA' ? '🔴 VENDA' : '🟡 MANTER'}
                       </div>
-{analise.dadosExtraidos.relatorioGerado.nota && (
-  <div style={{ fontSize: '11px', color: '#15803d' }}>
-    Nota: {analise.dadosExtraidos.relatorioGerado.nota}/10
-  </div>
-)}
+                      {analise.dadosExtraidos.relatorioGerado.nota && (
+                        <div style={{ fontSize: '11px', color: '#15803d' }}>
+                          Nota: {analise.dadosExtraidos.relatorioGerado.nota}/10
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1447,12 +1510,13 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
                 placeholder="TUPY3 - 3T24: Resultados sólidos com expansão internacional"
               />
             </div>
+
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                 Análise Completa
               </label>
               <RichTextEditor
-                value={analise.analiseCompleta}
+                value={analise.analiseCompleta || ''}
                 onChange={(value) => updateField('analiseCompleta', value)}
                 placeholder="Análise detalhada dos resultados, contexto setorial, perspectivas..."
                 minHeight="200px"
@@ -1464,7 +1528,7 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
                 Pontos Favoráveis
               </label>
               <RichTextEditor
-                value={analise.pontosFavoraveis}
+                value={analise.pontosFavoraveis || ''}
                 onChange={(value) => updateField('pontosFavoraveis', value)}
                 placeholder="• Principais destaques positivos do trimestre..."
                 minHeight="120px"
@@ -1476,7 +1540,7 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
                 Pontos de Atenção
               </label>
               <RichTextEditor
-                value={analise.pontosAtencao}
+                value={analise.pontosAtencao || ''}
                 onChange={(value) => updateField('pontosAtencao', value)}
                 placeholder="• Principais riscos e preocupações identificadas..."
                 minHeight="120px"
@@ -1626,53 +1690,53 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
             🎯 Recomendação de Investimento
           </h5>
 
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-  <div>
-    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-      Recomendação
-    </label>
-    <select
-      value={analise.recomendacao}
-      onChange={(e) => updateField('recomendacao', e.target.value as AnaliseTrimestreData['recomendacao'])}
-      style={{
-        width: '100%',
-        border: '2px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '12px',
-        fontSize: '14px',
-        boxSizing: 'border-box',
-        fontWeight: '600'
-      }}
-    >
-      <option value="COMPRA">🟢 COMPRA</option>
-      <option value="MANTER">🟡 MANTER</option>
-      <option value="VENDA">🔴 VENDA</option>
-    </select>
-  </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Recomendação
+              </label>
+              <select
+                value={analise.recomendacao}
+                onChange={(e) => updateField('recomendacao', e.target.value as AnaliseTrimestreData['recomendacao'])}
+                style={{
+                  width: '100%',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  fontWeight: '600'
+                }}
+              >
+                <option value="COMPRA">🟢 COMPRA</option>
+                <option value="MANTER">🟡 MANTER</option>
+                <option value="VENDA">🔴 VENDA</option>
+              </select>
+            </div>
 
-  <div>
-    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-      Nota (0-10)
-    </label>
-    <input
-      type="number"
-      step="0.1"
-      min="0"
-      max="10"
-      value={analise.nota || ''}
-      onChange={(e) => updateField('nota', parseFloat(e.target.value) || undefined)}
-      style={{
-        width: '100%',
-        border: '2px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '12px',
-        fontSize: '14px',
-        boxSizing: 'border-box'
-      }}
-      placeholder="8.5"
-    />
-  </div>
-</div>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Nota (0-10)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="10"
+                value={analise.nota || ''}
+                onChange={(e) => updateField('nota', parseFloat(e.target.value) || undefined)}
+                style={{
+                  width: '100%',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                placeholder="8.5"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1680,7 +1744,7 @@ nota: dadosPDF.relatorioGerado?.nota || prev.nota,
 });
 
 // ============================================================================
-// COMPONENTES DE LISTAGEM (mantidos iguais, mas com keys corrigidas)
+// COMPONENTES DE LISTAGEM
 // ============================================================================
 
 const AnalisesPublicadas = memo(({ 
@@ -1729,7 +1793,6 @@ const AnalisesPublicadas = memo(({
 
           <div style={{ display: 'grid', gap: '16px' }}>
             {analisesPublicadas.map((analise, index) => {
-              // CORRIGIDO: Key única garantida
               const keyUnica = analise.id || `publicada-${analise.ticker}-${index}-${Date.now()}`;
               
               return (
@@ -1745,7 +1808,7 @@ const AnalisesPublicadas = memo(({
                         {analise.titulo}
                       </h4>
                       <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                        {analise.ticker} • {analise.empresa} • {analise.trimestre}
+                        {analise.ticker} • {analise.empresa} • {analise.trimestre || 'Sem trimestre'}
                         {analise.fonteDados === 'pdf' && (
                           <span style={{ 
                             marginLeft: '8px', 
@@ -1875,7 +1938,6 @@ const RascunhosAnalises = memo(({
 
           <div style={{ display: 'grid', gap: '16px' }}>
             {rascunhos.map((analise, index) => {
-              // CORRIGIDO: Key única garantida
               const keyUnica = analise.id || `rascunho-${analise.ticker}-${index}-${Date.now()}`;
               
               return (
@@ -1991,7 +2053,7 @@ const AdminAnalisesTrimesestrais = () => {
   const analisesDraft = analises.filter(a => a.status === 'draft').length;
   const analisesPublicadas = analises.filter(a => a.status === 'published').length;
 
-  // ✅ CARREGAMENTO VIA API REAL
+  // ✅ CARREGAMENTO VIA API REAL COM MAPEAMENTO
   useEffect(() => {
     const loadAnalises = async () => {
       setLoading(true);
@@ -2001,7 +2063,7 @@ const AdminAnalisesTrimesestrais = () => {
         console.log('🔄 Carregando análises via API...');
         const analisesCarregadas = await analiseAPI.listar();
         
-        console.log(`✅ ${analisesCarregadas.length} análises carregadas`);
+        console.log(`✅ ${analisesCarregadas.length} análises carregadas e mapeadas`);
         setAnalises(analisesCarregadas);
         
       } catch (error) {
@@ -2016,7 +2078,7 @@ const AdminAnalisesTrimesestrais = () => {
     loadAnalises();
   }, []);
 
-  // ✅ SALVAR VIA API REAL - CORRIGIDO
+  // ✅ SALVAR VIA API REAL COM MAPEAMENTO
   const saveAnalise = useCallback(async (analise: AnaliseTrimestreData) => {
     setSaving(true);
     setError(null);
@@ -2036,7 +2098,6 @@ const AdminAnalisesTrimesestrais = () => {
         setAnalises(prev => prev.map(a => a.id === analiseSalva.id ? analiseSalva : a));
         console.log('✅ Análise atualizada com sucesso:', analiseSalva.id);
       } else {
-        // CORRIGIDO: Para novas análises, remover o id temporário
         const { id, ...analiseParaCriar } = analise;
         analiseSalva = await analiseAPI.criar(analiseParaCriar);
         setAnalises(prev => [...prev, analiseSalva]);
