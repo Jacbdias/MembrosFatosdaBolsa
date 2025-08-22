@@ -7,6 +7,54 @@ export const runtime = 'nodejs';
 
 const prisma = new PrismaClient();
 
+// Função para transformar dados do Prisma para o formato esperado pelo React
+function transformPrismaData(relatorio: any) {
+  return {
+    ...relatorio,
+    // Converter campos Json para arrays
+    macro: Array.isArray(relatorio.macro) 
+      ? relatorio.macro 
+      : (typeof relatorio.macro === 'string' ? JSON.parse(relatorio.macro || '[]') : []),
+    
+    dividendos: Array.isArray(relatorio.dividendos)
+      ? relatorio.dividendos
+      : (typeof relatorio.dividendos === 'string' ? JSON.parse(relatorio.dividendos || '[]') : []),
+      
+    smallCaps: Array.isArray(relatorio.smallCaps)
+      ? relatorio.smallCaps  
+      : (typeof relatorio.smallCaps === 'string' ? JSON.parse(relatorio.smallCaps || '[]') : []),
+      
+    microCaps: Array.isArray(relatorio.microCaps)
+      ? relatorio.microCaps
+      : (typeof relatorio.microCaps === 'string' ? JSON.parse(relatorio.microCaps || '[]') : []),
+      
+    exteriorStocks: Array.isArray(relatorio.exteriorStocks)
+      ? relatorio.exteriorStocks
+      : (typeof relatorio.exteriorStocks === 'string' ? JSON.parse(relatorio.exteriorStocks || '[]') : []),
+      
+    exteriorETFs: Array.isArray(relatorio.exteriorETFs)
+      ? relatorio.exteriorETFs  
+      : (typeof relatorio.exteriorETFs === 'string' ? JSON.parse(relatorio.exteriorETFs || '[]') : []),
+      
+    exteriorDividendos: Array.isArray(relatorio.exteriorDividendos)
+      ? relatorio.exteriorDividendos
+      : (typeof relatorio.exteriorDividendos === 'string' ? JSON.parse(relatorio.exteriorDividendos || '[]') : []),
+      
+    exteriorProjetoAmerica: Array.isArray(relatorio.exteriorProjetoAmerica)
+      ? relatorio.exteriorProjetoAmerica
+      : (typeof relatorio.exteriorProjetoAmerica === 'string' ? JSON.parse(relatorio.exteriorProjetoAmerica || '[]') : []),
+    
+    // Campos legados para compatibilidade
+    proventos: Array.isArray(relatorio.proventos)
+      ? relatorio.proventos
+      : (typeof relatorio.proventos === 'string' ? JSON.parse(relatorio.proventos || '[]') : []),
+      
+    exterior: Array.isArray(relatorio.exterior)
+      ? relatorio.exterior
+      : (typeof relatorio.exterior === 'string' ? JSON.parse(relatorio.exterior || '[]') : [])
+  };
+}
+
 // GET - Buscar relatórios (admin) ou atual (público)
 export async function GET(request: NextRequest) {
   try {
@@ -35,8 +83,11 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' }
       });
       
-      console.log(`Admin: encontrados ${relatorios.length} relatórios`);
-      return NextResponse.json(relatorios);
+      // CORREÇÃO: Transformar dados para admin também
+      const relatoriosTransformados = relatorios.map(transformPrismaData);
+      
+      console.log(`Admin: encontrados ${relatoriosTransformados.length} relatórios`);
+      return NextResponse.json(relatoriosTransformados);
       
     } else {
       // PÚBLICO: Apenas o mais recente publicado
@@ -48,22 +99,10 @@ export async function GET(request: NextRequest) {
       if (relatorio) {
         // Converter para formato compatível com visualização
         const relatorioFormatted = {
-          ...relatorio,
+          ...transformPrismaData(relatorio),
           // Campos para compatibilidade
           date: relatorio.dataPublicacao || relatorio.date,
-          weekOf: relatorio.semana || relatorio.weekOf,
-          // Garantir arrays existem
-          macro: relatorio.macro || [],
-          dividendos: relatorio.dividendos || [],
-          smallCaps: relatorio.smallCaps || [],
-          microCaps: relatorio.microCaps || [],
-          exteriorStocks: relatorio.exteriorStocks || [],
-          exteriorETFs: relatorio.exteriorETFs || [],
-          exteriorDividendos: relatorio.exteriorDividendos || [],
-          exteriorProjetoAmerica: relatorio.exteriorProjetoAmerica || [],
-          // Campo legado
-          exterior: relatorio.exteriorStocks || relatorio.exterior || [],
-          proventos: relatorio.proventos || []
+          weekOf: relatorio.semana || relatorio.weekOf
         };
         return NextResponse.json(relatorioFormatted);
       }
@@ -210,8 +249,11 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // CORREÇÃO: Transformar dados na resposta também
+    const relatorioTransformado = transformPrismaData(relatorio);
+    
     return NextResponse.json({
-      ...relatorio,
+      ...relatorioTransformado,
       message: isNewReport ? 'Relatório criado com sucesso' : 'Relatório atualizado com sucesso',
       notificationsSent: wasPublished
     });
