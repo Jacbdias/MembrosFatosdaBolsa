@@ -342,24 +342,6 @@ const ModalAnaliseCompleta = memo(({
               ✕
             </button>
           </div>
-
-{/* Recomendação e Nota */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: window.innerWidth < 768 ? '8px' : '16px', 
-            flexWrap: 'wrap' 
-          }}>
-            {getBadgeRecomendacao(analise.recomendacao)}
-            {analise.nota && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', color: '#64748b' }}>Nota:</span>
-                <span style={{ fontSize: window.innerWidth < 768 ? '12px' : '14px', fontWeight: '600', color: '#1e293b' }}>
-                  {analise.nota}/10
-                </span>
-              </div>
-            )}
-          </div>
           
         </div>
 

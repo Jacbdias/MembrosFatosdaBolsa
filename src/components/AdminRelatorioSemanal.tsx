@@ -2060,17 +2060,25 @@ useEffect(() => {
       console.log('🔄 Carregando relatórios da API...');
       setLoading(true);
       
-      // Buscar da API
-      const response = await fetch('/api/relatorio-semanal?admin=true');
+      // ✅ ADICIONAR HEADERS DE AUTENTICAÇÃO
+      const response = await fetch('/api/relatorio-semanal?admin=true', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('custom-auth-token')}`,
+          'X-User-Email': localStorage.getItem('user-email')}
+      });
       
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status}`);
       }
       
       const relatoriosAPI = await response.json();
-      console.log(`✅ ${relatoriosAPI.length} relatórios carregados da API`);
       
-      setRelatorios(relatoriosAPI);
+      // ✅ APLICAR CORREÇÃO DO NULL
+      const dadosSeguro = relatoriosAPI || [];
+      console.log(`✅ ${dadosSeguro.length} relatórios carregados da API`);
+      
+      setRelatorios(dadosSeguro);
       setLoading(false);
       
     } catch (error) {

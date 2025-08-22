@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminRelatorioSemanal from '@/components/AdminRelatorioSemanal';
@@ -7,18 +6,18 @@ import AdminRelatorioSemanal from '@/components/AdminRelatorioSemanal';
 export default function AdminRelatorioPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Verificar se é admin
+    // Verificar apenas se tem tokens básicos de autenticação
+    const token = localStorage.getItem('custom-auth-token');
     const userEmail = localStorage.getItem('user-email');
     
-    if (userEmail !== 'admin@fatosdobolsa.com') {
-      router.push('/dashboard');
+    if (!token || !userEmail) {
+      router.push('/login');
       return;
     }
     
-    setAuthorized(true);
     setLoading(false);
   }, [router]);
 
@@ -27,22 +26,12 @@ export default function AdminRelatorioPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verificando permissões...</p>
+          <p className="text-gray-600">Carregando...</p>
         </div>
       </div>
     );
   }
 
-  if (!authorized) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Acesso Negado</h1>
-          <p className="text-gray-600">Você não tem permissão para acessar esta página.</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Se tiver erro nas APIs (sem permissão), o próprio componente AdminRelatorioSemanal vai tratar
   return <AdminRelatorioSemanal />;
 }
