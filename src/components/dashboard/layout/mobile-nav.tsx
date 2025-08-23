@@ -261,6 +261,7 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
         <Box
           component={RouterLink}
           href={paths.home}
+          onClick={onClose} // 📱 Fecha o menu ao clicar no logo
           sx={{
             display: 'flex',
             justifyContent: 'center',
@@ -329,7 +330,8 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
             pathname, 
             items: filteredNavItems,
             expandedItems, 
-            toggleExpanded 
+            toggleExpanded,
+            onClose // 📱 Passa onClose para os itens
           })
         )}
       </Box>
@@ -342,11 +344,13 @@ function renderNavItems({
   pathname,
   expandedItems,
   toggleExpanded,
+  onClose,
 }: {
   items?: NavItemConfig[];
   pathname: string;
   expandedItems: Record<string, boolean>;
   toggleExpanded: (key: string) => void;
+  onClose?: () => void; // 📱 Adiciona onClose
 }): React.JSX.Element {
   const children = items.reduce(
     (acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
@@ -358,6 +362,7 @@ function renderNavItems({
           pathname={pathname} 
           expandedItems={expandedItems}
           toggleExpanded={toggleExpanded}
+          onClose={onClose} // 📱 Passa onClose para NavItem
           {...item} 
         />
       );
@@ -378,6 +383,7 @@ interface NavItemProps extends Omit<NavItemConfig, 'key'> {
   itemKey: string;
   expandedItems: Record<string, boolean>;
   toggleExpanded: (key: string) => void;
+  onClose?: () => void; // 📱 Adiciona onClose
 }
 
 function NavItem({
@@ -392,11 +398,19 @@ function NavItem({
   itemKey,
   expandedItems,
   toggleExpanded,
+  onClose, // 📱 Adiciona onClose
 }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
   const Icon = icon ? navIcons[icon] : null;
   const hasChildren = items && items.length > 0;
   const isExpanded = expandedItems[itemKey] || false;
+
+  // 📱 Handler para fechar menu ao clicar em link
+  const handleLinkClick = () => {
+    if (onClose && href) {
+      onClose();
+    }
+  };
 
   if (href && hasChildren) {
     return (
@@ -407,6 +421,7 @@ function NavItem({
             href={href}
             target={external ? '_blank' : undefined}
             rel={external ? 'noreferrer' : undefined}
+            onClick={handleLinkClick} // 📱 Fecha menu ao clicar
             sx={{
               alignItems: 'center',
               borderRadius: 1,
@@ -500,7 +515,8 @@ function NavItem({
               pathname, 
               items: items, 
               expandedItems, 
-              toggleExpanded 
+              toggleExpanded,
+              onClose // 📱 Passa onClose para subitems
             })}
           </Box>
         </Collapse>
@@ -517,6 +533,7 @@ function NavItem({
               href,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,
+              onClick: handleLinkClick, // 📱 Fecha menu ao clicar
             }
           : { role: 'button' })}
         sx={{

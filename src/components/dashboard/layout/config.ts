@@ -221,20 +221,20 @@ export const navItems = [
         icon: 'chart-bar',
         page: 'admin-relatorios'
       },
-      // 🆕 NOVO ITEM: Admin do Relatório Semanal
+      // 🆕 CORREÇÃO: Usando paths corretos do paths.ts
       {
         key: 'admin-relatorio-semanal',
         title: 'Relatório Semanal',
-        href: paths.dashboard.admin + '/relatorio-semanal',
+        href: paths.dashboard.adminRelatorioSemanal, // ✅ Usando constante
         icon: 'document-text',
         page: 'admin-relatorio-semanal'
       },
-      // 🆕 NOVO ITEM: Análises Trimestrais
+      // 🆕 CORREÇÃO: Usando paths corretos do paths.ts
       {
         key: 'admin-analises-trimesestrais',
         title: 'Análises Trimestrais',
-        href: paths.dashboard.admin + '/analises-trimesestrais',
-        icon: 'chart-line', // ou 'calendar', 'article'
+        href: paths.dashboard.adminAnalisesTrimesestrais, // ✅ Usando constante
+        icon: 'chart-line',
         page: 'admin-analises-trimesestrais'
       },
       {
@@ -244,10 +244,11 @@ export const navItems = [
         icon: 'calendar',
         page: 'admin-integracoes'
       },
+      // 🆕 CORREÇÃO: Usando paths corretos do paths.ts
       {
         key: 'admin-carteiras',
         title: 'Analisar Carteiras',
-        href: paths.dashboard.admin + '/carteiras',
+        href: paths.dashboard.adminCarteiras, // ✅ Usando constante
         icon: 'chart-line',
         page: 'admin-carteiras'
       }
