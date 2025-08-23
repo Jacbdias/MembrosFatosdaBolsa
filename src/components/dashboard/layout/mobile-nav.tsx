@@ -56,7 +56,7 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
             ...info,
             userEmail,
             pages: info.isAdmin 
-              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais']
+              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-carteiras']
               : (info.pages || [])
           };
           
