@@ -2128,22 +2128,21 @@ useEffect(() => {
 
 // 💾 SALVAR RELATÓRIO NA API
 const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
-
-  const relatorioCompleto = {
-    ...relatorio,
-    authorId: userId, // obter do contexto/auth
-    autor: userName   // obter do contexto/auth
-  };
-
   setSaving(true);
   setError(null);
   
   try {
     console.log('💾 Salvando relatório na API...', relatorio);
     
+    // ADICIONAR headers de autenticação
+    const token = localStorage.getItem('custom-auth-token');
+    const userEmail = localStorage.getItem('user-email');
+    
     const response = await fetch('/api/relatorio-semanal', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-User-Email': userEmail,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(relatorio)
@@ -2194,30 +2193,75 @@ const saveRelatorio = useCallback(async (relatorio: RelatorioSemanalData) => {
     await saveRelatorio(relatorioRascunho);
   }, [relatorios, saveRelatorio]);
 
-  const deleteRelatorio = useCallback(async (id: string) => {
+const deleteRelatorio = useCallback(async (id: string) => {
   setSaving(true);
+  setError(null);
   
   try {
-    const response = await fetch(`/api/relatorio-semanal?id=${id}`, {
-      method: 'DELETE'
+    console.log('🗑️ Iniciando exclusão do relatório:', id);
+    
+    const token = localStorage.getItem('custom-auth-token');
+    const userEmail = localStorage.getItem('user-email');
+    
+    // Encontrar o relatório
+    const relatorio = relatorios.find(r => r.id === id);
+    if (!relatorio) {
+      throw new Error('Relatório não encontrado');
+    }
+    
+    // Se estiver publicado, despublicar primeiro
+    if (relatorio.status === 'published') {
+      console.log('📝 Despublicando antes de excluir...');
+      
+      const relatorioRascunho = { ...relatorio, status: 'draft' as const };
+      
+      const unpublishResponse = await fetch('/api/relatorio-semanal', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': userEmail,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(relatorioRascunho)
+      });
+      
+      if (!unpublishResponse.ok) {
+        throw new Error('Erro ao despublicar relatório');
+      }
+      
+      console.log('✅ Relatório despublicado');
+    }
+    
+    // Agora excluir
+    console.log('🗑️ Excluindo relatório...');
+    
+    const deleteResponse = await fetch(`/api/relatorio-semanal?id=${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-User-Email': userEmail,
+        'Content-Type': 'application/json'
+      }
     });
     
-    if (!response.ok) {
-      throw new Error(`Erro HTTP: ${response.status}`);
+    if (!deleteResponse.ok) {
+      const errorData = await deleteResponse.json();
+      throw new Error(errorData.error || `Erro HTTP: ${deleteResponse.status}`);
     }
     
     setRelatorios(prev => prev.filter(r => r.id !== id));
-    console.log('✅ Relatório excluído da API');
+    console.log('✅ Relatório excluído com sucesso');
     
   } catch (error) {
     console.error('❌ Erro ao excluir:', error);
-    setError('Erro ao excluir relatório');
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    setError(`Erro ao excluir relatório: ${errorMessage}`);
   } finally {
     setSaving(false);
   }
-}, []);
+}, [relatorios]);
 
-  const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
+const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
     setRelatorioEditando(relatorio);
     setActiveTab('criar');
   }, []);
