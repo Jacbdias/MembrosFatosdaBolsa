@@ -65,7 +65,7 @@ export async function notifyQuestionAnswered(questionId: string, adminName: stri
       message: `${adminName} respondeu sua pergunta: "${question.title}"`,
       type: 'success',
       category: 'question_answered',
-      actionUrl: `/dashboard/duvidas/${questionId}`,
+actionUrl: `/dashboard/recursos-exclusivos/central-duvidas#${questionId}`,
       metadata: {
         questionId: questionId,
         questionTitle: question.title,
