@@ -1,4 +1,4 @@
-// 📁 Central de Proventos - VERSÃO ATUALIZADA PARA API
+// 📁 Central de Proventos - VERSÃO ATUALIZADA PARA API COM PERMISSÕES
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -19,6 +19,9 @@ import {
   Grid,
   Stack
 } from '@mui/material';
+
+// ✅ IMPORTAR HOOK DE AUTENTICAÇÃO
+import { useAuthAccess } from '@/hooks/use-auth-access';
 
 // 🔄 IMPORTAR NOVOS HOOKS DA API
 import { 
@@ -53,7 +56,10 @@ interface ProventoCentral {
 }
 
 export default function CentralProventos() {
+  // ✅ TODOS OS HOOKS NO TOPO
+  const { hasAccessSync, loading: authLoading, user } = useAuthAccess();
   const router = useRouter();
+  
   const [dialogAberto, setDialogAberto] = useState(false);
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
   const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
@@ -77,6 +83,7 @@ export default function CentralProventos() {
     loading: exportLoading 
   } = useProventosExport();
 
+  // ✅ TODAS AS FUNÇÕES E useEffect AQUI
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   // ✅ CARREGAR ESTATÍSTICAS AO MONTAR COMPONENTE
@@ -101,235 +108,234 @@ export default function CentralProventos() {
     setArquivoSelecionado(file);
   };
 
-// 🌍 VERSÃO UNIVERSAL - ACEITA FORMATO AMERICANO E BRASILEIRO SIMULTANEAMENTE
+  // 🌍 VERSÃO UNIVERSAL - ACEITA FORMATO AMERICANO E BRASILEIRO SIMULTANEAMENTE
+  const processarCSV = useCallback(async () => {
+    if (!arquivoSelecionado) return;
 
-const processarCSV = useCallback(async () => {
-  if (!arquivoSelecionado) return;
+    setEtapaProcessamento('Lendo arquivo...');
+    await delay(300);
 
-  setEtapaProcessamento('Lendo arquivo...');
-  await delay(300);
-
-  try {
-    const text = await arquivoSelecionado.text();
-    
-    // 🧹 LIMPEZA ROBUSTA DO ARQUIVO
-    const linhas = text
-      .replace(/\r\n/g, '\n')  // Windows line endings
-      .replace(/\r/g, '\n')    // Mac line endings  
-      .replace(/\n\n+/g, '\n') // Múltiplas quebras
-      .split('\n')
-      .filter(l => l.trim())   // Remove linhas vazias
-      .map(l => l.trim());     // Remove espaços extras
-    
-    if (linhas.length > 50000) {
-      alert('Arquivo muito grande. Máximo de 50.000 linhas suportado.');
-      return;
-    }
-
-    if (linhas.length < 2) {
-      alert('Arquivo vazio ou sem dados válidos.');
-      return;
-    }
-
-    setEtapaProcessamento(`Processando ${linhas.length - 1} linhas...`);
-
-    const proventos: ProventoCentral[] = [];
-    let errosProcessamento = 0;
-    const BATCH_SIZE = 100;
-    
-    // 🔥 FUNÇÃO UNIVERSAL PARA PROCESSAR VALOR (ACEITA QUALQUER FORMATO)
-    const processarValor = (valorRaw: string) => {
-      if (!valorRaw || valorRaw === '') return 0;
+    try {
+      const text = await arquivoSelecionado.text();
       
-      // Remove R$, espaços, e normaliza
-      let valor = valorRaw
-        .toString()
-        .replace(/R\$\s*/g, '')     // Remove R$ e espaços
-        .replace(/\s/g, '')         // Remove todos os espaços
-        .trim();
+      // 🧹 LIMPEZA ROBUSTA DO ARQUIVO
+      const linhas = text
+        .replace(/\r\n/g, '\n')  // Windows line endings
+        .replace(/\r/g, '\n')    // Mac line endings  
+        .replace(/\n\n+/g, '\n') // Múltiplas quebras
+        .split('\n')
+        .filter(l => l.trim())   // Remove linhas vazias
+        .map(l => l.trim());     // Remove espaços extras
       
-      // Se tem vírgula E ponto, assumir que vírgula é decimal (formato brasileiro)
-      if (valor.includes(',') && valor.includes('.')) {
-        // Formato brasileiro: 1.234,56
-        valor = valor.replace(/\./g, '').replace(',', '.');
-      } else if (valor.includes(',')) {
-        // Só vírgula: pode ser decimal ou milhares
-        const partes = valor.split(',');
-        if (partes.length === 2 && partes[1].length <= 2) {
-          // Provavelmente decimal: 123,45
-          valor = valor.replace(',', '.');
-        } else {
-          // Provavelmente milhares: 1,234
-          valor = valor.replace(/,/g, '');
-        }
+      if (linhas.length > 50000) {
+        alert('Arquivo muito grande. Máximo de 50.000 linhas suportado.');
+        return;
       }
+
+      if (linhas.length < 2) {
+        alert('Arquivo vazio ou sem dados válidos.');
+        return;
+      }
+
+      setEtapaProcessamento(`Processando ${linhas.length - 1} linhas...`);
+
+      const proventos: ProventoCentral[] = [];
+      let errosProcessamento = 0;
+      const BATCH_SIZE = 100;
       
-      const valorNumerico = parseFloat(valor);
-      return isNaN(valorNumerico) ? 0 : valorNumerico;
-    };
-    
-    // 🗓️ FUNÇÃO UNIVERSAL PARA PROCESSAR DATA (ACEITA QUALQUER FORMATO)
-    const processarData = (dataRaw: string) => {
-      if (!dataRaw || dataRaw === '') return null;
+      // 🔥 FUNÇÃO UNIVERSAL PARA PROCESSAR VALOR (ACEITA QUALQUER FORMATO)
+      const processarValor = (valorRaw: string) => {
+        if (!valorRaw || valorRaw === '') return 0;
+        
+        // Remove R$, espaços, e normaliza
+        let valor = valorRaw
+          .toString()
+          .replace(/R\$\s*/g, '')     // Remove R$ e espaços
+          .replace(/\s/g, '')         // Remove todos os espaços
+          .trim();
+        
+        // Se tem vírgula E ponto, assumir que vírgula é decimal (formato brasileiro)
+        if (valor.includes(',') && valor.includes('.')) {
+          // Formato brasileiro: 1.234,56
+          valor = valor.replace(/\./g, '').replace(',', '.');
+        } else if (valor.includes(',')) {
+          // Só vírgula: pode ser decimal ou milhares
+          const partes = valor.split(',');
+          if (partes.length === 2 && partes[1].length <= 2) {
+            // Provavelmente decimal: 123,45
+            valor = valor.replace(',', '.');
+          } else {
+            // Provavelmente milhares: 1,234
+            valor = valor.replace(/,/g, '');
+          }
+        }
+        
+        const valorNumerico = parseFloat(valor);
+        return isNaN(valorNumerico) ? 0 : valorNumerico;
+      };
       
-      const dataLimpa = dataRaw.toString().trim();
+      // 🗓️ FUNÇÃO UNIVERSAL PARA PROCESSAR DATA (ACEITA QUALQUER FORMATO)
+      const processarData = (dataRaw: string) => {
+        if (!dataRaw || dataRaw === '') return null;
+        
+        const dataLimpa = dataRaw.toString().trim();
+        
+        try {
+          // 🇧🇷 FORMATO BRASILEIRO: DD/MM/YYYY ou DD/MM/YY
+          if (dataLimpa.includes('/')) {
+            const partes = dataLimpa.split('/');
+            if (partes.length === 3) {
+              let [dia, mes, ano] = partes;
+              
+              // Ajustar ano de 2 dígitos
+              if (ano.length === 2) {
+                ano = parseInt(ano) < 50 ? '20' + ano : '19' + ano;
+              }
+              
+              return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
+            }
+          }
+          
+          // 🇺🇸 FORMATO AMERICANO: YYYY-MM-DD
+          if (dataLimpa.includes('-')) {
+            const partes = dataLimpa.split('-');
+            if (partes.length === 3) {
+              const [ano, mes, dia] = partes;
+              return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
+            }
+          }
+          
+          // Tentar parsing direto
+          const dataObj = new Date(dataLimpa);
+          if (!isNaN(dataObj.getTime())) {
+            return new Date(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate(), 12, 0, 0);
+          }
+          
+          return null;
+        } catch {
+          return null;
+        }
+      };
       
-      try {
-        // 🇧🇷 FORMATO BRASILEIRO: DD/MM/YYYY ou DD/MM/YY
-        if (dataLimpa.includes('/')) {
-          const partes = dataLimpa.split('/');
-          if (partes.length === 3) {
-            let [dia, mes, ano] = partes;
+      // 🔄 PROCESSAMENTO EM LOTES COM DETECÇÃO AUTOMÁTICA
+      for (let batchStart = 1; batchStart < linhas.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, linhas.length);
+        
+        for (let i = batchStart; i < batchEnd; i++) {
+          try {
+            const linha = linhas[i];
+            if (!linha) continue;
+
+            // FORMATO: ticker,valor,dataCom,dataPagamento,tipo,dividendYield
+            const partes = linha.split(',').map(p => p.trim());
             
-            // Ajustar ano de 2 dígitos
-            if (ano.length === 2) {
-              ano = parseInt(ano) < 50 ? '20' + ano : '19' + ano;
+            if (partes.length < 6) {
+              errosProcessamento++;
+              continue;
             }
             
-            return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
+            // 📊 EXTRAIR CAMPOS (FUNCIONA COM QUALQUER FORMATO)
+            const ticker = partes[0];           // TUPY3 ou RURA11 ou BPFF11
+            const valorRaw = partes[1];         // 0.26009606 ou 0.1 ou R$ 0.60
+            const dataComRaw = partes[2];       // 2019-03-19 ou 30/05/2025 ou 28/12/2018
+            const dataPagamentoRaw = partes[3]; // 2019-03-28 ou 06/06/2025 ou 08/01/2019
+            const tipo = partes[4];             // Dividendo ou Rendimento
+            const dividendYieldRaw = partes[5]; // 0.0138 ou 0 ou 0.66
+            
+            // 🔥 PROCESSAR VALORES COM FUNÇÕES UNIVERSAIS
+            const valor = processarValor(valorRaw);
+            const dataCom = processarData(dataComRaw);
+            const dataPagamento = processarData(dataPagamentoRaw);
+            const dividendYield = parseFloat(dividendYieldRaw) || undefined;
+            
+            // ✅ VALIDAÇÕES ESPECÍFICAS
+            if (!ticker || ticker === '') {
+              errosProcessamento++;
+              continue;
+            }
+            
+            if (valor <= 0) {
+              errosProcessamento++;
+              continue;
+            }
+            
+            if (!dataCom || isNaN(dataCom.getTime())) {
+              errosProcessamento++;
+              continue;
+            }
+            
+            // 📝 CRIAR OBJETO PROVENTO
+            const proventoProcessado: ProventoCentral = {
+              ticker: ticker.toUpperCase(),
+              data: dataCom.toISOString().split('T')[0], // YYYY-MM-DD
+              dataObj: dataCom,
+              valor: valor,
+              tipo: tipo || 'dividendo',
+              dataFormatada: dataCom.toLocaleDateString('pt-BR'),
+              valorFormatado: formatarMoeda(valor)
+            };
+            
+            // 📅 ADICIONAR CAMPOS OPCIONAIS
+            if (dataPagamento && !isNaN(dataPagamento.getTime())) {
+              proventoProcessado.dataPagamento = dataPagamento.toISOString().split('T')[0];
+              proventoProcessado.dataPagamentoFormatada = dataPagamento.toLocaleDateString('pt-BR');
+            }
+            
+            if (dividendYield !== undefined && !isNaN(dividendYield)) {
+              proventoProcessado.dividendYield = dividendYield;
+            }
+            
+            // Adicionar campos de compatibilidade
+            proventoProcessado.dataCom = dataCom.toISOString().split('T')[0];
+            proventoProcessado.dataComFormatada = dataCom.toLocaleDateString('pt-BR');
+            
+            proventos.push(proventoProcessado);
+
+          } catch (error) {
+            console.error(`Erro na linha ${i}:`, error);
+            errosProcessamento++;
           }
         }
-        
-        // 🇺🇸 FORMATO AMERICANO: YYYY-MM-DD
-        if (dataLimpa.includes('-')) {
-          const partes = dataLimpa.split('-');
-          if (partes.length === 3) {
-            const [ano, mes, dia] = partes;
-            return new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), 12, 0, 0);
-          }
-        }
-        
-        // Tentar parsing direto
-        const dataObj = new Date(dataLimpa);
-        if (!isNaN(dataObj.getTime())) {
-          return new Date(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate(), 12, 0, 0);
-        }
-        
-        return null;
-      } catch {
-        return null;
+
+        setEtapaProcessamento(`Processando... ${batchEnd - 1}/${linhas.length - 1} linhas`);
+        await delay(50);
       }
-    };
-    
-    // 🔄 PROCESSAMENTO EM LOTES COM DETECÇÃO AUTOMÁTICA
-    for (let batchStart = 1; batchStart < linhas.length; batchStart += BATCH_SIZE) {
-      const batchEnd = Math.min(batchStart + BATCH_SIZE, linhas.length);
+
+      if (proventos.length === 0) {
+        alert(`Nenhum provento válido encontrado. Erros: ${errosProcessamento}`);
+        return;
+      }
+
+      setEtapaProcessamento('Enviando para servidor...');
+
+      // 🚀 USAR API EM VEZ DE localStorage
+      const resultado = await uploadProventos(proventos, {
+        nomeArquivo: arquivoSelecionado.name,
+        tamanhoArquivo: arquivoSelecionado.size,
+        totalLinhas: linhas.length,
+        linhasProcessadas: proventos.length,
+        linhasComErro: errosProcessamento
+      });
+
+      // ✅ RECARREGAR ESTATÍSTICAS
+      await carregarEstatisticas();
       
-      for (let i = batchStart; i < batchEnd; i++) {
-        try {
-          const linha = linhas[i];
-          if (!linha) continue;
-
-          // FORMATO: ticker,valor,dataCom,dataPagamento,tipo,dividendYield
-          const partes = linha.split(',').map(p => p.trim());
-          
-          if (partes.length < 6) {
-            errosProcessamento++;
-            continue;
-          }
-          
-          // 📊 EXTRAIR CAMPOS (FUNCIONA COM QUALQUER FORMATO)
-          const ticker = partes[0];           // TUPY3 ou RURA11 ou BPFF11
-          const valorRaw = partes[1];         // 0.26009606 ou 0.1 ou R$ 0.60
-          const dataComRaw = partes[2];       // 2019-03-19 ou 30/05/2025 ou 28/12/2018
-          const dataPagamentoRaw = partes[3]; // 2019-03-28 ou 06/06/2025 ou 08/01/2019
-          const tipo = partes[4];             // Dividendo ou Rendimento
-          const dividendYieldRaw = partes[5]; // 0.0138 ou 0 ou 0.66
-          
-          // 🔥 PROCESSAR VALORES COM FUNÇÕES UNIVERSAIS
-          const valor = processarValor(valorRaw);
-          const dataCom = processarData(dataComRaw);
-          const dataPagamento = processarData(dataPagamentoRaw);
-          const dividendYield = parseFloat(dividendYieldRaw) || undefined;
-          
-          // ✅ VALIDAÇÕES ESPECÍFICAS
-          if (!ticker || ticker === '') {
-            errosProcessamento++;
-            continue;
-          }
-          
-          if (valor <= 0) {
-            errosProcessamento++;
-            continue;
-          }
-          
-          if (!dataCom || isNaN(dataCom.getTime())) {
-            errosProcessamento++;
-            continue;
-          }
-          
-          // 📝 CRIAR OBJETO PROVENTO
-          const proventoProcessado: ProventoCentral = {
-            ticker: ticker.toUpperCase(),
-            data: dataCom.toISOString().split('T')[0], // YYYY-MM-DD
-            dataObj: dataCom,
-            valor: valor,
-            tipo: tipo || 'dividendo',
-            dataFormatada: dataCom.toLocaleDateString('pt-BR'),
-            valorFormatado: formatarMoeda(valor)
-          };
-          
-          // 📅 ADICIONAR CAMPOS OPCIONAIS
-          if (dataPagamento && !isNaN(dataPagamento.getTime())) {
-            proventoProcessado.dataPagamento = dataPagamento.toISOString().split('T')[0];
-            proventoProcessado.dataPagamentoFormatada = dataPagamento.toLocaleDateString('pt-BR');
-          }
-          
-          if (dividendYield !== undefined && !isNaN(dividendYield)) {
-            proventoProcessado.dividendYield = dividendYield;
-          }
-          
-          // Adicionar campos de compatibilidade
-          proventoProcessado.dataCom = dataCom.toISOString().split('T')[0];
-          proventoProcessado.dataComFormatada = dataCom.toLocaleDateString('pt-BR');
-          
-          proventos.push(proventoProcessado);
-
-        } catch (error) {
-          console.error(`Erro na linha ${i}:`, error);
-          errosProcessamento++;
-        }
+      let mensagem = `✅ ${proventos.length.toLocaleString()} proventos processados com sucesso!`;
+      if (errosProcessamento > 0) {
+        mensagem += `\n⚠️ ${errosProcessamento} linhas ignoradas por erros.`;
       }
+      
+      alert(mensagem);
+      setDialogAberto(false);
+      setArquivoSelecionado(null);
 
-      setEtapaProcessamento(`Processando... ${batchEnd - 1}/${linhas.length - 1} linhas`);
-      await delay(50);
+    } catch (error) {
+      console.error('Erro no processamento:', error);
+      alert('Erro ao processar o arquivo. Verifique o formato.');
+    } finally {
+      setEtapaProcessamento('');
     }
-
-    if (proventos.length === 0) {
-      alert(`Nenhum provento válido encontrado. Erros: ${errosProcessamento}`);
-      return;
-    }
-
-    setEtapaProcessamento('Enviando para servidor...');
-
-    // 🚀 USAR API EM VEZ DE localStorage
-    const resultado = await uploadProventos(proventos, {
-      nomeArquivo: arquivoSelecionado.name,
-      tamanhoArquivo: arquivoSelecionado.size,
-      totalLinhas: linhas.length,
-      linhasProcessadas: proventos.length,
-      linhasComErro: errosProcessamento
-    });
-
-    // ✅ RECARREGAR ESTATÍSTICAS
-    await carregarEstatisticas();
-    
-    let mensagem = `✅ ${proventos.length.toLocaleString()} proventos processados com sucesso!`;
-    if (errosProcessamento > 0) {
-      mensagem += `\n⚠️ ${errosProcessamento} linhas ignoradas por erros.`;
-    }
-    
-    alert(mensagem);
-    setDialogAberto(false);
-    setArquivoSelecionado(null);
-
-  } catch (error) {
-    console.error('Erro no processamento:', error);
-    alert('Erro ao processar o arquivo. Verifique o formato.');
-  } finally {
-    setEtapaProcessamento('');
-  }
-}, [arquivoSelecionado, uploadProventos, carregarEstatisticas]);
+  }, [arquivoSelecionado, uploadProventos, carregarEstatisticas]);
 
   // ✅ EXPORTAR VIA API
   const handleExportarDados = async () => {
@@ -354,6 +360,84 @@ const processarCSV = useCallback(async () => {
     }
   };
 
+  // ✅ VERIFICAÇÕES CONDICIONAIS DEPOIS DOS HOOKS
+  if (authLoading) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc'
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={48} sx={{ mb: 2, color: '#3b82f6' }} />
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e293b', mb: 1 }}>
+            Verificando permissões administrativas...
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Central de Proventos
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (!hasAccessSync('admin-proventos')) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc',
+        p: 3
+      }}>
+        <Card sx={{ maxWidth: 600, textAlign: 'center', p: 6 }}>
+          <Typography variant="h2" sx={{ fontSize: '64px', mb: 3 }}>
+            💰
+          </Typography>
+          <Typography variant="h4" sx={{ 
+            fontWeight: 700, 
+            color: '#dc2626', 
+            mb: 2 
+          }}>
+            Acesso Administrativo Negado
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+            A <strong>Central de Proventos</strong> é uma área restrita a administradores do sistema. 
+            Você não possui as permissões necessárias para gerenciar dados de proventos corporativos.
+          </Typography>
+          <Alert severity="info" sx={{ mb: 4, textAlign: 'left' }}>
+            <Typography variant="body2">
+              <strong>Usuário:</strong> {user?.email || 'N/A'}<br/>
+              <strong>Plano:</strong> {user?.plan || 'N/A'}<br/>
+              <strong>Área solicitada:</strong> Central de Proventos (Admin)
+            </Typography>
+          </Alert>
+          <Stack direction="row" spacing={2} justifyContent="center">
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => window.location.href = '/dashboard'}
+              sx={{ px: 4 }}
+            >
+              Voltar ao Dashboard
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => window.history.back()}
+              sx={{ px: 4 }}
+            >
+              Página Anterior
+            </Button>
+          </Stack>
+        </Card>
+      </Box>
+    );
+  }
+
+  // ✅ RENDER NORMAL DA PÁGINA (todo seu código JSX original)
   return (
     <Box sx={{ 
       p: 4, 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, DollarSign, Building, Globe, Zap, Bell, Plus, Trash2, Save, Eye, AlertCircle, CheckCircle, BarChart3, Users, Clock, FileText, Target, Briefcase, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link, Palette, ExternalLink, PieChart, Activity, Image, Upload, Edit, Archive, Search, Filter, LineChart, Coins, ToggleLeft, ToggleRight, TrendingDown as TrendingDownIcon } from 'lucide-react';
+import { useAuthAccess } from '@/hooks/use-auth-access';
 
 // Interface unificada para item de relatório (notícia ou provento)
 interface ItemRelatorioSemanal {
@@ -2044,6 +2045,7 @@ const RascunhosRelatorios = memo(({
 
 // 🏠 COMPONENTE PRINCIPAL
 const AdminRelatorioSemanal = () => {
+  const { hasRelatorioSemanalAdminAccess, loading: authLoading, user } = useAuthAccess();
   const [relatorios, setRelatorios] = useState<RelatorioSemanalData[]>([]);
   const [activeTab, setActiveTab] = useState<'criar' | 'publicados' | 'rascunhos'>('criar');
   const [loading, setLoading] = useState(true);
@@ -2269,6 +2271,84 @@ const editRelatorio = useCallback((relatorio: RelatorioSemanalData) => {
   const totalRelatorios = relatorios.length;
   const relatoriosDraft = relatorios.filter(r => r.status === 'draft').length;
   const relatoriosPublicados = relatorios.filter(r => r.status === 'published').length;
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            border: '3px solid #e5e7eb',
+            borderTop: '3px solid #22c55e',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b' }}>
+            Verificando permissões administrativas...
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasRelatorioSemanalAdminAccess()) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ 
+          textAlign: 'center', 
+          backgroundColor: 'white', 
+          padding: '48px 32px', 
+          borderRadius: '16px', 
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          maxWidth: '600px'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px' }}>📝</div>
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: '700', 
+            color: '#dc2626', 
+            marginBottom: '16px' 
+          }}>
+            Acesso Administrativo Negado
+          </h1>
+          <p style={{ 
+            color: '#64748b', 
+            fontSize: '16px',
+            lineHeight: '1.6',
+            marginBottom: '24px'
+          }}>
+            Esta área é restrita a <strong>administradores</strong> do sistema. Você não possui as permissões necessárias para gerenciar relatórios semanais.
+          </p>
+          <p style={{ 
+            color: '#64748b', 
+            fontSize: '14px',
+            marginBottom: '32px'
+          }}>
+            Usuário: <strong>{user?.email || 'N/A'}</strong> | 
+            Plano: <strong>{user?.plan || 'N/A'}</strong>
+          </p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            style={{
+              backgroundColor: '#22c55e',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Voltar ao Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   if (loading) {
     return (

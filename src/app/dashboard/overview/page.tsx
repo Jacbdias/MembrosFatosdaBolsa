@@ -5,6 +5,8 @@ import * as React from 'react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useProventosPorAtivo } from '@/hooks/useProventosPorAtivo';
+import { useAuthAccess } from '@/hooks/use-auth-access';
+
 
 // 🚀 CACHE GLOBAL SINCRONIZADO PARA GARANTIR DADOS IDÊNTICOS
 const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
@@ -1117,6 +1119,8 @@ const proventosFiltrados = proventosRaw.filter((p: any) => {
 
 // 🎯 COMPONENTE PRINCIPAL OTIMIZADO
 export default function SmallCapsPage() {
+  // ✅ TODOS OS HOOKS NO TOPO - SEM EXCEÇÃO
+  const { hasAccessSync, loading: authLoading, planInfo } = useAuthAccess();
   const { dados } = useDataStore();
   const { 
     ativosAtualizados, 
@@ -1127,14 +1131,14 @@ export default function SmallCapsPage() {
     loadingProventos,
     isMobile,
     todosOsDadosProntos,
-  proventosCompletos  // ✅ ADICIONAR ESTA LINHA
+    proventosCompletos
   } = useSmallCapsIntegradas();
   
   const { smllData } = useSmllRealTime();
   const { ibovespaData } = useIbovespaRealTime();
   const { ibovespaPeriodo } = useIbovespaPeriodo(ativosAtualizados);
 
-  // Separar ativos com memoização
+  // ✅ ESTE useMemo TAMBÉM DEVE ESTAR NO TOPO
   const { ativosAtivos, ativosEncerrados } = React.useMemo(() => {
     const ativos = ativosAtualizados.filter((ativo) => !ativo.posicaoEncerrada) || [];
     const encerrados = ativosAtualizados.filter((ativo) => ativo.posicaoEncerrada) || [];
@@ -1237,6 +1241,93 @@ const calcularPerformanceEncerrada = React.useCallback((ativo: any) => {
   // Total Return = Performance da ação + Performance dos proventos
   return performanceAcao + performanceProventos;
 }, [proventosCompletos]);
+
+  if (authLoading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f5f5f5', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #e2e8f0',
+            borderTop: '3px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <h2 style={{ color: '#1e293b' }}>Verificando permissões...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccessSync('small-caps')) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f5f5f5',
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{ 
+          textAlign: 'center', 
+          backgroundColor: 'white', 
+          padding: '48px 32px', 
+          borderRadius: '16px', 
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          maxWidth: '500px'
+        }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px' }}>🔒</div>
+          <h1 style={{ 
+            fontSize: '24px', 
+            fontWeight: '700', 
+            color: '#1e293b', 
+            marginBottom: '16px' 
+          }}>
+            Acesso Restrito
+          </h1>
+          <p style={{ 
+            color: '#64748b', 
+            fontSize: '16px',
+            lineHeight: '1.6',
+            marginBottom: '24px'
+          }}>
+            Você não tem permissão para acessar a carteira de <strong>Small Caps</strong>.
+          </p>
+          <p style={{ 
+            color: '#64748b', 
+            fontSize: '14px',
+            marginBottom: '32px'
+          }}>
+            Plano atual: <strong>{planInfo?.displayName || 'Carregando...'}</strong>
+          </p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Voltar ao Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ 

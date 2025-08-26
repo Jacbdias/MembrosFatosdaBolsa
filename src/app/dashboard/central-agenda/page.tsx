@@ -40,6 +40,7 @@ import {
   useAgendaUpload, 
   useAgendaExport 
 } from '@/hooks/useAgendaAPI';
+import { useAuthAccess } from '@/hooks/use-auth-access';
 
 // Ícones Mock (mantendo consistência com o padrão atual)
 const UploadIcon = () => <span>📤</span>;
@@ -132,6 +133,7 @@ interface EventoCorporativo {
 
 // Componente principal da página
 export default function CentralAgendaPage() {
+  const { hasAnalisesTrimesestraisAdminAccess, loading: authLoading, user } = useAuthAccess();
   const [tabAtual, setTabAtual] = useState(0);
   const [dialogLimpar, setDialogLimpar] = useState(false);
   const [etapaProcessamento, setEtapaProcessamento] = useState<string>('');
@@ -436,6 +438,82 @@ VALE3,fato_relevante,Comunicado Importante,2025-07-01,Comunicado sobre operaçõ
       .map(([ticker, data]) => ({ ticker, ...data }))
       .sort((a, b) => b.total - a.total);
   }, [estatisticas.eventos]);
+
+  if (authLoading) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc'
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={48} sx={{ mb: 2, color: '#3b82f6' }} />
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e293b', mb: 1 }}>
+            Verificando permissões administrativas...
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Central da Agenda Corporativa
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (!hasAnalisesTrimesestraisAdminAccess()) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8fafc',
+        p: 3
+      }}>
+        <Card sx={{ maxWidth: 600, textAlign: 'center', p: 6 }}>
+          <Typography variant="h2" sx={{ fontSize: '64px', mb: 3 }}>
+            📅
+          </Typography>
+          <Typography variant="h4" sx={{ 
+            fontWeight: 700, 
+            color: '#dc2626', 
+            mb: 2 
+          }}>
+            Acesso Administrativo Negado
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+            A <strong>Central da Agenda Corporativa</strong> é uma área restrita a administradores do sistema. 
+            Você não possui as permissões necessárias para gerenciar eventos corporativos.
+          </Typography>
+          <Alert severity="info" sx={{ mb: 4, textAlign: 'left' }}>
+            <Typography variant="body2">
+              <strong>Usuário:</strong> {user?.email || 'N/A'}<br/>
+              <strong>Plano:</strong> {user?.plan || 'N/A'}<br/>
+              <strong>Área solicitada:</strong> Agenda Corporativa (Admin)
+            </Typography>
+          </Alert>
+          <Stack direction="row" spacing={2} justifyContent="center">
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => window.location.href = '/dashboard'}
+              sx={{ px: 4 }}
+            >
+              Voltar ao Dashboard
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => window.history.back()}
+              sx={{ px: 4 }}
+            >
+              Página Anterior
+            </Button>
+          </Stack>
+        </Card>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>

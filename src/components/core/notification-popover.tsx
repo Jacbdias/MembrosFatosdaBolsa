@@ -29,23 +29,25 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  category: string;
+  read: boolean;
+  actionUrl?: string;
+  metadata?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface NotificationPopoverProps {
   anchorEl: HTMLElement | null;
   open: boolean;
   onClose: () => void;
-}
-
-// Hook básico temporário para evitar erros
-function useNotifications() {
-  return {
-    notifications: [],
-    unreadCount: 0,
-    loading: false,
-    error: null,
-    markAsRead: async () => {},
-    markAllAsRead: async () => {},
-    deleteNotification: async () => {}
-  };
+  notifications: Notification[];
+  unreadCount: number;
 }
 
 const getNotificationIcon = (type: string) => {
@@ -85,22 +87,39 @@ const formatTimeAgo = (date: string) => {
   return `${Math.floor(diffInSeconds / 86400)}d atrás`;
 };
 
-export function NotificationPopover({ anchorEl, open, onClose }: NotificationPopoverProps) {
+export function NotificationPopover({ 
+  anchorEl, 
+  open, 
+  onClose, 
+  notifications, 
+  unreadCount 
+}: NotificationPopoverProps) {
   const router = useRouter();
-  const {
-    notifications,
-    unreadCount,
-    loading,
-    error,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification
-  } = useNotifications();
+  const [localLoading, setLocalLoading] = React.useState(false);
+  const [localError, setLocalError] = React.useState<string | null>(null);
 
-  const handleNotificationClick = async (notification: any) => {
+  const handleNotificationClick = async (notification: Notification) => {
     // Marcar como lida se não estiver lida
     if (!notification.read) {
-      await markAsRead(notification.id);
+      try {
+        setLocalLoading(true);
+        const token = localStorage.getItem('custom-auth-token');
+        const userEmail = localStorage.getItem('user-email');
+        
+        await fetch(`/api/notifications/${notification.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-User-Email': userEmail || '',
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao marcar como lida:', error);
+        setLocalError('Erro ao marcar como lida');
+      } finally {
+        setLocalLoading(false);
+      }
     }
 
     // Redirecionar se há URL de ação
@@ -113,16 +132,81 @@ export function NotificationPopover({ anchorEl, open, onClose }: NotificationPop
 
   const handleMarkAsRead = async (e: React.MouseEvent, notificationId: string) => {
     e.stopPropagation();
-    await markAsRead(notificationId);
+    
+    try {
+      setLocalLoading(true);
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': userEmail || '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Recarregar página para atualizar dados
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao marcar como lida:', error);
+      setLocalError('Erro ao marcar como lida');
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent, notificationId: string) => {
     e.stopPropagation();
-    await deleteNotification(notificationId);
+    
+    try {
+      setLocalLoading(true);
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': userEmail || '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Recarregar página para atualizar dados
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao deletar:', error);
+      setLocalError('Erro ao deletar');
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    try {
+      setLocalLoading(true);
+      const token = localStorage.getItem('custom-auth-token');
+      const userEmail = localStorage.getItem('user-email');
+      
+      await fetch('/api/notifications/mark-all-read', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Email': userEmail || '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Recarregar página para atualizar dados
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao marcar todas como lidas:', error);
+      setLocalError('Erro ao marcar todas como lidas');
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   return (
@@ -151,30 +235,60 @@ export function NotificationPopover({ anchorEl, open, onClose }: NotificationPop
       }}
     >
       {/* Header */}
-      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'grey.100' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
+          <Typography variant="h6" sx={{ fontSize: '16px', fontWeight: 600 }}>
             Notificações
             {unreadCount > 0 && (
-              <Chip 
-                label={unreadCount} 
-                size="small" 
-                color="primary" 
-                sx={{ ml: 1 }}
-              />
+<Chip 
+  label={unreadCount} 
+  size="small"
+  variant="filled"
+  sx={{ 
+    ml: 1,
+    height: 20,
+    fontSize: '11px',
+    fontWeight: 600,
+    backgroundColor: '#4bf700',
+    color: 'black',
+    '&:hover': {
+      backgroundColor: '#42d800'
+    }
+  }}
+/>
             )}
           </Typography>
-          <IconButton size="small" onClick={onClose}>
-            <CloseIcon />
+          <IconButton 
+            size="small" 
+            onClick={onClose}
+            sx={{
+              color: 'text.disabled',
+              '&:hover': {
+                color: 'text.secondary',
+                backgroundColor: 'grey.50'
+              }
+            }}
+          >
+            <CloseIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Stack>
         
-        {unreadCount > 0 && (
+         {unreadCount > 0 && (
           <Button
             size="small"
-            startIcon={<MarkEmailReadIcon />}
+            startIcon={<MarkEmailReadIcon sx={{ fontSize: 16 }} />}
             onClick={handleMarkAllAsRead}
-            sx={{ mt: 1 }}
+            disabled={localLoading}
+            sx={{ 
+              mt: 1.5,
+              textTransform: 'none',
+              fontSize: '12px',
+              color: 'grey.700',
+              '&:hover': {
+                backgroundColor: 'grey.100',
+                color: 'grey.800'
+              }
+            }}
           >
             Marcar todas como lidas
           </Button>
@@ -183,19 +297,19 @@ export function NotificationPopover({ anchorEl, open, onClose }: NotificationPop
 
       {/* Content */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {loading && (
+        {localLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress size={24} />
           </Box>
         )}
 
-        {error && (
+        {localError && (
           <Box sx={{ p: 2 }}>
-            <Alert severity="error">{error}</Alert>
+            <Alert severity="error">{localError}</Alert>
           </Box>
         )}
 
-        {!loading && !error && notifications.length === 0 && (
+        {!localLoading && !localError && notifications.length === 0 && (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
             <Typography variant="body1" color="text.secondary">
@@ -207,52 +321,94 @@ export function NotificationPopover({ anchorEl, open, onClose }: NotificationPop
           </Box>
         )}
 
-        {!loading && !error && notifications.length > 0 && (
+        {!localLoading && !localError && notifications.length > 0 && (
           <List sx={{ p: 0 }}>
             {notifications.map((notification, index) => (
               <React.Fragment key={notification.id}>
                 <ListItem
                   sx={{
                     cursor: notification.actionUrl ? 'pointer' : 'default',
-                    backgroundColor: notification.read ? 'transparent' : getNotificationColor(notification.type),
+                    backgroundColor: notification.read ? 'transparent' : 'rgba(75, 247, 0, 0.06)',
                     '&:hover': {
-                      backgroundColor: notification.read ? 'action.hover' : getNotificationColor(notification.type)
+                      backgroundColor: 'rgba(75, 247, 0, 0.12)'
                     },
-                    borderLeft: !notification.read ? '4px solid' : 'none',
-                    borderLeftColor: !notification.read ? `${notification.type}.main` : 'transparent'
+                    borderRadius: 1,
+                    mx: 1,
+                    my: 0.5,
+                    border: !notification.read ? '1px solid rgba(75, 247, 0, 0.3)' : '1px solid transparent',
+                    transition: 'all 0.2s ease'
                   }}
                   onClick={() => handleNotificationClick(notification)}
                 >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    {getNotificationIcon(notification.type)}
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Box sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      backgroundColor: !notification.read ? '#4bf700' : 'grey.300',
+                      transition: 'all 0.2s ease'
+                    }} />
                   </ListItemIcon>
                   
                   <ListItemText
                     primary={
-                      <Typography variant="subtitle2" sx={{ fontWeight: notification.read ? 'normal' : 'bold' }}>
+                      <Typography 
+                        variant="subtitle2" 
+                        sx={{ 
+                          fontWeight: notification.read ? 400 : 600,
+                          fontSize: '14px',
+                          lineHeight: 1.4,
+                          color: notification.read ? 'text.secondary' : 'text.primary'
+                        }}
+                      >
                         {notification.title}
                       </Typography>
                     }
                     secondary={
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                      <Box sx={{ mt: 0.5 }}>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: 'text.secondary',
+                            fontSize: '13px',
+                            lineHeight: 1.3,
+                            mb: 0.5
+                          }}
+                        >
                           {notification.message}
                         </Typography>
-                        <Typography variant="caption" color="text.disabled">
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'text.disabled',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
                           {formatTimeAgo(notification.createdAt)}
                         </Typography>
                       </Box>
                     }
                   />
 
-                  <Stack direction="column" spacing={0.5}>
+                  <Stack direction="row" spacing={0.5} sx={{ ml: 1 }}>
                     {!notification.read && (
                       <IconButton 
                         size="small" 
                         onClick={(e) => handleMarkAsRead(e, notification.id)}
                         title="Marcar como lida"
+                        disabled={localLoading}
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          color: 'text.disabled',
+                          '&:hover': {
+                            color: '#4bf700',
+                            backgroundColor: 'rgba(75, 247, 0, 0.1)'
+                          }
+                        }}
                       >
-                        <MarkEmailReadIcon fontSize="small" />
+                        <MarkEmailReadIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     )}
                     
@@ -260,8 +416,18 @@ export function NotificationPopover({ anchorEl, open, onClose }: NotificationPop
                       size="small" 
                       onClick={(e) => handleDelete(e, notification.id)}
                       title="Deletar"
+                      disabled={localLoading}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        color: 'text.disabled',
+                        '&:hover': {
+                          color: 'error.main',
+                          backgroundColor: 'error.50'
+                        }
+                      }}
                     >
-                      <DeleteIcon fontSize="small" />
+                      <DeleteIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Stack>
                 </ListItem>
@@ -282,6 +448,16 @@ export function NotificationPopover({ anchorEl, open, onClose }: NotificationPop
             onClick={() => {
               router.push('/dashboard/notifications');
               onClose();
+            }}
+            sx={{
+              color: '#6B7280',
+              textTransform: 'none',
+              fontSize: '13px',
+              fontWeight: 500,
+              '&:hover': {
+                backgroundColor: 'rgba(75, 247, 0, 0.08)',
+                color: '#4bf700'
+              }
             }}
           >
             Ver todas as notificações

@@ -93,7 +93,7 @@ export function MainNav(): React.JSX.Element {
   const [userAvatar, setUserAvatar] = React.useState<string>('/assets/avatar.png');
   
   const ativos = useAtivos();
-  const { unreadCount } = useNotifications();
+const { notifications, unreadCount } = useNotifications();
 
   // Verificar localStorage para avatar
   React.useEffect(() => {
@@ -369,12 +369,13 @@ export function MainNav(): React.JSX.Element {
         open={userPopover.open} 
       />
       
-      <NotificationPopover
-        anchorEl={notificationPopover.anchorRef.current}
-        onClose={notificationPopover.handleClose}
-        open={notificationPopover.open}
-      />
-      
+<NotificationPopover
+  anchorEl={notificationPopover.anchorRef.current}
+  onClose={notificationPopover.handleClose}
+  open={notificationPopover.open}
+  notifications={notifications}
+  unreadCount={unreadCount}
+/>      
       <MobileNav
         onClose={() => {
           setOpenNav(false);

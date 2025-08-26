@@ -32,6 +32,25 @@ export function useNotifications(): UseNotificationsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Função para verificar se está autenticado
+  const isAuthenticated = useCallback(() => {
+    const token = localStorage.getItem('custom-auth-token');
+    const userEmail = localStorage.getItem('user-email');
+    const hasTokens = Boolean(token && userEmail);
+    
+    console.log('isAuthenticated check:', { hasTokens, token: token?.substring(0, 10) });
+    
+    return hasTokens;
+  }, []);
+
+  // Função para limpar estado quando não autenticado
+  const clearState = useCallback(() => {
+    setNotifications([]);
+    setUnreadCount(0);
+    setError(null);
+    setLoading(false);
+  }, []);
+
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('custom-auth-token');
     const userEmail = localStorage.getItem('user-email');
@@ -48,6 +67,13 @@ export function useNotifications(): UseNotificationsReturn {
   }, []);
 
   const fetchNotifications = useCallback(async () => {
+    // Verificar auth antes de fazer request
+    if (!isAuthenticated()) {
+      console.log('useNotifications: Usuário não autenticado, limpando estado');
+      clearState();
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -58,21 +84,46 @@ export function useNotifications(): UseNotificationsReturn {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        // Tratar diferentes tipos de erro
+        if (response.status === 401 || response.status === 404) {
+          console.log('useNotifications: Auth inválida, limpando estado');
+          clearState();
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: Failed to fetch notifications`);
       }
 
       const data = await response.json();
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
+      
+      console.log('useNotifications: Dados carregados', {
+        total: data.notifications?.length || 0,
+        unread: data.unreadCount || 0
+      });
+
     } catch (err) {
-      console.error('Error fetching notifications:', err);
+      console.error('useNotifications: Error fetching notifications:', err);
+      
+      // Se erro de auth, limpar estado completamente
+      if (err instanceof Error && err.message.includes('Authentication required')) {
+        clearState();
+        return;
+      }
+      
+      // Para outros erros, manter dados mas mostrar erro
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, isAuthenticated, clearState]);
 
   const markAsRead = useCallback(async (id: string) => {
+    if (!isAuthenticated()) {
+      clearState();
+      return;
+    }
+
     try {
       const headers = getAuthHeaders();
       const response = await fetch(`/api/notifications/${id}`, {
@@ -81,6 +132,10 @@ export function useNotifications(): UseNotificationsReturn {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 404) {
+          clearState();
+          return;
+        }
         throw new Error('Failed to mark notification as read');
       }
 
@@ -94,11 +149,20 @@ export function useNotifications(): UseNotificationsReturn {
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Error marking notification as read:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error && err.message.includes('Authentication required')) {
+        clearState();
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, isAuthenticated, clearState]);
 
   const markAllAsRead = useCallback(async () => {
+    if (!isAuthenticated()) {
+      clearState();
+      return;
+    }
+
     try {
       const headers = getAuthHeaders();
       const response = await fetch('/api/notifications/mark-all-read', {
@@ -107,6 +171,10 @@ export function useNotifications(): UseNotificationsReturn {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 404) {
+          clearState();
+          return;
+        }
         throw new Error('Failed to mark all notifications as read');
       }
 
@@ -117,11 +185,20 @@ export function useNotifications(): UseNotificationsReturn {
       setUnreadCount(0);
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error && err.message.includes('Authentication required')) {
+        clearState();
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, isAuthenticated, clearState]);
 
   const deleteNotification = useCallback(async (id: string) => {
+    if (!isAuthenticated()) {
+      clearState();
+      return;
+    }
+
     try {
       const headers = getAuthHeaders();
       const response = await fetch(`/api/notifications/${id}`, {
@@ -130,6 +207,10 @@ export function useNotifications(): UseNotificationsReturn {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 404) {
+          clearState();
+          return;
+        }
         throw new Error('Failed to delete notification');
       }
 
@@ -142,27 +223,67 @@ export function useNotifications(): UseNotificationsReturn {
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error && err.message.includes('Authentication required')) {
+        clearState();
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     }
-  }, [getAuthHeaders, notifications]);
+  }, [getAuthHeaders, notifications, isAuthenticated, clearState]);
 
   const refreshNotifications = useCallback(() => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Buscar notificações na montagem do componente
+  // Effect para monitorar mudanças de auth
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    const handleAuthChange = () => {
+      if (!isAuthenticated()) {
+        console.log('useNotifications: Auth perdida, limpando estado');
+        clearState();
+      } else {
+        console.log('useNotifications: Auth detectada, carregando dados');
+        fetchNotifications();
+      }
+    };
 
-  // Polling para buscar novas notificações a cada 30 segundos
+    // Verificar imediatamente
+    handleAuthChange();
+
+    // Escutar mudanças no localStorage
+    window.addEventListener('storage', handleAuthChange);
+    
+    return () => window.removeEventListener('storage', handleAuthChange);
+  }, [fetchNotifications, isAuthenticated, clearState]);
+
+  // Polling condicional (apenas se autenticado)
   useEffect(() => {
+    const authStatus = isAuthenticated();
+    console.log('useNotifications POLLING: isAuth =', authStatus);
+    
+    if (!authStatus) {
+      console.log('useNotifications POLLING: Não autenticado, pulando polling');
+      return;
+    }
+
+    console.log('useNotifications POLLING: Iniciando interval de 30s');
     const interval = setInterval(() => {
-      fetchNotifications();
+      const stillAuth = isAuthenticated();
+      console.log('useNotifications POLLING: Executando... isAuth =', stillAuth);
+      
+      if (stillAuth) {
+        console.log('useNotifications POLLING: Fazendo fetchNotifications');
+        fetchNotifications();
+      } else {
+        console.log('useNotifications POLLING: Não autenticado, pulando fetch');
+      }
     }, 30000); // 30 segundos
 
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+    return () => {
+      console.log('useNotifications POLLING: Limpando interval');
+      clearInterval(interval);
+    };
+  }, [fetchNotifications, isAuthenticated]);
 
   return {
     notifications,
