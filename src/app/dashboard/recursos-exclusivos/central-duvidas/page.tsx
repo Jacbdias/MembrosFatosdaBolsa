@@ -1,52 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Card, 
-  CardContent, 
-  Button, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Divider,
-  CircularProgress,
-  Alert,
-  Fab,
-  Grid,
-  Paper,
-  Stack,
-  Badge,
-  IconButton,
-  Tooltip
-} from '@mui/material';
-import { 
-  Add, 
-  ExpandMore, 
-  ChatBubbleOutline, 
-  Schedule, 
-  CheckCircle, 
-  Close,
-  Category,
-  Person,
-  AccessTime,
-  QuestionAnswer,
-  Visibility,
-  VisibilityOff,
-  TrendingUp,
-  Assignment
-} from '@mui/icons-material';
 
 // Tipos
 interface Question {
@@ -91,26 +45,6 @@ const statusLabels = {
   'FECHADA': 'Fechada'
 };
 
-const statusColors = {
-  'NOVA': 'warning',
-  'RESPONDIDA': 'success',
-  'FECHADA': 'default'
-} as const;
-
-const categoryColors = {
-  'SMALL_CAPS': '#f8fafc',
-  'MICRO_CAPS': '#f8fafc',
-  'DIVIDENDOS': '#f8fafc',
-  'FIIS': '#f8fafc',
-  'INTERNACIONAL_ETFS': '#f8fafc',
-  'INTERNACIONAL_STOCKS': '#f8fafc',
-  'INTERNACIONAL_DIVIDENDOS': '#f8fafc',
-  'PROJETO_AMERICA': '#f8fafc',
-  'GERAL': '#f8fafc',
-  'TECNICO': '#f8fafc',
-  'FISCAL': '#f8fafc'
-};
-
 export default function CentralDuvidas() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +58,17 @@ export default function CentralDuvidas() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Carregar perguntas reais da API
   const loadQuestions = async () => {
@@ -221,7 +166,7 @@ export default function CentralDuvidas() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('pt-BR', {
+    return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -245,475 +190,710 @@ export default function CentralDuvidas() {
     return question.answers.some(answer => !answer.readByUser);
   };
 
-  const getQuestionIcon = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'NOVA':
-        return <Schedule color="warning" />;
+        return '⏳';
       case 'RESPONDIDA':
-        return <QuestionAnswer color="success" />;
+        return '✓';
       case 'FECHADA':
-        return <CheckCircle color="disabled" />;
+        return '✓';
       default:
-        return <ChatBubbleOutline />;
+        return '⏳';
     }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'NOVA':
+        return '#10b981';
+      case 'RESPONDIDA':
+        return '#10b981';
+      case 'FECHADA':
+        return '#6b7280';
+      default:
+        return '#6b7280';
+    }
+  };
+
+  const handleAccordionChange = (questionId: string) => (isExpanded: boolean) => {
+    setExpandedQuestion(isExpanded ? questionId : null);
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-        <Typography variant="h6" sx={{ ml: 2 }}>
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f8f9fa',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '20px'
+      }}>
+        <p style={{ 
+          color: '#6b7280', 
+          fontSize: '16px'
+        }}>
           Carregando suas dúvidas...
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto', bgcolor: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f8f9fa', 
+      padding: isMobile ? '16px' : '32px'
+    }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, color: '#1e293b' }}>
+      <div style={{ marginBottom: isMobile ? '32px' : '48px', maxWidth: '1200px', margin: '0 auto 32px auto' }}>
+        <h1 style={{ 
+          fontSize: isMobile ? '28px' : '42px', 
+          fontWeight: '700', 
+          color: '#111827',
+          margin: '0 0 12px 0',
+          lineHeight: '1.1',
+          letterSpacing: '-0.025em'
+        }}>
           Central de Dúvidas
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
+        </h1>
+        <p style={{ 
+          color: '#6b7280', 
+          fontSize: isMobile ? '16px' : '18px',
+          margin: '0',
+          lineHeight: '1.6',
+          fontWeight: '400'
+        }}>
           Tire suas dúvidas sobre investimentos e receba respostas dos nossos especialistas
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      {/* Alertas */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      )}
-
-      {/* Estatísticas rápidas */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4}>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <Assignment sx={{ fontSize: 40, color: '#3b82f6', mb: 1 }} />
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                {questions.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Total de Dúvidas
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <Schedule sx={{ fontSize: 40, color: '#f59e0b', mb: 1 }} />
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                {questions.filter(q => q.status === 'NOVA').length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Aguardando Resposta
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <CheckCircle sx={{ fontSize: 40, color: '#10b981', mb: 1 }} />
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                {questions.filter(q => q.status === 'RESPONDIDA').length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Respondidas
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Lista de dúvidas */}
-      <Box sx={{ mb: 4 }}>
-        {questions.length === 0 ? (
-          <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-            <CardContent sx={{ textAlign: 'center', py: 8 }}>
-              <ChatBubbleOutline sx={{ fontSize: 80, color: 'text.secondary', mb: 3 }} />
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#1e293b' }}>
-                Nenhuma dúvida ainda
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400, mx: 'auto' }}>
-                Faça sua primeira pergunta para nossos especialistas em investimentos!
-              </Typography>
-              <Button 
-                variant="contained" 
-                size="large"
-                onClick={() => setOpenDialog(true)}
-                sx={{ borderRadius: 2, px: 4, py: 1.5 }}
-              >
-                Fazer Primeira Pergunta
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Stack spacing={2}>
-            {questions.map((question) => (
-              <Card 
-                key={question.id} 
-                sx={{ 
-                  borderRadius: 2, 
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  border: hasUnreadAnswers(question) ? '2px solid #f3f4f6' : '1px solid #e0e0e0',
-                  transition: 'all 0.2s ease'
+      {/* Container principal */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Alertas */}
+        {error && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px',
+            color: '#991b1b',
+            fontSize: '14px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{error}</span>
+              <button 
+                onClick={() => setError('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#991b1b',
+                  cursor: 'pointer',
+                  fontSize: '18px'
                 }}
               >
-                <CardContent sx={{ p: 0 }}>
-                  {/* Header da pergunta */}
-                  <Box sx={{ 
-                    p: 3, 
-                    pb: 2,
-                    background: hasUnreadAnswers(question) 
-                      ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
-                      : '#ffffff',
-                    borderRadius: '12px 12px 0 0'
-                  }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-                      <Box sx={{ flex: 1 }}>
-                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                          {getQuestionIcon(question.status)}
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                            {question.title}
-                          </Typography>
-                        </Stack>
-                        
-                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                          {hasUnreadAnswers(question) && (
-                            <Chip 
-                              label="NOVA RESPOSTA"
-                              size="small"
-                              sx={{
-                                bgcolor: '#9ca3af',
-                                color: 'white',
-                                fontWeight: 700,
-                                fontSize: '0.7rem',
-                                order: -1
-                              }}
-                            />
-                          )}
-                          <Chip 
-                            label={statusLabels[question.status]} 
-                            variant="outlined"
-                            size="small"
-                            sx={{ 
-                              fontWeight: 500,
-                              borderColor: '#e0e0e0',
-                              color: '#666'
-                            }}
-                          />
-                          <Chip 
-                            label={categoryLabels[question.category]} 
-                            variant="outlined"
-                            size="small"
-                            sx={{ 
-                              fontWeight: 500, 
-                              borderColor: '#e0e0e0',
-                              color: '#666'
-                            }}
-                          />
-                          {question.answers.length > 0 && (
-                            <Chip 
-                              label={`${question.answers.length} resposta${question.answers.length > 1 ? 's' : ''}`} 
-                              size="small"
-                              variant="outlined"
-                              icon={<QuestionAnswer sx={{ color: '#666 !important' }} />}
-                              sx={{ 
-                                fontWeight: 500,
-                                borderColor: '#e0e0e0',
-                                color: '#666'
-                              }}
-                            />
-                          )}
-                        </Stack>
-                      </Box>
-                      
-                      <Stack alignItems="flex-end" spacing={1}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                          {formatDateRelative(question.createdAt)}
-                        </Typography>
-                        <Tooltip title="Expandir detalhes">
-                          <IconButton 
-                            onClick={() => setExpandedQuestion(
-                              expandedQuestion === question.id ? null : question.id
-                            )}
-                            size="small"
-                            sx={{ 
-                              bgcolor: 'rgba(255,255,255,0.8)',
-                              '&:hover': { bgcolor: 'white' }
-                            }}
-                          >
-                            <ExpandMore sx={{ 
-                              transform: expandedQuestion === question.id ? 'rotate(180deg)' : 'rotate(0deg)',
-                              transition: 'transform 0.2s'
-                            }} />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </Stack>
-                  </Box>
+                ×
+              </button>
+            </div>
+          </div>
+        )}
 
-                  {/* Conteúdo expandido */}
-                  {expandedQuestion === question.id && (
-                    <Box sx={{ p: 3, pt: 2 }}>
-                      <Typography variant="h6" sx={{ mb: 2, color: '#374151', fontWeight: 600 }}>
-                        Detalhes da Dúvida:
-                      </Typography>
-                      <Paper sx={{ 
-                        p: 2, 
-                        mb: 3, 
-                        bgcolor: '#f8fafc', 
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 2
+        {success && (
+          <div style={{
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px',
+            color: '#166534',
+            fontSize: '14px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{success}</span>
+              <button 
+                onClick={() => setSuccess('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#166534',
+                  cursor: 'pointer',
+                  fontSize: '18px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Botões de ação */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{
+              color: '#6b7280',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              Perguntas frequentes:
+            </span>
+            <button
+              onClick={() => window.location.href = '/dashboard/recursos-exclusivos/faq'}
+              style={{
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#e5e7eb';
+                e.target.style.borderColor = '#9ca3af';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#f3f4f6';
+                e.target.style.borderColor = '#d1d5db';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+             FAQ
+            </button>
+          </div>
+          
+          <button
+            onClick={() => setOpenDialog(true)}
+            style={{
+              backgroundColor: '#374151',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#4b5563'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#374151'}
+          >
+            Nova Pergunta
+          </button>
+        </div>
+
+        {/* Lista de dúvidas */}
+        {questions.length === 0 ? (
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e5e7eb',
+            padding: '48px 24px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ 
+              fontSize: '20px', 
+              fontWeight: '500', 
+              color: '#374151', 
+              margin: '0 0 8px 0' 
+            }}>
+              Nenhuma dúvida ainda
+            </h3>
+            <p style={{ 
+              color: '#6b7280', 
+              fontSize: '14px', 
+              margin: '0' 
+            }}>
+              Faça sua primeira pergunta para nossos especialistas
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {questions.map((question) => (
+              <div 
+                key={question.id}
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '16px',
+                  border: '1px solid #e5e7eb',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Header da pergunta */}
+                <div 
+                  style={{
+                    padding: '20px 24px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.1s'
+                  }}
+                  onClick={() => handleAccordionChange(question.id)(!expandedQuestion || expandedQuestion !== question.id)}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '12px'
+                  }}>
+                    <h4 style={{ 
+                      fontSize: '16px', 
+                      fontWeight: '500', 
+                      color: '#1f2937', 
+                      margin: '0',
+                      flex: 1
+                    }}>
+                      {question.title}
+                    </h4>
+                    
+                    <div style={{ 
+                      fontSize: '13px', 
+                      color: '#6b7280',
+                      marginLeft: '16px',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {formatDate(question.createdAt)}
+                    </div>
+                    
+                    <div style={{
+                      marginLeft: '16px',
+                      cursor: 'pointer',
+                      transform: expandedQuestion === question.id ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s'
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path 
+                          d="M4 6L8 10L12 6" 
+                          stroke="#6b7280" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px'
+                  }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      backgroundColor: getStatusColor(question.status),
+                      color: 'white',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      <span>{getStatusIcon(question.status)}</span>
+                      {question.status === 'NOVA' ? 'Fechada' : 
+                       question.status === 'RESPONDIDA' ? 'Respondida' : 'Fechada'}
+                    </div>
+                    
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      backgroundColor: '#f3f4f6',
+                      color: '#6b7280',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {categoryLabels[question.category]}
+                    </div>
+                    
+                    {hasUnreadAnswers(question) && (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500'
                       }}>
-                        <Typography variant="body1" sx={{ 
-                          whiteSpace: 'pre-wrap', 
-                          lineHeight: 1.6,
-                          color: '#374151'
+                        Nova Resposta
+                      </div>
+                    )}
+                    
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '4px',
+                      color: '#6b7280',
+                      fontSize: '13px'
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92178 15.4214 5.17163 16.1716C4.42149 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Davi Souza (Close Friends VIP)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conteúdo expandido */}
+                {expandedQuestion === question.id && (
+                  <div style={{ 
+                    borderTop: '1px solid #f3f4f6',
+                    backgroundColor: '#f9fafb'
+                  }}>
+                    {/* Pergunta completa */}
+                    <div style={{ padding: '24px' }}>
+                      <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        marginBottom: '24px'
+                      }}>
+                        <h5 style={{
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#6b7280',
+                          margin: '0 0 12px 0',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Pergunta
+                        </h5>
+                        <p style={{
+                          fontSize: '15px',
+                          color: '#374151',
+                          margin: '0',
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap'
                         }}>
                           {question.content}
-                        </Typography>
-                      </Paper>
+                        </p>
+                      </div>
 
                       {/* Respostas */}
                       {question.answers.length > 0 && (
-                        <Box>
-                          <Typography variant="h6" sx={{ 
-                            mb: 2, 
-                            color: '#374151', 
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
+                        <div>
+                          <h5 style={{
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#6b7280',
+                            margin: '0 0 16px 0',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
                           }}>
-                            <QuestionAnswer color="second" />
-                            Resposta{question.answers.length > 1 ? 's' : ''} do Especialista
-                            <Chip 
-                              label={question.answers.length} 
-                              size="small" 
-                              color="primary"
-                              sx={{ ml: 1 }}
-                            />
-                          </Typography>
+                            {question.answers.length === 1 ? 'Resposta' : `Respostas (${question.answers.length})`}
+                          </h5>
                           
-                          <Stack spacing={2}>
+                          <div style={{ display: 'grid', gap: '16px' }}>
                             {question.answers.map((answer) => (
-                              <Paper key={answer.id} sx={{ 
-                                p: 3, 
-                                bgcolor: !answer.readByUser ? '#f8fafc' : '#ffffff',
-                                border: '1px solid #e0e0e0',
-                                borderRadius: 2,
-                                position: 'relative'
+                              <div key={answer.id} style={{ 
+                                backgroundColor: '#ffffff',
+                                borderRadius: '12px',
+                                padding: '20px',
+                                border: !answer.readByUser ? '2px solid #f3f4f6' : '1px solid #e5e7eb'
                               }}>
-                                {!answer.readByUser && (
-                                  <Box sx={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: 16,
-                                    bgcolor: '#9ca3af',
-                                    color: 'white',
-                                    px: 2,
-                                    py: 0.5,
-                                    borderRadius: 1,
-                                    fontSize: '0.75rem',
-                                    fontWeight: 600
-                                  }}>
-                                    NOVA RESPOSTA
-                                  </Box>
-                                )}
-                                
-                                <Box sx={{ 
+                                {/* Header da resposta */}
+                                <div style={{ 
                                   display: 'flex', 
-                                  justifyContent: 'space-between', 
-                                  alignItems: 'center', 
-                                  mb: 2 
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  marginBottom: '16px',
+                                  paddingBottom: '12px',
+                                  borderBottom: '1px solid #f3f4f6'
                                 }}>
-                                  <Stack direction="row" alignItems="center" spacing={1}>
-                                    <Person sx={{ fontSize: 20, color: '#3b82f6' }} />
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                                      {answer.admin.firstName} {answer.admin.lastName}
-                                    </Typography>
-                                    <Chip label="Especialista" size="small" color="primary" variant="outlined" />
-                                  </Stack>
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                                    {formatDateRelative(answer.createdAt)}
-                                  </Typography>
-                                </Box>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92178 15.4214 5.17163 16.1716C4.42149 16.9217 4 17.9391 4 19V21" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                      <circle cx="12" cy="7" r="4" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    <span style={{
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      color: '#374151'
+                                    }}>
+                                      {answer.admin.firstName} {answer.admin.lastName} (Administrador)
+                                    </span>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '12px',
+                                    color: '#6b7280'
+                                  }}>
+                                    {formatDate(answer.createdAt)}
+                                  </span>
+                                </div>
                                 
-                                <Typography variant="body1" sx={{ 
-                                  whiteSpace: 'pre-wrap',
-                                  lineHeight: 1.7,
-                                  color: '#374151'
+                                {/* Conteúdo da resposta */}
+                                <div style={{
+                                  fontSize: '15px',
+                                  color: '#374151',
+                                  lineHeight: '1.6',
+                                  whiteSpace: 'pre-wrap'
                                 }}>
                                   {answer.content}
-                                </Typography>
-                              </Paper>
+                                </div>
+                              </div>
                             ))}
-                          </Stack>
-                        </Box>
+                          </div>
+                        </div>
                       )}
 
                       {/* Ações */}
-                      <Stack direction="row" spacing={2} sx={{ mt: 3, pt: 2, borderTop: '1px solid #e2e8f0' }}>
+                      <div style={{
+                        marginTop: '24px',
+                        paddingTop: '20px',
+                        borderTop: '1px solid #e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px'
+                      }}>
                         {question.status !== 'FECHADA' && question.answers.length > 0 && (
-                          <Button 
-                            variant="contained" 
-                            color="success"
-                            startIcon={<CheckCircle />}
+                          <button
                             onClick={() => handleCloseQuestion(question.id)}
-                            sx={{ borderRadius: 2 }}
+                            style={{
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '8px 16px',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
                           >
                             Marcar como Resolvida
-                          </Button>
+                          </button>
                         )}
                         
                         {question.status === 'NOVA' && (
-                          <Typography variant="body2" color="text.secondary" sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center',
-                            gap: 0.5,
-                            px: 2,
-                            py: 1,
-                            bgcolor: '#fef3c7',
-                            borderRadius: 1,
-                            fontWeight: 500
+                          <div style={{
+                            color: '#6b7280',
+                            fontSize: '13px'
                           }}>
-                            <TrendingUp sx={{ fontSize: 16 }} />
                             Aguardando análise dos especialistas...
-                          </Typography>
+                          </div>
                         )}
-                      </Stack>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
-          </Stack>
+          </div>
         )}
-      </Box>
+      </div>
 
-      {/* FAB para nova pergunta */}
-      <Tooltip title="Fazer nova pergunta">
-        <Fab 
-          color="primary" 
-          aria-label="add"
-          sx={{ 
-            position: 'fixed', 
-            bottom: 32, 
-            right: 32,
-            boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
-            '&:hover': {
-              transform: 'scale(1.05)',
-              boxShadow: '0 12px 40px rgba(59, 130, 246, 0.4)'
-            },
-            transition: 'all 0.2s ease'
-          }}
-          onClick={() => setOpenDialog(true)}
-        >
-          <Add />
-        </Fab>
-      </Tooltip>
-
-      {/* Dialog nova pergunta */}
-      <Dialog 
-        open={openDialog} 
-        onClose={() => setOpenDialog(false)} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3 }
-        }}
-      >
-        <DialogTitle sx={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 700,
-          color: '#1e293b',
-          borderBottom: '1px solid #e2e8f0'
+      {/* Modal nova pergunta */}
+      {openDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
         }}>
-          Nova Dúvida
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Stack spacing={3}>
-            <TextField
-              label="Título da dúvida"
-              value={newQuestion.title}
-              onChange={(e) => setNewQuestion({ ...newQuestion, title: e.target.value })}
-              fullWidth
-              placeholder="Ex: Como escolher entre FIIs de papel e tijolo?"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2
-                }
-              }}
-            />
-            
-            <TextField
-              label="Descreva sua dúvida"
-              value={newQuestion.content}
-              onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })}
-              multiline
-              rows={6}
-              fullWidth
-              placeholder="Detalhe sua dúvida aqui. Quanto mais específica, melhor será nossa resposta! Inclua contexto sobre seu perfil de investidor se relevante."
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2
-                }
-              }}
-            />
-            
-            <FormControl fullWidth>
-              <InputLabel>Categoria</InputLabel>
-              <Select
-                value={newQuestion.category}
-                onChange={(e) => setNewQuestion({ ...newQuestion, category: e.target.value })}
-                label="Categoria"
-                sx={{ borderRadius: 2 }}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            {/* Header do modal */}
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1f2937',
+                margin: '0'
+              }}>
+                Nova Dúvida
+              </h2>
+              <button
+                onClick={() => setOpenDialog(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
               >
-                {Object.entries(categoryLabels).map(([key, label]) => (
-                  <MenuItem key={key} value={key}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ 
-                        width: 12, 
-                        height: 12, 
-                        borderRadius: '50%', 
-                        bgcolor: categoryColors[key] || '#f5f5f5',
-                        border: '2px solid #e2e8f0'
-                      }} />
+                ×
+              </button>
+            </div>
+
+            {/* Conteúdo do modal */}
+            <div style={{ padding: '24px' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Título da dúvida
+                </label>
+                <input
+                  type="text"
+                  value={newQuestion.title}
+                  onChange={(e) => setNewQuestion({ ...newQuestion, title: e.target.value })}
+                  placeholder="Descreva sua dúvida de forma objetiva"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Descrição detalhada
+                </label>
+                <textarea
+                  value={newQuestion.content}
+                  onChange={(e) => setNewQuestion({ ...newQuestion, content: e.target.value })}
+                  placeholder="Detalhe sua dúvida. Quanto mais específica, melhor será nossa resposta."
+                  rows={6}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '32px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Categoria
+                </label>
+                <select
+                  value={newQuestion.category}
+                  onChange={(e) => setNewQuestion({ ...newQuestion, category: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  {Object.entries(categoryLabels).map(([key, label]) => (
+                    <option key={key} value={key}>
                       {label}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button onClick={() => setOpenDialog(false)} sx={{ borderRadius: 2 }}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSubmitQuestion} 
-            variant="contained"
-            disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Add />}
-            sx={{ borderRadius: 2, px: 3 }}
-          >
-            {submitting ? 'Enviando...' : 'Enviar Dúvida'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Botões */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: 'flex-end'
+              }}>
+                <button
+                  onClick={() => setOpenDialog(false)}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    backgroundColor: 'white',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSubmitQuestion}
+                  disabled={submitting}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: submitting ? '#9ca3af' : '#374151',
+                    color: 'white',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  {submitting ? 'Enviando...' : 'Enviar Dúvida'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

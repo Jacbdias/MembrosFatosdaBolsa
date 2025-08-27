@@ -56,13 +56,16 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
             ...info,
             userEmail,
             pages: info.isAdmin 
-              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-carteiras']
+              ? [...(info.pages || []), 'admin-instagram', 'admin-renovacoes', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-central-duvidas', 'admin-carteiras'] // 🆕 NOVO: admin-central-duvidas
               : (info.pages || [])
           };
           
-          // 🔥 GARANTIR que 'relatorio-semanal' esteja sempre presente
+          // 🔥 GARANTIR que 'relatorio-semanal' e 'recursos-suporte' estejam sempre presentes
           if (!enhancedInfo.pages.includes('relatorio-semanal')) {
             enhancedInfo.pages.unshift('relatorio-semanal');
+          }
+          if (!enhancedInfo.pages.includes('recursos-suporte')) {
+            enhancedInfo.pages.push('recursos-suporte');
           }
           
           setPlanInfo(enhancedInfo);
@@ -76,7 +79,7 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
           console.log('⚠️ [MOBILE] PlanInfo é null, usando fallback VIP');
           setPlanInfo({
             displayName: 'Close Friends VIP',
-            pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'],
+            pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos', 'recursos-suporte'], // 📋 Garantir relatório + suporte no fallback
             isAdmin: false
           });
         }
@@ -85,7 +88,7 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
         console.log('🔄 [MOBILE] Usando fallback VIP devido ao erro');
         setPlanInfo({
           displayName: 'Close Friends VIP',
-          pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos'],
+          pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'internacional-projeto-america', 'recursos-exclusivos', 'recursos-suporte'], // 📋 Garantir relatório + suporte no fallback
           isAdmin: false
         });
       } finally {
@@ -115,6 +118,12 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
       return true;
     }
 
+    // 🆕 GARANTIR acesso ao suporte para TODOS
+    if (page === 'recursos-suporte') {
+      console.log('🆕 [MOBILE] Suporte - acesso garantido');
+      return true;
+    }
+
     // VERIFICAÇÕES ESPECÍFICAS PARA PÁGINAS ADMIN
     if (page === 'admin-instagram') {
       const isInstagramAdmin = planInfo.isAdmin || planInfo.userEmail === 'jacbdias@gmail.com';
@@ -138,6 +147,13 @@ export function MobileNav({ onClose, open = false }: MobileNavProps): React.JSX.
       const isAnalisesTrimesestraisAdmin = planInfo.isAdmin;
       console.log(`📊 [MOBILE] Verificando acesso Análises Trimestrais Admin para ${planInfo.userEmail}: ${isAnalisesTrimesestraisAdmin}`);
       return isAnalisesTrimesestraisAdmin;
+    }
+
+    // 🆕 NOVA: VERIFICAÇÃO PARA CENTRAL DE DÚVIDAS ADMIN
+    if (page === 'admin-central-duvidas') {
+      const isCentralDuvidasAdmin = planInfo.isAdmin;
+      console.log(`🆕 [MOBILE] Verificando acesso Central de Dúvidas Admin para ${planInfo.userEmail}: ${isCentralDuvidasAdmin}`);
+      return isCentralDuvidasAdmin;
     }
     
     // 🛡️ VERIFICAÇÃO ESPECIAL PARA PÁGINAS ADMINISTRATIVAS

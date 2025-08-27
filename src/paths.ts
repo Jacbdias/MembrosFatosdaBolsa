@@ -30,11 +30,14 @@ export const paths = {
     adminRelatorioSemanal: '/dashboard/admin/relatorio-semanal',
     // 🆕 NOVO: Análises Trimestrais
     adminAnalisesTrimesestrais: '/dashboard/admin/analises-trimesestrais',
+    // 🆕 NOVO: Central de Dúvidas Admin
+    adminCentralDuvidas: '/dashboard/admin/central-duvidas',
     // 🆕 NOVO: Analisar Carteiras (substitui Logs do Sistema)
     adminCarteiras: '/dashboard/admin/carteiras',
     adminIntegracoes: '/dashboard/central-agenda',
     adminSettings: '/dashboard/admin/settings',
     adminPlans: '/dashboard/admin/plans',
+    adminLogs: '/dashboard/admin/logs',
   },
   errors: {
     notFound: '/errors/not-found'

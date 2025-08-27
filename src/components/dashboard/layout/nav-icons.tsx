@@ -34,6 +34,8 @@ import { FileText } from '@phosphor-icons/react/dist/ssr/FileText';
 import { ClipboardText } from '@phosphor-icons/react/dist/ssr/ClipboardText';
 import { Newspaper } from '@phosphor-icons/react/dist/ssr/Newspaper';
 import { Article } from '@phosphor-icons/react/dist/ssr/Article';
+// 🆕 ÍCONE PARA SUPORTE
+import { Headset } from '@phosphor-icons/react/dist/ssr/Headset';
 
 export const navIcons = {
   'chart-pie': ChartPie,
@@ -58,6 +60,7 @@ export const navIcons = {
   'chat': ChatCircle,             // Para Telegram
   'star': Star,                   // Para Projeto América
   'shield': Shield,               // Para Reserva de Emergência
+  'support': Headset,             // Para Suporte/Central de Dúvidas
   
   // 🛡️ ÍCONES ADMINISTRATIVOS
   'gear': Gear,                   // Para menu Administração e configurações

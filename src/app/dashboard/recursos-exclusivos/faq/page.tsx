@@ -1,38 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Grid,
-  CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Divider,
-  Container,
-  Paper,
-  InputAdornment,
-  Alert,
-  Fade,
-  Skeleton
-} from '@mui/material';
-import {
-  ExpandMore,
-  Search,
-  HelpOutline,
-  Category,
-  QuestionAnswer,
-  TrendingUp
-} from '@mui/icons-material';
 
 // Tipos
 interface FAQ {
@@ -57,7 +25,6 @@ interface FAQ {
 
 interface FAQData {
   faqs: FAQ[];
-  groupedFaqs: Record<string, FAQ[]>;
   pagination: {
     page: number;
     limit: number;
@@ -80,13 +47,39 @@ const categoryLabels = {
   'FISCAL': 'Questões Fiscais'
 };
 
+const getCategoryColor = (category: string) => {
+  const colors = {
+    'DIVIDENDOS': '#10b981',
+    'FIIS': '#3b82f6',
+    'SMALL_CAPS': '#6b7280',
+    'MICRO_CAPS': '#6b7280',
+    'INTERNACIONAL_ETFS': '#f59e0b',
+    'INTERNACIONAL_STOCKS': '#3b82f6',
+    'PROJETO_AMERICA': '#10b981',
+    'GERAL': '#6b7280',
+    'TECNICO': '#3b82f6',
+    'FISCAL': '#f59e0b'
+  };
+  return colors[category] || '#6b7280';
+};
+
 export default function PublicFAQ() {
   const [faqData, setFaqData] = useState<FAQData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [expandedAccordion, setExpandedAccordion] = useState<string | false>(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Carregar FAQs
   const loadFAQs = async () => {
@@ -101,10 +94,6 @@ export default function PublicFAQ() {
       }
 
       const params = new URLSearchParams();
-      
-      if (selectedCategory !== 'ALL') {
-        params.append('category', selectedCategory);
-      }
       
       if (searchTerm.trim()) {
         params.append('search', searchTerm.trim());
@@ -134,9 +123,9 @@ export default function PublicFAQ() {
 
   useEffect(() => {
     loadFAQs();
-  }, [selectedCategory, searchTerm]);
+  }, [searchTerm]);
 
-  const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+  const handleAccordionChange = (panel: string) => (isExpanded: boolean) => {
     setExpandedAccordion(isExpanded ? panel : false);
   };
 
@@ -144,243 +133,308 @@ export default function PublicFAQ() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getCategoryColor = (category: string): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
-    const colors: Record<string, "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"> = {
-      'DIVIDENDOS': 'success',
-      'FIIS': 'info',
-      'SMALL_CAPS': 'primary',
-      'MICRO_CAPS': 'secondary',
-      'INTERNACIONAL_ETFS': 'warning',
-      'INTERNACIONAL_STOCKS': 'error',
-      'PROJETO_AMERICA': 'success',
-      'GERAL': 'default',
-      'TECNICO': 'info',
-      'FISCAL': 'warning'
-    };
-    return colors[category] || 'default';
+  // Obter todas as FAQs em uma lista única, ordenadas
+  const getAllFAQs = () => {
+    if (!faqData) return [];
+    
+    return faqData.faqs.sort((a, b) => {
+      // Ordenar por faqOrder se disponível, senão por data de criação
+      if (a.faqOrder !== b.faqOrder) {
+        return a.faqOrder - b.faqOrder;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   };
 
+  const allFAQs = getAllFAQs();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        gap: '16px',
+        padding: '20px'
+      }}>
+        <div style={{ fontSize: isMobile ? '32px' : '48px' }}>⏳</div>
+        <p style={{ 
+          color: '#64748b', 
+          fontSize: isMobile ? '14px' : '16px', 
+          textAlign: 'center' 
+        }}>
+          Carregando perguntas frequentes...
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f5f5', 
+      padding: isMobile ? '12px' : '24px'
+    }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Base de Conhecimento - FAQ
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+      <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
+        <h1 style={{ 
+          fontSize: isMobile ? '24px' : '48px', 
+          fontWeight: '800', 
+          color: '#1e293b',
+          margin: '0 0 8px 0',
+          lineHeight: '1.2'
+        }}>
+          Perguntas Frequentes
+        </h1>
+        <p style={{ 
+          color: '#64748b', 
+          fontSize: isMobile ? '14px' : '18px',
+          margin: '0',
+          lineHeight: '1.5'
+        }}>
           Acesso exclusivo às respostas mais importantes sobre investimentos
-        </Typography>
+        </p>
+      </div>
 
-        {/* Estatísticas */}
-        {faqData && (
-          <Fade in={true}>
-            <Grid container spacing={2} justifyContent="center" sx={{ mb: 4 }}>
-              <Grid item>
-                <Chip 
-                  icon={<QuestionAnswer />}
-                  label={`${faqData.pagination.total} FAQs`}
-                  color="primary"
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item>
-                <Chip 
-                  icon={<Category />}
-                  label={`${Object.keys(faqData.groupedFaqs).length} Categorias`}
-                  color="secondary"
-                  variant="outlined"
-                />
-              </Grid>
-            </Grid>
-          </Fade>
-        )}
-      </Box>
-
-      {/* Filtros */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Buscar nas FAQs"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Digite sua dúvida ou palavras-chave..."
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Categoria</InputLabel>
-                <Select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  label="Categoria"
-                >
-                  <MenuItem value="ALL">Todas as Categorias</MenuItem>
-                  {Object.entries(categoryLabels).map(([key, label]) => (
-                    <MenuItem key={key} value={key}>{label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Loading */}
-      {loading && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={100} />
-          ))}
-        </Box>
-      )}
+      {/* Campo de busca */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: isMobile ? '12px' : '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        padding: isMobile ? '20px' : '32px',
+        marginBottom: isMobile ? '20px' : '32px'
+      }}>
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Digite sua dúvida ou palavras-chave..."
+            style={{
+              width: '100%',
+              padding: isMobile ? '12px 16px 12px 40px' : '16px 20px 16px 48px',
+              fontSize: isMobile ? '14px' : '16px',
+              border: '1px solid #d1d5db',
+              borderRadius: isMobile ? '8px' : '12px',
+              backgroundColor: '#ffffff',
+              boxSizing: 'border-box',
+              outline: 'none',
+              transition: 'border-color 0.2s, box-shadow 0.2s',
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#4bf700';
+              e.target.style.boxShadow = '0 0 0 3px rgba(75, 247, 0, 0.1)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#d1d5db';
+              e.target.style.boxShadow = 'none';
+            }}
+          />
+          <div style={{
+            position: 'absolute',
+            left: isMobile ? '12px' : '16px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#64748b',
+            fontSize: isMobile ? '16px' : '20px'
+          }}>
+            🔍
+          </div>
+        </div>
+      </div>
 
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: isMobile ? '8px' : '12px',
+          padding: isMobile ? '16px' : '20px',
+          marginBottom: isMobile ? '20px' : '32px',
+          color: '#991b1b'
+        }}>
           {error}
-        </Alert>
+        </div>
       )}
 
       {/* FAQ Content */}
       {!loading && faqData && (
-        <Fade in={true}>
-          <Box>
-            {Object.keys(faqData.groupedFaqs).length === 0 ? (
-              <Card>
-                <CardContent sx={{ textAlign: 'center', py: 6 }}>
-                  <HelpOutline sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Nenhuma FAQ encontrada
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {searchTerm || selectedCategory !== 'ALL' 
-                      ? 'Tente ajustar sua busca ou filtros'
-                      : 'Ainda não temos FAQs cadastradas. Volte em breve!'
-                    }
-                  </Typography>
-                </CardContent>
-              </Card>
-            ) : (
-              Object.entries(faqData.groupedFaqs).map(([category, faqs]) => (
-                <Box key={category} sx={{ mb: 4 }}>
-                  {/* Category Header */}
-                  <Paper sx={{ p: 2, mb: 2, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="h5" component="h2">
-                        {categoryLabels[category] || category}
-                      </Typography>
-                      <Chip 
-                        label={`${faqs.length} FAQs`}
-                        size="small"
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.2)', 
-                          color: 'inherit' 
-                        }}
-                      />
-                    </Box>
-                  </Paper>
-
-                  {/* FAQs in Category */}
-                  {faqs.map((faq, index) => (
-                    <Accordion
-                      key={faq.id}
-                      expanded={expandedAccordion === `${category}-${faq.id}`}
-                      onChange={handleAccordionChange(`${category}-${faq.id}`)}
-                      sx={{ mb: 1 }}
-                    >
-                      <AccordionSummary expandIcon={<ExpandMore />}>
-                        <Box sx={{ width: '100%' }}>
-                          <Typography variant="h6" color="primary" gutterBottom>
-                            {faq.faqTitle || faq.question.title}
-                          </Typography>
-                          
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <Chip 
-                              label={categoryLabels[faq.question.category]}
-                              size="small"
-                              color={getCategoryColor(faq.question.category)}
-                              variant="outlined"
-                            />
-                            <Typography variant="caption" color="text.secondary">
-                              Respondido em {formatDate(faq.createdAt)}
-                            </Typography>
-                          </Box>
-
-                          {searchTerm && (
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary"
-                              sx={{ 
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden'
-                              }}
-                            >
-                              {faq.question.title}
-                            </Typography>
-                          )}
-                        </Box>
-                      </AccordionSummary>
+        <div>
+          {allFAQs.length === 0 ? (
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: isMobile ? '12px' : '16px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              padding: isMobile ? '32px 20px' : '48px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: isMobile ? '32px' : '48px', marginBottom: '16px' }}>❓</div>
+              <h3 style={{ 
+                fontSize: isMobile ? '18px' : '24px', 
+                fontWeight: '700', 
+                color: '#1e293b', 
+                margin: '0 0 8px 0' 
+              }}>
+                Nenhuma FAQ encontrada
+              </h3>
+              <p style={{ 
+                color: '#64748b', 
+                fontSize: isMobile ? '14px' : '16px', 
+                margin: '0' 
+              }}>
+                {searchTerm 
+                  ? 'Tente ajustar sua busca'
+                  : 'Ainda não temos FAQs cadastradas. Volte em breve!'
+                }
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: isMobile ? '16px' : '20px' }}>
+              {allFAQs.map((faq, index) => (
+                <div 
+                  key={faq.id}
+                  style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: isMobile ? '8px' : '12px',
+                    backgroundColor: '#f8fafc',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Header da FAQ */}
+                  <div 
+                    style={{
+                      padding: isMobile ? '16px' : '24px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      backgroundColor: '#ffffff'
+                    }}
+                    onClick={() => handleAccordionChange(faq.id)(!expandedAccordion || expandedAccordion !== faq.id)}
+                    onMouseEnter={(e) => !isMobile && (e.currentTarget.style.backgroundColor = '#f9fafb')}
+                    onMouseLeave={(e) => !isMobile && (e.currentTarget.style.backgroundColor = '#ffffff')}
+                  >
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'start', 
+                      marginBottom: '12px',
+                      flexWrap: 'wrap',
+                      gap: '8px'
+                    }}>
+                      <div style={{ flex: 1, minWidth: isMobile ? '200px' : 'auto' }}>
+                        <h4 style={{ 
+                          fontSize: isMobile ? '16px' : '18px', 
+                          fontWeight: '600', 
+                          color: '#1e293b', 
+                          margin: '0 0 8px 0',
+                          lineHeight: '1.3'
+                        }}>
+                          {faq.faqTitle || faq.question.title}
+                        </h4>
+                      </div>
                       
-                      <AccordionDetails>
-                        <Divider sx={{ mb: 3 }} />
-                        
-                        {/* Question Details */}
-                        <Box sx={{ mb: 3 }}>
-                          <Typography variant="subtitle1" color="primary" gutterBottom>
-                            Pergunta:
-                          </Typography>
-                          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
-                            {faq.question.content}
-                          </Typography>
-                        </Box>
+                      <div style={{
+                        width: isMobile ? '20px' : '24px',
+                        height: isMobile ? '20px' : '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.2s ease',
+                        transform: expandedAccordion === faq.id ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                      onMouseEnter={(e) => !isMobile && (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                      onMouseLeave={(e) => !isMobile && (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                      >
+                        <svg 
+                          width={isMobile ? '12' : '14'} 
+                          height={isMobile ? '8' : '10'} 
+                          viewBox="0 0 12 8" 
+                          fill="none"
+                        >
+                          <path 
+                            d="M1 1L6 6L11 1" 
+                            stroke="#64748b" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
 
-                        {/* Answer */}
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="subtitle1" color="primary" gutterBottom>
-                            Resposta:
-                          </Typography>
-                          <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
-                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                              {faq.content}
-                            </Typography>
-                          </Paper>
-                        </Box>
+                    {searchTerm && (
+                      <p style={{ 
+                        fontSize: isMobile ? '13px' : '14px', 
+                        color: '#64748b', 
+                        margin: '0',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        lineHeight: '1.4'
+                      }}>
+                        {faq.question.content}
+                      </p>
+                    )}
+                  </div>
 
-                        {/* Author */}
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Respondido por {faq.admin.firstName} {faq.admin.lastName}
-                          </Typography>
-                        </Box>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))}
-                </Box>
-              ))
-            )}
-          </Box>
-        </Fade>
+                  {/* Conteúdo expandido */}
+                  {expandedAccordion === faq.id && (
+                    <div style={{
+                      borderTop: '1px solid #e2e8f0',
+                      backgroundColor: '#ffffff',
+                      padding: isMobile ? '20px' : '32px'
+                    }}>
+                      {/* Resposta */}
+                      <div style={{ marginBottom: isMobile ? '16px' : '20px' }}>
+                        <div style={{
+                          backgroundColor: '#f9fafb',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: isMobile ? '8px' : '12px',
+                          padding: isMobile ? '16px' : '24px'
+                        }}>
+                          <p style={{
+                            fontSize: isMobile ? '13px' : '14px',
+                            color: '#1e293b',
+                            margin: '0',
+                            lineHeight: '1.6',
+                            whiteSpace: 'pre-wrap'
+                          }}>
+                            {faq.content}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Footer */}
-      <Box sx={{ textAlign: 'center', mt: 6, py: 4 }}>
-        <Typography variant="body2" color="text.secondary">
+      <div style={{ 
+        textAlign: 'center', 
+        marginTop: isMobile ? '32px' : '48px', 
+        paddingTop: isMobile ? '24px' : '32px' 
+      }}>
+        <p style={{ 
+          color: '#64748b', 
+          fontSize: isMobile ? '13px' : '14px', 
+          margin: '0' 
+        }}>
           Não encontrou sua dúvida? Envie uma nova pergunta na Central de Dúvidas.
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }

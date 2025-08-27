@@ -25,7 +25,7 @@ export function useAuthAccess() {
             // Fallback
             setPlanInfo({
               displayName: 'Close Friends VIP',
-              pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+              pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos', 'recursos-suporte']
             });
           }
           setLoading(false);
@@ -50,62 +50,62 @@ export function useAuthAccess() {
           console.log('⚠️ AuthClient falhou, usando mapeamento interno');
         }
 
-        // 🔥 MAPEAMENTO INTERNO ATUALIZADO - Relatório Semanal em TODOS os planos
+        // 🔥 MAPEAMENTO INTERNO ATUALIZADO - Relatório Semanal em TODOS os planos + Suporte
         const internalPlanPermissions = {
           'VIP': [
             'relatorio-semanal', // 📋 NOVO: Disponível para VIP
             'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
-            'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte' // 🆕 NOVO: Suporte
           ],
           'LITE': [
             'relatorio-semanal', // 📋 NOVO: Disponível para LITE
             'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte' // 🆕 NOVO: Suporte
           ],
           // ✅ ADICIONADO: Close Friends LITE 2.0
           'LITE_V2': [
             'relatorio-semanal', // 📋 NOVO: Disponível para LITE V2
             'small-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte' // 🆕 NOVO: Suporte
             // Nota: Não inclui 'internacional' (diferença do LITE original)
           ],
           'RENDA_PASSIVA': [
             'relatorio-semanal', // 📋 NOVO: Disponível para Renda Passiva
             'dividendos', 'fundos-imobiliarios', 'rentabilidades',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte' // 🆕 NOVO: Suporte
           ],
           'FIIS': [
             'relatorio-semanal', // 📋 NOVO: Disponível para FIIs
             'fundos-imobiliarios', 'rentabilidades',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte' // 🆕 NOVO: Suporte
           ],
           'AMERICA': [
             'relatorio-semanal', // 📋 NOVO: Disponível para América
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
-            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram'
+            'recursos-exclusivos', 'recursos-dicas', 'recursos-ebooks', 'recursos-lives', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte' // 🆕 NOVO: Suporte
           ],
           'ADMIN': [
             'relatorio-semanal', // 📋 NOVO: Disponível para Admin
             'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades',
             'internacional', 'internacional-etfs', 'internacional-stocks', 'internacional-dividendos', 'internacional-projeto-america',
             'recursos-exclusivos', 'recursos-dicas', 'recursos-analise', 'recursos-ebooks',
-            'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram',
+            'recursos-imposto', 'recursos-lives', 'recursos-milhas', 'recursos-planilhas', 'recursos-telegram', 'recursos-suporte', // 🆕 NOVO: Suporte
             'admin', 'admin-dashboard', 'admin-usuarios', 'admin-instagram', 'admin-empresas', 'admin-proventos',
-            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-carteiras' // 🆕 NOVO: admin-carteiras
+            'admin-relatorios', 'admin-relatorio-semanal', 'admin-analises-trimesestrais', 'admin-integracoes', 'admin-renovacoes', 'admin-settings', 'admin-logs', 'admin-central-duvidas' // 🆕 NOVO: admin-central-duvidas
           ]
         };
 
         // Pegar permissões base do plano
-        const basePlanPages = basePlanInfo?.pages || internalPlanPermissions[user.plan] || ['relatorio-semanal']; // 📋 Fallback: pelo menos relatório
+        const basePlanPages = basePlanInfo?.pages || internalPlanPermissions[user.plan] || ['relatorio-semanal', 'recursos-suporte']; // 📋 Fallback: pelo menos relatório + suporte
         
         // Pegar permissões customizadas do usuário
         const customPermissions = user.customPermissions || [];
         
-        // 🔥 GARANTIR que 'relatorio-semanal' esteja sempre presente
-        const guaranteedPages = ['relatorio-semanal'];
+        // 🔥 GARANTIR que 'relatorio-semanal' e 'recursos-suporte' estejam sempre presentes
+        const guaranteedPages = ['relatorio-semanal', 'recursos-suporte'];
         
         // Combinar todas as permissões (sem duplicatas)
         const allPermissions = [...new Set([...guaranteedPages, ...basePlanPages, ...customPermissions])];
@@ -133,10 +133,10 @@ export function useAuthAccess() {
       } catch (error) {
         console.error('❌ Erro ao carregar info do plano:', error);
         
-        // 🔥 FALLBACK ATUALIZADO - Sempre incluir relatório semanal
+        // 🔥 FALLBACK ATUALIZADO - Sempre incluir relatório semanal + suporte
         setPlanInfo({
           displayName: 'Close Friends VIP',
-          pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos']
+          pages: ['relatorio-semanal', 'small-caps', 'micro-caps', 'dividendos', 'fundos-imobiliarios', 'rentabilidades', 'internacional', 'recursos-exclusivos', 'recursos-suporte']
         });
       } finally {
         setLoading(false);
@@ -154,15 +154,15 @@ export function useAuthAccess() {
     
     if (!user) {
       console.log('❌ Usuário não logado');
-      // 🔥 EXCEÇÃO: Relatório semanal disponível mesmo sem login
-      if (page === 'relatorio-semanal') {
-        console.log('📋 Relatório semanal - acesso público');
+      // 🔥 EXCEÇÃO: Relatório semanal e suporte disponíveis mesmo sem login
+      if (page === 'relatorio-semanal' || page === 'recursos-suporte') {
+        console.log(`📋 ${page} - acesso público`);
         return true;
       }
       return false;
     }
 
-    // Admin sempre tem acesso (incluindo Instagram, Renovações, Relatório Semanal, Análises Trimestrais Admin e Analisar Carteiras)
+    // Admin sempre tem acesso (incluindo Instagram, Renovações, Relatório Semanal, Análises Trimestrais Admin e Central de Dúvidas)
     if (user.plan === 'ADMIN') {
       console.log('✅ Admin - acesso liberado para:', page);
       return true;
@@ -196,16 +196,22 @@ export function useAuthAccess() {
       return isAnalisesTrimesestraisAdmin;
     }
 
-    // 📊 NOVA: Verificação específica para Analisar Carteiras Admin
-    if (page === 'admin-carteiras') {
-      const isCarteirasAdmin = user.plan === 'ADMIN';
-      console.log(`📊 Verificando acesso Analisar Carteiras Admin para ${user.email}:`, isCarteirasAdmin);
-      return isCarteirasAdmin;
+    // 🆕 NOVA: Verificação específica para Central de Dúvidas Admin
+    if (page === 'admin-central-duvidas') {
+      const isCentralDuvidasAdmin = user.plan === 'ADMIN';
+      console.log(`🆕 Verificando acesso Central de Dúvidas Admin para ${user.email}:`, isCentralDuvidasAdmin);
+      return isCentralDuvidasAdmin;
     }
 
     // 📋 GARANTIR acesso ao relatório semanal para todos os usuários logados
     if (page === 'relatorio-semanal') {
       console.log('📋 Relatório semanal - acesso garantido para usuário logado');
+      return true;
+    }
+
+    // 🆕 GARANTIR acesso ao suporte para todos os usuários logados
+    if (page === 'recursos-suporte') {
+      console.log('🆕 Suporte - acesso garantido para usuário logado');
       return true;
     }
 
@@ -290,17 +296,17 @@ export function useAuthAccess() {
     return isAnalisesTrimesestraisAdmin;
   };
 
-  // 📊 NOVA: Função para verificar acesso ao Analisar Carteiras Admin
-  const hasCarteirasAdminAccess = (): boolean => {
+  // 🆕 NOVA: Função para verificar acesso à Central de Dúvidas Admin
+  const hasCentralDuvidasAdminAccess = (): boolean => {
     if (!user) {
-      console.log('❌ Usuário não logado - sem acesso Analisar Carteiras Admin');
+      console.log('❌ Usuário não logado - sem acesso Central de Dúvidas Admin');
       return false;
     }
 
-    const isCarteirasAdmin = user.plan === 'ADMIN';
-    console.log(`📊 Verificando acesso Analisar Carteiras Admin para ${user.email}:`, isCarteirasAdmin);
+    const isCentralDuvidasAdmin = user.plan === 'ADMIN';
+    console.log(`🆕 Verificando acesso Central de Dúvidas Admin para ${user.email}:`, isCentralDuvidasAdmin);
     
-    return isCarteirasAdmin;
+    return isCentralDuvidasAdmin;
   };
 
   return {
@@ -311,8 +317,8 @@ export function useAuthAccess() {
     hasInstagramAdminAccess, // 📱 FUNÇÃO PARA INSTAGRAM
     hasRenovacoesAdminAccess, // 📊 FUNÇÃO PARA RENOVAÇÕES
     hasRelatorioSemanalAdminAccess, // 📋 FUNÇÃO PARA RELATÓRIO SEMANAL ADMIN
-    hasAnalisesTrimesestraisAdminAccess, // 📊 FUNÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
-    hasCarteirasAdminAccess, // 📊 NOVA FUNÇÃO PARA ANALISAR CARTEIRAS ADMIN
+    hasAnalisesTrimesestraisAdminAccess, // 📊 NOVA FUNÇÃO PARA ANÁLISES TRIMESTRAIS ADMIN
+    hasCentralDuvidasAdminAccess, // 🆕 NOVA FUNÇÃO PARA CENTRAL DE DÚVIDAS ADMIN
     user,
     debugInfo: {
       userPlan: user?.plan,
@@ -323,7 +329,7 @@ export function useAuthAccess() {
       hasRenovacoesAccess: user?.plan === 'ADMIN', // 📊 DEBUG INFO RENOVAÇÕES
       hasRelatorioSemanalAdminAccess: user?.plan === 'ADMIN', // 📋 DEBUG INFO RELATÓRIO SEMANAL ADMIN
       hasAnalisesTrimesestraisAdminAccess: user?.plan === 'ADMIN', // 📊 DEBUG INFO ANÁLISES TRIMESTRAIS ADMIN
-      hasCarteirasAdminAccess: user?.plan === 'ADMIN' // 📊 DEBUG INFO ANALISAR CARTEIRAS ADMIN
+      hasCentralDuvidasAdminAccess: user?.plan === 'ADMIN' // 🆕 DEBUG INFO CENTRAL DE DÚVIDAS ADMIN
     }
   };
 }

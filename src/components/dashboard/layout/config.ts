@@ -154,6 +154,14 @@ export const navItems = [
         icon: 'shield',
         page: 'recursos-reserva'
       },
+      // 🆕 NOVO ITEM: Suporte
+      {
+        key: 'recursos-suporte',
+        title: 'Suporte',
+        href: paths.dashboard.recursosExclusivos + '/central-duvidas',
+        icon: 'support',
+        page: 'recursos-suporte'
+      },
     ],
   },
 
@@ -221,20 +229,20 @@ export const navItems = [
         icon: 'chart-bar',
         page: 'admin-relatorios'
       },
-      // 🆕 CORREÇÃO: Usando paths corretos do paths.ts
+      // 🆕 NOVO ITEM: Admin do Relatório Semanal
       {
         key: 'admin-relatorio-semanal',
         title: 'Relatório Semanal',
-        href: paths.dashboard.adminRelatorioSemanal, // ✅ Usando constante
+        href: paths.dashboard.admin + '/relatorio-semanal',
         icon: 'document-text',
         page: 'admin-relatorio-semanal'
       },
-      // 🆕 CORREÇÃO: Usando paths corretos do paths.ts
+      // 🆕 NOVO ITEM: Análises Trimestrais
       {
         key: 'admin-analises-trimesestrais',
         title: 'Análises Trimestrais',
-        href: paths.dashboard.adminAnalisesTrimesestrais, // ✅ Usando constante
-        icon: 'chart-line',
+        href: paths.dashboard.admin + '/analises-trimesestrais',
+        icon: 'chart-line', // ou 'calendar', 'article'
         page: 'admin-analises-trimesestrais'
       },
       {
@@ -244,13 +252,20 @@ export const navItems = [
         icon: 'calendar',
         page: 'admin-integracoes'
       },
-      // 🆕 CORREÇÃO: Usando paths corretos do paths.ts
       {
-        key: 'admin-carteiras',
-        title: 'Analisar Carteiras',
-        href: paths.dashboard.adminCarteiras, // ✅ Usando constante
-        icon: 'chart-line',
-        page: 'admin-carteiras'
+        key: 'admin-logs',
+        title: 'Logs do Sistema',
+        href: paths.dashboard.adminLogs,
+        icon: 'list',
+        page: 'admin-logs'
+      },
+      // 🆕 NOVO ITEM: Central de Dúvidas Admin
+      {
+        key: 'admin-central-duvidas',
+        title: 'Central de Dúvidas',
+        href: paths.dashboard.admin + '/central-duvidas',
+        icon: 'support',
+        page: 'admin-central-duvidas'
       }
     ]
   },
