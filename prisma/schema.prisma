@@ -630,3 +630,35 @@ enum QuestionCategory {
   TECNICO
   FISCAL
 }
+
+model AtivoInformacao {
+  id          String   @id @default(cuid())
+  codigo      String   @unique // ITUB4, PETR4, etc.
+  nome        String   // Itaú Unibanco, Petrobras, etc.
+  setor       String   // Bancário, Petróleo, etc.
+  subsetor    String?  // Bancos Múltiplos, Exploração, etc.
+  tipo        String   // ACAO, FII, ETF, etc.
+  
+  // Análise Padrão
+  qualidade         Int     @default(7)  // 0-10
+  risco             String  @default("MEDIO") // BAIXO, MEDIO, ALTO
+  recomendacao      String  @default("NEUTRO") // COMPRA, VENDA, NEUTRO, MANTER
+  fundamentosResumo String? // Resumo dos fundamentos
+  pontosFortes      String? // Pontos positivos (JSON array como string)
+  pontosFracos      String? // Pontos negativos (JSON array como string)
+  observacoes       String? // Observações gerais
+  
+  // Categorização
+  segmento       String? // Large Cap, Small Cap, etc.
+  governanca     String? // N1, N2, NM, etc.
+  dividend_yield Float?  // Último dividend yield conhecido
+  
+  // Metadata
+  ativo          Boolean  @default(true)
+  ultimaRevisao  DateTime @default(now())
+  criadoPor      String? // ID do admin que criou
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@map("ativos_informacao")
+}

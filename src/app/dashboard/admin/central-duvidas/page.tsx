@@ -211,7 +211,7 @@ export default function AdminCentralDuvidas() {
   
   // Filtros
   const [filters, setFilters] = useState({
-    status: '',
+    status: 'NOVA',
     category: ''
   });
 

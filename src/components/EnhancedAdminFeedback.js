@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
   const [activeSection, setActiveSection] = useState('general');
+  const [loadingAtivos, setLoadingAtivos] = useState(false);
+  const [ativosInfo, setAtivosInfo] = useState([]);
+  
   const [feedbackData, setFeedbackData] = useState({
     pontuacaoGeral: carteira?.pontuacao || 8.0,
     avaliacoes: {
@@ -38,6 +41,95 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
   const prioridades = ['baixa', 'média', 'alta'];
   const statusAtivos = ['excelente', 'bom', 'regular', 'ruim', 'alerta'];
 
+  // Carregar informações dos ativos automaticamente
+  useEffect(() => {
+    if (carteira?.id) {
+      loadAtivosInformacoes();
+    }
+  }, [carteira?.id]);
+
+  const loadAtivosInformacoes = async () => {
+    setLoadingAtivos(true);
+    try {
+      const response = await fetch(`/api/carteiras/${carteira.id}/ativos-info`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setAtivosInfo(data.ativos);
+        
+        // Pré-carregar seção de análise de ativos com dados do banco
+        const ativosPreCarregados = data.ativos
+          .filter(ativo => ativo.temInformacao)
+          .map(ativo => ({
+            id: Date.now() + Math.random(),
+            codigo: ativo.codigo,
+            tipo: ativo.tipo.toLowerCase(),
+            status: mapearQualidadeParaStatus(ativo.informacao.qualidade),
+            nota: ativo.informacao.qualidade,
+            comentario: gerarComentarioAutomatico(ativo),
+            recomendacao: ativo.informacao.recomendacao.toLowerCase(),
+            valorCarteira: ativo.valorTotal,
+            pesoCarteira: ativo.pesoCarteira,
+            informacaoCompleta: ativo.informacao
+          }));
+
+        setFeedbackData(prev => ({
+          ...prev,
+          ativosAnalise: [...prev.ativosAnalise, ...ativosPreCarregados]
+        }));
+        
+      } else {
+        console.error('Erro ao carregar informações dos ativos:', data.error);
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+    } finally {
+      setLoadingAtivos(false);
+    }
+  };
+
+  // Função para mapear qualidade (0-10) para status visual
+  const mapearQualidadeParaStatus = (qualidade) => {
+    if (qualidade >= 9) return 'excelente';
+    if (qualidade >= 7) return 'bom';
+    if (qualidade >= 5) return 'regular';
+    if (qualidade >= 3) return 'ruim';
+    return 'alerta';
+  };
+
+  // Função para gerar comentário automático baseado nas informações do banco
+  const gerarComentarioAutomatico = (ativo) => {
+    const info = ativo.informacao;
+    let comentario = '';
+    
+    comentario += `${info.nome} (${ativo.codigo}) - Setor: ${info.setor}. `;
+    comentario += `Representa ${ativo.pesoCarteira}% da carteira (R$ ${ativo.valorCarteira.toLocaleString('pt-BR')}). `;
+    
+    if (info.fundamentosResumo) {
+      comentario += `${info.fundamentosResumo} `;
+    }
+    
+    if (info.pontosFortes && info.pontosFortes.length > 0) {
+      comentario += `Pontos fortes: ${info.pontosFortes.join(', ')}. `;
+    }
+    
+    if (info.pontosFracos && info.pontosFracos.length > 0) {
+      comentario += `Pontos de atenção: ${info.pontosFracos.join(', ')}. `;
+    }
+    
+    comentario += `Risco classificado como ${info.risco.toLowerCase()}. `;
+    
+    if (info.dividend_yield && ativo.tipo === 'ACAO') {
+      comentario += `Dividend yield atual: ${info.dividend_yield}%. `;
+    }
+    
+    if (info.observacoes) {
+      comentario += `${info.observacoes} `;
+    }
+    
+    return comentario.trim();
+  };
+
   const handleSave = () => {
     const dadosCompletos = {
       ...carteira,
@@ -55,7 +147,8 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
         ativosAnalise: feedbackData.ativosAnalise,
         setoresAnalise: feedbackData.setoresAnalise,
         alertas: feedbackData.alertas,
-        proximosPassos: feedbackData.proximosPassos
+        proximosPassos: feedbackData.proximosPassos,
+        ativosInformacoes: ativosInfo
       }
     };
     
@@ -181,15 +274,20 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
         color: 'white',
         padding: '24px 32px'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h2 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 8px 0' }}>
-              📊 Análise Avançada de Carteira
+              Análise Avançada de Carteira
             </h2>
             <p style={{ margin: 0, opacity: 0.9 }}>
-              Cliente: <strong>{carteira?.cliente?.name || 'N/A'}</strong> • 
+              Cliente: <strong>{carteira?.cliente?.name || carteira?.user?.firstName + ' ' + carteira?.user?.lastName || 'N/A'}</strong> • 
               Arquivo: <strong>{carteira?.nomeArquivo}</strong>
             </p>
+            {loadingAtivos && (
+              <p style={{ margin: '8px 0 0 0', opacity: 0.8, fontSize: '14px' }}>
+                Carregando informações dos ativos...
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
@@ -204,7 +302,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                 fontSize: '14px'
               }}
             >
-              ❌ Cancelar
+              Cancelar
             </button>
             <button
               onClick={handleSave}
@@ -219,7 +317,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                 fontWeight: '600'
               }}
             >
-              💾 Salvar Análise
+              Salvar Análise
             </button>
           </div>
         </div>
@@ -269,6 +367,25 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
               onClick={setActiveSection}
             />
           </div>
+
+          {/* Status dos Ativos Carregados */}
+          {ativosInfo.length > 0 && (
+            <div style={{ marginTop: '24px', padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+              <h4 style={{ fontSize: '12px', fontWeight: '600', margin: '0 0 8px 0', color: '#1e40af' }}>
+                STATUS DOS ATIVOS
+              </h4>
+              <div style={{ fontSize: '12px', color: '#374151' }}>
+                <div>Total: {ativosInfo.length}</div>
+                <div>Com informação: {ativosInfo.filter(a => a.temInformacao).length}</div>
+                <div>Sem informação: {ativosInfo.filter(a => !a.temInformacao).length}</div>
+                <div style={{ marginTop: '8px', fontWeight: '600', color: '#1e40af' }}>
+                  Cobertura: {ativosInfo.length > 0 ? 
+                    Math.round((ativosInfo.filter(a => a.temInformacao).length / ativosInfo.length) * 100) : 0
+                  }%
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
@@ -277,7 +394,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
           {activeSection === 'general' && (
             <div>
               <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', marginBottom: '24px' }}>
-                📊 Avaliação Geral da Carteira
+                Avaliação Geral da Carteira
               </h3>
               
               <div style={{
@@ -318,7 +435,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                     Métricas Detalhadas
                   </h4>
                   <ScoreSlider
-                    label="🏆 Qualidade dos Ativos"
+                    label="Qualidade dos Ativos"
                     value={feedbackData.avaliacoes.qualidade}
                     onChange={(val) => setFeedbackData(prev => ({
                       ...prev,
@@ -326,7 +443,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                     }))}
                   />
                   <ScoreSlider
-                    label="🎯 Diversificação"
+                    label="Diversificação"
                     value={feedbackData.avaliacoes.diversificacao}
                     onChange={(val) => setFeedbackData(prev => ({
                       ...prev,
@@ -334,7 +451,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                     }))}
                   />
                   <ScoreSlider
-                    label="⚖️ Adaptação ao Perfil"
+                    label="Adaptação ao Perfil"
                     value={feedbackData.avaliacoes.adaptacao}
                     onChange={(val) => setFeedbackData(prev => ({
                       ...prev,
@@ -379,7 +496,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
           {activeSection === 'recommendations' && (
             <div>
               <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', marginBottom: '24px' }}>
-                💡 Recomendações Personalizadas
+                Recomendações Personalizadas
               </h3>
               
               {/* Form para nova recomendação */}
@@ -391,7 +508,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                 marginBottom: '24px'
               }}>
                 <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#92400e' }}>
-                  ➕ Adicionar Nova Recomendação
+                  Adicionar Nova Recomendação
                 </h4>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -509,7 +626,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                     cursor: 'pointer'
                   }}
                 >
-                  ➕ Adicionar Recomendação
+                  Adicionar Recomendação
                 </button>
               </div>
 
@@ -552,7 +669,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                           fontSize: '12px'
                         }}
                       >
-                        🗑️ Remover
+                        Remover
                       </button>
                     </div>
                     <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: '#1f2937' }}>
@@ -563,7 +680,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                     </p>
                     {rec.impacto && (
                       <p style={{ fontSize: '14px', color: '#059669', margin: 0 }}>
-                        <strong>💥 Impacto:</strong> {rec.impacto}
+                        <strong>Impacto:</strong> {rec.impacto}
                       </p>
                     )}
                   </div>
@@ -576,10 +693,67 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
           {activeSection === 'assets' && (
             <div>
               <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', marginBottom: '24px' }}>
-                🏢 Análise Individual de Ativos
+                Análise Individual de Ativos
               </h3>
+
+              {/* Resumo dos ativos carregados */}
+              {ativosInfo.length > 0 && (
+                <div style={{
+                  backgroundColor: '#e0f2fe',
+                  border: '1px solid #0277bd',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  marginBottom: '24px'
+                }}>
+                  <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#01579b' }}>
+                    Ativos Identificados na Carteira
+                  </h4>
+                  
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                    gap: '12px',
+                    marginBottom: '16px'
+                  }}>
+                    {ativosInfo.slice(0, 6).map((ativo, index) => (
+                      <div key={index} style={{
+                        backgroundColor: '#ffffff',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        border: '1px solid #b3e5fc',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: '600', fontSize: '14px' }}>{ativo.codigo}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {ativo.pesoCarteira}% da carteira
+                          </div>
+                        </div>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: ativo.temInformacao ? '#4caf50' : '#ff9800'
+                        }} />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {ativosInfo.length > 6 && (
+                    <div style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                      ... e mais {ativosInfo.length - 6} ativos
+                    </div>
+                  )}
+                  
+                  <div style={{ fontSize: '12px', color: '#01579b', marginTop: '12px' }}>
+                    🟢 Com informação pré-carregada • 🟠 Sem informação no banco
+                  </div>
+                </div>
+              )}
               
-              {/* Form para novo ativo */}
+              {/* Form para novo ativo manual */}
               <div style={{
                 backgroundColor: '#f0fdf4',
                 border: '1px solid #10b981',
@@ -588,7 +762,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                 marginBottom: '24px'
               }}>
                 <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#065f46' }}>
-                  ➕ Analisar Novo Ativo
+                  Analisar Ativo Adicional (Manual)
                 </h4>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -687,7 +861,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                     cursor: 'pointer'
                   }}
                 >
-                  ➕ Adicionar Análise
+                  Adicionar Análise
                 </button>
               </div>
 
@@ -696,7 +870,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                 {feedbackData.ativosAnalise.map((ativo, index) => (
                   <div key={index} style={{
                     backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
+                    border: ativo.informacaoCompleta ? '2px solid #10b981' : '1px solid #e5e7eb',
                     borderRadius: '8px',
                     padding: '20px'
                   }}>
@@ -705,6 +879,20 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                         <h4 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#1f2937' }}>
                           {ativo.codigo}
                         </h4>
+                        
+                        {ativo.informacaoCompleta && (
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '8px',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            backgroundColor: '#dcfce7',
+                            color: '#166534'
+                          }}>
+                            AUTO
+                          </span>
+                        )}
+                        
                         <span style={{
                           padding: '4px 8px',
                           borderRadius: '12px',
@@ -723,6 +911,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                         }}>
                           {ativo.status.charAt(0).toUpperCase() + ativo.status.slice(1)}
                         </span>
+                        
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           {[...Array(5)].map((_, i) => (
                             <span key={i} style={{
@@ -737,25 +926,48 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setFeedbackData(prev => ({
-                          ...prev,
-                          ativosAnalise: prev.ativosAnalise.filter((_, i) => i !== index)
-                        }))}
-                        style={{
-                          backgroundColor: '#fee2e2',
-                          color: '#dc2626',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        🗑️ Remover
-                      </button>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {ativo.pesoCarteira && (
+                          <span style={{ 
+                            fontSize: '12px', 
+                            color: '#666',
+                            backgroundColor: '#f3f4f6',
+                            padding: '2px 8px',
+                            borderRadius: '12px'
+                          }}>
+                            {ativo.pesoCarteira}%
+                          </span>
+                        )}
+                        
+                        <button
+                          onClick={() => setFeedbackData(prev => ({
+                            ...prev,
+                            ativosAnalise: prev.ativosAnalise.filter((_, i) => i !== index)
+                          }))}
+                          style={{
+                            backgroundColor: '#fee2e2',
+                            color: '#dc2626',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Remover
+                        </button>
+                      </div>
                     </div>
-                    <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                    
+                    <p style={{ 
+                      fontSize: '14px', 
+                      color: '#6b7280', 
+                      margin: 0, 
+                      lineHeight: '1.5',
+                      maxHeight: '100px',
+                      overflowY: 'auto'
+                    }}>
                       {ativo.comentario}
                     </p>
                   </div>
@@ -768,7 +980,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
           {activeSection === 'feedback' && (
             <div>
               <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937', marginBottom: '24px' }}>
-                ✏️ Feedback Textual da Carteira
+                Feedback Textual da Carteira
               </h3>
               
               <div style={{
@@ -809,7 +1021,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  <span>💡 Dica: Seja específico e construtivo no feedback</span>
+                  <span>Dica: Seja específico e construtivo no feedback</span>
                   <span>{feedbackData.feedbackGeral.length} caracteres</span>
                 </div>
               </div>
@@ -824,7 +1036,7 @@ const EnhancedAdminFeedback = ({ carteira, onSave, onCancel }) => {
                   marginTop: '24px'
                 }}>
                   <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#374151' }}>
-                    👁️ Preview do Feedback
+                    Preview do Feedback
                   </h4>
                   <div style={{
                     fontSize: '14px',
